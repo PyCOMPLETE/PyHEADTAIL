@@ -18,7 +18,7 @@ class RFCavity(object):
     classdocs
     '''
 
-    def __init__(self, length, gamma_transition, frequency, voltage, phi)):
+    def __init__(self, length, gamma_transition, frequency, voltage, phi):
         '''
         Constructor
         '''
@@ -30,24 +30,24 @@ class RFCavity(object):
         self.voltage = voltage
         self.phi = phi
 
-    def match(bunch):
+    def match(self, bunch):
     
          pass
 
-    def track(bunch):
+    def track(self, bunch):
 
         p0 = bunch.mass * bunch.gamma * bunch.beta * c
-        eta = 1 / (bunch.gamma * bunch.gamma) - 1 / (gamma_transition * gamma_transition)
+        eta = 1 / (bunch.gamma * bunch.gamma) - 1 / (self.gamma_transition * self.gamma_transition)
 
         tsgn = (eta > 0) - (eta < 0)
 
-        coefficient_omega = 2 * np.pi * frequency / (bunch.beta * c)
-        coefficient_voltage = tsgn * e * voltage / (p0 * bunch.beta * c)
+        c_omega = 2 * np.pi * self.frequency / (bunch.beta * c)
+        c_voltage = tsgn * e * self.voltage / (p0 * bunch.beta * c)
 
         # Length L drift
-        bunch.dz += - eta * length * bunch.dp
+        bunch.dz += - eta * self.length * bunch.dp
         # Full turn kick
-        bunch.dp += c_voltage * np.sin(c_omega * bunch.dz + phi)
+        bunch.dp += c_voltage * np.sin(c_omega * bunch.dz + self.phi)
 
     
 class CSCavity(object):
@@ -56,28 +56,27 @@ class CSCavity(object):
     '''
 
     def __init__(self, length, gamma_transition, Qs):
+
         self.circumference = circumference
         self.gamma_transition = transition
         self.Qs = Qs
 
-    def track(bunch):
-            double p0 = bunch.mass * bunch.gamma * bunch.beta * c;
-    double eta = 1 / (bunch.gamma * bunch.gamma) - 1 / (gamma_tr * gamma_tr);
+    def track(self, bunch):
 
-    int tsgn = (eta > 0) - (eta < 0);
+        p0 = bunch.mass * bunch.gamma * bunch.beta * c
+        eta = 1 / (bunch.gamma * bunch.gamma) - 1 / (self.gamma_transition * self.gamma_transition)
 
-    double omega_0 = 2 * M_PI * bunch.beta * c / C;
-    double omega_s = Qs * omega_0;
+        tsgn = (eta > 0) - (eta < 0)
 
-    double dQs = 2 * M_PI * Qs;
-    double cosdQs = cos(dQs);
-    double sindQs = sin(dQs);
+        omega_0 = 2 * np.pi * bunch.beta * c / self.circumference
+        omega_s = self.Qs * omega_0
 
-    for (size_t i=0; i<bunch.get_nparticles(); i++)
-    {
-        double dz0 = bunch.dz[i];
-        double dp0 = bunch.dp[i];
+        dQs = 2 * np.pi * self.Qs
+        cosdQs = cos(dQs)
+        sindQs = sin(dQs)
 
-        bunch.dz[i] = dz0 * cosdQs - eta * c / omega_s * dp0 * sindQs;
-        bunch.dp[i] = dp0 * cosdQs + omega_s / eta / c * dz0 * sindQs;
-    }
+        dz0 = bunch.dz
+        dp0 = bunch.dp
+    
+        bunch.dz = dz0 * cosdQs - eta * c / omega_s * dp0 * sindQs;
+        bunch.dp = dp0 * cosdQs + omega_s / eta / c * dz0 * sindQs;
