@@ -166,16 +166,16 @@ class Bunch(object):
 #                 self.slices.sigma_dz[i] = np.std(self.dz[k])
 #                 self.slices.sigma_dp[i] = np.std(self.dp[k])
  
-                stdx2 = np.std(x * x)
-                stdxp2 = np.std(xp * xp)
-                stdxxp = np.std(x * xp)
-                stdy2 = np.std(y * y)
-                stdyp2 = np.std(yp * yp)
-                stdyyp = np.std(y * yp)
+                # stdx2 = np.std(x * x)
+                # stdxp2 = np.std(xp * xp)
+                # stdxxp = np.std(x * xp)
+                # stdy2 = np.std(y * y)
+                # stdyp2 = np.std(yp * yp)
+                # stdyyp = np.std(y * yp)
  
-                self.slices.epsn_x[i] = np.sqrt(np.var(x * x) * np.var(xp * xp) - np.var(x * xp) * np.var(x * xp)) \
+                self.slices.epsn_x[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp) - np.mean(x * xp) * np.mean(x * xp)) \
                                       * self.gamma * self.beta * 1e6
-                self.slices.epsn_y[i] = np.sqrt(np.var(y * y) * np.var(yp * yp) - np.var(y * yp) * np.var(y * yp)) \
+                self.slices.epsn_y[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp) - np.mean(x * xp) * np.mean(x * xp)) \
                                       * self.gamma * self.beta * 1e6
 #                 self.slices.epsn_z[i] = 4 * np.pi \
 #                         * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
