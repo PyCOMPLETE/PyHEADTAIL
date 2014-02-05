@@ -6,8 +6,10 @@ Created on 06.01.2014
 
 
 import numpy as np
+# cimport numpy as np
 
 
+import cobra_functions.cobra_functions as cp
 from configuration import *
 from beams.slices import *
 
@@ -101,11 +103,12 @@ class Bunch(object):
         self.dz *= sigma_dz
         self.dp *= sigma_dp
 
+    @profile
     def compute_statistics(self):
 
         if not hasattr(self, 'slices'):
             print "*** WARNING: bunch not yet sliced! Aborting..."
-            exit(-1)
+            sys.exit(-1)
         else:
             n_particles = len(self.x)
 
@@ -154,12 +157,15 @@ class Bunch(object):
                 xp = self.xp[indices[i]]
                 y = self.y[indices[i]]
                 yp = self.yp[indices[i]]
+                dz = self.dz[indices[i]]
+                dp = self.dp[indices[i]]
+
                 self.slices.mean_x[i] = np.mean(x)
                 self.slices.mean_xp[i] = np.mean(xp)
                 self.slices.mean_y[i] = np.mean(y)
                 self.slices.mean_yp[i] = np.mean(yp)
-#                 self.slices.mean_dz[i] = np.mean(self.dz[k])
-#                 self.slices.mean_dp[i] = np.mean(self.dp[k])
+                self.slices.mean_dz[i] = np.mean(dz)
+                self.slices.mean_dp[i] = np.mean(dp)
  
 #                 self.slices.sigma_x[i] = np.std(self.x[k])
 #                 self.slices.sigma_y[i] = np.std(self.y[k])
@@ -173,13 +179,22 @@ class Bunch(object):
                 # stdyp2 = np.std(yp * yp)
                 # stdyyp = np.std(y * yp)
  
-                self.slices.epsn_x[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp) - np.mean(x * xp) * np.mean(x * xp)) \
+                self.slices.epsn_x[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp)
+                                      - np.mean(x * xp) * np.mean(x * xp)) \
                                       * self.gamma * self.beta * 1e6
-                self.slices.epsn_y[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp) - np.mean(x * xp) * np.mean(x * xp)) \
+                self.slices.epsn_y[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp)
+                                      - np.mean(x * xp) * np.mean(x * xp)) \
                                       * self.gamma * self.beta * 1e6
 #                 self.slices.epsn_z[i] = 4 * np.pi \
 #                         * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
 #                         * self.mass * self.gamma * self.beta * c / e
+
+                # self.slices.epsn_y[i] = cp.emittance(x, self.slices.mean_x[i],
+                #                                      xp, self.slices.mean_xp[i]) \
+                #                                      * self.gamma * self.beta * 1e6
+                # self.slices.epsn_y[i] = cp.emittance(y, self.slices.mean_y[i],
+                #                                   yp, self.slices.mean_yp[i]) \
+                #                       * self.gamma * self.beta * 1e6
 
 #         double lambda;
 #         std::vector<int> index;
@@ -223,7 +238,7 @@ class Bunch(object):
             self.slices.slice_constant_space(self, nsigmaz)
         else:
             print '*** ERROR! Unknown mode '+mode+'! Aborting...'
-            exit(-1)
+            sys.exit(-1)
 
 #     def set_slice(self, n_slices):
 #         

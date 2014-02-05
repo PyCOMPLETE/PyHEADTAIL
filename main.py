@@ -1,5 +1,6 @@
 from __future__ import division
-import cProfile, itertools, time, timeit
+from IPython.lib.deepreload import reload as dreload
+import cProfile, itertools, ipdb, time, timeit
 
 
 from configuration import *
@@ -69,6 +70,7 @@ def main():
         tmp_mean_dz.append(bunch.slices.mean_dz[-1])
         tmp_epsn_z.append(bunch.slices.epsn_z[-1])
 
+    # ipdb.set_trace()
     figure(figsize=(16,8))
     ax1 = subplot(131)
     ax2 = subplot(132)
@@ -76,7 +78,8 @@ def main():
     ax1.plot(tmp_mean_x)
     ax1.plot(tmp_mean_y)
     ax2.plot(tmp_epsn_x)
-    ax2.plot(tmp_epsn_y, lw=5)
+    ax2.plot(tmp_epsn_y, ls='--')
+    ax2.set_ylim(0, 5)
     ax3.plot(tmp_mean_dz)
     ax3.plot(tmp_epsn_z)
     show()
@@ -85,5 +88,5 @@ def main():
 
 
 if __name__ == '__main__':
-    cProfile.run('main()', 'stats00.prof')
+    cProfile.run('main()', 'stats01.prof')
 #     main()

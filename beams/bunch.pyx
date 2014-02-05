@@ -125,7 +125,7 @@ class Bunch(object):
 
         if not hasattr(self, 'slices'):
             print "*** WARNING: bunch not yet sliced! Aborting..."
-            exit(-1)
+            sys.exit(-1)
         else:
             n_particles = len(self.x)
 
@@ -270,7 +270,7 @@ class Bunch(object):
             self.slices.slice_constant_space(self, nsigmaz)
         else:
             print '*** ERROR! Unknown mode '+mode+'! Aborting...'
-            exit(-1)
+            sys.exit(-1)
 
 #     def set_slice(self, n_slices):
 #         
