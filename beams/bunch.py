@@ -179,22 +179,22 @@ class Bunch(object):
                 # stdyp2 = np.std(yp * yp)
                 # stdyyp = np.std(y * yp)
  
-                self.slices.epsn_x[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp)
-                                      - np.mean(x * xp) * np.mean(x * xp)) \
-                                      * self.gamma * self.beta * 1e6
-                self.slices.epsn_y[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp)
-                                      - np.mean(x * xp) * np.mean(x * xp)) \
-                                      * self.gamma * self.beta * 1e6
+                # self.slices.epsn_x[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp)
+                #                       - np.mean(x * xp) * np.mean(x * xp)) \
+                #                       * self.gamma * self.beta * 1e6
+                # self.slices.epsn_y[i] = np.sqrt(np.mean(y * y) * np.mean(yp * yp)
+                #                       - np.mean(y * yp) * np.mean(y * yp)) \
+                #                       * self.gamma * self.beta * 1e6
 #                 self.slices.epsn_z[i] = 4 * np.pi \
 #                         * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
 #                         * self.mass * self.gamma * self.beta * c / e
 
-                # self.slices.epsn_y[i] = cp.emittance(x, self.slices.mean_x[i],
-                #                                      xp, self.slices.mean_xp[i]) \
-                #                                      * self.gamma * self.beta * 1e6
-                # self.slices.epsn_y[i] = cp.emittance(y, self.slices.mean_y[i],
-                #                                   yp, self.slices.mean_yp[i]) \
-                #                       * self.gamma * self.beta * 1e6
+                self.slices.epsn_x[i] = cp.emittance(x, self.slices.mean_x[i],
+                                                     xp, self.slices.mean_xp[i]) \
+                                                     * self.gamma * self.beta * 1e6
+                self.slices.epsn_y[i] = cp.emittance(y, self.slices.mean_y[i],
+                                                     yp, self.slices.mean_yp[i]) \
+                                                     * self.gamma * self.beta * 1e6
 
 #         double lambda;
 #         std::vector<int> index;

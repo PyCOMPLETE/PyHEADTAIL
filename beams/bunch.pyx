@@ -103,6 +103,7 @@ class Bunch(object):
         self.dz *= sigma_dz
         self.dp *= sigma_dp
 
+    # @profile
     def compute_statistics(self):
 
         cdef int i, j#, n_slices = 64
@@ -206,16 +207,11 @@ class Bunch(object):
 #                 stdyp2 = np.std(yp2)
 #                 stdyyp = np.std(yyp)
 
-                stdx2 = np.std(x * x)
-                stdxp2 = np.std(xp * xp)
-                stdxxp = np.std(x * xp)
-                stdy2 = np.std(y * y)
-                stdyp2 = np.std(yp * yp)
-                stdyyp = np.std(y * yp)
- 
-                self.slices.epsn_x[i] = np.sqrt(stdx2 * stdxp2 - stdxxp ** 2) \
+                self.slices.epsn_x[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp) \
+                                      - np.mean(x * xp) * np.mean(x * xp)) \
                                       * self.gamma * self.beta * 1e6
-                self.slices.epsn_y[i] = np.sqrt(stdy2 * stdyp2 - stdyyp ** 2) \
+                self.slices.epsn_y[i] = np.sqrt(np.mean(y * y) * np.mean(yp * yp) \
+                                      - np.mean(y * yp) * np.mean(y * yp)) \
                                       * self.gamma * self.beta * 1e6
 #                 self.slices.epsn_z[i] = 4 * np.pi \
 #                         * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
