@@ -55,10 +55,10 @@ class CSCavity(object):
     classdocs
     '''
 
-    def __init__(self, length, gamma_transition, Qs):
+    def __init__(self, circumference, gamma_transition, Qs):
 
         self.circumference = circumference
-        self.gamma_transition = transition
+        self.gamma_transition = gamma_transition
         self.Qs = Qs
 
     def track(self, bunch):
@@ -72,11 +72,11 @@ class CSCavity(object):
         omega_s = self.Qs * omega_0
 
         dQs = 2 * np.pi * self.Qs
-        cosdQs = cos(dQs)
-        sindQs = sin(dQs)
+        cosdQs = np.cos(dQs)
+        sindQs = np.sin(dQs)
 
         dz0 = bunch.dz
         dp0 = bunch.dp
     
-        bunch.dz = dz0 * cosdQs - eta * c / omega_s * dp0 * sindQs;
-        bunch.dp = dp0 * cosdQs + omega_s / eta / c * dz0 * sindQs;
+        bunch.dz = dz0 * cosdQs - eta * c / omega_s * dp0 * sindQs
+        bunch.dp = dp0 * cosdQs + omega_s / eta / c * dz0 * sindQs

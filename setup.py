@@ -33,14 +33,14 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 
 # Set up extension and build
 cy_ext = [
-        Extension("beams.bunch",
-                  ["beams/bunch.pyx"],
-                 include_dirs=[np.get_include()],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
-                 libraries=["m"],
-                 library_dirs=[],
-                 ),
+        # Extension("beams.bunch",
+        #           ["beams/bunch.pyx"],
+        #          include_dirs=[np.get_include()],
+        #          #extra_compile_args=["-g"],
+        #          #extra_link_args=["-g"],
+        #          libraries=["m"],
+        #          library_dirs=[],
+        #          ),
         Extension("cobra_functions.cobra_functions",
                   ["cobra_functions/cobra_functions.pyx"],
                  include_dirs=[np.get_include()],

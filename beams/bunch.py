@@ -6,12 +6,11 @@ Created on 06.01.2014
 
 
 import numpy as np
-# cimport numpy as np
 
 
-import cobra_functions.cobra_functions as cp
-from configuration import *
 from beams.slices import *
+from configuration import *
+import cobra_functions.cobra_functions as cp
 
 
 class Bunch(object):
@@ -103,7 +102,7 @@ class Bunch(object):
         self.dz *= sigma_dz
         self.dp *= sigma_dp
 
-    @profile
+    # @profile
     def compute_statistics(self):
 
         if not hasattr(self, 'slices'):
@@ -152,7 +151,8 @@ class Bunch(object):
 
 
         for i in xrange(n_slices + 3):
-            if len(indices[i]):
+            n = len(indices[i])
+            if n:
                 x = self.x[indices[i]]
                 xp = self.xp[indices[i]]
                 y = self.y[indices[i]]
@@ -160,72 +160,23 @@ class Bunch(object):
                 dz = self.dz[indices[i]]
                 dp = self.dp[indices[i]]
 
-                self.slices.mean_x[i] = np.mean(x)
-                self.slices.mean_xp[i] = np.mean(xp)
-                self.slices.mean_y[i] = np.mean(y)
-                self.slices.mean_yp[i] = np.mean(yp)
-                self.slices.mean_dz[i] = np.mean(dz)
-                self.slices.mean_dp[i] = np.mean(dp)
+                self.slices.mean_x[i] = cp.mean(x)
+                self.slices.mean_xp[i] = cp.mean(xp)
+                self.slices.mean_y[i] = cp.mean(y)
+                self.slices.mean_yp[i] = cp.mean(yp)
+                self.slices.mean_dz[i] = cp.mean(dz)
+                self.slices.mean_dp[i] = cp.mean(dp)
  
-#                 self.slices.sigma_x[i] = np.std(self.x[k])
-#                 self.slices.sigma_y[i] = np.std(self.y[k])
-#                 self.slices.sigma_dz[i] = np.std(self.dz[k])
-#                 self.slices.sigma_dp[i] = np.std(self.dp[k])
- 
-                # stdx2 = np.std(x * x)
-                # stdxp2 = np.std(xp * xp)
-                # stdxxp = np.std(x * xp)
-                # stdy2 = np.std(y * y)
-                # stdyp2 = np.std(yp * yp)
-                # stdyyp = np.std(y * yp)
- 
-                # self.slices.epsn_x[i] = np.sqrt(np.mean(x * x) * np.mean(xp * xp)
-                #                       - np.mean(x * xp) * np.mean(x * xp)) \
-                #                       * self.gamma * self.beta * 1e6
-                # self.slices.epsn_y[i] = np.sqrt(np.mean(y * y) * np.mean(yp * yp)
-                #                       - np.mean(y * yp) * np.mean(y * yp)) \
-                #                       * self.gamma * self.beta * 1e6
-#                 self.slices.epsn_z[i] = 4 * np.pi \
-#                         * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
-#                         * self.mass * self.gamma * self.beta * c / e
+                self.slices.sigma_x[i] = cp.std(x)
+                self.slices.sigma_y[i] = cp.std(y)
+                self.slices.sigma_dz[i] = cp.std(dz)
+                self.slices.sigma_dp[i] = cp.std(dp)
 
-                self.slices.epsn_x[i] = cp.emittance(x, self.slices.mean_x[i],
-                                                     xp, self.slices.mean_xp[i]) \
-                                                     * self.gamma * self.beta * 1e6
-                self.slices.epsn_y[i] = cp.emittance(y, self.slices.mean_y[i],
-                                                     yp, self.slices.mean_yp[i]) \
-                                                     * self.gamma * self.beta * 1e6
-
-#         double lambda;
-#         std::vector<int> index;
-# 
-#         for (size_t i=0; i<get_nslices() + 3; i++)
-#         {
-#             get_slice(i, lambda, index);
-# 
-#             double mean_x = compute_first_moment(x, index);
-#             double mean_xp = compute_first_moment(xp, index);
-#             double mean_y = compute_first_moment(y, index);
-#             double mean_yp = compute_first_moment(yp, index);
-#             double mean_dz = compute_first_moment(dz, index);
-#             double mean_dp = compute_first_moment(dp, index);
-#             double mean_kx = compute_first_moment(kx, index);
-#             double mean_ky = compute_first_moment(ky, index);
-#             double mean_kz = compute_first_moment(kz, index);
-# 
-#             double sigma_x = compute_second_moment(x, mean_x, index);
-#             double sigma_y = compute_second_moment(y, mean_y, index);
-#             double sigma_dz = compute_second_moment(dz, mean_dz, index);
-#             double sigma_dp = compute_second_moment(dp, mean_dp, index);
-# 
-#             double epsn_x = compute_emittance(x, mean_x, xp, mean_xp, index);
-#             double epsn_y = compute_emittance(y, mean_y, yp, mean_yp, index);
-#             double epsn_z = 0;
-# 
-#             epsn_x *= gamma * beta * 1e6;
-#             epsn_y *= gamma * beta * 1e6;
-#             epsn_z = 4 * M_PI * sigma_dz * sigma_dp * mass * gamma * beta * c / e;
-#         }
+                self.slices.epsn_x[i] = cp.emittance(x, xp) * self.gamma * self.beta * 1e6
+                self.slices.epsn_y[i] = cp.emittance(y, yp) * self.gamma * self.beta * 1e6
+                self.slices.epsn_z[i] = 4 * np.pi \
+                                      * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
+                                      * self.mass * self.gamma * self.beta * c / e
 
     def slice(self, n_slices, nsigmaz, mode):
 

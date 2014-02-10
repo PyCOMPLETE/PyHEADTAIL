@@ -13,17 +13,13 @@ from trackers.longitudinal_tracker import *
 from plots import *
 
 
-# plt.ion()
+plt.ion()
 tmp_mean_x = []
 tmp_mean_y = []
 tmp_epsn_x = []
 tmp_epsn_y = []
 tmp_mean_dz = []
 tmp_epsn_z = []
-
-
-# def main():
-t0 = 0
 
 bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
             epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
@@ -44,7 +40,9 @@ linear_map = TransverseTracker.from_copy(s,
 V = 2e6
 f = 200e6
 gamma_tr = 18
-cavity = RFCavity(C, gamma_tr, f, V, 0)
+Qs = 0.017
+cavity = CSCavity(C, gamma_tr, Qs)
+# cavity = RFCavity(C, gamma_tr, f, V, 0)
 
 poisson = PoissonFFT(100)
 
@@ -62,10 +60,10 @@ for i in range(100):
         m.track(bunch)
 #            t0 = time.clock() - t1
 #            print m, ', elapsed time: ' + str(t0) + ' s'
-    # plot_phasespace(bunch)
-    tmp_mean_x.append(bunch.slices.mean_xp[-1])
+    plot_phasespace(bunch)
+    tmp_mean_x.append(bunch.slices.mean_x[-1])
     tmp_epsn_x.append(bunch.slices.epsn_x[-1])
-    tmp_mean_y.append(bunch.slices.mean_yp[-1])
+    tmp_mean_y.append(bunch.slices.mean_y[-1])
     tmp_epsn_y.append(bunch.slices.epsn_y[-1])
     tmp_mean_dz.append(bunch.slices.mean_dz[-1])
     tmp_epsn_z.append(bunch.slices.epsn_z[-1])
