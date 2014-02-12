@@ -15,12 +15,12 @@ import cobra_functions.cobra_functions as cp
 
 class Bunch(object):
     '''
-    classdocs
+    Fundamental entity for beam dynamics simulations
     '''
 
     def __init__(self, x, xp, y, yp, dz, dp):
         '''
-        Constructor
+        Most minimalistic constructor
         '''
         self.x = x
         self.xp = xp

@@ -5,6 +5,7 @@ import cProfile, itertools, ipdb, time, timeit
 
 from configuration import *
 from beams.bunch import *
+from monitors.monitors import *
 from solvers.poissonfft import *
 from trackers.transverse_tracker import *
 from trackers.longitudinal_tracker import *
@@ -21,10 +22,19 @@ tmp_epsn_y = []
 tmp_mean_dz = []
 tmp_epsn_z = []
 
+n_turns = 20
+
+# Monitors
+bunchmonitor = BunchMonitor('bunch', n_turns)
+slicemonitor = SliceMonitor('slices', n_turns)
+particlemonitor = ParticleMonitor('particles', n_turns)
+
+# Bunch
 bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
             epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
 bunch.slice(n_slices, nsigmaz=None, mode='cspace')
 
+# Betatron
 n_segments = 10
 C = 6911.
 s = np.arange(1, n_segments + 1) * C / n_segments
@@ -37,6 +47,7 @@ linear_map = TransverseTracker.from_copy(s,
                                np.zeros(n_segments),
                                26.13, 0, 0, 26.18, 0, 0)
 
+# Synchrotron
 V = 2e6
 f = 200e6
 gamma_tr = 18
@@ -53,14 +64,15 @@ map_ = [linear_map, [cavity]]
 map_ = list(itertools.chain.from_iterable(map_))
 
 t1 = time.clock()
-for i in range(100):
+for i in range(n_turns):
     # t1 = time.clock()
     for m in map_:
 #            t1 = time.clock()
         m.track(bunch)
 #            t0 = time.clock() - t1
 #            print m, ', elapsed time: ' + str(t0) + ' s'
-    plot_phasespace(bunch)
+    bunchmonitor.dump(bunch, 1)
+    # plot_phasespace(bunch)
     tmp_mean_x.append(bunch.slices.mean_x[-1])
     tmp_epsn_x.append(bunch.slices.epsn_x[-1])
     tmp_mean_y.append(bunch.slices.mean_y[-1])
