@@ -25,58 +25,87 @@ class BunchMonitor(Monitor):
         self.n_steps = n_steps
         self.i_steps = 0
 
-    def dump(self, bunch, i_bunch):
+        self.h5file.create_group('Bunch')
+        self.h5file.create_group('LSlice')
+        self.h5file.create_group('RSlice')
+        self.h5file.create_group('Slices')
 
-        bunchname = 'Bunch_{:04d}'.format(i_bunch)
-        try:
-            self.h5file[bunchname]
-        except KeyError:
-            self.h5file.create_group(bunchname)
-            self.create_data(i_bunch)
-        finally:
-            self.mean_x[self.i_steps] = bunch.slices.mean_x[-1]
-            self.mean_xp[self.i_steps] = bunch.slices.mean_xp[-1]
-            self.mean_y[self.i_steps] = bunch.slices.mean_y[-1]
-            self.mean_yp[self.i_steps] = bunch.slices.mean_yp[-1]
-            self.mean_dz[self.i_steps] = bunch.slices.mean_dz[-1]
-            self.mean_dp[self.i_steps] = bunch.slices.mean_dp[-1]
-            self.sigma_x[self.i_steps] = bunch.slices.sigma_x[-1]
-            self.sigma_y[self.i_steps] = bunch.slices.sigma_y[-1]
-            self.sigma_dz[self.i_steps] = bunch.slices.sigma_dz[-1]
-            self.sigma_dp[self.i_steps] = bunch.slices.sigma_dp[-1]
-            self.epsn_x[self.i_steps] = bunch.slices.epsn_x[-1]
-            self.epsn_y[self.i_steps] = bunch.slices.epsn_y[-1]
-            self.epsn_z[self.i_steps] = bunch.slices.epsn_z[-1]
+    # def __del__(self):
+
+    #     self.h5file.close()
+    #     print "Closed!"
+        
+    def dump(self, bunch):
+
+        if not self.i_steps:
+            n_steps = self.n_steps
+            n_slices = len(bunch.slices.mean_x) - 3
+
+            self.create_data(self.h5file['Bunch'], (n_steps,))
+            self.create_data(self.h5file['LSlice'], (n_steps,))
+            self.create_data(self.h5file['RSlice'], (n_steps,))
+            self.create_data(self.h5file['Slices'], (n_slices, n_steps))
+
+            self.write_data(bunch, np.s_[-1], self.h5file['Bunch'], self.i_steps)
+            self.write_data(bunch, np.s_[0], self.h5file['LSlice'], self.i_steps)
+            self.write_data(bunch, np.s_[-2], self.h5file['RSlice'], self.i_steps)
+            self.write_data(bunch, np.s_[1:-2], self.h5file['Slices'], self.i_steps, rank=2)
+        else:
+            self.write_data(bunch, np.s_[-1], self.h5file['Bunch'], self.i_steps)
+            self.write_data(bunch, np.s_[0], self.h5file['LSlice'], self.i_steps)
+            self.write_data(bunch, np.s_[-2], self.h5file['RSlice'], self.i_steps)
+            self.write_data(bunch, np.s_[1:-2], self.h5file['Slices'], self.i_steps, rank=2)
 
         self.i_steps += 1
 
-    def create_data(self, i_bunch):
+    def create_data(self, h5group, dims):
 
-        bunchname = "Bunch_{:04d}".format(i_bunch)
-        self.mean_x = self.h5file[bunchname].create_dataset("mean_x", (self.n_steps,))
-        self.mean_xp = self.h5file[bunchname].create_dataset("mean_xp", (self.n_steps,))
-        self.mean_y = self.h5file[bunchname].create_dataset("mean_y", (self.n_steps,))
-        self.mean_yp = self.h5file[bunchname].create_dataset("mean_yp", (self.n_steps,))
-        self.mean_dz = self.h5file[bunchname].create_dataset("mean_dz", (self.n_steps,))
-        self.mean_dp = self.h5file[bunchname].create_dataset("mean_dp", (self.n_steps,))
-        self.sigma_x = self.h5file[bunchname].create_dataset("sigma_x", (self.n_steps,))
-        self.sigma_y = self.h5file[bunchname].create_dataset("sigma_y", (self.n_steps,))
-        self.sigma_dz = self.h5file[bunchname].create_dataset("sigma_dz", (self.n_steps,))
-        self.sigma_dp = self.h5file[bunchname].create_dataset("sigma_dp", (self.n_steps,))
-        self.epsn_x = self.h5file[bunchname].create_dataset("epsn_x", (self.n_steps,))
-        self.epsn_y = self.h5file[bunchname].create_dataset("epsn_y", (self.n_steps,))
-        self.epsn_z = self.h5file[bunchname].create_dataset("epsn_z", (self.n_steps,))
-        
+        h5group.create_dataset("mean_x", dims)
+        h5group.create_dataset("mean_xp", dims)
+        h5group.create_dataset("mean_y", dims)
+        h5group.create_dataset("mean_yp", dims)
+        h5group.create_dataset("mean_dz", dims)
+        h5group.create_dataset("mean_dp", dims)
+        h5group.create_dataset("sigma_x", dims)
+        h5group.create_dataset("sigma_y", dims)
+        h5group.create_dataset("sigma_dz", dims)
+        h5group.create_dataset("sigma_dp", dims)
+        h5group.create_dataset("epsn_x", dims)
+        h5group.create_dataset("epsn_y", dims)
+        h5group.create_dataset("epsn_z", dims)
 
-class SliceMonitor(Monitor):
+    def write_data(self, bunch, indices, h5group, i_steps, rank=1):
 
-    def __init__(self, filename, n_steps):
-
-        self.h5file = hp.File(filename + '.h5', 'w')
-        self.n_steps = n_steps
-        
-    def dump(self, bunch):
-        pass
+        if rank == 1:
+            h5group["mean_x"][i_steps] = bunch.slices.mean_x[indices]
+            h5group["mean_xp"][i_steps] = bunch.slices.mean_xp[indices]
+            h5group["mean_y"][i_steps] = bunch.slices.mean_y[indices]
+            h5group["mean_yp"][i_steps] = bunch.slices.mean_yp[indices]
+            h5group["mean_dz"][i_steps] = bunch.slices.mean_dz[indices]
+            h5group["mean_dp"][i_steps] = bunch.slices.mean_dp[indices]
+            h5group["sigma_x"][i_steps] = bunch.slices.sigma_x[indices]
+            h5group["sigma_y"][i_steps] = bunch.slices.sigma_y[indices]
+            h5group["sigma_dz"][i_steps] = bunch.slices.sigma_dz[indices]
+            h5group["sigma_dp"][i_steps] = bunch.slices.sigma_dp[indices]
+            h5group["epsn_x"][i_steps] = bunch.slices.epsn_x[indices]
+            h5group["epsn_y"][i_steps] = bunch.slices.epsn_y[indices]
+            h5group["epsn_z"][i_steps] = bunch.slices.epsn_z[indices]
+        elif rank == 2:
+            h5group["mean_x"][:,i_steps] = bunch.slices.mean_x[indices]
+            h5group["mean_xp"][:,i_steps] = bunch.slices.mean_xp[indices]
+            h5group["mean_y"][:,i_steps] = bunch.slices.mean_y[indices]
+            h5group["mean_yp"][:,i_steps] = bunch.slices.mean_yp[indices]
+            h5group["mean_dz"][:,i_steps] = bunch.slices.mean_dz[indices]
+            h5group["mean_dp"][:,i_steps] = bunch.slices.mean_dp[indices]
+            h5group["sigma_x"][:,i_steps] = bunch.slices.sigma_x[indices]
+            h5group["sigma_y"][:,i_steps] = bunch.slices.sigma_y[indices]
+            h5group["sigma_dz"][:,i_steps] = bunch.slices.sigma_dz[indices]
+            h5group["sigma_dp"][:,i_steps] = bunch.slices.sigma_dp[indices]
+            h5group["epsn_x"][:,i_steps] = bunch.slices.epsn_x[indices]
+            h5group["epsn_y"][:,i_steps] = bunch.slices.epsn_y[indices]
+            h5group["epsn_z"][:,i_steps] = bunch.slices.epsn_z[indices]
+        else:
+            raise ValueError("Rank > 2 not supported!")
 
 class ParticleMonitor(Monitor):
 

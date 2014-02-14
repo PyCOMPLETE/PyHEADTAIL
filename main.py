@@ -26,7 +26,6 @@ n_turns = 20
 
 # Monitors
 bunchmonitor = BunchMonitor('bunch', n_turns)
-slicemonitor = SliceMonitor('slices', n_turns)
 particlemonitor = ParticleMonitor('particles', n_turns)
 
 # Bunch
@@ -71,7 +70,7 @@ for i in range(n_turns):
         m.track(bunch)
 #            t0 = time.clock() - t1
 #            print m, ', elapsed time: ' + str(t0) + ' s'
-    bunchmonitor.dump(bunch, 1)
+    bunchmonitor.dump(bunch)
     # plot_phasespace(bunch)
     tmp_mean_x.append(bunch.slices.mean_x[-1])
     tmp_epsn_x.append(bunch.slices.epsn_x[-1])
