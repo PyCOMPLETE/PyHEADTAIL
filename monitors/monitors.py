@@ -113,6 +113,38 @@ class ParticleMonitor(Monitor):
 
         self.h5file = hp.File(filename + '.h5part', 'w')
         self.n_steps = n_steps
+        self.i_steps = 0
 
     def dump(self, bunch):
-        pass
+
+        if not self.i_steps:
+            self.z0 = bunch.dz
+
+        n_particles = len(bunch.x)
+        h5group = self.h5file.create_group("Step#" + str(self.i_steps))
+        self.create_data(h5group, (n_particles,))
+        self.write_data(bunch, h5group)
+
+        self.i_steps += 1
+
+    def create_data(self, h5group, dims):
+
+        h5group.create_dataset("x", dims)
+        h5group.create_dataset("xp", dims)
+        h5group.create_dataset("y", dims)
+        h5group.create_dataset("yp", dims)
+        h5group.create_dataset("dz", dims)
+        h5group.create_dataset("dp", dims)
+
+        h5group.create_dataset("c", dims)
+
+    def write_data(self, bunch, h5group):
+
+        h5group["x"][:] = bunch.x
+        h5group["xp"][:] = bunch.xp
+        h5group["y"][:] = bunch.y
+        h5group["yp"][:] = bunch.yp
+        h5group["dz"][:] = bunch.dz
+        h5group["dp"][:] = bunch.dp
+
+        h5group["c"][:] = self.z0

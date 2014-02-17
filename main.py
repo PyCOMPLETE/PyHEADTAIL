@@ -71,6 +71,7 @@ for i in range(n_turns):
 #            t0 = time.clock() - t1
 #            print m, ', elapsed time: ' + str(t0) + ' s'
     bunchmonitor.dump(bunch)
+    particlemonitor.dump(bunch)
     # plot_phasespace(bunch)
     tmp_mean_x.append(bunch.slices.mean_x[-1])
     tmp_epsn_x.append(bunch.slices.epsn_x[-1])
