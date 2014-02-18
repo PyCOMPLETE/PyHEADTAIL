@@ -6,7 +6,7 @@ e = constants.e
 mp = constants.m_p
 
 # Bunch
-n_particles = 3000
+n_particles = 10000
 charge = 1
 energy = 26
 intensity = 1.15e11

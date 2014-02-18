@@ -22,7 +22,7 @@ tmp_epsn_y = []
 tmp_mean_dz = []
 tmp_epsn_z = []
 
-n_turns = 20
+n_turns = 1000
 
 # Monitors
 bunchmonitor = BunchMonitor('bunch', n_turns)
@@ -34,7 +34,7 @@ bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
 bunch.slice(n_slices, nsigmaz=None, mode='cspace')
 
 # Betatron
-n_segments = 10
+n_segments = 1
 C = 6911.
 s = np.arange(1, n_segments + 1) * C / n_segments
 linear_map = TransverseTracker.from_copy(s,
@@ -63,6 +63,8 @@ map_ = [linear_map, [cavity]]
 map_ = list(itertools.chain.from_iterable(map_))
 
 t1 = time.clock()
+normalization = np.max(bunch.dz) / np.max(bunch.dp)
+r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 for i in range(n_turns):
     # t1 = time.clock()
     for m in map_:
@@ -72,7 +74,7 @@ for i in range(n_turns):
 #            print m, ', elapsed time: ' + str(t0) + ' s'
     bunchmonitor.dump(bunch)
     particlemonitor.dump(bunch)
-    # plot_phasespace(bunch)
+    # plot_phasespace(bunch, r)
     tmp_mean_x.append(bunch.slices.mean_x[-1])
     tmp_epsn_x.append(bunch.slices.epsn_x[-1])
     tmp_mean_y.append(bunch.slices.mean_y[-1])
@@ -80,10 +82,10 @@ for i in range(n_turns):
     tmp_mean_dz.append(bunch.slices.mean_dz[-1])
     tmp_epsn_z.append(bunch.slices.epsn_z[-1])
 
-figure(figsize=(16,8))
-ax1 = subplot(131)
-ax2 = subplot(132)
-ax3 = subplot(133)
+plt.figure(figsize=(16,8))
+ax1 = plt.subplot(131)
+ax2 = plt.subplot(132)
+ax3 = plt.subplot(133)
 ax1.plot(tmp_mean_x)
 ax1.plot(tmp_mean_y)
 ax2.plot(tmp_epsn_x)
@@ -91,7 +93,7 @@ ax2.plot(tmp_epsn_y, ls='--')
 ax2.set_ylim(0, 5)
 ax3.plot(tmp_mean_dz)
 ax3.plot(tmp_epsn_z)
-show()
+plt.show()
 
 
 # if __name__ == '__main__':
