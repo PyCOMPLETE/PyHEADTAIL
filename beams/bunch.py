@@ -15,12 +15,12 @@ import cobra_functions.cobra_functions as cp
 
 class Bunch(object):
     '''
-    Fundamental entity for beam dynamics simulations
+    Fundamental entity for collective beam dynamics simulations
     '''
 
     def __init__(self, x, xp, y, yp, dz, dp):
         '''
-        Most minimalistic constructor
+        Most minimalistic constructor - just name binding
         '''
         self.x = x
         self.xp = xp
@@ -63,7 +63,7 @@ class Bunch(object):
 
     @classmethod
     def from_parameters(cls, n_particles, charge, energy, intensity, mass,
-                        epsn_x, beta_x, epsn_y, beta_y, epsn_z, length):
+                        epsn_x, beta_x, epsn_y, beta_y, epsn_z, length, cavity=None):
 
         x = np.random.randn(n_particles)
         xp = np.random.randn(n_particles)
@@ -76,6 +76,11 @@ class Bunch(object):
 
         self.match_distribution(charge, energy, mass,
                                 epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
+
+        if cavity:
+            pass
+        else:
+            pass
 
         return self
 

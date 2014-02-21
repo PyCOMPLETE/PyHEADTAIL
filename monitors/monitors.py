@@ -11,7 +11,7 @@ import numpy as np
 from abc import ABCMeta, abstractmethod
 
 
-class Monitor():
+class Monitor(object):
 
     @abstractmethod
     def dump(bunch):
