@@ -10,6 +10,7 @@ import numpy as np
 
 from beams.slices import *
 from configuration import *
+from trackers.longitudinal_tracker import *
 import cobra_functions.cobra_functions as cp
 
 
@@ -20,7 +21,7 @@ class Bunch(object):
 
     def __init__(self, x, xp, y, yp, dz, dp):
         '''
-        Most minimalistic constructor - just name binding
+        Most minimalistic constructor - pure name binding
         '''
         self.x = x
         self.xp = xp
@@ -74,16 +75,22 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
+        # self.charge = charge
+        # self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
+        # self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
+        # self.mass = mass
+        # p0 = mass * self.gamma * self.beta * c / e
+
         self.match_distribution(charge, energy, mass,
                                 epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
-
         if cavity:
-            pass
+            match_simple(self, cavity)
         else:
             pass
 
         return self
 
+    # TODO: perhaps throw to matching/matcher and mark transverse
     def match_distribution(self, charge, energy, mass,
                            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length):
 

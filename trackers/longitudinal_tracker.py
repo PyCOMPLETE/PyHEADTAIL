@@ -1,3 +1,4 @@
+from __future__ import division
 '''
 @class Cavity
 @author Kevin Li
@@ -18,25 +19,25 @@ class LongitudinalTracker(object):
 
     __metaclass__ = ABCMeta
 
-    @abstractmethod
-    def dpmax():
+    # @abstractmethod
+    # def dpmax():
 
-        return None
+    #     return None
 
-    @abstractmethod
-    def dzmax():
+    # @abstractmethod
+    # def dzmax():
 
-        return None
+    #     return None
 
     @abstractmethod
     def hamiltonian():
 
         return None
 
-    @abstractmethod
-    def separatrix():
+    # @abstractmethod
+    # def separatrix():
 
-        return None
+    #     return None
 
 
 def match_simple(bunch, cavity):
@@ -136,7 +137,7 @@ class RFCavity(LongitudinalTracker):
         self.voltage = voltage
         self.phi_s = phi_s
 
-    def hamiltonian(dz, dp, bunch):
+    def hamiltonian(self, dz, dp, bunch):
 
         p0 = bunch.mass * bunch.gamma * bunch.beta * c
 
@@ -150,7 +151,7 @@ class RFCavity(LongitudinalTracker):
         phi_s = self.phi_s
         V = self.voltage
 
-        H = -1 / 2 * eta * bunch.beta * c * dp ** 2
+        H = -1 / 2 * eta * bunch.beta * c * dp ** 2 \
           - e * V / (p0 * 2 * np.pi * h) * (np.cos(phi) - np.cos(phi_s) + (phi - phi_s) * np.sin(phi_s))
 
         return H
@@ -182,7 +183,7 @@ class RFCavity(LongitudinalTracker):
 
     #     return p
 
-    def isin_separatrix(dz, dp, bunch):
+    def isin_separatrix(self, dz, dp, bunch):
 
         p0 = bunch.mass * bunch.gamma * bunch.beta * c
     
@@ -192,17 +193,19 @@ class RFCavity(LongitudinalTracker):
         h = omega_rf / omega_0
 
         eta = 1 / self.gamma_transition ** 2 - 1 / bunch.gamma ** 2
-        phi = R / h * dz + self.phi_s
+        phi = R / h * dz + self.phi_s #!!!!!!!!!!!!!!!!!
         phi_s = self.phi_s
         V = self.voltage
 
-        Qs = np.sqrt(e * V * eta * h / (2 * np.pi * p0 * self.beta * c))
+        Qs = np.sqrt(e * V * np.abs(eta) * h / (2 * np.pi * p0 * bunch.beta * c))
         cf1 = 2 * Qs ** 2 / (eta * h) ** 2
 
         zmax = np.pi * R / h
         pmax = cf1 * (-1 - np.cos(phi) + (np.pi - phi) * np.sin(phi_s))
 
-        isin = np.abs(dz) <= cavity.zmax() or dp ** 2 <= pmax
+        print Qs, zmax, pmax, h
+
+        isin = np.abs(dz) <= zmax and dp ** 2 <= np.abs(pmax)
 
         return isin
 

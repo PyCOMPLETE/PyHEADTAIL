@@ -28,11 +28,6 @@ n_turns = 1000
 bunchmonitor = BunchMonitor('bunch', n_turns)
 particlemonitor = ParticleMonitor('particles', n_turns)
 
-# Bunch
-bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
-            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
-bunch.slice(n_slices, nsigmaz=None, mode='cspace')
-
 # Betatron
 n_segments = 1
 C = 6911.
@@ -48,11 +43,18 @@ linear_map = TransverseTracker.from_copy(s,
 
 # Synchrotron
 V = 2e6
-f = 200e6
-gamma_tr = 18
+f = 200.2e6
+gamma_tr = 18.
 Qs = 0.017
-cavity = CSCavity(C, gamma_tr, Qs)
-# cavity = RFCavity(C, gamma_tr, f, V, 0)
+# cavity = CSCavity(C, gamma_tr, Qs)
+cavity = RFCavity(C, C, gamma_tr, f, V, 0)
+
+# Bunch
+bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
+            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length, cavity=cavity)
+bunch.slice(n_slices, nsigmaz=None, mode='cspace')
+
+exit(-1)
 
 poisson = PoissonFFT(100)
 
