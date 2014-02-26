@@ -21,7 +21,7 @@ def plot_phasespace(bunch, r):
     ax = plt.gca()
     ax.scatter(bunch.dz, bunch.dp, c=r, marker='.', lw=0)
     ax.set_xlim(-1., 1.)
-    ax.set_ylim(-0.75e-2, 0.75e-2)
+    ax.set_ylim(-0.5e-2, 0.5e-2)
     plt.draw()
 
 def plot_bunch(filename):

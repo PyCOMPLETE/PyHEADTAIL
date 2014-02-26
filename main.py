@@ -15,13 +15,6 @@ from plots import *
 
 
 plt.ion()
-tmp_mean_x = []
-tmp_mean_y = []
-tmp_epsn_x = []
-tmp_epsn_y = []
-tmp_mean_dz = []
-tmp_epsn_z = []
-
 n_turns = 100
 
 # Monitors
@@ -42,16 +35,13 @@ linear_map = TransverseTracker.from_copy(s,
                                26.13, 0, 0, 26.18, 0, 0)
 
 # Synchrotron
-V = 2e6
-f = 200.2e6
-gamma_tr = 18.
 Qs = 0.017
 # cavity = CSCavity(C, gamma_tr, Qs)
-cavity = RFCavity(C, C, gamma_tr, f, V, 0)
+cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
 
 # Bunch
 bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
-            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length, cavity=cavity)
+            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length=0.220, cavity=cavity)
 bunch.slice(n_slices, nsigmaz=None, mode='cspace')
 
 poisson = PoissonFFT(100)
@@ -75,25 +65,6 @@ for i in range(n_turns):
     bunchmonitor.dump(bunch)
     particlemonitor.dump(bunch)
     plot_phasespace(bunch, r)
-    tmp_mean_x.append(bunch.slices.mean_x[-1])
-    tmp_epsn_x.append(bunch.slices.epsn_x[-1])
-    tmp_mean_y.append(bunch.slices.mean_y[-1])
-    tmp_epsn_y.append(bunch.slices.epsn_y[-1])
-    tmp_mean_dz.append(bunch.slices.mean_dz[-1])
-    tmp_epsn_z.append(bunch.slices.epsn_z[-1])
-
-plt.figure(figsize=(16,8))
-ax1 = plt.subplot(131)
-ax2 = plt.subplot(132)
-ax3 = plt.subplot(133)
-ax1.plot(tmp_mean_x)
-ax1.plot(tmp_mean_y)
-ax2.plot(tmp_epsn_x)
-ax2.plot(tmp_epsn_y, ls='--')
-ax2.set_ylim(0, 5)
-ax3.plot(tmp_mean_dz)
-ax3.plot(tmp_epsn_z)
-plt.show()
 
 
 # if __name__ == '__main__':

@@ -23,6 +23,9 @@ class Bunch(object):
         '''
         Most minimalistic constructor - pure python name binding
         '''
+        # n = len(x)
+        # assert(n == n)
+
         self.x = x
         self.xp = xp
         self.y = y
