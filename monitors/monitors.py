@@ -118,7 +118,7 @@ class ParticleMonitor(Monitor):
     def dump(self, bunch):
 
         if not self.i_steps:
-            self.z0 = bunch.dz
+            self.z0 = np.copy(bunch.dz)
 
         n_particles = len(bunch.x)
         h5group = self.h5file.create_group("Step#" + str(self.i_steps))

@@ -22,7 +22,7 @@ tmp_epsn_y = []
 tmp_mean_dz = []
 tmp_epsn_z = []
 
-n_turns = 1000
+n_turns = 100
 
 # Monitors
 bunchmonitor = BunchMonitor('bunch', n_turns)
@@ -54,8 +54,6 @@ bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
             epsn_x, beta_x, epsn_y, beta_y, epsn_z, length, cavity=cavity)
 bunch.slice(n_slices, nsigmaz=None, mode='cspace')
 
-exit(-1)
-
 poisson = PoissonFFT(100)
 
 #     plt.scatter(bunch.x, bunch.xp)
@@ -76,7 +74,7 @@ for i in range(n_turns):
 #            print m, ', elapsed time: ' + str(t0) + ' s'
     bunchmonitor.dump(bunch)
     particlemonitor.dump(bunch)
-    # plot_phasespace(bunch, r)
+    plot_phasespace(bunch, r)
     tmp_mean_x.append(bunch.slices.mean_x[-1])
     tmp_epsn_x.append(bunch.slices.epsn_x[-1])
     tmp_mean_y.append(bunch.slices.mean_y[-1])

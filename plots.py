@@ -13,16 +13,16 @@ def plot_slices(bunch):
 
 
 def plot_phasespace(bunch, r):
-    clf()
+    plt.clf()
 
     # normalization = np.max(bunch.dz) / np.max(bunch.dp)
     # r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 
-    ax = gca()
+    ax = plt.gca()
     ax.scatter(bunch.dz, bunch.dp, c=r, marker='.', lw=0)
-    ax.set_xlim(-1.5, 1.5)
-    ax.set_ylim(-1.5e-2, 1.5e-2)
-    draw()
+    ax.set_xlim(-1., 1.)
+    ax.set_ylim(-0.75e-2, 0.75e-2)
+    plt.draw()
 
 def plot_bunch(filename):
 

@@ -21,7 +21,7 @@ class Bunch(object):
 
     def __init__(self, x, xp, y, yp, dz, dp):
         '''
-        Most minimalistic constructor - pure name binding
+        Most minimalistic constructor - pure python name binding
         '''
         self.x = x
         self.xp = xp
@@ -84,7 +84,8 @@ class Bunch(object):
         self.match_distribution(charge, energy, mass,
                                 epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
         if cavity:
-            match_simple(self, cavity)
+            # match_simple(self, cavity)
+            match_full(self, cavity)
         else:
             pass
 
