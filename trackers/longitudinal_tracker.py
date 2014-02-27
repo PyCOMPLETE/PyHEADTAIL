@@ -15,7 +15,8 @@ from beams.distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
 from abc import ABCMeta, abstractmethod 
 from configuration import *
-import pylab as plt
+import sys
+# import pylab as plt
 
 
 class LongitudinalTracker(object):
