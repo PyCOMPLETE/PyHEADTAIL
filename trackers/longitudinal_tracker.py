@@ -16,7 +16,7 @@ from scipy.integrate import quad, dblquad
 from abc import ABCMeta, abstractmethod 
 from configuration import *
 import sys
-# import pylab as plt
+import pylab as plt
 
 
 class LongitudinalTracker(object):
@@ -264,7 +264,7 @@ class RFCavity(LongitudinalTracker):
         phi = self.h / R * dz + self.phi_s
         cf1 = 2 * Qs ** 2 / (eta * self.h) ** 2
 
-        zmax = np.pi * R / h
+        zmax = np.pi * R / self.h
         pmax = cf1 * (-1 - np.cos(phi) + (np.pi - phi) * np.sin(self.phi_s))
 
         isin = np.abs(dz) < zmax and dp ** 2 < np.abs(pmax)

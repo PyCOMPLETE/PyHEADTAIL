@@ -66,7 +66,7 @@ class Bunch(object):
 
     @classmethod
     def from_parameters(cls, n_particles, charge, energy, intensity, mass,
-                        epsn_x, beta_x, epsn_y, beta_y, epsn_z, length, cavity=None):
+                        epsn_x, beta_x, epsn_y, beta_y, epsn_z, length, cavity=None, matching='simple'):
 
         x = np.random.randn(n_particles)
         xp = np.random.randn(n_particles)
@@ -83,11 +83,18 @@ class Bunch(object):
         # self.mass = mass
         # p0 = mass * self.gamma * self.beta * c / e
 
+        # matching.match_transverse(self, ...)
+        # matching.match_simple(self, cavity)
+        # matching.match_full(self, cavity)
         self.match_distribution(charge, energy, mass,
                                 epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
         if cavity:
-            # match_simple(self, cavity)
-            match_full(self, cavity)
+            if matching == 'simple':
+                match_simple(self, cavity)
+            elif matching == 'full':
+                match_full(self, cavity)
+            else:
+                raise ValueError("Unknown matching " + matching)
         else:
             pass
 

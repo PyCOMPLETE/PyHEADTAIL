@@ -18,7 +18,7 @@ plt.ion()
 n_turns = 100
 
 # Monitors
-bunchmonitor = BunchMonitor('bunch', n_turns)
+bunchmonitor = BunchMonitor('bunch-ns1', n_turns)
 particlemonitor = ParticleMonitor('particles', n_turns)
 
 # Betatron
@@ -41,7 +41,7 @@ cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
 
 # Bunch
 bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
-            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length=0.220, cavity=cavity)
+            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length=0.220, cavity=cavity, matching='simple')
 bunch.slice(n_slices, nsigmaz=None, mode='cspace')
 
 poisson = PoissonFFT(100)

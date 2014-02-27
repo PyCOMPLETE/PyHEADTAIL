@@ -1,19 +1,11 @@
-#ifndef WAKEFIELDS_H
-#define WAKEFIELDS_H
-
-
-#include <fstream>
-#include "bunch.h"
-
-
-/**
- * @class Wakefields
- * @author Kevin Li
- * @date March 2013
- * @brief Class for creation and management of wakefields from impedance sources
- *
- * @copyright CERN
- */
+from __future__ import division
+'''
+@class Wakefields
+@author Kevin Li
+@date March 2013
+@brief Class for creation and management of wakefields from impedance sources
+@copyright CERN
+'''
 
 class Wakefields
 {
@@ -34,6 +26,3 @@ public:
     double Q_r, Q_z;
     double Rs_r, Rs_z;
 };
-
-
-#endif
