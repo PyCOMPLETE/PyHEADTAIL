@@ -92,7 +92,7 @@ class TransverseTracker(object):
 
     def __init__(self, s, alpha_x, beta_x, D_x, Qx, alpha_y, beta_y, D_y, Qy):
         '''
-        Constructor
+        Most minimalistic constructor. Pure python name binding.
         '''
         self.s = s
         self.alpha_x = alpha_x

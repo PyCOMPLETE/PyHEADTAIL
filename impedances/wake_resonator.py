@@ -55,57 +55,56 @@ class WakeResonator(object):
         return wake
 
     def track(self, bunch):
-        
-        double lambda_i;
-        std::vector<int> index;
 
-        double qp = bunch.intensity / bunch.get_nparticles();
-        double scale = -bunch.charge * bunch.charge / (bunch.mass * bunch.gamma * c * c);
+        n_slices = len(bunch.slices.mean_x) - 3
+        if not self.kick:
+            self.kick = np.zeros(n_slices)
+        else:
+            self.kick[:] = 0
+            
+        n_particles = len(bunch.x)
+        q = bunch.intensity / n_particles
+        cf1 = bunch.charge ** 2 / (bunch.mass * bunch.gamma * c ** 2)
 
-        for (size_t i=1; i<bunch.get_nslices() + 1; i++)
-        # for (size_t i=bunch.get_nslices(); i>0; i--)
-        {
-            bunch.get_slice(i, lambda_i, index);
-            int np_i = index.size();
+        # Initialization
+        kick_x = 0;
+        kick_y = 0;
+        kick_z = cf1 * q * np_i * alpha * R_shunt # Beam loading of self-slice
 
-            # Initialization
-            kick_x = 0;
-            kick_y = 0;
-            kick_z = scale * qp * np_i * alpha_z * Rs_z; // Beam loading of self-slice
+        bunch.get_slice(i, lambda_i, index);
+        int np_i = index.size();
 
-            # Interact with all sources
-            for (size_t j=1; j<i; j++)
-            # for (size_t j=bunch.get_nslices(); j>i; j--)
-            {
-                int np_j = bunch.slice_index[j].size();
+        # TODO: write as source and target...
+        for i in xrange(n_slices + 1, 0, -1):
+            ni = bunch.slices.charge[i]
+            for j in xrange(n_slices + 1, i, -1):
+                nj = bunch.slices.charge[j]
+                index = bunch.slices.indices[i]
+
                 double zj = 1 / 2. * (bunch.slice_dz[j] - bunch.slice_dz[i]
                                     + bunch.slice_dz[j + 1] - bunch.slice_dz[i + 1]);
 
                 # double zj = 1 / 2. * (bunch.zbins[i] - bunch.zbins[j]
                                     # + bunch.zbins[i + 1] - bunch.zbins[j + 1]);
+                if self.plane == 'x':
+                    kick += cf1 * q * nj * bunch.slices.mean_x[j] * wake_transverse(zj)
+                elif self.plane == 'y':
+                    kick += cf1 * q * nj * bunch.slices.mean_y[j] * wake_transverse(zj)
+                elif self.plane == 'z':
+                    kick += cf1 * q * nj * wake_longitudinal(zj);
 
-                kick_x += scale * qp * np_j * bunch.mean_x[j] * wake_resonator_r(zj);
-                kick_y += scale * qp * np_j * bunch.mean_y[j] * wake_resonator_r(zj);
-                kick_z += scale * qp * np_j * wake_resonator_z(zj);
-
-                # if (j==bunch.get_nslices())
-                if (j==1)
-                {
+                if (j == n_slices + 1):
                     bunch.mean_kx[i] = wake_resonator_r(zj);
                     bunch.mean_ky[i] = kick_y;
                     bunch.mean_kz[i] = wake_resonator_z(zj);
-                    out << std::scientific
-                        << j << '\t' << kick_x << '\t'
-                        << wake_resonator_r(zj) << '\t' << kick_z << std::endl;
-                }
-            }
-
-            # Apply kicks
-            for (int j=0; j<np_i; j++)
-            {
-
-                bunch.xp[index[j]] += kick_x;
-                bunch.yp[index[j]] += kick_y;
-                bunch.dp[index[j]] += kick_z;
-            }
+                    # out << std::scientific
+                    #     << j << '\t' << kick_x << '\t'
+                    #     << wake_resonator_r(zj) << '\t' << kick_z << std::endl;
+            
+        # Apply kicks
+        for (int j=0; j<np_i; j++)
+        {
+            bunch.xp[index[j]] += kick_x;
+            bunch.yp[index[j]] += kick_y;
+            bunch.dp[index[j]] += kick_z;
         }
