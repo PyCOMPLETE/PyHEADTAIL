@@ -11,21 +11,28 @@ from __future__ import division
 import numpy as np
 
 
+from configuration import *
+import pylab as plt
+
+
 class WakeResonator(object):
     '''
     classdocs
     '''
 
-    def __init__(self, R_shunt, frequency, Q):
+    def __init__(self, R_shunt, frequency, Q, plane='x'):
         '''
         Constructor
         '''
         self.R_shunt = R_shunt
         self.frequency = frequency
         self.Q = Q
+        self.plane = plane
+
+        assert(plane in ('x', 'y', 'z'))
     
         # Taken from Alex Chao's resonator model (2.82)
-        omega = 2 * pi * frequency
+        omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
         omegabar = np.sqrt(omega ** 2 - alpha ** 2)
 
@@ -54,57 +61,66 @@ class WakeResonator(object):
 
         return wake
 
-    def track(self, bunch):
+    def convolve(self, bunch):
 
-        n_slices = len(bunch.slices.mean_x) - 3
-        if not self.kick:
-            self.kick = np.zeros(n_slices)
-        else:
-            self.kick[:] = 0
-            
         n_particles = len(bunch.x)
         q = bunch.intensity / n_particles
         cf1 = bunch.charge ** 2 / (bunch.mass * bunch.gamma * c ** 2)
 
-        # Initialization
-        kick_x = 0;
-        kick_y = 0;
-        kick_z = cf1 * q * np_i * alpha * R_shunt # Beam loading of self-slice
+        n_slices = len(bunch.slices.mean_x) - 3
+        if not hasattr(self, 'kick'):
+            self.kick = np.zeros(n_slices)
+        else:
+            print self.kick
+            self.kick[:] = 0
 
-        bunch.get_slice(i, lambda_i, index);
-        int np_i = index.size();
-
-        # TODO: write as source and target...
-        for i in xrange(n_slices + 1, 0, -1):
-            ni = bunch.slices.charge[i]
-            for j in xrange(n_slices + 1, i, -1):
+        # Target
+        for i in xrange(n_slices, 0, -1):
+            # Beam loading of self-slice
+            if self.plane == 'z':
+                ni = bunch.slices.charge[i]
+                self.kick[i] = cf1 * q * np_i * alpha * R_shunt
+            # Sources
+            for j in xrange(n_slices, i, -1):
                 nj = bunch.slices.charge[j]
-                index = bunch.slices.indices[i]
 
-                double zj = 1 / 2. * (bunch.slice_dz[j] - bunch.slice_dz[i]
-                                    + bunch.slice_dz[j + 1] - bunch.slice_dz[i + 1]);
+                print n_slices
+                plt.hist(bunch.dz, n_slices+2)
+                plt.stem(bunch.slices.dz_bins, bunch.slices.charge, linefmt='g', markerfmt='go')
+                [plt.axvline(i, c='orange') for i in bunch.slices.dz_bins]
+                # [plt.axvline(i, c='purple') for i in bunch.slices.dz_centers]
+                plt.show()
 
-                # double zj = 1 / 2. * (bunch.zbins[i] - bunch.zbins[j]
-                                    # + bunch.zbins[i + 1] - bunch.zbins[j + 1]);
+                zj = 1 / 2. * (bunch.zbins[i] - bunch.zbins[j] + bunch.zbins[i + 1] - bunch.zbins[j + 1])
+
                 if self.plane == 'x':
-                    kick += cf1 * q * nj * bunch.slices.mean_x[j] * wake_transverse(zj)
+                    self.kick[i] += cf1 * q * nj * bunch.slices.mean_x[j] * wake_transverse(zj)
                 elif self.plane == 'y':
-                    kick += cf1 * q * nj * bunch.slices.mean_y[j] * wake_transverse(zj)
+                    self.kick[i] += cf1 * q * nj * bunch.slices.mean_y[j] * wake_transverse(zj)
                 elif self.plane == 'z':
-                    kick += cf1 * q * nj * wake_longitudinal(zj);
+                    self.kick[i] += cf1 * q * nj * wake_longitudinal(zj);
 
-                if (j == n_slices + 1):
-                    bunch.mean_kx[i] = wake_resonator_r(zj);
-                    bunch.mean_ky[i] = kick_y;
-                    bunch.mean_kz[i] = wake_resonator_z(zj);
+                # if (j == n_slices + 1):
+                #     bunch.mean_kx[i] = wake_resonator_r(zj);
+                #     bunch.mean_ky[i] = kick_y;
+                #     bunch.mean_kz[i] = wake_resonator_z(zj);
                     # out << std::scientific
                     #     << j << '\t' << kick_x << '\t'
                     #     << wake_resonator_r(zj) << '\t' << kick_z << std::endl;
-            
-        # Apply kicks
-        for (int j=0; j<np_i; j++)
-        {
-            bunch.xp[index[j]] += kick_x;
-            bunch.yp[index[j]] += kick_y;
-            bunch.dp[index[j]] += kick_z;
-        }
+
+    def apply_kick(self, bunch):
+
+        n_slices = len(bunch,slices.mean_x - 3)
+        for i in xrange(n_slices, 0, -1):
+            index = bunch.slices.index(i)
+            if plane == 'x':
+                bunch.xp[index] += self.kick[i]
+            elif plane == 'y':
+                bunch.yp[index] += self.kick[i]
+            elif plane == 'z':
+                bunch.dp[index] += self.kick[i]
+
+    def track(self, bunch):
+
+        self.convolve(bunch)
+        self.apply_kick(bunch)

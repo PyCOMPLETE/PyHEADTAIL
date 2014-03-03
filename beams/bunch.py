@@ -86,7 +86,7 @@ class Bunch(object):
         # matching.match_transverse(self, ...)
         # matching.match_simple(self, cavity)
         # matching.match_full(self, cavity)
-        self.match_distribution(charge, energy, mass,
+        self.match_distribution(charge, energy, intensity, mass,
                                 epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
         if cavity:
             if matching == 'simple':
@@ -101,12 +101,13 @@ class Bunch(object):
         return self
 
     # TODO: perhaps throw to matching/matcher and mark transverse
-    def match_distribution(self, charge, energy, mass,
+    def match_distribution(self, charge, energy,  intensity, mass,
                            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length):
 
         self.charge = charge
         self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
         self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
+        self.intensity = intensity
         self.mass = mass
         p0 = mass * self.gamma * self.beta * c / e
 
