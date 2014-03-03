@@ -94,6 +94,9 @@ class TransverseTracker(object):
         '''
         Most minimalistic constructor. Pure python name binding.
         '''
+        assert(len(s) == len(alpha_x) == len(beta_x) == len(D_x)
+                      == len(alpha_y) == len(beta_y) == len(D_y))
+
         self.s = s
         self.alpha_x = alpha_x
         self.beta_x = beta_x

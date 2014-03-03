@@ -30,7 +30,7 @@ class WakeResonator(object):
         self.plane = plane
 
         assert(plane in ('x', 'y', 'z'))
-    
+
         # Taken from Alex Chao's resonator model (2.82)
         omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
@@ -51,7 +51,7 @@ class WakeResonator(object):
         return wake
 
     def wake_resistive(self, z):
-        
+
         # Taken from Alex Chao's resisitve wall (2.53)
         sigma = 5.4e17 # copper conductivity in CGS [1/s]
         piper = 2e-3
@@ -84,21 +84,25 @@ class WakeResonator(object):
             for j in xrange(n_slices, i, -1):
                 nj = bunch.slices.charge[j]
 
-                print n_slices
-                plt.hist(bunch.dz, n_slices+2)
-                plt.stem(bunch.slices.dz_bins, bunch.slices.charge, linefmt='g', markerfmt='go')
-                [plt.axvline(i, c='orange') for i in bunch.slices.dz_bins]
-                # [plt.axvline(i, c='purple') for i in bunch.slices.dz_centers]
+                # bunch.slice(n_slices, nsigmaz=None, mode='cspace')
+                pdf, bins, patches = plt.hist(bunch.dz, n_slices)
+                for i, ch in enumerate(pdf):
+                    print ch, bunch.slices.charge[i+1]
+                print len(pdf), len(bunch.slices.charge), sum(bunch.slices.charge)
+                print len(bunch.slices.dz_bins), len(bunch.slices.dz_centers), len(bunch.slices.charge)
+                plt.stem(bunch.slices.dz_centers[:-1], bunch.slices.charge[:-1], linefmt='g', markerfmt='go')
+                [plt.axvline(i, c='y') for i in bunch.slices.dz_bins]
                 plt.show()
 
-                zj = 1 / 2. * (bunch.zbins[i] - bunch.zbins[j] + bunch.zbins[i + 1] - bunch.zbins[j + 1])
+                # zj = 1 / 2. * (bunch.zbins[i] - bunch.zbins[j] + bunch.zbins[i + 1] - bunch.zbins[j + 1])
+                zj = bunch.slices.dz_centers[i] - bunch.slices.dz_centers[j]
 
                 if self.plane == 'x':
-                    self.kick[i] += cf1 * q * nj * bunch.slices.mean_x[j] * wake_transverse(zj)
+                    self.kick[i] += cf1 * q * nj * bunch.slices.mean_x[j] * self.wake_transverse(zj)
                 elif self.plane == 'y':
-                    self.kick[i] += cf1 * q * nj * bunch.slices.mean_y[j] * wake_transverse(zj)
+                    self.kick[i] += cf1 * q * nj * bunch.slices.mean_y[j] * self.wake_transverse(zj)
                 elif self.plane == 'z':
-                    self.kick[i] += cf1 * q * nj * wake_longitudinal(zj);
+                    self.kick[i] += cf1 * q * nj * self.wake_longitudinal(zj);
 
                 # if (j == n_slices + 1):
                 #     bunch.mean_kx[i] = wake_resonator_r(zj);

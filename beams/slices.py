@@ -53,13 +53,6 @@ class Slices(object):
 #             self.slice_constant_charge(slices, nsigmaz)
 # 
 #         bunch.compute_statistics()
-# 
-#     def get_indices(self, slice_number):
-# 
-#         i0 = np.sum(slice_charge[:slice_number - 1])
-#         i1 = np.sum(slice_charge[:slice_number])
-# 
-#         return indices[i0:i1]
 
     def index(self, slice_number):
 
@@ -70,9 +63,9 @@ class Slices(object):
 
         return index
 
-    def dz(self, slice_number):
+    # def dz(self, slice_number):
 
-        return [0]
+    #     return [0]
 
     def slice_constant_space(self, bunch, nsigmaz=None):
 
@@ -95,6 +88,7 @@ class Slices(object):
 
         self.dz_centers[:] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
+        self.dz_centers = np.append(self.dz_centers, self.mean_dz[-1])
 
         self.charge[0] = len(np.where(bunch.dz < cutleft)[0])
         self.charge[-2] = len(np.where(bunch.dz >= cutright)[0])
@@ -107,6 +101,7 @@ class Slices(object):
                                 (bunch.dz < self.dz_bins[i + 1])
                               & (bunch.dz >= self.dz_bins[i])
                             )[0]) for i in range(1, n_slices + 1)]
+        self.charge[-1] = sum(self.charge[:-1])
 
     def slice_constant_charge(self, bunch, nsigmaz):
 
@@ -127,6 +122,7 @@ class Slices(object):
         q0 = n_particles - self.charge[0] - self.charge[-2]
         self.charge[1:-2] = int(q0 / n_slices)
         self.charge[1:(q0 % n_slices + 1)] += 1
+        self.charge[-1] = sum(self.charge[:-1])
 
         self.dz_bins[0] = np.min(bunch.dz)
         self.dz_bins[-1] = np.max(bunch.dz)
@@ -137,6 +133,7 @@ class Slices(object):
 
         self.dz_centers[:] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
+        self.dz_centers = np.append(self.dz_centers, self.mean_dz[-1])
 
 #     void slice_constant_charge(std::vector<Slice> slices, int nsigmaz)
 #     {
@@ -210,20 +207,3 @@ class Slices(object):
 #         slice_dz[ns + 2] = slices[np - 1].dz;
 #     }
 # 
-#     void set_slice_indices(std::vector<Slice> slices, std::vector<int> q)
-#     {
-#         int k = 0;
-#         int ns = get_nslices();
-#         int np = get_nparticles();
-# 
-#         for (size_t i=0; i<ns + 2; i++)
-#         {
-#             slice_index[i].resize(q[i]);
-#             for (int j=0; j<q[i]; j++)
-#                 slice_index[i][j] = slices[k + j].ix;
-#             k += q[i];
-#         }
-#         slice_index[ns + 2].resize(np);
-#         for (size_t i=0; i<np; i++)
-#             slice_index[ns + 2][i] = i;
-#     }

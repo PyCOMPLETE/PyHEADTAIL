@@ -52,7 +52,7 @@ poisson = PoissonFFT(100)
 #     plt.scatter(bunch.x, bunch.xp)
 #     plt.show()
 
-map_ = [linear_map, [cavity], [wakes]]
+map_ = [linear_map, [wakes], [cavity]]
 map_ = list(itertools.chain.from_iterable(map_))
 
 t1 = time.clock()
