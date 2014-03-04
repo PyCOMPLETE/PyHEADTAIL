@@ -40,3 +40,16 @@ def plot_bunch(filename):
     ax1.plot(-r, c='brown', lw=2)
     plt.show()
     
+    
+def plot_emittance(filename):
+
+    filename = filename + '.h5'
+
+    #~ bunch = h5py.File(filename, 'r')['Bunch']
+#~ 
+    #~ ax1 = plt.gca()
+    #~ ax2 = plt.twinx(ax1)
+    #~ ax1.plot(bunch['mean_x'], 'r')
+    #~ ax1.plot(+r, c='brown', lw=2)
+    #~ ax1.plot(-r, c='brown', lw=2)
+    #~ plt.show()

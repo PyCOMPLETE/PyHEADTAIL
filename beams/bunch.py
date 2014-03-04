@@ -134,9 +134,9 @@ class Bunch(object):
         else:
             n_particles = len(self.x)
 
-            indices = [self.slices.index(i) for i in range(n_slices + 2)]
+            indices = [self.slices.index(i) for i in range(self.n_slices() + 2)]
             indices.append(range(n_particles))
-
+		
 #             indices = [np.copy(self.slices.index(i))
 #                        for i in range(n_slices + 2)]
 #             indices.append(np.arange(n_particles))
@@ -172,8 +172,8 @@ class Bunch(object):
 # #                         * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
 # #                         * self.mass * self.gamma * self.beta * c / e
 
-
-        for i in xrange(n_slices + 3):
+        #~ HB (it was self.n_slice + 3 before)	
+        for i in xrange(self.n_slices() + 3):
             n = len(indices[i])
             if n:
                 x = self.x[indices[i]]
@@ -201,11 +201,14 @@ class Bunch(object):
                                       * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
                                       * self.mass * self.gamma * self.beta * c / e
 
+    def n_slices(self):
+        return len(self.slices.mean_x)-3
+        
     def slice(self, n_slices, nsigmaz, mode):
 
         if not hasattr(self, 'slices'):
             self.slices = Slices(n_slices)
-
+            
         if mode == 'ccharge':
             self.slices.slice_constant_charge(self, nsigmaz)
         elif mode == 'cspace':
