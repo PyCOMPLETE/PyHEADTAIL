@@ -34,7 +34,7 @@ class Slices(object):
 
         self.charge = np.zeros(n_slices + 3, dtype=int)
         self.dz_bins = np.zeros(n_slices + 3)
-        self.dz_centers = np.zeros(n_slices + 2)
+        self.dz_centers = np.zeros(n_slices + 3)
 
 #     def set_slice(self, bunch, n_slices, nsigmaz, mode):
 # 
@@ -86,9 +86,9 @@ class Slices(object):
         self.dz_bins[-1] = np.max(bunch.dz)
         self.dz_bins[1:-1] = cutleft + np.arange(n_slices + 1) * dz
 
-        self.dz_centers[:] = self.dz_bins[:-1] \
+        self.dz_centers[:-1] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
-        self.dz_centers = np.append(self.dz_centers, self.mean_dz[-1])
+        self.dz_centers[-1] = self.mean_dz[-1]
 
         self.charge[0] = len(np.where(bunch.dz < cutleft)[0])
         self.charge[-2] = len(np.where(bunch.dz >= cutright)[0])
@@ -131,9 +131,9 @@ class Slices(object):
                            sum(self.charge[:(i + 1)])]]
                            for i in np.arange(n_slices + 1)]
 
-        self.dz_centers[:] = self.dz_bins[:-1] \
+        self.dz_centers[:-1] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
-        self.dz_centers = np.append(self.dz_centers, self.mean_dz[-1])
+        self.dz_centers[-1] = self.mean_dz[-1]
 
 #     void slice_constant_charge(std::vector<Slice> slices, int nsigmaz)
 #     {
