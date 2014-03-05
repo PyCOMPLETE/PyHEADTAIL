@@ -5,6 +5,7 @@ import cProfile, itertools, ipdb, time, timeit
 
 from configuration import *
 from beams.bunch import *
+from beams import matching, slices
 from monitors.monitors import *
 from solvers.poissonfft import *
 from impedances.wake_resonator import *
@@ -40,9 +41,15 @@ cavity = CSCavity(C, 18, 0.017)
 # cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
 
 # Bunch
-bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
-                              epsn_x, beta_x, epsn_y, beta_y, epsn_z, length=0.220, cavity=None, matching='simple')
-bunch.slice(n_slices, nsigmaz=None, mode='cspace')
+f_match_transverse = matching.match_transverse(2.5, 2.5, linear_map[0])
+f_match_longitudinal = matching.match_longitudinal(0.25, bucket=0.5, matching='simple')
+slices = slices.Slices(64, nsigmaz=None, slicemode='cspace')
+bunch = Bunch.from_matching(n_particles, charge, energy, intensity, mass,
+                              f_match_transverse, f_match_longitudinal, slices)
+# bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
+#                               epsn_x, beta_x, epsn_y, beta_y, epsn_z, length=0.220, cavity=None, matching='simple')
+# bunch.slice(n_slices, nsigmaz=None, mode='cspace')
+exit(-1)
 
 # Resonator wakefields
 wakes = WakeResonator(R_shunt=2e6, frequency=1e9, Q=1)

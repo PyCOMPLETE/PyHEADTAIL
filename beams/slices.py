@@ -14,7 +14,7 @@ class Slices(object):
     classdocs
     '''
 
-    def __init__(self, n_slices):
+    def __init__(self, n_slices, nsigmaz=None, slicemode='cspace'):
         '''
         Constructor
         '''
@@ -36,23 +36,8 @@ class Slices(object):
         self.dz_bins = np.zeros(n_slices + 3)
         self.dz_centers = np.zeros(n_slices + 3)
 
-#     def set_slice(self, bunch, n_slices, nsigmaz, mode):
-# 
-#         # Compute longitudinal moments
-#         if not bunch.slices:
-#             self.mean_dz[-1] = np.mean(bunch.dz)
-#             self.sigma_dz[-1] = np.std(bunch.dz)
-# 
-#         # Sorting
-#         self.index = np.argsort(bunch.dz)
-# 
-#         # Slicing
-#         if mode == "cspace":
-#             self.slice_constant_space(slices, nsigmaz)
-#         elif mode == "ccharge":
-#             self.slice_constant_charge(slices, nsigmaz)
-# 
-#         bunch.compute_statistics()
+        self.nsigmaz = nsigmaz
+        self.slicemode = slicemode
 
     def index(self, slice_number):
 
@@ -62,10 +47,6 @@ class Slices(object):
         index = self.dz_argsorted[i0:i1]
 
         return index
-
-    # def dz(self, slice_number):
-
-    #     return [0]
 
     def slice_constant_space(self, bunch, nsigmaz=None):
 
@@ -134,76 +115,3 @@ class Slices(object):
         self.dz_centers[:-1] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
         self.dz_centers[-1] = self.mean_dz[-1]
-
-#     void slice_constant_charge(std::vector<Slice> slices, int nsigmaz)
-#     {
-#         int ns = get_nslices();
-#         int np = get_nparticles();
-#         std::vector<int> q(ns, 0);
-#         q[0] = cut_front(slices, nsigmaz);
-#         q[ns + 1] = cut_back(slices, nsigmaz);
-#         q[ns + 2] = np;
-#         int k = np - q[0] - q[ns + 1];
-# 
-#         for (int i=1; i<ns + 1; i++)
-#             q[i] = k / ns;
-#         for (int i=1; i<k % ns + 1; i++)
-#             q[i] += 1;
-# 
-#         set_slice_positions(slices, q);
-#         set_slice_indices(slices, q);
-#     }
-# 
-#     self.cut_front(self, std::vector<Slice> slices, int nsigmaz)
-#     {
-#         int k = 0;
-#         int ns = get_nslices();
-#         int np = get_nparticles();
-#         double mean_dz = this->mean_dz[ns + 2];
-#         double sigma_dz = this->sigma_dz[ns + 2];
-# 
-#         while (slices[k].dz - mean_dz < -nsigmaz * sigma_dz)
-#         {
-#             k++;
-#             if (k > np)
-#                 std::cerr << "*** WARNING! All particles cut in cut_front()!"
-#                           << std::endl;
-#         }
-# 
-#         return k;
-#     }
-# 
-#     int cut_back(std::vector<Slice> slices, int nsigmaz)
-#     {
-#         int k = 0;
-#         int ns = get_nslices();
-#         int np = get_nparticles();
-#         double mean_dz = this->mean_dz[ns + 2];
-#         double sigma_dz = this->sigma_dz[ns + 2];
-# 
-#         while (slices[k].dz - mean_dz >= nsigmaz * sigma_dz)
-#         {
-#             k++;
-#             if (k > np)
-#                 std::cerr << "*** WARNING! All particles cut in cut_back()!"
-#                           << std::endl;
-#         }
-# 
-#         return k;
-#     }
-# 
-#     void set_slice_positions(std::vector<Slice> slices, std::vector<int> q)
-#     {
-#         int k = 0;
-#         int ns = get_nslices();
-#         int np = get_nparticles();
-# 
-#         slice_dz[0] = slices[0].dz;
-#         for (int i=0; i<ns + 1; i++)
-#         {
-#             k += q[i];
-#             slice_dz[i + 1] = 1 / 2. * (slices[k - 1].dz + slices[k].dz);
-#         }
-#         slice_dz[ns + 2] = slices[np - 1].dz;
-#     }
-# 
