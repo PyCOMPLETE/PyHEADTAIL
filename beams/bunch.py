@@ -98,20 +98,24 @@ class Bunch(object):
                       match_transverse=None, match_longitudinal=None, slices=None):
 
         self = cls.from_gaussian(n_particles)
-        self.set_dynamics(charge, energy, intensity, mass)
+
+        self.set_scalar_quantities(charge, energy, intensity, mass)
+
         match_transverse(self)
         match_longitudinal(self)
+
         self.slices = slices
 
         return self
 
-    def set_dynamics(self, charge, energy, intensity, mass):
+    def set_scalar_quantities(self, charge, energy, intensity, mass):
 
         self.charge = charge
         self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
         self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
         self.intensity = intensity
         self.mass = mass
+        self.p0 = mass * self.gamma * self.beta * c
 
     # @profile
     def compute_statistics(self):

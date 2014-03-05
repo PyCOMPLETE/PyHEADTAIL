@@ -62,20 +62,19 @@ class Slices(object):
             cutleft = -nsigmaz * sigma_dz
             cutright = nsigmaz * sigma_dz
 
-        dz = (cutright - cutleft) / n_slices
+        # First bins
         self.dz_bins[0] = np.min(bunch.dz)
         self.dz_bins[-1] = np.max(bunch.dz)
+        dz = (cutright - cutleft) / n_slices
         self.dz_bins[1:-1] = cutleft + np.arange(n_slices + 1) * dz
 
         self.dz_centers[:-1] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
         self.dz_centers[-1] = self.mean_dz[-1]
 
+        # Get charge
         self.charge[0] = len(np.where(bunch.dz < cutleft)[0])
         self.charge[-2] = len(np.where(bunch.dz >= cutright)[0])
-#         q0 = n_particles - self.charge[0] - self.charge[-2]
-#         self.charge[1:-2] = int(q0 / n_slices)
-#         self.charge[1:(q0 % n_slices + 1)] += 1
         self.charge[1:-2] = [len(np.where(
                                 # can be tricky here when
                                 # cutright == self.dz_bins[i + 1] == bunch.dz
@@ -98,6 +97,7 @@ class Slices(object):
             cutleft = -nsigmaz * sigma_dz
             cutright = nsigmaz * sigma_dz
 
+        # First charge
         self.charge[0] = len(np.where(bunch.dz < cutleft)[0])
         self.charge[-2] = len(np.where(bunch.dz >= cutright)[0])
         q0 = n_particles - self.charge[0] - self.charge[-2]
@@ -105,6 +105,7 @@ class Slices(object):
         self.charge[1:(q0 % n_slices + 1)] += 1
         self.charge[-1] = sum(self.charge[:-1])
 
+        # Get bins
         self.dz_bins[0] = np.min(bunch.dz)
         self.dz_bins[-1] = np.max(bunch.dz)
         self.dz_bins[1:-1] = [bunch.dz[
