@@ -38,13 +38,13 @@ linear_map = TransverseTracker.from_copy(s,
                                26.13, 0, 0, 26.18, 0, 0)
 
 # Synchrotron
-cavity = CSCavity(C, 18, 0.017)
-# cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
+# cavity = CSCavity(C, 18, 0.017)
+cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
 
 # Bunch
 bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
 bunch.match_transverse(2.5, 2.5, linear_map[0])
-bunch.match_longitudinal(0.25, bucket=0.5, matching=None)
+bunch.match_longitudinal(0.21, bucket=cavity, matching='full')
 bunch.set_slices(slices.Slices(64, nsigmaz=None, slicemode='cspace'))
 bunch.update_slices()
 
