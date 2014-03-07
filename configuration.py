@@ -16,6 +16,6 @@ epsn_y = 2.5
 epsn_z = 0.5
 beta_x = 100
 beta_y = 100
-length = 0.21
+# length = 0.21
 
 n_slices = 64

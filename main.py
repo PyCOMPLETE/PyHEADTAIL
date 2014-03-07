@@ -5,7 +5,8 @@ import cProfile, itertools, ipdb, time, timeit
 
 from configuration import *
 from beams.bunch import *
-from beams import matching, slices
+from beams import slices
+from beams.matching import match_transverse, match_longitudinal
 from monitors.monitors import *
 from solvers.poissonfft import *
 from impedances.wake_resonator import *
@@ -37,16 +38,14 @@ linear_map = TransverseTracker.from_copy(s,
                                26.13, 0, 0, 26.18, 0, 0)
 
 # Synchrotron
-# cavity = CSCavity(C, 18, 0.017)
-cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
+cavity = CSCavity(C, 18, 0.017)
+# cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
 
 # Bunch
-f_match_transverse = matching.match_transverse(2.5, 2.5, linear_map[0])
-f_match_longitudinal = matching.match_longitudinal(0.25, bucket=0.5, matching=None)
-f_match_longitudinal = matching.match_longitudinal(0.25, bucket=cavity, matching='full')
-slices = slices.Slices(64, nsigmaz=None, slicemode='cspace')
-bunch = Bunch.from_matching(n_particles, charge, energy, intensity, mass,
-                            f_match_transverse, f_match_longitudinal, slices)
+bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
+bunch.match_transverse(2.5, 2.5, linear_map[0])
+bunch.match_longitudinal(0.25, bucket=0.5, matching=None)
+bunch.set_slices(slices.Slices(64, nsigmaz=None, slicemode='cspace'))
 bunch.update_slices()
 
 # pdf, bins, patches = plt.hist(bunch.dz, n_slices)

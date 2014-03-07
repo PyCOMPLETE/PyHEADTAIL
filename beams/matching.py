@@ -37,7 +37,7 @@ def match_longitudinal(length, bucket, matching=None):
 
     if not matching and isinstance(bucket, float):
         def match(bunch):
-            match_none(bunch, bucket)
+            match_none(bunch, length, bucket)
     elif matching == 'simple':
         def match(bunch):
             try:
@@ -51,45 +51,21 @@ def match_longitudinal(length, bucket, matching=None):
             except AttributeError:
                 raise TypeError("Bad bucket instance for matching!")
     else:
-        raise ValueError("Unknown matching " + matching)
+        raise ValueError("Unknown matching " + str(matching) + " for bucket " + str(bucket))
 
     return match
 
-def match_none(bunch, bucket):
+def match_none(bunch, length, bucket):
 
-    epsn_z = bucket
-    
     sigma_dz = length
-    sigma_dp = epsn_z / (4 * np.pi * sigma_dz) / bunch.p0
+    epsn_z = bucket
+    sigma_dp = epsn_z / (4 * np.pi * sigma_dz) * e / bunch.p0
 
+    print sigma_dz, sigma_dp
     bunch.dz *= sigma_dz
     bunch.dp *= sigma_dp
 
-def prematch(bunch, bucket):
-
-    R = bucket.circumference / (2 * np.pi)
-    eta = bucket.eta(bunch)
-    Qs = bucket.Qs(bunch)
-
-    zmax = np.pi * R / bucket.h
-    pmax = 2 * Qs / eta / bucket.h
-
-    return zmax, pmax
-    
-# @profile
-def match_simple(bunch, bucket):
-
-    sigma_dz, sigma_dp = prematch(bunch, bucket)
-    epsn_z = 4 * np.pi * sigma_dz * sigma_dp * bunch.p0 / e
-
-    n_particles = len(bunch.dz)
-    for i in xrange(n_particles):
-        if not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
-            while not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
-                bunch.dz[i] = sigma_dz * np.random.randn()
-                bunch.dp[i] = sigma_dp * np.random.randn()
-
-def match_full(bunch, cavity):
+def prematch(bunch, length, bucket):
 
     R = cavity.circumference / (2 * np.pi)
     eta = cavity.eta(bunch)
@@ -99,7 +75,7 @@ def match_full(bunch, cavity):
     pmax = 2 * Qs / eta / cavity.h
     Hmax1 = cavity.hamiltonian(zmax, 0, bunch)
     Hmax2 = cavity.hamiltonian(0, pmax, bunch)
-    assert(Hmax1 == Hmax2)
+    # assert(Hmax1 == Hmax2)
     Hmax = Hmax1
     epsn_z = np.pi / 2 * zmax * pmax * bunch.p0 / e
     print '\nStatistical parameters from RF bucket:'
@@ -113,7 +89,25 @@ def match_full(bunch, cavity):
     print '\nStatistical parameters from initialisation:'
     print 'sigma_dz:', sigma_dz, 'sigma_dp:', sigma_dp, 'epsn_z:', epsn_z
     
-    print '\nBunchlength:'
+    return sigma_dz, sigma_dp, H0
+        
+# @profile
+def match_simple(bunch, bucket):
+
+    sigma_dz, sigma_dp, H0 = prematch(bunch, bucket)
+    
+    n_particles = len(bunch.dz)
+    for i in xrange(n_particles):
+        if not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
+            while not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
+                bunch.dz[i] = sigma_dz * np.random.randn()
+                bunch.dp[i] = sigma_dp * np.random.randn()
+
+def match_full(bunch, cavity):
+
+    sigma_dz, sigma_dp, H0 = prematch(bunch, bucket)
+    
+    print '\n--> Bunchlength:'
     sigma_dz = bunchlength(bunch, cavity, sigma_dz)
     sigma_dp = sigma_dz * Qs / eta / R
     H0 = eta * bunch.beta * c * sigma_dp ** 2

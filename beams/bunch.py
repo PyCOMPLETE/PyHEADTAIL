@@ -9,8 +9,9 @@ import numpy as np
 
 
 from beams.slices import *
+from beams.matching import match_transverse, match_longitudinal
 from configuration import *
-from trackers.longitudinal_tracker import *
+# from trackers.longitudinal_tracker import *
 import cobra_functions.cobra_functions as cp
 
 
@@ -47,11 +48,7 @@ class Bunch(object):
         return self
 
     @classmethod
-    def from_file(cls):
-        pass
-
-    @classmethod
-    def from_empty(cls, n_particles):
+    def from_empty(cls, n_particles, charge, energy, intensity, mass):
 
         x = np.zeros(n_particles)
         xp = np.zeros(n_particles)
@@ -62,10 +59,16 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
+        self.set_scalar_quantities(charge, energy, intensity, mass)
+
         return self
 
     @classmethod
-    def from_gaussian(cls, n_particles):
+    def from_file(cls):
+        pass
+
+    @classmethod
+    def from_gaussian(cls, n_particles, charge, energy, intensity, mass):
 
         x = np.random.randn(n_particles)
         xp = np.random.randn(n_particles)
@@ -76,10 +79,12 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
+        self.set_scalar_quantities(charge, energy, intensity, mass)
+
         return self
 
     @classmethod
-    def from_uniform(cls, n_particles):
+    def from_uniform(cls, n_particles, charge, energy, intensity, mass):
 
         x = np.random.rand(n_particles) * 2 - 1
         xp = np.random.rand(n_particles) * 2 - 1
@@ -90,32 +95,42 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        return self
-
-    # TODO: perhaps decorate with matchings...
-    @classmethod
-    def from_matching(cls, n_particles, charge, energy, intensity, mass,
-                      match_transverse=None, match_longitudinal=None, slices=None):
-
-        self = cls.from_gaussian(n_particles)
-
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
-        match_transverse(self)
-        match_longitudinal(self)
-
-        self.slices = slices
-
         return self
+
+    # # TODO: perhaps decorate with matchings...
+    # @classmethod
+    # def from_matching(cls, n_particles, charge, energy, intensity, mass,
+    #                   match_transverse=None, match_longitudinal=None, slices=None):
+
+    #     self = cls.from_gaussian(n_particles)
+
+    #     self.set_scalar_quantities(charge, energy, intensity, mass)
+
+    #     match_transverse(self)
+    #     match_longitudinal(self)
+
+    #     self.slices = slices
+
+    #     return self
 
     def set_scalar_quantities(self, charge, energy, intensity, mass):
 
         self.charge = charge
-        self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
+        self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) # + 1 only for below PS
         self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
         self.intensity = intensity
         self.mass = mass
         self.p0 = mass * self.gamma * self.beta * c
+
+    def match_transverse(self, epsn_x, epsn_y, ltm):
+
+        match_transverse(epsn_x, epsn_y, ltm)(self)
+
+    def match_longitudinal(self, length, bucket=None, matching=None):
+
+        match_longitudinal(length, bucket, matching)(self)
 
     # @profile
     def compute_statistics(self):
@@ -157,69 +172,9 @@ class Bunch(object):
                                       * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
                                       * self.mass * self.gamma * self.beta * c / e
 
+    def set_slices(self, slices):
 
-
-
-    @classmethod
-    def from_parameters(cls, n_particles, charge, energy, intensity, mass,
-                        epsn_x, beta_x, epsn_y, beta_y, epsn_z, length, cavity=None, matching='simple'):
-
-        x = np.random.randn(n_particles)
-        xp = np.random.randn(n_particles)
-        y = np.random.randn(n_particles)
-        yp = np.random.randn(n_particles)
-        dz = np.random.randn(n_particles)
-        dp = np.random.randn(n_particles)
-
-        self = cls(x, xp, y, yp, dz, dp)
-
-        # self.charge = charge
-        # self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
-        # self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
-        # self.mass = mass
-        # p0 = mass * self.gamma * self.beta * c / e
-
-        # matching.match_transverse(self, ...)
-        # matching.match_simple(self, cavity)
-        # matching.match_full(self, cavity)
-        self.match_distribution(charge, energy, intensity, mass,
-                                epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
-        if cavity:
-            if matching == 'simple':
-                match_simple(self, cavity)
-            elif matching == 'full':
-                match_full(self, cavity)
-            else:
-                raise ValueError("Unknown matching " + matching)
-        else:
-            pass
-
-        return self
-
-    # TODO: perhaps throw to matching/matcher and mark transverse
-    def match_distribution(self, charge, energy,  intensity, mass,
-                           epsn_x, beta_x, epsn_y, beta_y, epsn_z, length):
-
-        self.charge = charge
-        self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
-        self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
-        self.intensity = intensity
-        self.mass = mass
-        p0 = mass * self.gamma * self.beta * c / e
-
-        sigma_x = np.sqrt(beta_x * epsn_x * 1e-6 / (self.gamma * self.beta))
-        sigma_xp = sigma_x / beta_x
-        sigma_y = np.sqrt(beta_y * epsn_y * 1e-6 / (self.gamma * self.beta))
-        sigma_yp = sigma_y / beta_y
-        sigma_dz = length
-        sigma_dp = epsn_z / (4 * np.pi * sigma_dz) / p0
-
-        self.x *= sigma_x
-        self.xp *= sigma_xp
-        self.y *= sigma_y
-        self.yp *= sigma_yp
-        self.dz *= sigma_dz
-        self.dp *= sigma_dp
+        self.slices = slices
 
     def update_slices(self):
 
