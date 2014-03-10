@@ -15,6 +15,17 @@ from configuration import *
 import cobra_functions.cobra_functions as cp
 
 
+def bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
+                             epsn_x, epsn_y, ltm, epsn_z, bucket, matching,
+                             n_slices, nsigmaz, slicemode='cspace'):
+    
+    bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
+    bunch.match_transverse(epsn_x, epsn_y, linear_map[0])
+    bunch.match_longitudinal(epsn_z, bucket, matching)
+    bunch.set_slices(slices.Slices(n_slices, nsigmaz, slicemode))
+    bunch.update_slices()
+
+
 class Bunch(object):
     '''
     Fundamental entity for collective beam dynamics simulations

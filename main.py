@@ -4,6 +4,7 @@ import cProfile, itertools, ipdb, time, timeit
 
 
 from configuration import *
+from cobra_functions import stats, random
 from beams.bunch import *
 from beams import slices
 from beams.matching import match_transverse, match_longitudinal
@@ -17,7 +18,7 @@ from trackers.longitudinal_tracker import *
 from plots import *
 
 
-plt.ion()
+# plt.ion()
 n_turns = 100
 
 # Monitors
@@ -40,6 +41,13 @@ linear_map = TransverseTracker.from_copy(s,
 # Synchrotron
 # cavity = CSCavity(C, 18, 0.017)
 cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
+
+bunch = Bunch.from_empty(1e3, charge, energy, intensity, mass)
+x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
+print bunch.x
+plt.scatter(x, xp, c='purple', marker='.')
+plt.show()
+exit(-1)
 
 # Bunch
 bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)

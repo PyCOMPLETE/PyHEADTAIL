@@ -3,6 +3,7 @@ import numpy as np
 import os
 import sys
 import subprocess
+import cython_gsl
 
 from distutils.core import setup
 from distutils.extension import Extension
@@ -42,15 +43,34 @@ cy_ext = [
         #          library_dirs=[],
         #          ),
         Extension("cobra_functions.cobra_functions",
-                  ["cobra_functions/cobra_functions.pyx"],
-                 include_dirs=[np.get_include()],
+                 ["cobra_functions/cobra_functions.pyx"],
+                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
-                 libraries=["m"],
-                 library_dirs=[],
+                 ),
+        Extension("cobra_functions.stats",
+                 ["cobra_functions/stats.pyx"],
+                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
+                 #extra_compile_args=["-g"],
+                 #extra_link_args=["-g"],
+                 ),
+        Extension("cobra_functions.random",
+                 ["cobra_functions/random.pyx"],
+                 include_dirs=[cython_gsl.get_cython_include_dir()],
+                 #extra_compile_args=["-g"],
+                 #extra_link_args=["-g"],
+                 library_dirs=[], libraries=["gsl", "gslcblas"],
                  )
           ]
 
+    # include_dirs = [cython_gsl.get_include()],
+    # cmdclass = {'build_ext': build_ext},
+    # ext_modules = [Extension("my_cython_script",
+    #                          ["src/my_cython_script.pyx"],
+    #                          libraries=cython_gsl.get_libraries(),
+    #                          library_dirs=[cython_gsl.get_library_dir()],
+    #                          include_dirs=[cython_gsl.get_cython_include_dir()])]
+    
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 
 setup(cmdclass={'build_ext': build_ext},
