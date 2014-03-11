@@ -9,6 +9,7 @@ from beams.bunch import *
 from beams import slices
 from beams.matching import match_transverse, match_longitudinal
 from monitors.monitors import *
+from solvers.grid import *
 from solvers.poissonfft import *
 from impedances.wake_resonator import *
 from trackers.transverse_tracker import *
@@ -41,6 +42,15 @@ linear_map = TransverseTracker.from_copy(s,
 # Synchrotron
 # cavity = CSCavity(C, 18, 0.017)
 cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
+
+# PIC grid
+poisson = PoissonFFT(10, 10, 128, 128)
+[plt.axvline(v, c='r') for v in poisson.mx]
+[plt.axhline(h, c='r') for h in poisson.my]
+plt.show()
+print poisson.mx
+print len(poisson.mx), len(poisson.my)
+exit(-1)
 
 bunch = Bunch.from_empty(1e3, charge, energy, intensity, mass)
 x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
