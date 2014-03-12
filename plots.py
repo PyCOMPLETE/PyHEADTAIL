@@ -15,19 +15,24 @@ def plot_slices(bunch):
 def plot_phasespace(bunch, r):
     plt.clf()
 
-    # normalization = np.max(bunch.dz) / np.max(bunch.dp)
-    # r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
+    #~ normalization = np.max(bunch.dz) / np.max(bunch.dp)
+    #~ r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 
     ax = plt.gca()
-    ax.scatter(bunch.dz, bunch.dp, c=r, marker='.', lw=0)
-    ax.set_xlim(-1., 1.)
-    ax.set_ylim(-0.5e-2, 0.5e-2)
+    #~ ax.scatter(bunch.dz, bunch.dp, c=r, marker='.', lw=0)
+    #~ ax.set_xlim(-1.7, 1.7)
+    #~ ax.set_ylim(-0.5e-2, 0.5e-2)
+    #~ ax.scatter(bunch.dz, bunch.x, c=r, marker='.', lw=0)
+    ax.scatter(bunch.x, bunch.xp, c=r, marker='.', lw=0)
+    #~ ax.set_xlim(-1.7, 1.7)
+    ax.set_xlim(-0.02, 0.02)
+    #~ ax.set_ylim(-0.2, 0.2)
     plt.draw()
 
 def plot_bunch(filename):
-
+    plt.clf()
+    
     filename = filename + '.h5'
-
     bunch = h5py.File(filename, 'r')['Bunch']
 
     beta_x = plt.amax(bunch['mean_x'][:]) / plt.amax(bunch['mean_xp'][:])
@@ -38,12 +43,20 @@ def plot_bunch(filename):
     ax1.plot(bunch['mean_x'], 'r')
     ax1.plot(+r, c='brown', lw=2)
     ax1.plot(-r, c='brown', lw=2)
-    plt.show()
+    plt.draw()
     
     
 def plot_emittance(filename):
-
+    plt.clf()
+    
     filename = filename + '.h5'
+    bunch = h5py.File(filename, 'r')['Bunch']	
+
+    ax1 = plt.gca()
+    ax2 = plt.twinx(ax1)
+    ax1.plot(bunch['epsn_x'])
+    plt.draw()
+    
 
     #~ bunch = h5py.File(filename, 'r')['Bunch']
 #~ 

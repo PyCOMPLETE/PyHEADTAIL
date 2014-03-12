@@ -105,7 +105,8 @@ class Bunch(object):
                            epsn_x, beta_x, epsn_y, beta_y, epsn_z, length):
 
         self.charge = charge
-        self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
+        # HB correction: (was "self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1" before)
+        self.gamma = energy * 1e9 * charge * e / (mass * c ** 2)
         self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
         self.intensity = intensity
         self.mass = mass
@@ -125,7 +126,7 @@ class Bunch(object):
         self.dz *= sigma_dz
         self.dp *= sigma_dp
 
-    # @profile
+    #~ @profile
     def compute_statistics(self):
 
         if not hasattr(self, 'slices'):
@@ -134,9 +135,10 @@ class Bunch(object):
         else:
             n_particles = len(self.x)
 
-            indices = [self.slices.index(i) for i in range(self.n_slices() + 2)]
-            indices.append(range(n_particles))
-		
+            #~ indices = [self.slices.index(i) for i in range(self.n_slices() + 2)]
+            #~ indices.append(range(n_particles))
+            
+            		
 #             indices = [np.copy(self.slices.index(i))
 #                        for i in range(n_slices + 2)]
 #             indices.append(np.arange(n_particles))
@@ -172,34 +174,79 @@ class Bunch(object):
 # #                         * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
 # #                         * self.mass * self.gamma * self.beta * c / e
 
-        #~ HB (it was self.n_slice + 3 before)	
-        for i in xrange(self.n_slices() + 3):
-            n = len(indices[i])
-            if n:
-                x = self.x[indices[i]]
-                xp = self.xp[indices[i]]
-                y = self.y[indices[i]]
-                yp = self.yp[indices[i]]
-                dz = self.dz[indices[i]]
-                dp = self.dp[indices[i]]
+			
+        #~ for i in xrange(self.n_slices() + 3):
+            #~ n = len(indices[i])
+            #~ if n:
+#~ 
+                #~ x = self.x[indices[i]]
+                #~ xp = self.xp[indices[i]]
+                #~ y = self.y[indices[i]]
+                #~ yp = self.yp[indices[i]]
+                #~ dz = self.dz[indices[i]]
+                #~ dp = self.dp[indices[i]]
+#~ 
+                #~ self.slices.mean_x[i] = cp.mean(x)              
+                #~ self.slices.mean_xp[i] = cp.mean(xp)
+                #~ self.slices.mean_y[i] = cp.mean(y)
+                #~ self.slices.mean_yp[i] = cp.mean(yp)
+                #~ self.slices.mean_dz[i] = cp.mean(dz)
+                #~ self.slices.mean_dp[i] = cp.mean(dp)
+ #~ 
+                #~ self.slices.sigma_x[i] = cp.std(x)
+                #~ self.slices.sigma_y[i] = cp.std(y)
+                #~ self.slices.sigma_dz[i] = cp.std(dz)
+                #~ self.slices.sigma_dp[i] = cp.std(dp)
+#~ 
+                #~ self.slices.epsn_x[i] = cp.emittance(x, xp) * self.gamma * self.beta * 1e6
+                #~ self.slices.epsn_y[i] = cp.emittance(y, yp) * self.gamma * self.beta * 1e6
+                #~ self.slices.epsn_z[i] = 4 * np.pi \
+                                      #~ * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
+                                      #~ * self.mass * self.gamma * self.beta * c / e
 
-                self.slices.mean_x[i] = cp.mean(x)
-                self.slices.mean_xp[i] = cp.mean(xp)
-                self.slices.mean_y[i] = cp.mean(y)
-                self.slices.mean_yp[i] = cp.mean(yp)
-                self.slices.mean_dz[i] = cp.mean(dz)
-                self.slices.mean_dp[i] = cp.mean(dp)
+        # trying a faster version:
+        #~ phase_space = np.zeros(n_particles, dtype={'names':['x', 'y','in_slice'], 'formats':['f8','f8','i4']})
+        #~ phase_space['x'] = self.x[indices[-1]]
+        #~ phase_space['y'] = self.y[indices[-1]]
+        #~ phase_space['in_slice'] = self.slices.in_slice[indices[-1]]
+        #~ 
+        #~ i1 = np.cumsum(self.slices.charge[:-1])
+        #~ i0 = np.append(0, i1[:-1])
+        #~ for i in xrange(self.n_slices() + 2):
+			#~ sub_phase_space = phase_space[i0[i]:i1[i]] 
+			#~ print sub_phase_space['x']
+			#~ self.slices.mean_x[i] = cp.mean(sub_phase_space['x'])
+        # trying a faster version (old: this is only needed if phase space is not already sorted in slice_constant_space oder slice_constant_charge!!!): 
+        #~ x = self.x[self.slices._slice_index[-1]]
+        #~ xp = self.xp[self.slices._slice_index[-1]]
+        #~ y = self.y[self.slices._slice_index[-1]]
+        #~ yp = self.yp[self.slices._slice_index[-1]]
+        #~ dz = self.dz[self.slices._slice_index[-1]]
+        #~ dp = self.dp[self.slices._slice_index[-1]] 
+        
+        i1 = np.append(np.cumsum(self.slices.charge[:-1]), self.slices.charge[-1])
+        i0 = np.zeros(len(i1)).astype(int)
+        i0[1:-1] =  i1[:-2]
  
-                self.slices.sigma_x[i] = cp.std(x)
-                self.slices.sigma_y[i] = cp.std(y)
-                self.slices.sigma_dz[i] = cp.std(dz)
-                self.slices.sigma_dp[i] = cp.std(dp)
+        for i in xrange(self.n_slices() + 3):
+			self.slices.mean_x[i] = cp.mean(self.x[i0[i]:i1[i]]) 
+			self.slices.mean_xp[i] = cp.mean(self.xp[i0[i]:i1[i]])    
+			self.slices.mean_y[i] = cp.mean(self.y[i0[i]:i1[i]])    
+			self.slices.mean_yp[i] = cp.mean(self.yp[i0[i]:i1[i]])  
+			self.slices.mean_dz[i] = cp.mean(self.dz[i0[i]:i1[i]])  
+			self.slices.mean_dp[i] = cp.mean(self.dp[i0[i]:i1[i]]) 	                      
 
-                self.slices.epsn_x[i] = cp.emittance(x, xp) * self.gamma * self.beta * 1e6
-                self.slices.epsn_y[i] = cp.emittance(y, yp) * self.gamma * self.beta * 1e6
-                self.slices.epsn_z[i] = 4 * np.pi \
-                                      * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
-                                      * self.mass * self.gamma * self.beta * c / e
+			self.slices.sigma_x[i] = cp.std(self.x[i0[i]:i1[i]])
+			self.slices.sigma_y[i] = cp.std(self.y[i0[i]:i1[i]])
+			self.slices.sigma_dz[i] = cp.std(self.dz[i0[i]:i1[i]])
+			self.slices.sigma_dp[i] = cp.std(self.dp[i0[i]:i1[i]])
+#~ 
+			self.slices.epsn_x[i] = cp.emittance(self.x[i0[i]:i1[i]], self.xp[i0[i]:i1[i]]) * self.gamma * self.beta * 1e6
+			self.slices.epsn_y[i] = cp.emittance(self.y[i0[i]:i1[i]], self.yp[i0[i]:i1[i]]) * self.gamma * self.beta * 1e6
+			self.slices.epsn_z[i] = 4 * np.pi \
+								  * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
+								  * self.mass * self.gamma * self.beta * c / e
+  
 
     def n_slices(self):
         return len(self.slices.mean_x)-3

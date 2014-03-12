@@ -4,15 +4,9 @@ Created on 07.01.2014
 @author: Kevin Li
 '''
 
-
 import numpy as np
-
-
 from configuration import *
-
-
 import time, timeit
-
 
 class LinearPeriodicMap(object):
 
@@ -34,28 +28,56 @@ class LinearPeriodicMap(object):
         self.Qp_y = Qp_y
         self.app_y = app_y
 
+    @profile
     def track(self, beam):
+        
         dphi_x, dphi_y = self.detune(beam)
 
-        M00 = self.I[0, 0] * np.cos(dphi_x) + self.J[0, 0] * np.sin(dphi_x)
-        M01 = self.I[0, 1] * np.cos(dphi_x) + self.J[0, 1] * np.sin(dphi_x)
-        M10 = self.I[1, 0] * np.cos(dphi_x) + self.J[1, 0] * np.sin(dphi_x)
-        M11 = self.I[1, 1] * np.cos(dphi_x) + self.J[1, 1] * np.sin(dphi_x)
-        M22 = self.I[2, 2] * np.cos(dphi_y) + self.J[2, 2] * np.sin(dphi_y)
-        M23 = self.I[2, 3] * np.cos(dphi_y) + self.J[2, 3] * np.sin(dphi_y)
-        M32 = self.I[3, 2] * np.cos(dphi_y) + self.J[3, 2] * np.sin(dphi_y)
-        M33 = self.I[3, 3] * np.cos(dphi_y) + self.J[3, 3] * np.sin(dphi_y)
+        # HB: faster compared to commented version below! but still should cythonize the sin and cos functions!
+                        
+        cos_dphi_x = np.cos(dphi_x)
+        cos_dphi_y = np.cos(dphi_y)
+        sin_dphi_x = np.sin(dphi_x)
+        sin_dphi_y = np.sin(dphi_y)
+        
+        M00 = self.I[0, 0] * cos_dphi_x + self.J[0, 0] * sin_dphi_x
+        M01 = self.I[0, 1] * cos_dphi_x + self.J[0, 1] * sin_dphi_x
+        M10 = self.I[1, 0] * cos_dphi_x + self.J[1, 0] * sin_dphi_x
+        M11 = self.I[1, 1] * cos_dphi_x + self.J[1, 1] * sin_dphi_x
+        M22 = self.I[2, 2] * cos_dphi_y + self.J[2, 2] * sin_dphi_y
+        M23 = self.I[2, 3] * cos_dphi_y + self.J[2, 3] * sin_dphi_y
+        M32 = self.I[3, 2] * cos_dphi_y + self.J[3, 2] * sin_dphi_y
+        M33 = self.I[3, 3] * cos_dphi_y + self.J[3, 3] * sin_dphi_y
+        
+        beam.x, beam.xp = M00 * beam.x + M01 * beam.xp, M10 * beam.x + M11 * beam.xp
+        beam.y, beam.yp = M22 * beam.y + M23 * beam.yp, M32 * beam.y + M33 * beam.yp
 
-        x0 = np.copy(beam.x)
-        xp0 = np.copy(beam.xp)
-        y0 = np.copy(beam.y)
-        yp0 = np.copy(beam.yp)
+        # Do this at the end of every drift to provide slice statistics
+        # for any subsequent kick calculations        
+        beam.compute_statistics()        
 
-        beam.x = M00 * x0 + M01 * xp0
-        beam.xp = M10 * x0 + M11 * xp0
-        beam.y = M22 * y0 + M23 * yp0
-        beam.yp = M32 * y0 + M33 * yp0
+        ############################# old version
+        #~ M00 = self.I[0, 0] * np.cos(dphi_x) + self.J[0, 0] * np.sin(dphi_x)
+        #~ M01 = self.I[0, 1] * np.cos(dphi_x) + self.J[0, 1] * np.sin(dphi_x)
+        #~ M10 = self.I[1, 0] * np.cos(dphi_x) + self.J[1, 0] * np.sin(dphi_x)
+        #~ M11 = self.I[1, 1] * np.cos(dphi_x) + self.J[1, 1] * np.sin(dphi_x)
+        #~ M22 = self.I[2, 2] * np.cos(dphi_y) + self.J[2, 2] * np.sin(dphi_y)
+        #~ M23 = self.I[2, 3] * np.cos(dphi_y) + self.J[2, 3] * np.sin(dphi_y)
+        #~ M32 = self.I[3, 2] * np.cos(dphi_y) + self.J[3, 2] * np.sin(dphi_y)
+        #~ M33 = self.I[3, 3] * np.cos(dphi_y) + self.J[3, 3] * np.sin(dphi_y)
+        #~ 
+        #~ x0 = np.copy(beam.x)
+        #~ xp0 = np.copy(beam.xp)
+        #~ y0 = np.copy(beam.y)
+        #~ yp0 = np.copy(beam.yp)
+        #~ 
+        #~ beam.x = M00 * x0 + M01 * xp0
+        #~ beam.xp = M10 * x0 + M11 * xp0
+        #~ beam.y = M22 * y0 + M23 * yp0
+        #~ beam.yp = M32 * y0 + M33 * yp0
+        #############################
 
+         
 #         for i in range(beam.n_particles):
 #             b = np.array([beam.x[i], beam.xp[i], beam.y[i], beam.yp[i]])
 #             x = np.dot(self.M, b)
@@ -67,7 +89,7 @@ class LinearPeriodicMap(object):
 #         print "Start timing..."
 #         t = timeit.Timer(beam.compute_statistics)
 #         print t.timeit(10)
-        beam.compute_statistics()
+        #~ beam.compute_statistics()
 
     def detune(self, beam):
         rx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2)
