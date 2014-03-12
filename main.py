@@ -53,13 +53,13 @@ bunch.update_slices()
 
 # PIC grid
 poisson = PoissonFFT(plt.std(bunch.x) * 10, plt.std(bunch.y) * 10, 128, 128)
-# poisson.gather(1, bunch)
-[plt.axvline(v, c='r') for v in poisson.mx]
-[plt.axhline(h, c='r') for h in poisson.my]
+poisson.gather(1, bunch)
+# [plt.axvline(v, c='orange') for v in poisson.mx[0,:]]
+# [plt.axhline(h, c='orange') for h in poisson.my[:,0]]
+# plt.gca().set_xlim(plt.amin(poisson.mx), plt.amax(poisson.mx[-1]))
+# plt.gca().set_ylim(plt.amin(poisson.my), plt.amax(poisson.my[-1]))
 plt.scatter(bunch.x, bunch.y, marker='.')
-plt.gca().set_xlim(poisson.mx[0], poisson.mx[-1])
-plt.gca().set_ylim(poisson.my[0], poisson.my[-1])
-plt.plot(poisson.rho)
+plt.scatter(poisson.mx, poisson.my, s=poisson.rho*1e-5, c=poisson.rho, cmap=plt.get_cmap('hot_r'))
 plt.show()
 exit(-1)
 
