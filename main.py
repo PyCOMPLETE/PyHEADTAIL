@@ -4,8 +4,12 @@ import cProfile, itertools, ipdb, time, timeit
 
 
 from configuration import *
+from cobra_functions import stats, random
 from beams.bunch import *
+from beams import slices
+from beams.matching import match_transverse, match_longitudinal
 from monitors.monitors import *
+from solvers.grid import *
 from solvers.poissonfft import *
 from impedances.wake_resonator import *
 from trackers.transverse_tracker import *
@@ -39,20 +43,41 @@ linear_map = TransverseTracker.from_copy(s,
 cavity = CSCavity(C, 18, 0.017)
 # cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
 
+# bunch = Bunch.from_empty(2e3, charge, energy, intensity, mass)
+# x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
 # Bunch
-bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
-                              epsn_x, beta_x, epsn_y, beta_y, epsn_z, length=0.220, cavity=None, matching='simple')
-bunch.slice(n_slices, nsigmaz=None, mode='cspace')
+bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
+                                 2.5, 2.5, linear_map[0], 0.21, bucket=0.5, matching=None,
+                                 n_slices=64, nsigmaz=None, slicemode='cspace')
+bunch.update_slices()
+
+# PIC grid
+poisson = PoissonFFT(plt.std(bunch.x) * 10, plt.std(bunch.y) * 10, 128, 128)
+# poisson.gather(1, bunch)
+[plt.axvline(v, c='r') for v in poisson.mx]
+[plt.axhline(h, c='r') for h in poisson.my]
+plt.scatter(bunch.x, bunch.y, marker='.')
+plt.gca().set_xlim(poisson.mx[0], poisson.mx[-1])
+plt.gca().set_ylim(poisson.my[0], poisson.my[-1])
+plt.plot(poisson.rho)
+plt.show()
+exit(-1)
+
+# pdf, bins, patches = plt.hist(bunch.dz, n_slices)
+# plt.stem(bunch.slices.dz_centers[:-1], bunch.slices.charge[:-1], linefmt='g', markerfmt='go')
+# [plt.axvline(i, c='y') for i in bunch.slices.dz_bins]
+# plt.show()
+# exit(-1)
 
 # Resonator wakefields
-wakes = WakeResonator(R_shunt=2e6, frequency=1e9, Q=1)
+# wakes = WakeResonator(R_shunt=2e6, frequency=1e9, Q=1)
 
 poisson = PoissonFFT(100)
 
 #     plt.scatter(bunch.x, bunch.xp)
 #     plt.show()
 
-map_ = [linear_map, [wakes], [cavity]]
+map_ = [linear_map, [cavity]]
 map_ = list(itertools.chain.from_iterable(map_))
 
 t1 = time.clock()

@@ -9,9 +9,25 @@ import numpy as np
 
 
 from beams.slices import *
+from beams.matching import match_transverse, match_longitudinal
 from configuration import *
-from trackers.longitudinal_tracker import *
+# from trackers.longitudinal_tracker import *
 import cobra_functions.cobra_functions as cp
+
+
+def bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
+                             epsn_x, epsn_y, ltm, length, bucket, matching,
+                             n_slices, nsigmaz, slicemode='cspace'):
+
+    # bunch = Bunch.from_empty(1e3, charge, energy, intensity, mass)
+    # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)  
+    bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
+    bunch.match_transverse(epsn_x, epsn_y, ltm)
+    bunch.match_longitudinal(epsn_z, bucket, matching)
+    bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
+    bunch.update_slices()
+
+    return bunch
 
 
 class Bunch(object):
@@ -33,20 +49,6 @@ class Bunch(object):
         self.dp = dp
 
     @classmethod
-    def default(cls, n_particles):
-
-        x = np.zeros(n_particles)
-        xp = np.zeros(n_particles)
-        y = np.zeros(n_particles)
-        yp = np.zeros(n_particles)
-        dz = np.zeros(n_particles)
-        dp = np.zeros(n_particles)
-
-        self = cls(x, xp, y, yp, dz, dp)
-
-        return self
-
-    @classmethod
     def from_copy(cls, x, xp, y, yp, dz, dp):
 
         x = np.copy(x)
@@ -61,12 +63,27 @@ class Bunch(object):
         return self
 
     @classmethod
+    def from_empty(cls, n_particles, charge, energy, intensity, mass):
+
+        x = np.zeros(n_particles)
+        xp = np.zeros(n_particles)
+        y = np.zeros(n_particles)
+        yp = np.zeros(n_particles)
+        dz = np.zeros(n_particles)
+        dp = np.zeros(n_particles)
+
+        self = cls(x, xp, y, yp, dz, dp)
+
+        self.set_scalar_quantities(charge, energy, intensity, mass)
+
+        return self
+
+    @classmethod
     def from_file(cls):
         pass
 
     @classmethod
-    def from_parameters(cls, n_particles, charge, energy, intensity, mass,
-                        epsn_x, beta_x, epsn_y, beta_y, epsn_z, length, cavity=None, matching='simple'):
+    def from_gaussian(cls, n_particles, charge, energy, intensity, mass):
 
         x = np.random.randn(n_particles)
         xp = np.random.randn(n_particles)
@@ -77,53 +94,58 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        # self.charge = charge
-        # self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
-        # self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
-        # self.mass = mass
-        # p0 = mass * self.gamma * self.beta * c / e
-
-        # matching.match_transverse(self, ...)
-        # matching.match_simple(self, cavity)
-        # matching.match_full(self, cavity)
-        self.match_distribution(charge, energy, intensity, mass,
-                                epsn_x, beta_x, epsn_y, beta_y, epsn_z, length)
-        if cavity:
-            if matching == 'simple':
-                match_simple(self, cavity)
-            elif matching == 'full':
-                match_full(self, cavity)
-            else:
-                raise ValueError("Unknown matching " + matching)
-        else:
-            pass
+        self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
 
-    # TODO: perhaps throw to matching/matcher and mark transverse
-    def match_distribution(self, charge, energy,  intensity, mass,
-                           epsn_x, beta_x, epsn_y, beta_y, epsn_z, length):
+    @classmethod
+    def from_uniform(cls, n_particles, charge, energy, intensity, mass):
+
+        x = np.random.rand(n_particles) * 2 - 1
+        xp = np.random.rand(n_particles) * 2 - 1
+        y = np.random.rand(n_particles) * 2 - 1
+        yp = np.random.rand(n_particles) * 2 - 1
+        dz = np.random.rand(n_particles) * 2 - 1
+        dp = np.random.rand(n_particles) * 2 - 1
+
+        self = cls(x, xp, y, yp, dz, dp)
+
+        self.set_scalar_quantities(charge, energy, intensity, mass)
+
+        return self
+
+    # # TODO: perhaps decorate with matchings...
+    # @classmethod
+    # def from_matching(cls, n_particles, charge, energy, intensity, mass,
+    #                   match_transverse=None, match_longitudinal=None, slices=None):
+
+    #     self = cls.from_gaussian(n_particles)
+
+    #     self.set_scalar_quantities(charge, energy, intensity, mass)
+
+    #     match_transverse(self)
+    #     match_longitudinal(self)
+
+    #     self.slices = slices
+
+    #     return self
+
+    def set_scalar_quantities(self, charge, energy, intensity, mass):
 
         self.charge = charge
-        self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) + 1
+        self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) # + 1 only for below PS
         self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
         self.intensity = intensity
         self.mass = mass
-        p0 = mass * self.gamma * self.beta * c / e
+        self.p0 = mass * self.gamma * self.beta * c
 
-        sigma_x = np.sqrt(beta_x * epsn_x * 1e-6 / (self.gamma * self.beta))
-        sigma_xp = sigma_x / beta_x
-        sigma_y = np.sqrt(beta_y * epsn_y * 1e-6 / (self.gamma * self.beta))
-        sigma_yp = sigma_y / beta_y
-        sigma_dz = length
-        sigma_dp = epsn_z / (4 * np.pi * sigma_dz) / p0
+    def match_transverse(self, epsn_x, epsn_y, ltm):
 
-        self.x *= sigma_x
-        self.xp *= sigma_xp
-        self.y *= sigma_y
-        self.yp *= sigma_yp
-        self.dz *= sigma_dz
-        self.dp *= sigma_dp
+        match_transverse(epsn_x, epsn_y, ltm)(self)
+
+    def match_longitudinal(self, length, bucket=None, matching=None):
+
+        match_longitudinal(length, bucket, matching)(self)
 
     # @profile
     def compute_statistics(self):
@@ -136,42 +158,6 @@ class Bunch(object):
 
             indices = [self.slices.index(i) for i in range(n_slices + 2)]
             indices.append(range(n_particles))
-
-#             indices = [np.copy(self.slices.index(i))
-#                        for i in range(n_slices + 2)]
-#             indices.append(np.arange(n_particles))
-#             for i in range(len(indices)):
-#                 indices[i].resize(n_particles)
-#             indices = np.vstack(indices)
-# 
-# 
-#         self.slices.mean_x = np.mean(self.x[indices], axis=1)
-#         self.slices.mean_xp = np.mean(self.xp[indices], axis=1)
-#         self.slices.mean_y = np.mean(self.y[indices], axis=1)
-#         self.slices.mean_yp = np.mean(self.yp[indices], axis=1)
-# #                 self.slices.mean_dz[i] = np.mean(self.dz[k])
-# #                 self.slices.mean_dp[i] = np.mean(self.dp[k])
-# 
-# #                 self.slices.sigma_x[i] = np.std(self.x[k])
-# #                 self.slices.sigma_y[i] = np.std(self.y[k])
-# #                 self.slices.sigma_dz[i] = np.std(self.dz[k])
-# #                 self.slices.sigma_dp[i] = np.std(self.dp[k])
-# 
-#         stdx2 = np.std(self.x[indices] ** 2, axis=1)
-#         stdxp2 = np.std(self.xp[indices] ** 2, axis=1)
-#         stdxxp = np.std(self.x[indices] * self.xp[indices], axis=1)
-#         stdy2 = np.std(self.y[indices] ** 2, axis=1)
-#         stdyp2 = np.std(self.yp[indices] ** 2, axis=1)
-#         stdyyp = np.std(self.y[indices] * self.yp[indices], axis=1)
-# 
-#         self.slices.epsn_x = np.sqrt(stdx2 * stdxp2 - stdxxp ** 2) \
-#                            * self.gamma * self.beta * 1e6
-#         self.slices.epsn_y = np.sqrt(stdy2 * stdyp2 - stdyyp ** 2) \
-#                            * self.gamma * self.beta * 1e6
-# #                 self.slices.epsn_z[i] = 4 * np.pi \
-# #                         * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
-# #                         * self.mass * self.gamma * self.beta * c / e
-
 
         for i in xrange(n_slices + 3):
             n = len(indices[i])
@@ -201,59 +187,18 @@ class Bunch(object):
                                       * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
                                       * self.mass * self.gamma * self.beta * c / e
 
-    def slice(self, n_slices, nsigmaz, mode):
+    def set_slices(self, slices):
 
-        if not hasattr(self, 'slices'):
-            self.slices = Slices(n_slices)
+        self.slices = slices
 
-        if mode == 'ccharge':
-            self.slices.slice_constant_charge(self, nsigmaz)
-        elif mode == 'cspace':
-            self.slices.slice_constant_space(self, nsigmaz)
-        else:
-            print '*** ERROR! Unknown mode '+mode+'! Aborting...'
-            sys.exit(-1)
+    def update_slices(self):
 
-#     def set_slice(self, n_slices):
-#         
-#         if not self.slices:
-#             self.slices = Slices(n_slices)
-# 
-#         int np = get_nparticles();
-#         int ns = get_nslices();
-#     
-#         // Allocate memory
-#         if (ns < n_slices)
-#         {
-#             create_slices(n_slices);
-#             ns = get_nslices();
-#         }
-#     
-#         // Compute longitudinal moments
-#         if (!is_sliced)
-#         {
-#             std::vector<int> index(np);
-#             for (int i=0; i<np; i++)
-#                 index[i] = i;
-#     
-#             this->mean_dz[ns + 2] = compute_first_moment(dz, index);
-#             this->sigma_dz[ns + 2] = compute_second_moment(dz, mean_dz[ns + 2],
-#                                                            index);
-#         }
-#     
-#         // Sorting
-#         std::vector<Slice> slices;
-#         for (int i=0; i<np; i++)
-#             slices.push_back(Slice(i, dz[i]));
-#         std::sort(slices.begin(), slices.end());
-#     
-#         // Slicing
-#         if (mode == "cspace")
-#             slice_constant_space(slices, nsigmaz);
-#         else if (mode == "ccharge")
-#             slice_constant_charge(slices, nsigmaz);
-#     
-#         if (!is_sliced)
-#             is_sliced = 1;
-#     
-#         self.compute_statistics()
+        # if not hasattr(self, 'slices'):
+        #     self.slices = Slices(n_slices)
+
+        assert(hasattr(self, 'slices'))
+
+        if self.slices.slicemode == 'ccharge':
+            self.slices.slice_constant_charge(self, self.slices.nsigmaz)
+        elif self.slices.slicemode == 'cspace':
+            self.slices.slice_constant_space(self, self.slices.nsigmaz)
