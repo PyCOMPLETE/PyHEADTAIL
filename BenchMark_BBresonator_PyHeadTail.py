@@ -87,7 +87,6 @@ cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0)
 bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
                                  epsn_x, epsn_y, linear_map[0], bunch_length, bucket=cavity, matching='simple',
                                  n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace') 
-bunch.update_slices()
 
 
 # initial transverse kicks
@@ -112,7 +111,7 @@ map_ = list(itertools.chain.from_iterable(map_))
 # define color scale for plotting 
 normalization = np.max(bunch.dz) / np.max(bunch.dp)
 r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
-'''
+
 for i in range(n_turns):
     print 'Turn: ', i
     t0 = time.clock() 
@@ -121,7 +120,7 @@ for i in range(n_turns):
         m.track(bunch) 
         print m, ', elapsed time: ' + str(time.clock() - t1) + ' s'
     t1 = time.clock()           
-    bunch.slice(n_slices, nsigmaz=nsigmaz, mode='cspace')
+    bunch.update_slices()
     print 'bunch slicing, elapsed time: ' + str(time.clock() - t1) + ' s'
     t1 = time.clock()
     bunchmonitor.dump(bunch)
@@ -146,7 +145,7 @@ for i in range(n_turns):
     #~ plt.scatter(bunch.x, bunch.xp)
     #~ plt.draw
     print 'Turn: ', i, ' took: ' + str(time.clock() - t0) + ' s \n'
- ''' 
+ 
 
 
 

@@ -49,11 +49,11 @@ class Wakefields(object):
             dz_to_target_slice = [bunch.slices.dz_centers[1:-2]] - np.transpose([bunch.slices.dz_centers[1:-2]])
 
             # dipole kicks
-            self.dipole_kick = np.zeros(bunch.n_slices()+3)
+            self.dipole_kick = np.zeros(bunch.slices.n_slices+3)
             self.dipole_kick[1:-2] = np.dot(bunch.slices.charge[1:-2] * slice_position[1:-2], dipole_wake(dz_to_target_slice)) * self.constant_wake_factor(bunch)
             
             # quadrupole kicks
-            self.quadrupolar_wake_sum = np.zeros(bunch.n_slices()+3)
+            self.quadrupolar_wake_sum = np.zeros(bunch.slices.n_slices+3)
             self.quadrupolar_wake_sum[1:-2] = np.dot(bunch.slices.charge[1:-2], quadrupole_wake(dz_to_target_slice)) * self.constant_wake_factor(bunch)
             
             # apply kicks
