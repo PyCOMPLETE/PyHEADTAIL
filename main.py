@@ -46,8 +46,8 @@ cavity = CSCavity(C, 18, 0.017)
 # bunch = Bunch.from_empty(2e3, charge, energy, intensity, mass)
 # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
 # Bunch
-bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
-                                 2.5, 2.5, linear_map[0], 0.21, bucket=0.5, matching=None,
+bunch = bunch_matched_and_sliced(10000, charge, energy, intensity, mass,
+                                 5, 2.5, linear_map[0], 0.21, bucket=0.5, matching=None,
                                  n_slices=64, nsigmaz=None, slicemode='cspace')
 bunch.update_slices()
 
@@ -58,9 +58,10 @@ poisson.gather(1, bunch)
 # [plt.axhline(h, c='orange') for h in poisson.my[:,0]]
 # plt.gca().set_xlim(plt.amin(poisson.mx), plt.amax(poisson.mx[-1]))
 # plt.gca().set_ylim(plt.amin(poisson.my), plt.amax(poisson.my[-1]))
-# plt.scatter(bunch.x, bunch.y, marker='.')
-# plt.scatter(poisson.mx, poisson.my, s=poisson.rho*1e-5, c=poisson.rho, cmap=plt.get_cmap('hot_r'))
-# plt.show()
+plt.scatter(bunch.x, bunch.y, marker='.')
+plt.scatter(poisson.mx, poisson.my, s=poisson.rho*2, c=poisson.rho)
+plt.gca().set_aspect('equal')
+plt.show()
 exit(-1)
 
 # pdf, bins, patches = plt.hist(bunch.dz, n_slices)

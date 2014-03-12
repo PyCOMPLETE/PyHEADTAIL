@@ -54,20 +54,20 @@ class UniformGrid(object):
         l = 1
 
         fx, fy = (bunch.x - self.mx[0,0]) * dxi, (bunch.y - self.my[0,0]) * dyi
-        ix, iy = fx // dx, fy // dy
-        print ix
         ix, iy = np.floor(fx).astype(int), np.floor(fy).astype(int)
-        print ix
         fx, fy = fx - ix, fy - iy
 
-        a1 = (1 - fx) * (1 - fy)
-        a2 = fx * (1 - fy)
-        a3 = (1 - fx) * fy
-        a4 = fx * fy
+        H, xedges, yedges = np.histogram2d(ix, iy, bins=self.rho.shape)
+        self.rho += H
 
-        print self.rho[ix,iy]
-        self.rho[ix, iy] += l
-        print self.rho[ix,iy]
+        # a1 = (1 - fx) * (1 - fy)
+        # a2 = fx * (1 - fy)
+        # a3 = (1 - fx) * fy
+        # a4 = fx * fy
+
+        # print self.rho[ix,iy]
+        # self.rho[ix, iy] += l
+        # print self.rho[ix,iy]
             
         # self.rho[ix, iy] += l * a1 * ai
         # self.rho[ix + 1, iy] += l * a2 * ai
