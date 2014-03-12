@@ -40,31 +40,28 @@ linear_map = TransverseTracker.from_copy(s,
                                26.13, 0, 0, 26.18, 0, 0)
 
 # Synchrotron
-# cavity = CSCavity(C, 18, 0.017)
-cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
+cavity = CSCavity(C, 18, 0.017)
+# cavity = RFCavity(C, C, 18, 4620, 2e6, 0)
+
+# bunch = Bunch.from_empty(2e3, charge, energy, intensity, mass)
+# x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
+# Bunch
+bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
+                                 2.5, 2.5, linear_map[0], 0.21, bucket=0.5, matching=None,
+                                 n_slices=64, nsigmaz=None, slicemode='cspace')
+bunch.update_slices()
 
 # PIC grid
-poisson = PoissonFFT(10, 10, 128, 128)
+poisson = PoissonFFT(plt.std(bunch.x) * 10, plt.std(bunch.y) * 10, 128, 128)
+# poisson.gather(1, bunch)
 [plt.axvline(v, c='r') for v in poisson.mx]
 [plt.axhline(h, c='r') for h in poisson.my]
-plt.show()
-print poisson.mx
-print len(poisson.mx), len(poisson.my)
-exit(-1)
-
-bunch = Bunch.from_empty(1e3, charge, energy, intensity, mass)
-x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
-print bunch.x
-plt.scatter(x, xp, c='purple', marker='.')
+plt.scatter(bunch.x, bunch.y, marker='.')
+plt.gca().set_xlim(poisson.mx[0], poisson.mx[-1])
+plt.gca().set_ylim(poisson.my[0], poisson.my[-1])
+plt.plot(poisson.rho)
 plt.show()
 exit(-1)
-
-# Bunch
-bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
-bunch.match_transverse(2.5, 2.5, linear_map[0])
-bunch.match_longitudinal(0.21, bucket=cavity, matching='full')
-bunch.set_slices(slices.Slices(64, nsigmaz=None, slicemode='cspace'))
-bunch.update_slices()
 
 # pdf, bins, patches = plt.hist(bunch.dz, n_slices)
 # plt.stem(bunch.slices.dz_centers[:-1], bunch.slices.charge[:-1], linefmt='g', markerfmt='go')

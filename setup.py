@@ -56,7 +56,7 @@ cy_ext = [
                  ),
         Extension("cobra_functions.random",
                  ["cobra_functions/random.pyx"],
-                 include_dirs=[cython_gsl.get_cython_include_dir()],
+                 include_dirs=[np.get_include(), cython_gsl.get_cython_include_dir()],
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
                  library_dirs=[], libraries=["gsl", "gslcblas"],

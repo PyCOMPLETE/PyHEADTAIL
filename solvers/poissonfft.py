@@ -11,7 +11,7 @@ import numpy as np
 from solvers.grid import *
 
 
-class PoissonFFT(AdaptiveGrid):
+class PoissonFFT(UniformGrid):
     '''
     classdocs
     '''

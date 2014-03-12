@@ -1,3 +1,7 @@
+import numpy as np
+cimport numpy as np
+
+
 from cython_gsl cimport *
 
 
@@ -46,7 +50,7 @@ def gsl_quasirandom(bunch):
     cdef int i, n_particles = len(x)
 
     cdef gsl_qrng* r
-    r = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 6)
+    r = gsl_qrng_alloc(gsl_qrng_sobol, 6)
     gsl_qrng_init(r)
     
     for i in xrange(n_particles):
@@ -71,37 +75,36 @@ cdef get_qrng_gaussian(gsl_qrng* r):
     cdef list s = [0] * 6
     cdef double tmp[6]
 
-# //             // Classical Box-Muller
-# //             for (int i=0; i<n_elements; i++)
-# //             {
-# //                 gsl_qrng_get(qr, tmp);
-# //                 phi = 2*M_PI*tmp[0];
-# //                 radius = log(1-tmp[1]);
-# // //                 phasespace[i][ix] = epsn*sqrt(-2*radius)*sin(phi);
-# // //                 phasespace[i][ix+3] = sigma*sqrt(-2*radius)*cos(phi);
-# //                 u[i] = epsn*sqrt(-2*radius)*sin(phi);
-# //                 v[i] = sigma*sqrt(-2*radius)*cos(phi);
-# //             }
-
-    # quasi-random sequence is correlated -> rejection method can not work!
-    # Polar Box-Muller
+    # Classical Box-Muller
     cdef int i
-    cdef double p, q, radius
+    cdef double phi, radius
+    gsl_qrng_get(r, tmp)
     for i in xrange(3):
-        gsl_qrng_get(r, tmp)
+        phi = 2 * np.pi * tmp[2 * i]
+        radius = np.log(1 - tmp[2 * i + 1])
 
-        p = tmp[i * 2] * 2 - 1
-        q = tmp[i * 2 + 1] * 2 - 1
-        radius = p ** 2 + q ** 2
-        while (radius == 0 or radius >= 1.0):
-            gsl_qrng_get(r, tmp)
+        s[2 * i] = np.sqrt(-2 * radius) * np.sin(phi)
+        s[2 * i + 1] = np.sqrt(-2 * radius) * np.cos(phi)
 
-            p = tmp[i * 2] * 2 - 1
-            q = tmp[i * 2 + 1] * 2 - 1
-            radius = p ** 2 + q ** 2
+    # # quasi-random sequence is correlated -> rejection method can not work!
+    # # Polar Box-Muller
+    # cdef int i
+    # cdef double p, q, radius
+    # for i in xrange(3):
+    #     gsl_qrng_get(r, tmp)
 
-        s[i * 2] = p * sqrt(-2.0 * log(radius) / radius)
-        s[i * 2 + 1] = q * sqrt(-2.0 * log(radius) / radius)
+    #     p = tmp[i * 2] * 2 - 1
+    #     q = tmp[i * 2 + 1] * 2 - 1
+    #     radius = p ** 2 + q ** 2
+    #     while (radius == 0 or radius >= 1.0):
+    #         gsl_qrng_get(r, tmp)
+
+    #         p = tmp[i * 2] * 2 - 1
+    #         q = tmp[i * 2 + 1] * 2 - 1
+    #         radius = p ** 2 + q ** 2
+
+    #     s[i * 2] = p * sqrt(-2.0 * log(radius) / radius)
+    #     s[i * 2 + 1] = q * sqrt(-2.0 * log(radius) / radius)
 
     return s
 
