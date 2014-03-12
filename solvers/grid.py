@@ -54,7 +54,10 @@ class UniformGrid(object):
         l = 1
 
         fx, fy = (bunch.x - self.mx[0,0]) * dxi, (bunch.y - self.my[0,0]) * dyi
+        ix, iy = fx // dx, fy // dy
+        print ix
         ix, iy = np.floor(fx).astype(int), np.floor(fy).astype(int)
+        print ix
         fx, fy = fx - ix, fy - iy
 
         a1 = (1 - fx) * (1 - fy)
@@ -62,10 +65,14 @@ class UniformGrid(object):
         a3 = (1 - fx) * fy
         a4 = fx * fy
 
-        self.rho[ix, iy] += l * a1 * ai
-        self.rho[ix + 1, iy] += l * a2 * ai
-        self.rho[ix, iy + 1] += l * a3 * ai
-        self.rho[ix + 1, iy + 1] += l * a4 * ai
+        print self.rho[ix,iy]
+        self.rho[ix, iy] += l
+        print self.rho[ix,iy]
+            
+        # self.rho[ix, iy] += l * a1 * ai
+        # self.rho[ix + 1, iy] += l * a2 * ai
+        # self.rho[ix, iy + 1] += l * a3 * ai
+        # self.rho[ix + 1, iy + 1] += l * a4 * ai
 
 # template<typename T, typename U>
 # void PoissonBase::fastscatter(T t, U u, int i_slice)

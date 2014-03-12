@@ -58,9 +58,9 @@ poisson.gather(1, bunch)
 # [plt.axhline(h, c='orange') for h in poisson.my[:,0]]
 # plt.gca().set_xlim(plt.amin(poisson.mx), plt.amax(poisson.mx[-1]))
 # plt.gca().set_ylim(plt.amin(poisson.my), plt.amax(poisson.my[-1]))
-plt.scatter(bunch.x, bunch.y, marker='.')
-plt.scatter(poisson.mx, poisson.my, s=poisson.rho*1e-5, c=poisson.rho, cmap=plt.get_cmap('hot_r'))
-plt.show()
+# plt.scatter(bunch.x, bunch.y, marker='.')
+# plt.scatter(poisson.mx, poisson.my, s=poisson.rho*1e-5, c=poisson.rho, cmap=plt.get_cmap('hot_r'))
+# plt.show()
 exit(-1)
 
 # pdf, bins, patches = plt.hist(bunch.dz, n_slices)
