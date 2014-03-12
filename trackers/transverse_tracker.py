@@ -28,7 +28,7 @@ class LinearPeriodicMap(object):
         self.Qp_y = Qp_y
         self.app_y = app_y
 
-    @profile
+    #~ @profile
     def track(self, beam):
         
         dphi_x, dphi_y = self.detune(beam)

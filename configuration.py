@@ -18,4 +18,4 @@ beta_x = 100
 beta_y = 100
 length = 0.21
 
-n_slices = 64
+#~ n_slices = 64

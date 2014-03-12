@@ -115,8 +115,10 @@ class BB_Resonator_transverse(Wakefields):
     def quadrupolar_wake_y(self, z):     
         return self.Yokoya_Y2 * self.wake_transverse(z)
         
-    def track(self, bunch):
+    def track(self, bunch):     
         wakefield_kicks_x = self.transverse_wakefield_kicks('x')
         wakefield_kicks_x(bunch)
         wakefield_kicks_y = self.transverse_wakefield_kicks('y')
         wakefield_kicks_y(bunch)
+
+

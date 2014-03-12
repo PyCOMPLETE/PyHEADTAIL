@@ -3,12 +3,18 @@ from IPython.lib.deepreload import reload as dreload
 import cProfile, itertools, ipdb, time, timeit
 import numpy as np
 
+from configuration import *
+#~ from cobra_functions import stats, random
 from beams.bunch import *
+from beams import slices
+from beams.matching import match_transverse, match_longitudinal
 from monitors.monitors import *
+#~ from solvers.grid import *
 from solvers.poissonfft import *
 from impedances.wake_resonator import *
 from trackers.transverse_tracker import *
 from trackers.longitudinal_tracker import *
+
 
 from plots import *
 
@@ -25,16 +31,16 @@ mp = constants.m_p
 # simulation setup
 charge = 1
 mass = mp
-intensity = 1e11
-beta_x = 54.6408
-beta_y = 54.5054
-bunch_length = 0.3
-epsn_z = 0.5
-epsn_x = 2.0
-epsn_y = 2.0
+intensity = 1e11 
+beta_x = 54.6408 # [m]
+beta_y = 54.5054 # [m]
+bunch_length = 0.3 # [m]
+epsn_z = 0.5 # [eVs]
+epsn_x = 2.0 # [um]
+epsn_y = 2.0 # [um]
 gamma_t = 1/np.sqrt(0.0031)
-C = 6911.
-energy = 26
+C = 6911. # [m]
+energy = 26 # total [Gev]
 n_turns = 10
 nsigmaz = 2
 Qx = 20.13
@@ -43,12 +49,12 @@ Qp_x = 0
 Qp_y = 0
 n_particles = 1000
 n_slices = 50
-R_frequency = 1.0e9
+R_frequency = 1.0e9 # [Hz]
 Q = 1
-R_shunt = 20e6
+R_shunt = 20e6 # [Ohm]
 initial_kick_x = 0.1*np.sqrt(beta_x * epsn_x*1.e-6 / (energy / 0.938))
 initial_kick_y = 0.1*np.sqrt(beta_y * epsn_y*1.e-6 / (energy / 0.938))
-RF_voltage = 4e6
+RF_voltage = 4e6 # [V]
 harmonic_number = 4620
 
 
@@ -74,16 +80,23 @@ linear_map = TransverseTracker.from_copy(s,
 cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0)
 
 # Bunch
-bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
-                              epsn_x, beta_x, epsn_y, beta_y, epsn_z, bunch_length, cavity=cavity, matching='simple')
-                                                                                        
+#~ bunch = Bunch.from_parameters(n_particles, charge, energy, intensity, mass,
+                              #~ epsn_x, beta_x, epsn_y, beta_y, epsn_z, bunch_length, cavity=cavity, matching='simple')
+
+# still need to implement the original HEADTAIL initialization method...                               
+bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
+                                 epsn_x, epsn_y, linear_map[0], bunch_length, bucket=cavity, matching='simple',
+                                 n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace') 
+bunch.update_slices()
+
+
 # initial transverse kicks
 bunch.x += initial_kick_x
 bunch.y += initial_kick_y
 
 # slicing
-bunch.slice(n_slices, nsigmaz=nsigmaz, mode='cspace')
 bunch.compute_statistics()
+
 
 # Resonator wakefields
 wakes = BB_Resonator_Circular(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
@@ -99,7 +112,7 @@ map_ = list(itertools.chain.from_iterable(map_))
 # define color scale for plotting 
 normalization = np.max(bunch.dz) / np.max(bunch.dp)
 r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
-
+'''
 for i in range(n_turns):
     print 'Turn: ', i
     t0 = time.clock() 
@@ -133,7 +146,7 @@ for i in range(n_turns):
     #~ plt.scatter(bunch.x, bunch.xp)
     #~ plt.draw
     print 'Turn: ', i, ' took: ' + str(time.clock() - t0) + ' s \n'
-    
+ ''' 
 
 
 
