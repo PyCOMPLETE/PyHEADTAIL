@@ -32,9 +32,7 @@ class LinearPeriodicMap(object):
     def track(self, beam):
         
         dphi_x, dphi_y = self.detune(beam)
-
-        # HB: faster compared to commented version below! but still should cythonize the sin and cos functions!
-                        
+                      
         cos_dphi_x = np.cos(dphi_x)
         cos_dphi_y = np.cos(dphi_y)
         sin_dphi_x = np.sin(dphi_x)
@@ -56,41 +54,7 @@ class LinearPeriodicMap(object):
         # for any subsequent kick calculations        
         beam.compute_statistics()        
 
-        ############################# old version
-        #~ M00 = self.I[0, 0] * np.cos(dphi_x) + self.J[0, 0] * np.sin(dphi_x)
-        #~ M01 = self.I[0, 1] * np.cos(dphi_x) + self.J[0, 1] * np.sin(dphi_x)
-        #~ M10 = self.I[1, 0] * np.cos(dphi_x) + self.J[1, 0] * np.sin(dphi_x)
-        #~ M11 = self.I[1, 1] * np.cos(dphi_x) + self.J[1, 1] * np.sin(dphi_x)
-        #~ M22 = self.I[2, 2] * np.cos(dphi_y) + self.J[2, 2] * np.sin(dphi_y)
-        #~ M23 = self.I[2, 3] * np.cos(dphi_y) + self.J[2, 3] * np.sin(dphi_y)
-        #~ M32 = self.I[3, 2] * np.cos(dphi_y) + self.J[3, 2] * np.sin(dphi_y)
-        #~ M33 = self.I[3, 3] * np.cos(dphi_y) + self.J[3, 3] * np.sin(dphi_y)
-        #~ 
-        #~ x0 = np.copy(beam.x)
-        #~ xp0 = np.copy(beam.xp)
-        #~ y0 = np.copy(beam.y)
-        #~ yp0 = np.copy(beam.yp)
-        #~ 
-        #~ beam.x = M00 * x0 + M01 * xp0
-        #~ beam.xp = M10 * x0 + M11 * xp0
-        #~ beam.y = M22 * y0 + M23 * yp0
-        #~ beam.yp = M32 * y0 + M33 * yp0
-        #############################
-
-         
-#         for i in range(beam.n_particles):
-#             b = np.array([beam.x[i], beam.xp[i], beam.y[i], beam.yp[i]])
-#             x = np.dot(self.M, b)
-#             beam.x[i], beam.xp[i] = x[0], x[1]
-#             beam.y[i], beam.yp[i] = x[2], x[3]
-
-        # Do this at the end of every drift to provide slice statistics
-        # for any subsequent kick calculations
-#         print "Start timing..."
-#         t = timeit.Timer(beam.compute_statistics)
-#         print t.timeit(10)
-        #~ beam.compute_statistics()
-
+ 
     def detune(self, beam):
         rx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2)
         # actually epsn_x = (x0 ** 2 + (xp0 / beta_x) ** 2) / beta_x
