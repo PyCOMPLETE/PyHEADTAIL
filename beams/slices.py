@@ -73,7 +73,7 @@ class Slices(object):
         bunch.dz = bunch.dz[dz_argsorted]
         bunch.dp = bunch.dp[dz_argsorted]
             
-        # Define bins
+        # First bins
         self.dz_bins[0] = bunch.dz[0]
         self.dz_bins[-1] = bunch.dz[-1]
         dz = (cutright - cutleft) / n_slices
@@ -83,53 +83,63 @@ class Slices(object):
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
         self.dz_centers[-1] = self.mean_dz[-1]
 
-        # indices for bin edges
         index_after_bin_edges = np.searchsorted(bunch.dz,self.dz_bins)
-        index_after_bin_edges[-1] += 1   
-        
-        # .in_slice indicates in which slice the particle is (needed for wakefields)     
-        self.in_slice = np.zeros(n_particles, dtype=np.int)
-        for i in xrange(n_slices + 2):
-            self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i 
+        index_after_bin_edges[-1] += 1  
         
         # Get charge        
         self.charge = np.diff(index_after_bin_edges)
         self.charge = np.append(self.charge, sum(self.charge))
+        
+        # .in_slice indicates in which slice the particle is (needed for wakefields)     
+        self.in_slice = np.zeros(n_particles, dtype=np.int)
+        for i in xrange(n_slices + 2):
+            self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i
 
 
     def slice_constant_charge(self, bunch, nsigmaz):
 
         n_particles = len(bunch.x)
-        n_slices = len(self.mean_x) - 3
+        n_slices = self.n_slices
         self.dz_argsorted = np.argsort(bunch.dz)
 
-        sigma_dz = np.std(bunch.dz)
+        # sort particles according to dz (this is needed for efficiency of bunch.copmutate_statistics)
+        dz_argsorted = np.argsort(bunch.dz)
+        bunch.x = bunch.x[dz_argsorted]
+        bunch.xp = bunch.xp[dz_argsorted]
+        bunch.y = bunch.y[dz_argsorted]
+        bunch.yp = bunch.yp[dz_argsorted]
+        bunch.dz = bunch.dz[dz_argsorted]
+        bunch.dp = bunch.dp[dz_argsorted]
+ 
         if nsigmaz == None:
             cutleft = np.min(bunch.dz)
             cutright = np.max(bunch.dz)
         else:
+            sigma_dz = cp.std(bunch.dz)
             cutleft = -nsigmaz * sigma_dz
             cutright = nsigmaz * sigma_dz
-
+            
         # First charge
-        self.charge[0] = len(np.where(bunch.dz < cutleft)[0])
-        self.charge[-2] = len(np.where(bunch.dz >= cutright)[0])
+        self.charge[0] = np.searchsorted(bunch.dz,cutleft)
+        self.charge[-2] = n_particles - np.searchsorted(bunch.dz,cutright)
         q0 = n_particles - self.charge[0] - self.charge[-2]
         self.charge[1:-2] = int(q0 / n_slices)
         self.charge[1:(q0 % n_slices + 1)] += 1
         self.charge[-1] = sum(self.charge[:-1])
 
         # Get bins
-        self.dz_bins[0] = np.min(bunch.dz)
-        self.dz_bins[-1] = np.max(bunch.dz)
-        self.dz_bins[1:-1] = [bunch.dz[
-                           self.dz_argsorted[
-                           sum(self.charge[:(i + 1)])]]
-                           for i in np.arange(n_slices + 1)]
+        index_after_bin_edges = np.append(0, np.cumsum(self.charge[:-1]))
+        self.dz_bins[-1] = bunch.dz[-1]
+        self.dz_bins[:-1] = bunch.dz[index_after_bin_edges[:-1]] 
 
         self.dz_centers[:-1] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
         self.dz_centers[-1] = self.mean_dz[-1]
+        
+        # .in_slice indicates in which slice the particle is (needed for wakefields) 
+        self.in_slice = np.zeros(n_particles, dtype=np.int)
+        for i in xrange(n_slices + 2):
+            self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i 
 
 
 '''
@@ -175,44 +185,7 @@ class Slices(object):
     #~ @profile
     def slice_constant_charge(self, bunch, nsigmaz):
 
-        n_particles = len(bunch.x)
-        n_slices = len(self.mean_x) - 3
-        
-        # sort particles according to dz (this is needed for efficiency of bunch.copmutate_statistics)
-        dz_argsorted = np.argsort(bunch.dz)
-        bunch.x = bunch.x[dz_argsorted]
-        bunch.xp = bunch.xp[dz_argsorted]
-        bunch.y = bunch.y[dz_argsorted]
-        bunch.yp = bunch.yp[dz_argsorted]
-        bunch.dz = bunch.dz[dz_argsorted]
-        bunch.dp = bunch.dp[dz_argsorted]
-        
-        if nsigmaz == None:
-            cutleft = np.min(bunch.dz)
-            cutright = np.max(bunch.dz)
-        else:
-            sigma_dz = cp.std(bunch.dz)
-            cutleft = -nsigmaz * sigma_dz
-            cutright = nsigmaz * sigma_dz
 
-        self.charge[0] = np.searchsorted(bunch.dz,cutleft)
-        self.charge[-2] = n_particles - np.searchsorted(bunch.dz,cutright)
-        q0 = n_particles - self.charge[0] - self.charge[-2]
-        self.charge[1:-2] = int(q0 / n_slices)
-        self.charge[1:(q0 % n_slices + 1)] += 1
-        self.charge[-1] = sum(self.charge[:-1])
-
-        index_after_bin_edges = np.append(0, np.cumsum(self.charge[:-1]))
-        self.dz_bins[-1] = bunch.dz[-1]
-        self.dz_bins[:-1] = bunch.dz[index_after_bin_edges[:-1]]                 
-        self.dz_centers[:-1] = self.dz_bins[:-1] \
-                          + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
-        self.dz_centers[-1] = self.mean_dz[-1]
-        
-        # .in_slice indicates in which slice the particle is (needed for wakefields) 
-        self.in_slice = np.zeros(n_particles, dtype=np.int)
-        for i in xrange(n_slices + 2):
-            self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i 
 '''
 
 
