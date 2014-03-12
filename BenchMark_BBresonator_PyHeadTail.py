@@ -86,7 +86,7 @@ cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0)
 # still need to implement the original HEADTAIL initialization method...                               
 bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
                                  epsn_x, epsn_y, linear_map[0], bunch_length, bucket=cavity, matching='simple',
-                                 n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace') 
+                                 n_slices=n_slices, nsigmaz=nsigmaz, slicemode='ccharge') 
 
 
 # initial transverse kicks
