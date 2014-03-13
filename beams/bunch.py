@@ -48,7 +48,7 @@ class Bunch(object):
         self.dp = dp
 
     @classmethod
-    def from_copy(cls, x, xp, y, yp, dz, dp, identity, alive):
+    def from_copy(cls, x, xp, y, yp, dz, dp, identity):
 
         x = np.copy(x)
         xp = np.copy(xp)
@@ -61,7 +61,6 @@ class Bunch(object):
         
         self.nparticles = len(x)
         self.identity = identity
-        self.alive = alive
 
         return self
 
@@ -99,7 +98,6 @@ class Bunch(object):
 		
         self.n_particles = len(x)
         self.identity = np.arange(n_particles)
-        self.alive = np.ones(n_particles)
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
@@ -118,7 +116,6 @@ class Bunch(object):
 
         self.n_particles = len(x)
         self.identity = np.arange(n_particles)
-        self.alive = np.ones(n_particles)
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
