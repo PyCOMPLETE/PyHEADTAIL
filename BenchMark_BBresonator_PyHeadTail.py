@@ -11,7 +11,7 @@ from beams.matching import match_transverse, match_longitudinal
 from monitors.monitors import *
 #~ from solvers.grid import *
 from solvers.poissonfft import *
-from impedances.wake_resonator import *
+from impedances.wake_fields  import *
 from trackers.transverse_tracker import *
 from trackers.longitudinal_tracker import *
 
