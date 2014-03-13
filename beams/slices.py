@@ -9,6 +9,7 @@ import numpy as np
 '''http://docs.scipy.org/doc/numpy/reference/routines.html'''
 import cobra_functions.cobra_functions as cp
 
+
 class Slices(object):
     '''
     classdocs

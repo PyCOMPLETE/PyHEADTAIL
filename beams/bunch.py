@@ -10,20 +10,19 @@ import numpy as np
 
 from beams.slices import *
 from beams.matching import match_transverse, match_longitudinal
-from configuration import *
-# from trackers.longitudinal_tracker import *
+from scipy.constants import c, e
 import cobra_functions.cobra_functions as cp
 
 
 def bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
-                             epsn_x, epsn_y, ltm, length, bucket, matching,
+                             epsn_x, epsn_y, ltm, bunch_length, bucket, matching,
                              n_slices, nsigmaz, slicemode='cspace'):
 
     # bunch = Bunch.from_empty(1e3, charge, energy, intensity, mass)
     # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)  
     bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
     bunch.match_transverse(epsn_x, epsn_y, ltm)
-    bunch.match_longitudinal(epsn_z, bucket, matching)
+    bunch.match_longitudinal(bunch_length, bucket, matching)
     bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
     bunch.update_slices()
 

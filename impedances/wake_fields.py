@@ -7,8 +7,10 @@ from __future__ import division
 @copyright CERN
 '''
 
+
 import numpy as np
-from configuration import *
+from scipy.constants import c, e
+
             	
 class Wakefields(object):
     '''
@@ -29,7 +31,7 @@ class Wakefields(object):
     
     def transverse_wakefield_kicks(self, plane):   	
     	assert(plane in ('x', 'y'))
-    	@profile
+    	#~ @profile
     	def compute_apply_kicks(bunch):
 			
             if plane == 'x':                

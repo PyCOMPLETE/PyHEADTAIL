@@ -4,9 +4,9 @@ Created on 07.01.2014
 @author: Kevin Li
 '''
 
+
 import numpy as np
-from configuration import *
-import time, timeit
+
 
 class LinearPeriodicMap(object):
 

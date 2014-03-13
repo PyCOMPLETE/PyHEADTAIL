@@ -19,18 +19,18 @@ from trackers.longitudinal_tracker import *
 from plots import *
 
 # constants and simulation parameters
-from scipy import constants
+from scipy.constants import c, e, m_p
 
 
-# Constants
-c = constants.c
-e = constants.e
-mp = constants.m_p
+#~ # Constants
+#~ c = constants.c
+#~ e = constants.e
+#~ mp = constants.m_p
 
 
 # simulation setup
 charge = 1
-mass = mp
+mass = m_p
 intensity = 1e11 
 beta_x = 54.6408 # [m]
 beta_y = 54.5054 # [m]
