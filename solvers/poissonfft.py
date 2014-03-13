@@ -8,15 +8,18 @@ Created on 08.01.2014
 import numpy as np
 
 
-class PoissonFFT(object):
+from solvers.grid import *
+
+
+class PoissonFFT(UniformGrid):
     '''
     classdocs
     '''
 
-    def __init__(self, n_points):
-        '''
-        Constructor
-        '''
-        self.n_points = n_points
+    # def __init__(self, n_points):
+    #     '''
+    #     Constructor
+    #     '''
+    #     self.n_points = n_points
 
-        self.fgreen = np.zeros(100)
+    #     self.fgreen = np.zeros(100)

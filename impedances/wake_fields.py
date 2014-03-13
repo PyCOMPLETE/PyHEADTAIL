@@ -96,7 +96,8 @@ class BB_Resonator_transverse(Wakefields):
         
     def wake_transverse(self, z):
 
-        # Taken from definition in HEADTAIL (but the relativistic beta factor is still missing !!!)
+        # Taken from definition in HEADTAIL 
+        # TODO: insert relativistic beta factor in front of each ocurrence of z
         if self.Q != 0.5:
 			wake = self.R_shunt * self.omega ** 2 / self.Q / self.omegabar * np.exp(self.alpha * z.clip(max=0) / c) * np.sin(self.omegabar * z.clip(max=0) / c)
         else:

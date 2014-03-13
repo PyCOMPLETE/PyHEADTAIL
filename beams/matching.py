@@ -63,7 +63,7 @@ def match_none(bunch, length, bucket):
     bunch.dz *= sigma_dz
     bunch.dp *= sigma_dp
 
-# @profile
+# TODO: improve implementation of match_simple 
 def match_simple(bunch, sigma_dz, bucket):    
     R = bucket.circumference / (2 * np.pi)
     eta = bucket.eta(bunch)
