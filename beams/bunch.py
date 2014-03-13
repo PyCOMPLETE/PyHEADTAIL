@@ -164,28 +164,35 @@ class Bunch(object):
             sys.exit(-1)
      
         i1 = np.append(np.cumsum(self.slices.charge[:-1]), self.slices.charge[-1])
-        i0 = np.zeros(len(i1)).astype(int)
+        i0 = np.zeros(len(i1), dtype='int')
         i0[1:-1] =  i1[:-2]
  
         for i in xrange(self.slices.n_slices + 3):
-			self.slices.mean_x[i] = cp.mean(self.x[i0[i]:i1[i]]) 
-			self.slices.mean_xp[i] = cp.mean(self.xp[i0[i]:i1[i]])    
-			self.slices.mean_y[i] = cp.mean(self.y[i0[i]:i1[i]])    
-			self.slices.mean_yp[i] = cp.mean(self.yp[i0[i]:i1[i]])  
-			self.slices.mean_dz[i] = cp.mean(self.dz[i0[i]:i1[i]])  
-			self.slices.mean_dp[i] = cp.mean(self.dp[i0[i]:i1[i]]) 	                      
-
-			self.slices.sigma_x[i] = cp.std(self.x[i0[i]:i1[i]])
-			self.slices.sigma_y[i] = cp.std(self.y[i0[i]:i1[i]])
-			self.slices.sigma_dz[i] = cp.std(self.dz[i0[i]:i1[i]])
-			self.slices.sigma_dp[i] = cp.std(self.dp[i0[i]:i1[i]])
-
-			self.slices.epsn_x[i] = cp.emittance(self.x[i0[i]:i1[i]], self.xp[i0[i]:i1[i]]) * self.gamma * self.beta * 1e6
-			self.slices.epsn_y[i] = cp.emittance(self.y[i0[i]:i1[i]], self.yp[i0[i]:i1[i]]) * self.gamma * self.beta * 1e6
+			x = self.x[i0[i]:i1[i]]
+			xp = self.xp[i0[i]:i1[i]]
+			y = self.y[i0[i]:i1[i]]
+			yp = self.yp[i0[i]:i1[i]]
+			dz = self.dz[i0[i]:i1[i]]
+			dp = self.dp[i0[i]:i1[i]]
+			
+			self.slices.mean_x[i] = cp.mean(x)
+			self.slices.mean_xp[i] = cp.mean(xp)
+			self.slices.mean_y[i] = cp.mean(y)
+			self.slices.mean_yp[i] = cp.mean(yp)
+			self.slices.mean_dz[i] = cp.mean(dz)
+			self.slices.mean_dp[i] = cp.mean(dp)
+			 
+			self.slices.sigma_x[i] = cp.std(x)   
+			self.slices.sigma_y[i] = cp.std(y)
+			self.slices.sigma_dz[i] = cp.std(dz)
+			self.slices.sigma_dp[i] = cp.std(dp)
+			
+			self.slices.epsn_x[i] = cp.emittance(x, xp) * self.gamma * self.beta * 1e6
+			self.slices.epsn_y[i] = cp.emittance(y, yp) * self.gamma * self.beta * 1e6
 			self.slices.epsn_z[i] = 4 * np.pi \
 								  * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
 								  * self.mass * self.gamma * self.beta * c / e
-
+								  							  
     def set_slices(self, slices):
 
         self.slices = slices

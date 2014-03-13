@@ -39,7 +39,6 @@ class Slices(object):
 
         self.nsigmaz = nsigmaz
         self.slicemode = slicemode
-        # bug: self.n_slices
         self.n_slices = n_slices
 
     def index(self, slice_number):
@@ -53,7 +52,7 @@ class Slices(object):
 
     def slice_constant_space(self, bunch, nsigmaz=None):
 
-        n_particles = len(bunch.x)
+        n_particles = bunch.n_particles
         n_slices = self.n_slices
         self.dz_argsorted = np.argsort(bunch.dz)
 
@@ -99,11 +98,11 @@ class Slices(object):
 
     def slice_constant_charge(self, bunch, nsigmaz):
 
-        n_particles = len(bunch.x)
+        n_particles = bunch.n_particles
         n_slices = self.n_slices
         self.dz_argsorted = np.argsort(bunch.dz)
 
-        # sort particles according to dz (this is needed for efficiency of bunch.copmutate_statistics)
+        # sort particles according to dz (this is needed for correct functioning of bunch.copmutate_statistics)
         dz_argsorted = np.argsort(bunch.dz)
         bunch.x = bunch.x[dz_argsorted]
         bunch.xp = bunch.xp[dz_argsorted]
@@ -141,52 +140,3 @@ class Slices(object):
         self.in_slice = np.zeros(n_particles, dtype=np.int)
         for i in xrange(n_slices + 2):
             self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i 
-
-
-'''
-class Slices(object):
-    ''
-    classdocs
-    ''
-
-    def __init__(self, n_slices):
-        ''
-        Constructor
-        ''
-        self.mean_x = np.zeros(n_slices + 3)
-        self.mean_xp = np.zeros(n_slices + 3)
-        self.mean_y = np.zeros(n_slices + 3)
-        self.mean_yp = np.zeros(n_slices + 3)
-        self.mean_dz = np.zeros(n_slices + 3)
-        self.mean_dp = np.zeros(n_slices + 3)
-        self.sigma_x = np.zeros(n_slices + 3)
-        self.sigma_y = np.zeros(n_slices + 3)
-        self.sigma_dz = np.zeros(n_slices + 3)
-        self.sigma_dp = np.zeros(n_slices + 3)
-        self.epsn_x = np.zeros(n_slices + 3)
-        self.epsn_y = np.zeros(n_slices + 3)
-        self.epsn_z = np.zeros(n_slices + 3)
-
-        self.charge = np.zeros(n_slices + 3, dtype=int)
-        self.dz_bins = np.zeros(n_slices + 3)
-        self.dz_centers = np.zeros(n_slices + 3)
-
-
-    def index(self, slice_number):
-
-        i0 = sum(self.charge[:slice_number])
-        i1 = i0 + self.charge[slice_number]
-
-        index = self.dz_argsorted[i0:i1]
-
-        return index
-
-        
-
-    #~ @profile
-    def slice_constant_charge(self, bunch, nsigmaz):
-
-
-'''
-
-

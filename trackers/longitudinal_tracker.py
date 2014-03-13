@@ -271,7 +271,6 @@ class RFCavity(LongitudinalTracker):
 
         return isin
 
-    #~ @profile
     def track(self, bunch):
 
         p0 = bunch.mass * bunch.gamma * bunch.beta * c
