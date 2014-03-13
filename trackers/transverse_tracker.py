@@ -49,12 +49,8 @@ class LinearPeriodicMap(object):
         
         beam.x, beam.xp = M00 * beam.x + M01 * beam.xp, M10 * beam.x + M11 * beam.xp
         beam.y, beam.yp = M22 * beam.y + M23 * beam.yp, M32 * beam.y + M33 * beam.yp
+       
 
-        # Do this at the end of every drift to provide slice statistics
-        # for any subsequent kick calculations        
-        beam.compute_statistics()        
-
- 
     def detune(self, beam):
         rx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2)
         # actually epsn_x = (x0 ** 2 + (xp0 / beta_x) ** 2) / beta_x
