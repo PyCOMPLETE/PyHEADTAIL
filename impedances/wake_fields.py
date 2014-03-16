@@ -61,7 +61,7 @@ class Wakefields(object):
             self.quadrupolar_wake_sum[1:-2] = np.dot(bunch.slices.charge[1:-2], quadrupole_wake(dz_to_target_slice)) * self.constant_wake_factor(bunch)
             
             # apply kicks
-            position_prime += self.dipole_kick[bunch.slices.in_slice] + self.quadrupolar_wake_sum[bunch.slices.in_slice] * particle_position[:]            
+            position_prime += self.dipole_kick[bunch.in_slice] + self.quadrupolar_wake_sum[bunch.in_slice] * particle_position[:]            
                  
         return compute_apply_kicks
 

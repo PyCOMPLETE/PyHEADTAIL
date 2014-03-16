@@ -92,9 +92,9 @@ class Slices(object):
         self.charge = np.append(self.charge, sum(self.charge))
         
         # .in_slice indicates in which slice the particle is (needed for wakefields)     
-        self.in_slice = np.zeros(n_particles, dtype=np.int)
+        bunch.in_slice = np.zeros(n_particles, dtype=np.int)
         for i in xrange(n_slices + 2):
-            self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i
+            bunch.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i
 
 
     def slice_constant_charge(self, bunch, nsigmaz):
@@ -138,6 +138,6 @@ class Slices(object):
         self.dz_centers[-1] = self.mean_dz[-1]
         
         # .in_slice indicates in which slice the particle is (needed for wakefields) 
-        self.in_slice = np.zeros(n_particles, dtype=np.int)
+        bunch.in_slice = np.zeros(n_particles, dtype=np.int)
         for i in xrange(n_slices + 2):
-            self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i 
+            bunch.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i 

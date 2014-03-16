@@ -381,3 +381,5 @@ class CSCavity(object):
     
         bunch.dz = dz0 * cosdQs - eta * c / omega_s * dp0 * sindQs
         bunch.dp = dp0 * cosdQs + omega_s / eta / c * dz0 * sindQs
+        
+        bunch.update_slices()
