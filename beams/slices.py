@@ -54,7 +54,6 @@ class Slices(object):
 
         n_particles = bunch.n_particles
         n_slices = self.n_slices
-        self.dz_argsorted = np.argsort(bunch.dz)
 
         if nsigmaz == None:
             cutleft = np.min(bunch.dz)
@@ -101,7 +100,6 @@ class Slices(object):
 
         n_particles = bunch.n_particles
         n_slices = self.n_slices
-        self.dz_argsorted = np.argsort(bunch.dz)
 
         # sort particles according to dz (this is needed for correct functioning of bunch.copmutate_statistics)
         dz_argsorted = np.argsort(bunch.dz)

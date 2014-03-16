@@ -124,6 +124,6 @@ for i in range(n_turns):
     #~ plt.scatter(bunch.x, bunch.xp)
     #~ plt.draw()
     #~ print 'Turn: ', i, ' took: ' + str(time.clock() - t0) + ' s \n'
-    print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3e} \t {7:3e} \t {8:3e}'.format(i, bunch.slices.mean_x[-1], bunch.slices.mean_y[-1], bunch.slices.mean_dz[-1], bunch.slices.epsn_x[-1], bunch.slices.epsn_y[-1], bunch.slices.epsn_z[-1], bunch.slices.sigma_dz[-1], bunch.slices.sigma_dp[-1])
+    print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f}'.format(i, bunch.slices.mean_x[-1], bunch.slices.mean_y[-1], bunch.slices.mean_dz[-1], bunch.slices.epsn_x[-1], bunch.slices.epsn_y[-1], bunch.slices.epsn_z[-1], bunch.slices.sigma_dz[-1], bunch.slices.sigma_dp[-1])
 
 
