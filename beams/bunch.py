@@ -105,7 +105,7 @@ class Bunch(object):
         self = cls(x, xp, y, yp, dz, dp)
 		
         self.n_particles = len(x)
-        self.identity = np.arange(n_particles)
+        self.identity = np.arange(n_particles) + 1
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
@@ -123,7 +123,7 @@ class Bunch(object):
         self = cls(x, xp, y, yp, dz, dp)
 
         self.n_particles = len(x)
-        self.identity = np.arange(n_particles)
+        self.identity = np.arange(n_particles) + 1
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self

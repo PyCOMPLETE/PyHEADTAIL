@@ -41,15 +41,16 @@ class Slices(object):
         self.slicemode = slicemode
         self.n_slices = n_slices
 
-    def index(self, slice_number):
+    #~ def index(self, slice_number):
+#~ 
+        #~ i0 = sum(self.charge[:slice_number])
+        #~ i1 = i0 + self.charge[slice_number]
+#~ 
+        #~ index = self.dz_argsorted[i0:i1]
+#~ 
+        #~ return index
 
-        i0 = sum(self.charge[:slice_number])
-        i1 = i0 + self.charge[slice_number]
-
-        index = self.dz_argsorted[i0:i1]
-
-        return index
-
+    @profile
     def slice_constant_space(self, bunch, nsigmaz=None):
 
         n_particles = bunch.n_particles
