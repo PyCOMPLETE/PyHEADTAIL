@@ -6,7 +6,6 @@ import numpy as np
 from configuration import *
 from beams.bunch import *
 from beams import slices
-from beams.matching import match_transverse, match_longitudinal, unmatched
 from monitors.monitors import *
 #~ from solvers.grid import *
 from solvers.poissonfft import *
@@ -73,7 +72,7 @@ cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0)
 #~ bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
                                  #~ epsn_x, epsn_y, linear_map[0], bunch_length, bucket=cavity, matching='simple',
                                  #~ n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace') 
-bunch =  bunch_unmatched_but_sliced(n_particles, charge, energy, intensity, mass,
+bunch =  bunch_unmatched_inbucket_sliced(n_particles, charge, energy, intensity, mass,
                              epsn_x, epsn_y, linear_map[0], bunch_length, momentum_spread, bucket=cavity,
                              n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace')                       
 
@@ -112,9 +111,7 @@ for i in range(n_turns):
     #~ plt.plot(bunch.slices.mean_x)
     #~ plt.plot(bunch.slices.mean_y)
     #~ plt.gca().set_ylim(-0.1, 0.1)
-
     
-     
     #~ plot_phasespace(bunch, r)
     #~ plot_bunch('bunch-ns1')
     #~ plot_emittance('bunch-ns1')

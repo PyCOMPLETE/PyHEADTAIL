@@ -9,7 +9,7 @@ from __future__ import division
 
 
 import numpy as np
-
+import sys
 
 from beams.distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
@@ -73,18 +73,11 @@ def match_simple(bunch, sigma_dz, bucket):
     
     # Assuming a gaussian-type stationary distribution
     sigma_dp = sigma_dz * Qs / eta / R
-    unmatched(bunch, sigma_dz, sigma_dp, bucket)
+    unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket)
                 
-def unmatched(bunch, sigma_dz, sigma_dp, bucket):
-    R = bucket.circumference / (2 * np.pi)
-    eta = bucket.eta(bunch)
-    Qs = bucket.Qs(bunch)
-
-    # Assuming a gaussian-type stationary distribution
-    H0 = eta * bunch.beta * c * sigma_dp ** 2
-    epsn_z = 4 * np.pi * Qs / eta / R * sigma_dz ** 2 * bunch.p0 / e
+def unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket):
     
-    n_particles = len(bunch.dz)
+    n_particles = bunch.n_particles
     for i in xrange(n_particles):
         if not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
             while not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):

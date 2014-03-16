@@ -10,7 +10,7 @@ import cobra_functions.cobra_functions as cp
 
 
 from beams.slices import *
-from beams.matching import match_transverse, match_longitudinal, unmatched
+from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
 from scipy.constants import c, e
 
 
@@ -26,12 +26,12 @@ def bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
 
     return bunch
 
-def bunch_unmatched_but_sliced(n_particles, charge, energy, intensity, mass,
+def bunch_unmatched_inbucket_sliced(n_particles, charge, energy, intensity, mass,
                              epsn_x, epsn_y, ltm, sigma_dz, sigma_dp, bucket,
                              n_slices, nsigmaz, slicemode='cspace'):
     bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
     bunch.match_transverse(epsn_x, epsn_y, ltm)
-    bunch.unmatched(sigma_dz, sigma_dp, bucket)
+    bunch.unmatched_inbucket(sigma_dz, sigma_dp, bucket)
     bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
     bunch.update_slices()
     
@@ -161,9 +161,9 @@ class Bunch(object):
 
         match_longitudinal(length, bucket, matching)(self)
 
-    def unmatched(self, sigma_dz, sigma_dp, bucket=None):
+    def unmatched_inbucket(self, sigma_dz, sigma_dp, bucket=None):
 
-        unmatched(self, sigma_dz, sigma_dp, bucket)
+        unmatched_inbucket(self, sigma_dz, sigma_dp, bucket)
 
     @profile
     def compute_statistics(self):

@@ -63,7 +63,7 @@ class Slices(object):
             cutleft = -nsigmaz * sigma_dz
             cutright = nsigmaz * sigma_dz
         
-        # sort particles according to dz (this is needed for efficiency of bunch.copmutate_statistics)
+        # sort particles according to dz (this is needed for efficiency of bunch.copmute_statistics)
         dz_argsorted = np.argsort(bunch.dz)
         bunch.x = bunch.x[dz_argsorted]
         bunch.xp = bunch.xp[dz_argsorted]
@@ -101,7 +101,7 @@ class Slices(object):
         n_particles = bunch.n_particles
         n_slices = self.n_slices
 
-        # sort particles according to dz (this is needed for correct functioning of bunch.copmutate_statistics)
+        # sort particles according to dz (this is needed for correct functioning of bunch.copmute_statistics)
         dz_argsorted = np.argsort(bunch.dz)
         bunch.x = bunch.x[dz_argsorted]
         bunch.xp = bunch.xp[dz_argsorted]
