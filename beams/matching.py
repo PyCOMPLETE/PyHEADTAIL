@@ -9,6 +9,8 @@ from __future__ import division
 
 
 import numpy as np
+
+
 from beams.distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
 from scipy.constants import c, e
@@ -74,7 +76,6 @@ def match_simple(bunch, sigma_dz, bucket):
     unmatched(bunch, sigma_dz, sigma_dp, bucket)
                 
 def unmatched(bunch, sigma_dz, sigma_dp, bucket):
-
     R = bucket.circumference / (2 * np.pi)
     eta = bucket.eta(bunch)
     Qs = bucket.Qs(bunch)

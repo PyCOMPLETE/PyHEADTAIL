@@ -6,20 +6,18 @@ Created on 06.01.2014
 
 
 import numpy as np
+import cobra_functions.cobra_functions as cp
 
 
 from beams.slices import *
-from beams.matching import match_transverse, match_longitudinal
+from beams.matching import match_transverse, match_longitudinal, unmatched
 from scipy.constants import c, e
-import cobra_functions.cobra_functions as cp
 
 
 def bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
                              epsn_x, epsn_y, ltm, bunch_length, bucket, matching,
                              n_slices, nsigmaz, slicemode='cspace'):
 
-    # bunch = Bunch.from_empty(1e3, charge, energy, intensity, mass)
-    # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)  
     bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
     bunch.match_transverse(epsn_x, epsn_y, ltm)
     bunch.match_longitudinal(bunch_length, bucket, matching)
@@ -28,6 +26,16 @@ def bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
 
     return bunch
 
+def bunch_unmatched_but_sliced(n_particles, charge, energy, intensity, mass,
+                             epsn_x, epsn_y, ltm, sigma_dz, sigma_dp, bucket,
+                             n_slices, nsigmaz, slicemode='cspace'):
+    bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
+    bunch.match_transverse(epsn_x, epsn_y, ltm)
+    bunch.unmatched(sigma_dz, sigma_dp, bucket)
+    bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
+    bunch.update_slices()
+    
+    return bunch
 
 class Bunch(object):
     '''
@@ -59,7 +67,7 @@ class Bunch(object):
         
         self = cls(x, xp, y, yp, dz, dp)
         
-        self.nparticles = len(x)
+        self.n_particles = len(x)
         self.identity = identity
 
         return self
@@ -153,6 +161,10 @@ class Bunch(object):
 
         match_longitudinal(length, bucket, matching)(self)
 
+    def unmatched(self, sigma_dz, sigma_dp, bucket=None):
+
+        unmatched(self, sigma_dz, sigma_dp, bucket)
+
     @profile
     def compute_statistics(self):
 
@@ -195,9 +207,6 @@ class Bunch(object):
         self.slices = slices
 
     def update_slices(self):
-
-        # if not hasattr(self, 'slices'):
-        #     self.slices = Slices(n_slices)
 
         assert(hasattr(self, 'slices'))
 

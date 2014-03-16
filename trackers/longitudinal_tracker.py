@@ -9,14 +9,14 @@ from __future__ import division
 
 
 import numpy as np
+import sys
 
 
 from beams.distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
 from abc import ABCMeta, abstractmethod 
-from configuration import *
-import sys
-import pylab as plt
+from scipy.constants import c, e
+
 
 
 class LongitudinalTracker(object):
@@ -349,6 +349,8 @@ class RFCavity(LongitudinalTracker):
             # Finalize
             bunch.dz = dz4
             bunch.dp = dp4
+            
+        bunch.update_slices()
 
 
 class CSCavity(object):
