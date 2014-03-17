@@ -41,6 +41,8 @@ class Bunch(object):
         '''
         assert(len(x) == len(xp) == len(y) == len(yp) == len(dz) == len(dp))
 
+        self.id = np.arange(1, len(x) + 1)
+
         self.x = x
         self.xp = xp
         self.y = y
