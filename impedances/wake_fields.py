@@ -28,7 +28,7 @@ class Wakefields(object):
     def constant_wake_factor(self, bunch):
 		n_particles = len(bunch.x)
 		q = bunch.intensity / n_particles
-		return (bunch.charge * e) ** 2 / (bunch.mass * bunch.gamma * c ** 2) * q
+		return -(bunch.charge * e) ** 2 / (bunch.mass * bunch.gamma * (bunch.beta * c) ** 2) * q
     
     
     def transverse_wakefield_kicks(self, plane):   	
@@ -99,7 +99,7 @@ class BB_Resonator_transverse(Wakefields):
     def wake_transverse(self, z):
 
         # Taken from definition in HEADTAIL 
-        # TODO: insert relativistic beta factor in front of each ocurrence of z
+        # TODO: insert relativistic beta factor in front of each ocurrence of c
         if self.Q != 0.5:
 			wake = self.R_shunt * self.omega ** 2 / self.Q / self.omegabar * np.exp(self.alpha * z.clip(max=0) / c) * np.sin(self.omegabar * z.clip(max=0) / c)
         else:
