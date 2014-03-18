@@ -9,26 +9,34 @@ import numpy as np
 
 
 from beams.slices import *
-from beams.matching import match_transverse, match_longitudinal
-from configuration import *
-# from trackers.longitudinal_tracker import *
-import cobra_functions.cobra_functions as cp
+from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
+from scipy.constants import c, e
 
 
 def bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
-                             epsn_x, epsn_y, ltm, length, bucket, matching,
+                             epsn_x, epsn_y, ltm, bunch_length, bucket, matching,
                              n_slices, nsigmaz, slicemode='cspace'):
 
     # bunch = Bunch.from_empty(1e3, charge, energy, intensity, mass)
     # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)  
     bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
     bunch.match_transverse(epsn_x, epsn_y, ltm)
-    bunch.match_longitudinal(epsn_z, bucket, matching)
+    bunch.match_longitudinal(bunch_length, bucket, matching)
     bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
     bunch.update_slices()
 
     return bunch
 
+def bunch_unmatched_inbucket_sliced(n_particles, charge, energy, intensity, mass,
+                             epsn_x, epsn_y, ltm, sigma_dz, sigma_dp, bucket,
+                             n_slices, nsigmaz, slicemode='cspace'):
+    bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
+    bunch.match_transverse(epsn_x, epsn_y, ltm)
+    bunch.unmatched_inbucket(sigma_dz, sigma_dp, bucket)
+    bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
+    bunch.update_slices()
+    
+    return bunch
 
 class Bunch(object):
     '''
@@ -51,7 +59,7 @@ class Bunch(object):
         self.dp = dp
 
     @classmethod
-    def from_copy(cls, x, xp, y, yp, dz, dp):
+    def from_copy(cls, x, xp, y, yp, dz, dp, identity):
 
         x = np.copy(x)
         xp = np.copy(xp)
@@ -59,8 +67,11 @@ class Bunch(object):
         yp = np.copy(yp)
         dz = np.copy(dz)
         dp = np.copy(dp)
-
+        
         self = cls(x, xp, y, yp, dz, dp)
+        
+        self.n_particles = len(x)
+        self.identity = identity
 
         return self
 
@@ -95,7 +106,9 @@ class Bunch(object):
         dp = np.random.randn(n_particles)
 
         self = cls(x, xp, y, yp, dz, dp)
-
+		
+        self.n_particles = len(x)
+        self.identity = np.arange(n_particles) + 1
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
@@ -112,6 +125,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
+        self.n_particles = len(x)
+        self.identity = np.arange(n_particles) + 1
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
@@ -149,54 +164,52 @@ class Bunch(object):
 
         match_longitudinal(length, bucket, matching)(self)
 
+    def unmatched_inbucket(self, sigma_dz, sigma_dp, bucket=None):
+
+        unmatched_inbucket(self, sigma_dz, sigma_dp, bucket)
+
     # @profile
     def compute_statistics(self):
 
         if not hasattr(self, 'slices'):
             print "*** WARNING: bunch not yet sliced! Aborting..."
             sys.exit(-1)
-        else:
-            n_particles = len(self.x)
-
-            indices = [self.slices.index(i) for i in range(n_slices + 2)]
-            indices.append(range(n_particles))
-
-        for i in xrange(n_slices + 3):
-            n = len(indices[i])
-            if n:
-                x = self.x[indices[i]]
-                xp = self.xp[indices[i]]
-                y = self.y[indices[i]]
-                yp = self.yp[indices[i]]
-                dz = self.dz[indices[i]]
-                dp = self.dp[indices[i]]
-
-                self.slices.mean_x[i] = cp.mean(x)
-                self.slices.mean_xp[i] = cp.mean(xp)
-                self.slices.mean_y[i] = cp.mean(y)
-                self.slices.mean_yp[i] = cp.mean(yp)
-                self.slices.mean_dz[i] = cp.mean(dz)
-                self.slices.mean_dp[i] = cp.mean(dp)
+     
+        i1 = np.append(np.cumsum(self.slices.charge[:-1]), self.slices.charge[-1])
+        i0 = np.zeros(len(i1), dtype='int')
+        i0[1:-1] =  i1[:-2]
  
-                self.slices.sigma_x[i] = cp.std(x)
-                self.slices.sigma_y[i] = cp.std(y)
-                self.slices.sigma_dz[i] = cp.std(dz)
-                self.slices.sigma_dp[i] = cp.std(dp)
-
-                self.slices.epsn_x[i] = cp.emittance(x, xp) * self.gamma * self.beta * 1e6
-                self.slices.epsn_y[i] = cp.emittance(y, yp) * self.gamma * self.beta * 1e6
-                self.slices.epsn_z[i] = 4 * np.pi \
-                                      * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
-                                      * self.mass * self.gamma * self.beta * c / e
-
+        for i in xrange(self.slices.n_slices + 3):
+			x = self.x[i0[i]:i1[i]]
+			xp = self.xp[i0[i]:i1[i]]
+			y = self.y[i0[i]:i1[i]]
+			yp = self.yp[i0[i]:i1[i]]
+			dz = self.dz[i0[i]:i1[i]]
+			dp = self.dp[i0[i]:i1[i]]
+			
+			self.slices.mean_x[i] = cp.mean(x)
+			self.slices.mean_xp[i] = cp.mean(xp)
+			self.slices.mean_y[i] = cp.mean(y)
+			self.slices.mean_yp[i] = cp.mean(yp)
+			self.slices.mean_dz[i] = cp.mean(dz)
+			self.slices.mean_dp[i] = cp.mean(dp)
+			 
+			self.slices.sigma_x[i] = cp.std(x)   
+			self.slices.sigma_y[i] = cp.std(y)
+			self.slices.sigma_dz[i] = cp.std(dz)
+			self.slices.sigma_dp[i] = cp.std(dp)
+			
+			self.slices.epsn_x[i] = cp.emittance(x, xp) * self.gamma * self.beta * 1e6
+			self.slices.epsn_y[i] = cp.emittance(y, yp) * self.gamma * self.beta * 1e6
+			self.slices.epsn_z[i] = 4 * np.pi \
+								  * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
+								  * self.mass * self.gamma * self.beta * c / e
+								  							  
     def set_slices(self, slices):
 
         self.slices = slices
 
     def update_slices(self):
-
-        # if not hasattr(self, 'slices'):
-        #     self.slices = Slices(n_slices)
 
         assert(hasattr(self, 'slices'))
 
