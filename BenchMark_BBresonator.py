@@ -24,13 +24,13 @@ intensity = 1.15e11
 beta_x = 54.6408 # [m]
 beta_y = 54.5054 # [m]
 bunch_length = 0.3 # [m]
-momentum_spread = 0.001
+momentum_spread = 0.001053
 epsn_x = 2.0 # [um]
 epsn_y = 2.0 # [um]
 gamma_t = 1/np.sqrt(0.0031)
 C = 6911. # [m]
 energy = 26 # total [GeV]
-n_turns = 1000
+n_turns = 500
 nsigmaz = 2
 Qx = 20.13
 Qy = 20.18
@@ -39,8 +39,8 @@ Qp_y = 0
 n_particles = 100000
 n_slices = 500
 R_frequency = 1.0e9 # [Hz]
-Q = 1
-R_shunt = 20e6 # [Ohm]
+Q = 1.
+R_shunt = 20e6 # [Ohm/m]
 initial_kick_x = 0.1*np.sqrt(beta_x * epsn_x*1.e-6 / (energy / 0.938))
 initial_kick_y = 0.1*np.sqrt(beta_y * epsn_y*1.e-6 / (energy / 0.938))
 RF_voltage = 4e6 # [V]
@@ -48,7 +48,7 @@ harmonic_number = 4620
 
 
 # Monitors
-bunchmonitor = BunchMonitor('bunch-ns1', n_turns)
+bunchmonitor = BunchMonitor('bunch', n_turns)
 particlemonitor = ParticleMonitor('particles', n_turns)
 
 
@@ -99,7 +99,7 @@ r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 plt.ion()
 for i in range(n_turns):
     #~ print 'Turn: ', i
-    t0 = time.clock() 
+    #~ t0 = time.clock() 
     for m in map_:
         #~ t1 = time.clock() 
         m.track(bunch) 
@@ -108,9 +108,9 @@ for i in range(n_turns):
     #~ particlemonitor.dump(bunch)
     
     #~ plt.clf()
-    #~ plt.plot(bunch.slices.mean_x)
+    #~ plt.plot(bunch.slices.mean_x[1:-2]*bunch.slices.charge[1:-2])
     #~ plt.plot(bunch.slices.mean_y)
-    #~ plt.gca().set_ylim(-0.1, 0.1)
+    #~ plt.gca().set_ylim(-1, 1)
     
     #~ plot_phasespace(bunch, r)
     #~ plot_bunch('bunch-ns1')
