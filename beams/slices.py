@@ -72,7 +72,7 @@ class Slices(object):
         bunch.yp = bunch.yp[dz_argsorted]
         bunch.dz = bunch.dz[dz_argsorted]
         bunch.dp = bunch.dp[dz_argsorted]
-        bunch.identity = bunch.identity[dz_argsorted]
+        bunch.id = bunch.id[dz_argsorted]
         
         # First bins
         self.dz_bins[0] = bunch.dz[0]
@@ -110,7 +110,7 @@ class Slices(object):
         bunch.yp = bunch.yp[dz_argsorted]
         bunch.dz = bunch.dz[dz_argsorted]
         bunch.dp = bunch.dp[dz_argsorted]
-        bunch.identity = bunch.identity[dz_argsorted]
+        bunch.id = bunch.id[dz_argsorted]
  
         if nsigmaz == None:
             cutleft = np.min(bunch.dz)
