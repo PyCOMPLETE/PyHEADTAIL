@@ -73,6 +73,7 @@ class BunchMonitor(Monitor):
         h5group.create_dataset("epsn_x", dims)
         h5group.create_dataset("epsn_y", dims)
         h5group.create_dataset("epsn_z", dims)
+        h5group.create_dataset("charge", dims)
 
     def write_data(self, bunch, indices, h5group, i_steps, rank=1):
 
@@ -90,6 +91,7 @@ class BunchMonitor(Monitor):
             h5group["epsn_x"][i_steps] = bunch.slices.epsn_x[indices]
             h5group["epsn_y"][i_steps] = bunch.slices.epsn_y[indices]
             h5group["epsn_z"][i_steps] = bunch.slices.epsn_z[indices]
+            h5group["charge"][i_steps] = bunch.slices.charge[indices]
         elif rank == 2:
             h5group["mean_x"][:,i_steps] = bunch.slices.mean_x[indices]
             h5group["mean_xp"][:,i_steps] = bunch.slices.mean_xp[indices]
@@ -104,6 +106,7 @@ class BunchMonitor(Monitor):
             h5group["epsn_x"][:,i_steps] = bunch.slices.epsn_x[indices]
             h5group["epsn_y"][:,i_steps] = bunch.slices.epsn_y[indices]
             h5group["epsn_z"][:,i_steps] = bunch.slices.epsn_z[indices]
+            h5group["charge"][:,i_steps] = bunch.slices.charge[indices]
         else:
             raise ValueError("Rank > 2 not supported!")
 

@@ -13,7 +13,7 @@ import numpy as np
 
 from beams.distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
-from configuration import *
+from scipy.constants import c, e
 
 
 def match_transverse(epsn_x, epsn_y, ltm=None):
@@ -65,26 +65,25 @@ def match_none(bunch, length, bucket):
     bunch.dz *= sigma_dz
     bunch.dp *= sigma_dp
 
-# @profile
-def match_simple(bunch, length, bucket):
-
+# TODO: improve implementation of match_simple 
+def match_simple(bunch, sigma_dz, bucket):    
     R = bucket.circumference / (2 * np.pi)
     eta = bucket.eta(bunch)
     Qs = bucket.Qs(bunch)
-
-    # Assuming a gaussian-type stationary distribution
-    sigma_dz = length # np.std(bunch.dz)
-    sigma_dp = sigma_dz * Qs / eta / R
-    H0 = eta * bunch.beta * c * sigma_dp ** 2
-    epsn_z = 4 * np.pi * Qs / eta / R * sigma_dz ** 2 * bunch.p0 / e
     
-    n_particles = len(bunch.dz)
+    # Assuming a gaussian-type stationary distribution
+    sigma_dp = sigma_dz * Qs / eta / R
+    unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket)
+                
+def unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket):
+    
+    n_particles = bunch.n_particles
     for i in xrange(n_particles):
         if not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
             while not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
                 bunch.dz[i] = sigma_dz * np.random.randn()
                 bunch.dp[i] = sigma_dp * np.random.randn()
-
+                
 def match_full(bunch, length, bucket):
 
     R = bucket.circumference / (2 * np.pi)
