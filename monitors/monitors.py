@@ -112,23 +112,36 @@ class BunchMonitor(Monitor):
 
 class ParticleMonitor(Monitor):
 
-    def __init__(self, filename, n_steps):
+    def __init__(self, filename, stride):
 
         self.h5file = hp.File(filename + '.h5part', 'w')
-        self.n_steps = n_steps
+        self.stride = stride
+        # self.n_steps = n_steps
         self.i_steps = 0
 
     def dump(self, bunch):
 
         if not self.i_steps:
-            self.z0 = np.copy(bunch.dz)
+            resorting_indices = np.argsorted(bunch.id)[::self.stride]
+            self.z0 = np.copy(bunch.dz[resorting_indices])
 
-        n_particles = len(bunch.x)
         h5group = self.h5file.create_group("Step#" + str(self.i_steps))
-        self.create_data(h5group, (n_particles,))
+        self.sort_data(bunch)
+        self.create_data(h5group, (bunch.n_particles // self.stride,))
         self.write_data(bunch, h5group)
 
         self.i_steps += 1
+
+    def sort_data(self, bunch):
+
+        resorting_indices = np.argsorted(bunch.id)[::self.stride]
+
+        self.x = bunch.x[resorting_indices]
+        self.xp = bunch.yp[resorting_indices]
+        self.y = bunch.y[resorting_indices]
+        self.yp = bunch.yp[resorting_indices]
+        self.dz = bunch.dz[resorting_indices]
+        self.dp = bunch.dp[resorting_indices]
 
     def create_data(self, h5group, dims):
 
@@ -143,11 +156,11 @@ class ParticleMonitor(Monitor):
 
     def write_data(self, bunch, h5group):
 
-        h5group["x"][:] = bunch.x
-        h5group["xp"][:] = bunch.xp
-        h5group["y"][:] = bunch.y
-        h5group["yp"][:] = bunch.yp
-        h5group["dz"][:] = bunch.dz
-        h5group["dp"][:] = bunch.dp
+        h5group["x"][:] = self.x
+        h5group["xp"][:] = self.xp
+        h5group["y"][:] = self.y
+        h5group["yp"][:] = self.yp
+        h5group["dz"][:] = self.dz
+        h5group["dp"][:] = self.dp
 
         h5group["c"][:] = self.z0
