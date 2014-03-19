@@ -52,14 +52,15 @@ bunch = bunch_matched_and_sliced(10000, charge, energy, intensity, mass,
 bunch.update_slices()
 
 # PIC grid
-poisson = PoissonFFT(plt.std(bunch.x) * 10, plt.std(bunch.y) * 10, 128, 128)
+poisson = PoissonFFT(plt.std(bunch.x) * 20, plt.std(bunch.y) * 10, 128, 128)
 poisson.gather(1, bunch)
 # [plt.axvline(v, c='orange') for v in poisson.mx[0,:]]
 # [plt.axhline(h, c='orange') for h in poisson.my[:,0]]
 # plt.gca().set_xlim(plt.amin(poisson.mx), plt.amax(poisson.mx[-1]))
 # plt.gca().set_ylim(plt.amin(poisson.my), plt.amax(poisson.my[-1]))
-plt.scatter(bunch.x, bunch.y, marker='.')
-plt.scatter(poisson.mx, poisson.my, s=poisson.rho*2, c=poisson.rho)
+# plt.scatter(bunch.x, bunch.y, marker='.')
+# plt.scatter(poisson.mx, poisson.my, s=poisson.rho*2, c=poisson.rho)
+plt.contour(poisson.fgreen.T, 100)
 plt.gca().set_aspect('equal')
 plt.show()
 exit(-1)

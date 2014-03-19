@@ -28,8 +28,8 @@ def bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
     return bunch
 
 def bunch_unmatched_inbucket_sliced(n_particles, charge, energy, intensity, mass,
-                             epsn_x, epsn_y, ltm, sigma_dz, sigma_dp, bucket,
-                             n_slices, nsigmaz, slicemode='cspace'):
+                                    epsn_x, epsn_y, ltm, sigma_dz, sigma_dp, bucket,
+                                    n_slices, nsigmaz, slicemode='cspace'):
     bunch = Bunch.from_gaussian(n_particles, charge, energy, intensity, mass)
     bunch.match_transverse(epsn_x, epsn_y, ltm)
     bunch.unmatched_inbucket(sigma_dz, sigma_dp, bucket)
@@ -48,6 +48,10 @@ class Bunch(object):
         Most minimalistic constructor - pure python name binding
         '''
         assert(len(x) == len(xp) == len(y) == len(yp) == len(dz) == len(dp))
+
+        self.n_particles = len(x)
+
+        self.id = np.arange(1, len(x) + 1)
 
         self.x = x
         self.xp = xp
@@ -68,9 +72,6 @@ class Bunch(object):
         
         self = cls(x, xp, y, yp, dz, dp)
         
-        self.n_particles = len(x)
-        self.identity = identity
-
         return self
 
     @classmethod
@@ -105,8 +106,6 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 		
-        self.n_particles = len(x)
-        self.identity = np.arange(n_particles) + 1
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
@@ -123,8 +122,6 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.n_particles = len(x)
-        self.identity = np.arange(n_particles) + 1
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
