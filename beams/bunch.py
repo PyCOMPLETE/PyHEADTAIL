@@ -165,18 +165,19 @@ class Bunch(object):
 
         unmatched_inbucket(self, sigma_dz, sigma_dp, bucket)
 
-    @profile
+    #~ @profile
     def compute_statistics(self):
 
         if not hasattr(self, 'slices'):
             print "*** WARNING: bunch not yet sliced! Aborting..."
             sys.exit(-1)
      
-        i1 = np.append(np.cumsum(self.slices.charge[:-1]), self.slices.charge[-1])
+        i1 = np.append(np.cumsum(self.slices.charge[:-1]), np.cumsum(self.slices.charge[-2:-1]))
         i0 = np.zeros(len(i1), dtype='int')
-        i0[1:-1] =  i1[:-2]
+        i0[1:-2] = i1[:-3]
+        i0[-2] = 0
  
-        for i in xrange(self.slices.n_slices + 3):
+        for i in xrange(self.slices.n_slices + 4):
 			x = self.x[i0[i]:i1[i]]
 			xp = self.xp[i0[i]:i1[i]]
 			y = self.y[i0[i]:i1[i]]
@@ -214,3 +215,32 @@ class Bunch(object):
             self.slices.slice_constant_charge(self, self.slices.nsigmaz)
         elif self.slices.slicemode == 'cspace':
             self.slices.slice_constant_space(self, self.slices.nsigmaz)
+
+
+    def sort_particles(self):
+        
+        n_particles = self.n_particles
+        n_particles_lost = (n_particles - np.count_nonzero(self.identity))
+        
+        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)        
+        if n_particles_lost:
+            dz_argsorted = np.lexsort((self.dz, -np.sign(self.identity))) # place lost particles at the end of the array
+        else:
+            dz_argsorted = np.argsort(self.dz)    
+
+        self.x = self.x[dz_argsorted]
+        self.xp = self.xp[dz_argsorted]
+        self.y = self.y[dz_argsorted]
+        self.yp = self.yp[dz_argsorted]
+        self.dz = self.dz[dz_argsorted]
+        self.dp = self.dp[dz_argsorted]
+        self.identity = self.identity[dz_argsorted]
+
+
+    def set_in_slice(self, index_after_bin_edges):
+        n_slices = self.slices.n_slices
+        n_particles = self.n_particles
+            
+        self.in_slice = (n_slices + 3) * np.ones(n_particles, dtype=np.int)
+        for i in xrange(n_slices + 2):
+            self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i        

@@ -28,7 +28,7 @@ class LinearPeriodicMap(object):
         self.Qp_y = Qp_y
         self.app_y = app_y
 
-    @profile
+    #~ @profile
     def track(self, beam):
         
         dphi_x, dphi_y = self.detune(beam)
@@ -52,17 +52,15 @@ class LinearPeriodicMap(object):
        
 
     def detune(self, beam):
-        rx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2)
-        # actually epsn_x = (x0 ** 2 + (xp0 / beta_x) ** 2) / beta_x
-        ry = (beam.y ** 2 + (self.beta_y * beam.yp) ** 2)
-        # actually epsn_y = (y0 ** 2 + (yp0 / beta_y) ** 2) / beta_y
+        Jx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2) / 2
+        Jy = (beam.y ** 2 + (self.beta_y * beam.yp) ** 2) / 2
 
         dphi_x = 2 * np.pi * (self.dmu_x
                             + self.Qp_x * beam.dp
-                            + self.app_x * rx)
+                            + self.app_x * Jx)
         dphi_y = 2 * np.pi * (self.dmu_y
                             + self.Qp_y * beam.dp
-                            + self.app_y * ry)
+                            + self.app_y * Jy)
 
         return dphi_x, dphi_y
 

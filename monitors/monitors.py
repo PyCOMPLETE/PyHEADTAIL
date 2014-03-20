@@ -39,22 +39,22 @@ class BunchMonitor(Monitor):
 
         if not self.i_steps:
             n_steps = self.n_steps
-            n_slices = len(bunch.slices.mean_x) - 3
+            n_slices = bunch.slices.n_slices
 
             self.create_data(self.h5file['Bunch'], (n_steps,))
             self.create_data(self.h5file['LSlice'], (n_steps,))
             self.create_data(self.h5file['RSlice'], (n_steps,))
             self.create_data(self.h5file['Slices'], (n_slices, n_steps))
 
-            self.write_data(bunch, np.s_[-1], self.h5file['Bunch'], self.i_steps)
+            self.write_data(bunch, np.s_[-2], self.h5file['Bunch'], self.i_steps)
             self.write_data(bunch, np.s_[0], self.h5file['LSlice'], self.i_steps)
-            self.write_data(bunch, np.s_[-2], self.h5file['RSlice'], self.i_steps)
-            self.write_data(bunch, np.s_[1:-2], self.h5file['Slices'], self.i_steps, rank=2)
+            self.write_data(bunch, np.s_[-3], self.h5file['RSlice'], self.i_steps)
+            self.write_data(bunch, np.s_[1:-3], self.h5file['Slices'], self.i_steps, rank=2)
         else:
-            self.write_data(bunch, np.s_[-1], self.h5file['Bunch'], self.i_steps)
+            self.write_data(bunch, np.s_[-2], self.h5file['Bunch'], self.i_steps)
             self.write_data(bunch, np.s_[0], self.h5file['LSlice'], self.i_steps)
-            self.write_data(bunch, np.s_[-2], self.h5file['RSlice'], self.i_steps)
-            self.write_data(bunch, np.s_[1:-2], self.h5file['Slices'], self.i_steps, rank=2)
+            self.write_data(bunch, np.s_[-3], self.h5file['RSlice'], self.i_steps)
+            self.write_data(bunch, np.s_[1:-3], self.h5file['Slices'], self.i_steps, rank=2)
 
         self.i_steps += 1
 

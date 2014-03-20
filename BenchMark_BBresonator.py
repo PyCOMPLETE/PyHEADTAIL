@@ -3,10 +3,11 @@ from IPython.lib.deepreload import reload as dreload
 import cProfile, itertools, ipdb, time, timeit
 import numpy as np
 
-from configuration import *
+#~ from configuration import *
 from beams.bunch import *
 from beams import slices
 from monitors.monitors import *
+from aperture.aperture import *
 #~ from solvers.grid import *
 from solvers.poissonfft import *
 from impedances.wake_fields  import *
@@ -36,7 +37,7 @@ Qx = 20.13
 Qy = 20.18
 Qp_x = 0
 Qp_y = 0
-n_particles = 100000
+n_particles = 1000000
 n_slices = 500
 R_frequency = 1.0e9 # [Hz]
 Q = 1.
@@ -49,7 +50,7 @@ harmonic_number = 4620
 
 # Monitors
 bunchmonitor = BunchMonitor('bunch', n_turns)
-particlemonitor = ParticleMonitor('particles', n_turns)
+#~ particlemonitor = ParticleMonitor('particles', n_turns)
 
 
 # Betatron
@@ -65,8 +66,9 @@ linear_map = TransverseTracker.from_copy(s,
                                Qx, Qp_x, 0, Qy, Qp_y, 0)
 
 
-# Synchrotron
-cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0)
+# Synchrotron motion
+cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0, integrator='euler-chromer')
+
 
 # Bunch
 #~ bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
@@ -75,7 +77,6 @@ cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0)
 bunch =  bunch_unmatched_inbucket_sliced(n_particles, charge, energy, intensity, mass,
                              epsn_x, epsn_y, linear_map[0], bunch_length, momentum_spread, bucket=cavity,
                              n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace')                       
-
 # initial transverse kicks
 bunch.x += initial_kick_x
 bunch.y += initial_kick_y
@@ -85,9 +86,20 @@ bunch.y += initial_kick_y
 wakes = BB_Resonator_Circular(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
 #~ wakes = BB_Resonator_ParallelPlates(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
 
+# Wakefield from file
+#~ wakes = Transverse_wake_from_table('BenchMark_WakeTable.wake')
+
+
+# aperture
+#~ aperture = Rectangular_aperture(np.inf, 1e-2)
+#~ aperture = Rectangular_aperture(0.5e-1,np.inf)
+
 
 # accelerator map
+#~ map_ = [linear_map, [aperture], [wakes], [cavity]]
 map_ = [linear_map, [wakes], [cavity]]
+#~ map_ = [linear_map, [aperture], [cavity]]
+#~ map_ = [linear_map, [cavity], [wakes]]
 map_ = list(itertools.chain.from_iterable(map_))
 
 
@@ -96,6 +108,8 @@ normalization = np.max(bunch.dz) / np.max(bunch.dp)
 r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 
 
+#~ max_x = 0
+#~ max_xp = 0
 plt.ion()
 for i in range(n_turns):
     #~ print 'Turn: ', i
@@ -105,22 +119,8 @@ for i in range(n_turns):
         m.track(bunch) 
         #~ print m, ', elapsed time: ' + str(time.clock() - t1) + ' s'
     bunchmonitor.dump(bunch)
-    #~ particlemonitor.dump(bunch)
     
-    #~ plt.clf()
-    #~ plt.plot(bunch.slices.mean_x[1:-2]*bunch.slices.charge[1:-2])
-    #~ plt.plot(bunch.slices.mean_y)
-    #~ plt.gca().set_ylim(-1, 1)
-    
-    #~ plot_phasespace(bunch, r)
-    #~ plot_bunch('bunch-ns1')
-    #~ plot_emittance('bunch-ns1')
-    #~ plt.draw()
-    #~ plt.show()
-    
-    #~ plt.scatter(bunch.x, bunch.xp)
-    #~ plt.draw()
     #~ print 'Turn: ', i, ' took: ' + str(time.clock() - t0) + ' s \n'
-    print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f}'.format(i, bunch.slices.mean_x[-1], bunch.slices.mean_y[-1], bunch.slices.mean_dz[-1], bunch.slices.epsn_x[-1], bunch.slices.epsn_y[-1], bunch.slices.epsn_z[-1], bunch.slices.sigma_dz[-1], bunch.slices.sigma_dp[-1])
+    print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f} \t {9:4e} \t {10:3s}'.format(i, bunch.slices.mean_x[-1], bunch.slices.mean_y[-1], bunch.slices.mean_dz[-1], bunch.slices.epsn_x[-1], bunch.slices.epsn_y[-1], bunch.slices.epsn_z[-1], bunch.slices.sigma_dz[-1], bunch.slices.sigma_dp[-1], bunch.slices.charge[-2] / bunch.n_particles * bunch.intensity, str(time.clock() - t0))
 
 
