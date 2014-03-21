@@ -16,7 +16,7 @@ class PoissonFFT(UniformGrid):
     classdocs
     '''
 
-    @profile
+    # @profile
     def __init__(self, *args, **kwargs):
         '''
         Constructor

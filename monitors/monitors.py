@@ -39,7 +39,7 @@ class BunchMonitor(Monitor):
 
         if not self.i_steps:
             n_steps = self.n_steps
-            n_slices = len(bunch.slices.mean_x) - 3
+            n_slices = bunch.slices.n_slices
 
             self.create_data(self.h5file['Bunch'], (n_steps,))
             self.create_data(self.h5file['LSlice'], (n_steps,))
@@ -122,30 +122,18 @@ class ParticleMonitor(Monitor):
     def dump(self, bunch):
 
         if not self.i_steps:
-            resorting_indices = np.argsorted(bunch.id)[::self.stride]
+            resorting_indices = np.argsort(bunch.id)[::self.stride]
             self.z0 = np.copy(bunch.dz[resorting_indices])
 
         h5group = self.h5file.create_group("Step#" + str(self.i_steps))
-        self.sort_data(bunch)
         self.create_data(h5group, (bunch.n_particles // self.stride,))
         self.write_data(bunch, h5group)
 
         self.i_steps += 1
 
-    def sort_data(self, bunch):
-
-        resorting_indices = np.argsorted(bunch.id)[::self.stride]
-
-        self.x = bunch.x[resorting_indices]
-        self.xp = bunch.yp[resorting_indices]
-        self.y = bunch.y[resorting_indices]
-        self.yp = bunch.yp[resorting_indices]
-        self.dz = bunch.dz[resorting_indices]
-        self.dp = bunch.dp[resorting_indices]
-
     def create_data(self, h5group, dims):
 
-        h5group.create_dataset("x", dims)
+        h5group.create_dataset("x", dims) # perhaps name to x1, x2, x3, v1, v2, v3
         h5group.create_dataset("xp", dims)
         h5group.create_dataset("y", dims)
         h5group.create_dataset("yp", dims)
@@ -156,11 +144,13 @@ class ParticleMonitor(Monitor):
 
     def write_data(self, bunch, h5group):
 
-        h5group["x"][:] = self.x
-        h5group["xp"][:] = self.xp
-        h5group["y"][:] = self.y
-        h5group["yp"][:] = self.yp
-        h5group["dz"][:] = self.dz
-        h5group["dp"][:] = self.dp
+        resorting_indices = np.argsort(bunch.id)[::self.stride]
+
+        h5group["x"][:] = bunch.x[resorting_indices]
+        h5group["xp"][:] = bunch.yp[resorting_indices]
+        h5group["y"][:] = bunch.y[resorting_indices]
+        h5group["yp"][:] = bunch.yp[resorting_indices]
+        h5group["dz"][:] = bunch.dz[resorting_indices]
+        h5group["dp"][:] = bunch.dp[resorting_indices]
 
         h5group["c"][:] = self.z0

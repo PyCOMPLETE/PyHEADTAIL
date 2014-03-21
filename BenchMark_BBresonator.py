@@ -40,7 +40,7 @@ n_particles = 100000
 n_slices = 500
 R_frequency = 1.0e9 # [Hz]
 Q = 1.
-R_shunt = 20e6 # [Ohm/m]
+R_shunt = 18e6 # [Ohm/m]
 initial_kick_x = 0.1*np.sqrt(beta_x * epsn_x*1.e-6 / (energy / 0.938))
 initial_kick_y = 0.1*np.sqrt(beta_y * epsn_y*1.e-6 / (energy / 0.938))
 RF_voltage = 4e6 # [V]
@@ -49,7 +49,7 @@ harmonic_number = 4620
 
 # Monitors
 bunchmonitor = BunchMonitor('bunch', n_turns)
-particlemonitor = ParticleMonitor('particles', n_turns)
+particlemonitor = ParticleMonitor('particles', 20)
 
 
 # Betatron
@@ -105,7 +105,7 @@ for i in range(n_turns):
         m.track(bunch) 
         #~ print m, ', elapsed time: ' + str(time.clock() - t1) + ' s'
     bunchmonitor.dump(bunch)
-    #~ particlemonitor.dump(bunch)
+    particlemonitor.dump(bunch)
     
     #~ plt.clf()
     #~ plt.plot(bunch.slices.mean_x[1:-2]*bunch.slices.charge[1:-2])
