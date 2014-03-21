@@ -52,17 +52,21 @@ bunch = bunch_matched_and_sliced(10000, charge, energy, intensity, mass,
 bunch.update_slices()
 
 # PIC grid
-poisson = PoissonFFT(plt.std(bunch.x) * 20, plt.std(bunch.y) * 10, 128, 128)
+poisson = PoissonFFT(plt.std(bunch.x) * 20, plt.std(bunch.y) * 10, 64, 64)
 poisson.gather(1, bunch)
+poisson.compute_potential(bunch, 1)
+A = poisson.fgreen
 # [plt.axvline(v, c='orange') for v in poisson.mx[0,:]]
 # [plt.axhline(h, c='orange') for h in poisson.my[:,0]]
 # plt.gca().set_xlim(plt.amin(poisson.mx), plt.amax(poisson.mx[-1]))
 # plt.gca().set_ylim(plt.amin(poisson.my), plt.amax(poisson.my[-1]))
 # plt.scatter(bunch.x, bunch.y, marker='.')
 # plt.scatter(poisson.mx, poisson.my, s=poisson.rho*2, c=poisson.rho)
-fig, (ax1) = plt.subplots(1, sharex=True, sharey=True)
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)#, sharex=True, sharey=True)
 ax1.contour(poisson.fgreen.T, 100)
-ax1.contour(poisson.fgreen1, 100, cmap=plt.cm.get_cmap('hsv'))
+ax2.contour(poisson.fgreen1, 100, cmap=plt.cm.get_cmap('hsv'))
+ax3.contour(poisson.rho[:poisson.ny, :poisson.nx], 100)
+ax3.contour(poisson.phi[:poisson.ny, :poisson.nx], 100, lw=2)
 # plt.gca().set_aspect('equal')
 plt.show()
 exit(-1)
