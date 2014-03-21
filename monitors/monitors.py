@@ -122,7 +122,7 @@ class ParticleMonitor(Monitor):
     def dump(self, bunch):
 
         if not self.i_steps:
-            resorting_indices = np.argsorted(bunch.id)[::self.stride]
+            resorting_indices = np.argsort(bunch.id)[::self.stride]
             self.z0 = np.copy(bunch.dz[resorting_indices])
 
         h5group = self.h5file.create_group("Step#" + str(self.i_steps))
@@ -134,7 +134,7 @@ class ParticleMonitor(Monitor):
 
     def sort_data(self, bunch):
 
-        resorting_indices = np.argsorted(bunch.id)[::self.stride]
+        resorting_indices = np.argsort(bunch.id)[::self.stride]
 
         self.x = bunch.x[resorting_indices]
         self.xp = bunch.yp[resorting_indices]
