@@ -11,6 +11,10 @@ class UniformGrid(object):
     
     def __init__(self, extension_x, extension_y, nx, ny):
         
+        self.n_particles = nx * ny
+
+        self.id = np.arange(1, nx * ny + 1)
+
         self.nx, self.ny = nx, ny
 
         self.rho = np.zeros((nx, ny))
@@ -21,7 +25,7 @@ class UniformGrid(object):
         mx = np.arange(-extension_x, extension_x + self.dx, self.dx)
         my = np.arange(-extension_y, extension_y + self.dy, self.dy)
 
-        self.mx, self.my = np.meshgrid(mx, my)
+        self.x, self.y = np.meshgrid(mx, my)
 
     def gather(self, i_slice, bunch):
 
@@ -41,8 +45,8 @@ class UniformGrid(object):
         self.rho[:] = 0
 
         # On regular mesh
-        dx = self.mx[0, 1] - self.mx[0, 0]
-        dy = self.my[1, 0] - self.my[0, 0]
+        dx = self.x[0, 1] - self.x[0, 0]
+        dy = self.y[1, 0] - self.y[0, 0]
         dxi = 1 / dx
         dyi = 1 / dy
         ai = 1 / (dx * dy)
@@ -55,7 +59,7 @@ class UniformGrid(object):
         # int np = index.size();
         l = 1
 
-        fx, fy = (bunch.x - self.mx[0,0]) * dxi, (bunch.y - self.my[0,0]) * dyi
+        fx, fy = (bunch.x - self.x[0,0]) * dxi, (bunch.y - self.y[0,0]) * dyi
         ix, iy = np.floor(fx).astype(int), np.floor(fy).astype(int)
         fx, fy = fx - ix, fy - iy
 

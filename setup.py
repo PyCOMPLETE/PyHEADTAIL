@@ -60,6 +60,18 @@ cy_ext = [
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
                  library_dirs=[], libraries=["gsl", "gslcblas"],
+                 ),
+        Extension("solvers.compute_potential_fgreenm2m",
+                 ["solvers/compute_potential_fgreenm2m.pyx"],
+                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
+                 #extra_compile_args=["-g"],
+                 #extra_link_args=["-g"],
+                 ),
+        Extension("cobra_functions.interp1d",
+                 ["cobra_functions/interp1d.pyx"],
+                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
+                 #extra_compile_args=["-g"],
+                 #extra_link_args=["-g"],
                  )
           ]
 
