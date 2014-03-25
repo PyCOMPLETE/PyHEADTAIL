@@ -34,7 +34,7 @@ class BunchMonitor(Monitor):
 
     #     self.h5file.close()
     #     print "Closed!"
-        
+
     def dump(self, bunch):
 
         if not self.i_steps:
@@ -140,7 +140,8 @@ class ParticleMonitor(Monitor):
         h5group.create_dataset("dz", dims)
         h5group.create_dataset("dp", dims)
 
-        h5group.create_dataset("identity", dims)
+        # Do we need/want this here?
+        h5group.create_dataset("id", dims)
 
         h5group.create_dataset("c", dims)
 
@@ -155,6 +156,7 @@ class ParticleMonitor(Monitor):
         h5group["dz"][:] = bunch.dz[resorting_indices]
         h5group["dp"][:] = bunch.dp[resorting_indices]
 
-        h5group["identity"][:] = bunch.identity[resorting_indices]
+        # Do we need/want this here?
+        h5group["id"][:] = bunch.id[resorting_indices]
 
         h5group["c"][:] = self.z0

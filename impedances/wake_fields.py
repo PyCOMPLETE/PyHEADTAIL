@@ -31,7 +31,7 @@ class Wakefields(object):
 
 
     def wake_factor(self, bunch):
-		charge_per_macroparticle = bunch.intensity / bunch.n_macroparticles
+		charge_per_macroparticle = bunch.n_particles / bunch.n_macroparticles
 		return -(bunch.charge * e) ** 2 / (bunch.mass * bunch.gamma * (bunch.beta * c) ** 2) * charge_per_macroparticle
 
 

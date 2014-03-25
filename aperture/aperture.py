@@ -20,7 +20,7 @@ class Aperture(object):
         pass
     
     def track(self, bunch):
-        bunch.identity[self.lost_particles(bunch)] = 0
+        bunch.id[self.lost_particles(bunch)] = 0
             
 
 class Rectangular_aperture(Aperture):

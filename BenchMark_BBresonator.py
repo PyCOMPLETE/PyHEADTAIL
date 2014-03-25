@@ -70,7 +70,7 @@ cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0, integrator='rk4
 
 
 # Bunch
-#~ bunch = bunch_matched_and_sliced(n_macroparticles, charge, energy, intensity, mass,
+#~ bunch = bunch_matched_and_sliced(n_macroparticles, charge, energy, n_particles, mass,
                                  #~ epsn_x, epsn_y, linear_map[0], bunch_length, bucket=cavity, matching='simple',
                                  #~ n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace') 
 bunch =  bunch_unmatched_inbucket_sliced(n_macroparticles, charge, energy, intensity, mass,
@@ -85,7 +85,7 @@ bunch.y += initial_kick_y
 #~ ParticleMonitor('initial_distribution2', 0).dump(bunch)
 
 # distribution from file
-#~ bunch = bunch_from_file('initial_distribution2', 0, charge, energy, intensity, mass, n_slices, nsigmaz, slicemode='cspace')
+#~ bunch = bunch_from_file('initial_distribution2', 0, charge, energy, n_particles, mass, n_slices, nsigmaz, slicemode='cspace')
 
 
 # Resonator wakefields
@@ -128,6 +128,6 @@ for i in range(n_turns):
         m.track(bunch) 
         #~ print m, ', elapsed time: ' + str(time.clock() - t1) + ' s'
     bunchmonitor.dump(bunch)
-    print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f} \t {9:4e} \t {10:3s}'.format(i, bunch.slices.mean_x[-2], bunch.slices.mean_y[-2], bunch.slices.mean_dz[-2], bunch.slices.epsn_x[-2], bunch.slices.epsn_y[-2], bunch.slices.epsn_z[-2], bunch.slices.sigma_dz[-2], bunch.slices.sigma_dp[-2], bunch.slices.n_macroparticles[-2] / bunch.n_macroparticles * bunch.intensity, str(time.clock() - t0))
+    print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f} \t {9:4e} \t {10:3s}'.format(i, bunch.slices.mean_x[-2], bunch.slices.mean_y[-2], bunch.slices.mean_dz[-2], bunch.slices.epsn_x[-2], bunch.slices.epsn_y[-2], bunch.slices.epsn_z[-2], bunch.slices.sigma_dz[-2], bunch.slices.sigma_dp[-2], bunch.slices.n_macroparticles[-2] / bunch.n_macroparticles * bunch.n_particles, str(time.clock() - t0))
 
 
