@@ -9,7 +9,7 @@ from __future__ import division
 
 
 import numpy as np
-import sys
+
 
 from beams.distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
@@ -76,9 +76,7 @@ def match_simple(bunch, sigma_dz, bucket):
     unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket)
                 
 def unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket):
-    
-    n_particles = bunch.n_particles
-    for i in xrange(n_particles):
+    for i in xrange(bunch.n_macroparticles):
         if not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
             while not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
                 bunch.dz[i] = sigma_dz * np.random.randn()
@@ -121,8 +119,7 @@ def match_full(bunch, length, bucket):
     HH = psi(zz, pp)
     HHmax = np.amax(HH)
 
-    n_particles = len(bunch.x)
-    for i in xrange(n_particles):
+    for i in xrange(bunch.n_macroparticles):
         while True:
             s = (np.random.rand() - 0.5) * 2 * zmax
             t = (np.random.rand() - 0.5) * 2 * pmax

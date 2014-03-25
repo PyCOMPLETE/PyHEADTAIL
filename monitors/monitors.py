@@ -73,7 +73,7 @@ class BunchMonitor(Monitor):
         h5group.create_dataset("epsn_x", dims)
         h5group.create_dataset("epsn_y", dims)
         h5group.create_dataset("epsn_z", dims)
-        h5group.create_dataset("charge", dims)
+        h5group.create_dataset("n_macroparticles", dims)
 
     def write_data(self, bunch, indices, h5group, i_steps, rank=1):
 
@@ -91,7 +91,7 @@ class BunchMonitor(Monitor):
             h5group["epsn_x"][i_steps] = bunch.slices.epsn_x[indices]
             h5group["epsn_y"][i_steps] = bunch.slices.epsn_y[indices]
             h5group["epsn_z"][i_steps] = bunch.slices.epsn_z[indices]
-            h5group["charge"][i_steps] = bunch.slices.charge[indices]
+            h5group["n_macroparticles"][i_steps] = bunch.slices.n_macroparticles[indices]
         elif rank == 2:
             h5group["mean_x"][:,i_steps] = bunch.slices.mean_x[indices]
             h5group["mean_xp"][:,i_steps] = bunch.slices.mean_xp[indices]
@@ -106,7 +106,7 @@ class BunchMonitor(Monitor):
             h5group["epsn_x"][:,i_steps] = bunch.slices.epsn_x[indices]
             h5group["epsn_y"][:,i_steps] = bunch.slices.epsn_y[indices]
             h5group["epsn_z"][:,i_steps] = bunch.slices.epsn_z[indices]
-            h5group["charge"][:,i_steps] = bunch.slices.charge[indices]
+            h5group["n_macroparticles"][:,i_steps] = bunch.slices.n_macroparticles[indices]
         else:
             raise ValueError("Rank > 2 not supported!")
 
@@ -123,9 +123,8 @@ class ParticleMonitor(Monitor):
         if not self.i_steps:
             self.z0 = np.copy(bunch.dz)
 
-        n_particles = len(bunch.x)
         h5group = self.h5file.create_group("Step#" + str(self.i_steps))
-        self.create_data(h5group, (n_particles,))
+        self.create_data(h5group, (bunch.n_macroparticles,))
         self.write_data(bunch, h5group)
 
         self.i_steps += 1

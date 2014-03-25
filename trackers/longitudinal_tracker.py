@@ -17,7 +17,6 @@ from scipy.integrate import quad, dblquad
 from abc import ABCMeta, abstractmethod 
 from scipy.constants import c, e
 
-
 sin = np.sin
 cos = np.cos
 
@@ -51,8 +50,8 @@ class LongitudinalTracker(object):
     #~ sigma_dp = np.std(bunch.dp)
     #~ epsn_z = 4 * np.pi * sigma_dz * sigma_dp * p0 / e
 #~ 
-    #~ n_particles = len(bunch.dz)
-    #~ for i in xrange(n_particles):
+    #~ n_macroparticles = len(bunch.dz)
+    #~ for i in xrange(n_macroparticles):
         #~ if not cavity.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
             #~ while not cavity.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
                 #~ bunch.dz[i] = sigma_dz * np.random.randn()
@@ -97,8 +96,8 @@ class LongitudinalTracker(object):
     #~ HH = psi(zz, pp)
     #~ HHmax = np.amax(HH)
 #~ 
-    #~ n_particles = len(bunch.x)
-    #~ for i in xrange(n_particles):
+    #~ n_macroparticles = len(bunch.x)
+    #~ for i in xrange(n_macroparticles):
         #~ while True:
             #~ s = (np.random.rand() - 0.5) * 2 * zmax
             #~ t = (np.random.rand() - 0.5) * 2 * pmax

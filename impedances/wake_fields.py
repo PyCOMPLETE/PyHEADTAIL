@@ -1,7 +1,7 @@
 from __future__ import division
 '''
 @class Wakefields
-@author Kevin Li & Hannes Bartosik
+@author Hannes Bartosik & Kevin Li & Giovanni Rumolo
 @date March 2014
 @Class for creation and management of wakefields from impedance sources
 @copyright CERN
@@ -11,7 +11,6 @@ from __future__ import division
 import numpy as np
 
 
-import pylab as plt
 from scipy.constants import c, e
 from scipy.constants import physical_constants
 
@@ -32,7 +31,7 @@ class Wakefields(object):
 
 
     def wake_factor(self, bunch):
-		charge_per_macroparticle = bunch.intensity / bunch.n_particles
+		charge_per_macroparticle = bunch.intensity / bunch.n_macroparticles
 		return -(bunch.charge * e) ** 2 / (bunch.mass * bunch.gamma * (bunch.beta * c) ** 2) * charge_per_macroparticle
 
 
@@ -70,11 +69,11 @@ class Wakefields(object):
 
             # dipole kicks
             self.dipole_kick = np.zeros(bunch.slices.n_slices+4)
-            self.dipole_kick[1:-3] = np.dot(bunch.slices.charge[1:-3] * slice_position[1:-3], dipole_wake(bunch, dz_to_target_slice)) * self.wake_factor(bunch)
+            self.dipole_kick[1:-3] = np.dot(bunch.slices.n_macroparticles[1:-3] * slice_position[1:-3], dipole_wake(bunch, dz_to_target_slice)) * self.wake_factor(bunch)
 
             # quadrupole kicks
             self.quadrupolar_wake_sum = np.zeros(bunch.slices.n_slices+4)
-            self.quadrupolar_wake_sum[1:-3] = np.dot(bunch.slices.charge[1:-3], quadrupole_wake(bunch, dz_to_target_slice)) * self.wake_factor(bunch)
+            self.quadrupolar_wake_sum[1:-3] = np.dot(bunch.slices.n_macroparticles[1:-3], quadrupole_wake(bunch, dz_to_target_slice)) * self.wake_factor(bunch)
 
             # apply kicks
             position_prime += self.dipole_kick[bunch.in_slice] + self.quadrupolar_wake_sum[bunch.in_slice] * particle_position[:]            
@@ -91,7 +90,7 @@ class Wakefields(object):
 
         # compute kicks
         self.longitudinal_kick = np.zeros(bunch.slices.n_slices+4)
-        self.longitudinal_kick[1:-3] = np.dot(bunch.slices.charge[1:-3], wake(bunch, dz_to_target_slice)) * self.wake_factor(bunch)
+        self.longitudinal_kick[1:-3] = np.dot(bunch.slices.n_macroparticles[1:-3], wake(bunch, dz_to_target_slice)) * self.wake_factor(bunch)
 
         # apply kicks
         bunch.dp += self.longitudinal_kick[bunch.in_slice]           
