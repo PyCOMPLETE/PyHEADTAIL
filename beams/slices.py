@@ -45,10 +45,6 @@ class Slices(object):
     #~ @profile
     def slice_constant_space(self, bunch, nsigmaz=None):
 
-        n_particles = bunch.n_particles
-        n_slices = self.n_slices
-        n_particles_lost = (n_particles - np.count_nonzero(bunch.identity))
-                
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)        
         bunch.sort_particles() 
         
@@ -57,29 +53,25 @@ class Slices(object):
             
         # First bins
         self.dz_bins[0] = bunch.dz[0]
-        self.dz_bins[-1] = bunch.dz[- 1 - n_particles_lost]
-        dz = (cutright - cutleft) / n_slices
-        self.dz_bins[1:-1] = cutleft + np.arange(n_slices + 1) * dz        
+        self.dz_bins[-1] = bunch.dz[- 1 - bunch.n_particles_lost]
+        dz = (cutright - cutleft) / self.n_slices
+        self.dz_bins[1:-1] = cutleft + np.arange(self.n_slices + 1) * dz        
         self.dz_centers[:-1] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
         self.dz_centers[-1] = self.mean_dz[-1]
-        index_after_bin_edges = np.searchsorted(bunch.dz[:-n_particles_lost-1],self.dz_bins)
+        index_after_bin_edges = np.searchsorted(bunch.dz[:-bunch.n_particles_lost-1],self.dz_bins)
         index_after_bin_edges[-1] += 1  
         
         # Get charge
         self.charge = np.diff(index_after_bin_edges)
-        self.charge = np.concatenate((self.charge, [n_particles - n_particles_lost], [n_particles_lost]))
+        self.charge = np.concatenate((self.charge, [bunch.n_particles - bunch.n_particles_lost], [bunch.n_particles_lost]))
         
         # .in_slice indicates in which slice the particle is (needed for wakefields)     
         bunch.set_in_slice(index_after_bin_edges)
 
 
     def slice_constant_charge(self, bunch, nsigmaz=None):
-
-        n_particles = bunch.n_particles
-        n_slices = self.n_slices
-        n_particles_lost = (n_particles - np.count_nonzero(bunch.identity))
-        
+       
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)        
         bunch.sort_particles() 
         
@@ -87,16 +79,16 @@ class Slices(object):
         cutleft, cutright = self.determine_longitudinal_cuts(bunch, nsigmaz)
 
         # First charge
-        self.charge[0] = np.searchsorted(bunch.dz[:-1 - n_particles_lost],cutleft)
-        self.charge[-3] = n_particles - n_particles_lost - np.searchsorted(bunch.dz[:-1 - n_particles_lost],cutright)
-        q0 = n_particles - n_particles_lost - self.charge[0] - self.charge[-3]
-        self.charge[1:-3] = int(q0 / n_slices)
-        self.charge[1:(q0 % n_slices + 1)] += 1
-        self.charge[-2:] =  n_particles - n_particles_lost, n_particles_lost
+        self.charge[0] = np.searchsorted(bunch.dz[:-1 - bunch.n_particles_lost],cutleft)
+        self.charge[-3] = bunch.n_particles - bunch.n_particles_lost - np.searchsorted(bunch.dz[:-1 - bunch.n_particles_lost],cutright)
+        q0 = bunch.n_particles - bunch.n_particles_lost - self.charge[0] - self.charge[-3]
+        self.charge[1:-3] = int(q0 / self.n_slices)
+        self.charge[1:(q0 % self.n_slices + 1)] += 1
+        self.charge[-2:] =  bunch.n_particles - bunch.n_particles_lost, bunch.n_particles_lost
 
         # Get bins
         index_after_bin_edges = np.append(0, np.cumsum(self.charge[:-2]))
-        self.dz_bins[-1] = bunch.dz[-1 - n_particles_lost]
+        self.dz_bins[-1] = bunch.dz[-1 - bunch.n_particles_lost]
         self.dz_bins[:-1] = bunch.dz[index_after_bin_edges[:-1]] 
         self.dz_centers[:-1] = self.dz_bins[:-1] \
                           + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
@@ -107,12 +99,11 @@ class Slices(object):
 
 
     def determine_longitudinal_cuts(self, bunch, nsigmaz):
-        n_particles_lost = (bunch.n_particles - np.count_nonzero(bunch.identity))
         if nsigmaz == None:
             cutleft = bunch.dz[0]
-            cutright = bunch.dz[-1 - n_particles_lost]
+            cutright = bunch.dz[-1 - bunch.n_particles_lost]
         else:
-            sigma_dz = cp.std(bunch.dz)
+            sigma_dz = cp.std(bunch.dz[:bunch.n_particles - bunch.n_particles_lost])
             cutleft = -nsigmaz * sigma_dz
             cutright = nsigmaz * sigma_dz
         return cutleft, cutright

@@ -7,8 +7,6 @@ Created on 16.03.2014
 
 
 import numpy as np
-'''http://docs.scipy.org/doc/numpy/reference/routines.html'''
-#~ import cobra_functions.cobra_functions as cp
 
 
 class Aperture(object):
@@ -38,4 +36,18 @@ class Rectangular_aperture(Aperture):
 
     def lost_particles(self, bunch):        
         return (np.abs(bunch.x) >= self.limit_x) | (np.abs(bunch.y) >= self.limit_y)
-        
+      
+
+class Longitudinal_aperture(Aperture):
+    '''
+    classdocs
+    '''
+    def __init__(self, limit_dz):
+        '''
+        Constructor
+        '''
+        self.limit_dz_neg = - limit_dz[0]
+        self.limit_dz_pos = + limit_dz[-1]
+
+    def lost_particles(self, bunch):        
+        return (bunch.dz >= self.limit_dz_pos) | (bunch.dz <= self.limit_dz_neg)

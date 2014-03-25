@@ -8,6 +8,11 @@ Created on 07.01.2014
 import numpy as np
 
 
+sin = np.sin
+cos = np.cos
+
+
+
 class LinearPeriodicMap(object):
 
     def __init__(self, I, J,
@@ -32,11 +37,11 @@ class LinearPeriodicMap(object):
     def track(self, beam):
         
         dphi_x, dphi_y = self.detune(beam)
-                      
-        cos_dphi_x = np.cos(dphi_x)
-        cos_dphi_y = np.cos(dphi_y)
-        sin_dphi_x = np.sin(dphi_x)
-        sin_dphi_y = np.sin(dphi_y)
+                             
+        cos_dphi_x = cos(dphi_x)
+        cos_dphi_y = cos(dphi_y)
+        sin_dphi_x = sin(dphi_x)
+        sin_dphi_y = sin(dphi_y)
         
         M00 = self.I[0, 0] * cos_dphi_x + self.J[0, 0] * sin_dphi_x
         M01 = self.I[0, 1] * cos_dphi_x + self.J[0, 1] * sin_dphi_x
@@ -51,6 +56,7 @@ class LinearPeriodicMap(object):
         beam.y, beam.yp = M22 * beam.y + M23 * beam.yp, M32 * beam.y + M33 * beam.yp
        
 
+    #~ @profile
     def detune(self, beam):
         Jx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2) / 2
         Jy = (beam.y ** 2 + (self.beta_y * beam.yp) ** 2) / 2

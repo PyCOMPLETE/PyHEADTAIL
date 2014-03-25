@@ -6,9 +6,9 @@ Created on 06.01.2014
 
 
 import numpy as np
+
+
 import cobra_functions.cobra_functions as cp
-
-
 from beams.slices import *
 from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
 from scipy.constants import c, e
@@ -68,6 +68,7 @@ class Bunch(object):
         self = cls(x, xp, y, yp, dz, dp)
         
         self.n_particles = len(x)
+        self.n_particles_lost = 0
         self.identity = identity
 
         return self
@@ -105,6 +106,7 @@ class Bunch(object):
         self = cls(x, xp, y, yp, dz, dp)
 		
         self.n_particles = len(x)
+        self.n_particles_lost = 0
         self.identity = np.arange(n_particles) + 1
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
@@ -123,26 +125,11 @@ class Bunch(object):
         self = cls(x, xp, y, yp, dz, dp)
 
         self.n_particles = len(x)
+        self.n_particles_lost = 0
         self.identity = np.arange(n_particles) + 1
         self.set_scalar_quantities(charge, energy, intensity, mass)
 
         return self
-
-    # # TODO: perhaps decorate with matchings...
-    # @classmethod
-    # def from_matching(cls, n_particles, charge, energy, intensity, mass,
-    #                   match_transverse=None, match_longitudinal=None, slices=None):
-
-    #     self = cls.from_gaussian(n_particles)
-
-    #     self.set_scalar_quantities(charge, energy, intensity, mass)
-
-    #     match_transverse(self)
-    #     match_longitudinal(self)
-
-    #     self.slices = slices
-
-    #     return self
 
     def set_scalar_quantities(self, charge, energy, intensity, mass):
 
@@ -172,9 +159,10 @@ class Bunch(object):
             print "*** WARNING: bunch not yet sliced! Aborting..."
             sys.exit(-1)
      
-        i1 = np.append(np.cumsum(self.slices.charge[:-1]), np.cumsum(self.slices.charge[-2:-1]))
+        # determine the start and end indices of each slices 
+        i1 = np.append(np.cumsum(self.slices.charge[:-2]), np.cumsum(self.slices.charge[-2:]))
         i0 = np.zeros(len(i1), dtype='int')
-        i0[1:-2] = i1[:-3]
+        i0[1:] = i1[:-1]
         i0[-2] = 0
  
         for i in xrange(self.slices.n_slices + 4):
@@ -217,13 +205,13 @@ class Bunch(object):
             self.slices.slice_constant_space(self, self.slices.nsigmaz)
 
 
+    #~ @profile
     def sort_particles(self):
-        
-        n_particles = self.n_particles
-        n_particles_lost = (n_particles - np.count_nonzero(self.identity))
+		# update the number of lost particles
+        self.n_particles_lost = (self.n_particles - np.count_nonzero(self.identity))
         
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)        
-        if n_particles_lost:
+        if self.n_particles_lost:
             dz_argsorted = np.lexsort((self.dz, -np.sign(self.identity))) # place lost particles at the end of the array
         else:
             dz_argsorted = np.argsort(self.dz)    
@@ -237,10 +225,7 @@ class Bunch(object):
         self.identity = self.identity[dz_argsorted]
 
 
-    def set_in_slice(self, index_after_bin_edges):
-        n_slices = self.slices.n_slices
-        n_particles = self.n_particles
-            
-        self.in_slice = (n_slices + 3) * np.ones(n_particles, dtype=np.int)
-        for i in xrange(n_slices + 2):
+    def set_in_slice(self, index_after_bin_edges):           
+        self.in_slice = (self.slices.n_slices + 3) * np.ones(self.n_particles, dtype=np.int)
+        for i in xrange(self.slices.n_slices + 2):
             self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i        

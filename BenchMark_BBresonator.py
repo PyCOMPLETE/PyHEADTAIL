@@ -3,7 +3,6 @@ from IPython.lib.deepreload import reload as dreload
 import cProfile, itertools, ipdb, time, timeit
 import numpy as np
 
-#~ from configuration import *
 from beams.bunch import *
 from beams import slices
 from monitors.monitors import *
@@ -15,7 +14,7 @@ from trackers.transverse_tracker import *
 from trackers.longitudinal_tracker import *
 from plots import *
 from scipy.constants import c, e, m_p
-
+from scipy.constants import physical_constants
 
 
 # simulation setup
@@ -31,7 +30,7 @@ epsn_y = 2.0 # [um]
 gamma_t = 1/np.sqrt(0.0031)
 C = 6911. # [m]
 energy = 26 # total [GeV]
-n_turns = 500
+n_turns = 10
 nsigmaz = 2
 Qx = 20.13
 Qy = 20.18
@@ -67,7 +66,7 @@ linear_map = TransverseTracker.from_copy(s,
 
 
 # Synchrotron motion
-cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0, integrator='euler-chromer')
+cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0, integrator='rk4')
 
 
 # Bunch
@@ -85,9 +84,13 @@ bunch.y += initial_kick_y
 # Resonator wakefields
 wakes = BB_Resonator_Circular(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
 #~ wakes = BB_Resonator_ParallelPlates(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
+#~ wake_longitudinal = BB_Resonator_longitudinal(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
 
+# Resistive wall
+#~ wakes = Resistive_wall_Circular(pipe_radius=0.05, length_resistive_wall=C, conductivity=5.4e17)
+    
 # Wakefield from file
-#~ wakes = Transverse_wake_from_table('BenchMark_WakeTable.wake')
+#~ wakes = Wake_table.from_ASCII('BenchMark_WakeTable.wake', ['time', 'dipolar_x', 'dipolar_y', 'quadrupolar_x', 'quadrupolar_y'])
 
 
 # aperture
@@ -96,11 +99,7 @@ wakes = BB_Resonator_Circular(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
 
 
 # accelerator map
-#~ map_ = [linear_map, [aperture], [wakes], [cavity]]
-map_ = [linear_map, [wakes], [cavity]]
-#~ map_ = [linear_map, [aperture], [cavity]]
-#~ map_ = [linear_map, [cavity], [wakes]]
-map_ = list(itertools.chain.from_iterable(map_))
+map_ = linear_map + [wakes] + [cavity]
 
 
 # define color scale for plotting 
@@ -113,14 +112,12 @@ r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 plt.ion()
 for i in range(n_turns):
     #~ print 'Turn: ', i
-    #~ t0 = time.clock() 
+    t0 = time.clock() 
     for m in map_:
         #~ t1 = time.clock() 
         m.track(bunch) 
         #~ print m, ', elapsed time: ' + str(time.clock() - t1) + ' s'
     bunchmonitor.dump(bunch)
-    
-    #~ print 'Turn: ', i, ' took: ' + str(time.clock() - t0) + ' s \n'
     print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f} \t {9:4e} \t {10:3s}'.format(i, bunch.slices.mean_x[-1], bunch.slices.mean_y[-1], bunch.slices.mean_dz[-1], bunch.slices.epsn_x[-1], bunch.slices.epsn_y[-1], bunch.slices.epsn_z[-1], bunch.slices.sigma_dz[-1], bunch.slices.sigma_dp[-1], bunch.slices.charge[-2] / bunch.n_particles * bunch.intensity, str(time.clock() - t0))
 
 

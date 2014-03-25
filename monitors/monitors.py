@@ -138,6 +138,7 @@ class ParticleMonitor(Monitor):
         h5group.create_dataset("yp", dims)
         h5group.create_dataset("dz", dims)
         h5group.create_dataset("dp", dims)
+        h5group.create_dataset("identity", dims)
 
         h5group.create_dataset("c", dims)
 
@@ -149,5 +150,6 @@ class ParticleMonitor(Monitor):
         h5group["yp"][:] = bunch.yp
         h5group["dz"][:] = bunch.dz
         h5group["dp"][:] = bunch.dp
-
+        h5group["identity"][:] = bunch.identity
+        
         h5group["c"][:] = self.z0

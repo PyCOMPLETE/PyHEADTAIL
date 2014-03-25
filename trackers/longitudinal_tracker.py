@@ -18,6 +18,10 @@ from abc import ABCMeta, abstractmethod
 from scipy.constants import c, e
 
 
+sin = np.sin
+cos = np.cos
+
+
 
 class LongitudinalTracker(object):
 
@@ -271,6 +275,7 @@ class RFCavity(LongitudinalTracker):
 
         return isin
 
+    #~ @profile
     def track(self, bunch):
 
         p0 = bunch.mass * bunch.gamma * bunch.beta * c
@@ -287,13 +292,13 @@ class RFCavity(LongitudinalTracker):
 
             # Integration
             k1 = -eta * self.length * dp0
-            kp1 = cf2 * np.sin(cf1 * dz0 + self.phi_s)
+            kp1 = cf2 * sin(cf1 * dz0 + self.phi_s)
             k2 = -eta * self.length * (dp0 + kp1 / 2)
-            kp2 = cf2 * np.sin(cf1 * (dz0 + k1 / 2) + self.phi_s)
+            kp2 = cf2 * sin(cf1 * (dz0 + k1 / 2) + self.phi_s)
             k3 = -eta * self.length * (dp0 + kp2 / 2)
-            kp3 = cf2 * np.sin(cf1 * (dz0 + k2 / 2) + self.phi_s)
+            kp3 = cf2 * sin(cf1 * (dz0 + k2 / 2) + self.phi_s)
             k4 = -eta * self.length * (dp0 + kp3);
-            kp4 = cf2 * np.sin(cf1 * (dz0 + k3) + self.phi_s)
+            kp4 = cf2 * sin(cf1 * (dz0 + k3) + self.phi_s)
 
             # Finalize
             bunch.dz = dz0 + k1 / 6 + k2 / 3 + k3 / 3 + k4 / 6
@@ -303,7 +308,7 @@ class RFCavity(LongitudinalTracker):
             # Length L drift
             bunch.dz += - eta * self.length * bunch.dp
             # Full turn kick
-            bunch.dp += cf2 * np.sin(cf1 * bunch.dz + self.phi_s)
+            bunch.dp += cf2 * sin(cf1 * bunch.dz + self.phi_s)
 
         elif self.integrator == 'ruth4':
             alpha = 1 - 2 ** (1 / 3)
@@ -325,21 +330,21 @@ class RFCavity(LongitudinalTracker):
             # Drift
             dz1 += d1 * -eta * self.length * dp1
             # Kick
-            dp1 += c1 * cf2 * np.sin(cf1 * dz1 + self.phi_s)
+            dp1 += c1 * cf2 * sin(cf1 * dz1 + self.phi_s)
 
             dz2 = dz1
             dp2 = dp1
             # Drift
             dz2 += d2 * -eta * self.length * dp2
             # Kick
-            dp2 += c2 * cf2 * np.sin(cf1 * dz2 + self.phi_s)
+            dp2 += c2 * cf2 * sin(cf1 * dz2 + self.phi_s)
 
             dz3 = dz2
             dp3 = dp2
             # Drift
             dz3 += d3 * -eta * self.length * dp3
             # Kick
-            dp3 += c3 * cf2 * np.sin(cf1 * dz3 + self.phi_s)
+            dp3 += c3 * cf2 * sin(cf1 * dz3 + self.phi_s)
 
             dz4 = dz3
             dp4 = dp3
@@ -373,8 +378,8 @@ class CSCavity(object):
         omega_s = self.Qs * omega_0
 
         dQs = 2 * np.pi * self.Qs
-        cosdQs = np.cos(dQs)
-        sindQs = np.sin(dQs)
+        cosdQs = cos(dQs)
+        sindQs = sin(dQs)
 
         dz0 = bunch.dz
         dp0 = bunch.dp
