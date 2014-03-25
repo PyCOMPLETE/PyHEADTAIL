@@ -102,7 +102,7 @@ class PoissonFFT(UniformGrid):
         # print self.fgreen[2 * self.nx:self.nx:-1, 0]
         # print self.fgreen[:self.nx, 0] - self.fgreen[2 * self.nx:self.nx:-1, 0]
 
-    @profile
+    # @profile
     def compute_potential(self):
 
         tmprho = np.zeros((2 * self.ny, 2 * self.nx))

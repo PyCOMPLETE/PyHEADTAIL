@@ -3,7 +3,6 @@ from IPython.lib.deepreload import reload as dreload
 import cProfile, itertools, ipdb, time, timeit
 import numpy as np
 
-from configuration import *
 from beams.bunch import *
 from beams import slices
 from monitors.monitors import *
@@ -16,11 +15,10 @@ from plots import *
 from scipy.constants import c, e, m_p
 
 
-
 # simulation setup
 charge = 1
 mass = m_p
-intensity = 1.15e11 
+intensity = 1.15e11
 beta_x = 54.6408 # [m]
 beta_y = 54.5054 # [m]
 bunch_length = 0.3 # [m]
@@ -71,10 +69,10 @@ cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0)
 # Bunch
 #~ bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
                                  #~ epsn_x, epsn_y, linear_map[0], bunch_length, bucket=cavity, matching='simple',
-                                 #~ n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace') 
+                                 #~ n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace')
 bunch =  bunch_unmatched_inbucket_sliced(n_particles, charge, energy, intensity, mass,
                              epsn_x, epsn_y, linear_map[0], bunch_length, momentum_spread, bucket=cavity,
-                             n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace')                       
+                             n_slices=n_slices, nsigmaz=nsigmaz, slicemode='cspace')
 
 # initial transverse kicks
 bunch.x += initial_kick_x
@@ -91,7 +89,7 @@ map_ = [linear_map, [wakes], [cavity]]
 map_ = list(itertools.chain.from_iterable(map_))
 
 
-# define color scale for plotting 
+# define color scale for plotting
 normalization = np.max(bunch.dz) / np.max(bunch.dp)
 r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 
@@ -99,28 +97,26 @@ r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 plt.ion()
 for i in range(n_turns):
     #~ print 'Turn: ', i
-    #~ t0 = time.clock() 
+    #~ t0 = time.clock()
     for m in map_:
-        #~ t1 = time.clock() 
-        m.track(bunch) 
+        #~ t1 = time.clock()
+        m.track(bunch)
         #~ print m, ', elapsed time: ' + str(time.clock() - t1) + ' s'
     bunchmonitor.dump(bunch)
     particlemonitor.dump(bunch)
-    
+
     #~ plt.clf()
     #~ plt.plot(bunch.slices.mean_x[1:-2]*bunch.slices.charge[1:-2])
     #~ plt.plot(bunch.slices.mean_y)
     #~ plt.gca().set_ylim(-1, 1)
-    
+
     #~ plot_phasespace(bunch, r)
     #~ plot_bunch('bunch-ns1')
     #~ plot_emittance('bunch-ns1')
     #~ plt.draw()
     #~ plt.show()
-    
+
     #~ plt.scatter(bunch.x, bunch.xp)
     #~ plt.draw()
     #~ print 'Turn: ', i, ' took: ' + str(time.clock() - t0) + ' s \n'
     print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f}'.format(i, bunch.slices.mean_x[-1], bunch.slices.mean_y[-1], bunch.slices.mean_dz[-1], bunch.slices.epsn_x[-1], bunch.slices.epsn_y[-1], bunch.slices.epsn_z[-1], bunch.slices.sigma_dz[-1], bunch.slices.sigma_dp[-1])
-
-
