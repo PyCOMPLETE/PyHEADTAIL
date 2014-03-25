@@ -8,6 +8,11 @@ Created on 07.01.2014
 import numpy as np
 
 
+sin = np.sin
+cos = np.cos
+
+
+
 class LinearPeriodicMap(object):
 
     def __init__(self, I, J,
@@ -28,15 +33,15 @@ class LinearPeriodicMap(object):
         self.Qp_y = Qp_y
         self.app_y = app_y
 
-    # @profile
+    #~ @profile
     def track(self, beam):
         
         dphi_x, dphi_y = self.detune(beam)
                       
-        cos_dphi_x = np.cos(dphi_x)
-        cos_dphi_y = np.cos(dphi_y)
-        sin_dphi_x = np.sin(dphi_x)
-        sin_dphi_y = np.sin(dphi_y)
+        cos_dphi_x = cos(dphi_x)
+        cos_dphi_y = cos(dphi_y)
+        sin_dphi_x = sin(dphi_x)
+        sin_dphi_y = sin(dphi_y)
         
         M00 = self.I[0, 0] * cos_dphi_x + self.J[0, 0] * sin_dphi_x
         M01 = self.I[0, 1] * cos_dphi_x + self.J[0, 1] * sin_dphi_x
@@ -51,18 +56,17 @@ class LinearPeriodicMap(object):
         beam.y, beam.yp = M22 * beam.y + M23 * beam.yp, M32 * beam.y + M33 * beam.yp
        
 
+    #~ @profile
     def detune(self, beam):
-        rx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2)
-        # actually epsn_x = (x0 ** 2 + (xp0 / beta_x) ** 2) / beta_x
-        ry = (beam.y ** 2 + (self.beta_y * beam.yp) ** 2)
-        # actually epsn_y = (y0 ** 2 + (yp0 / beta_y) ** 2) / beta_y
+        Jx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2) / 2
+        Jy = (beam.y ** 2 + (self.beta_y * beam.yp) ** 2) / 2
 
         dphi_x = 2 * np.pi * (self.dmu_x
                             + self.Qp_x * beam.dp
-                            + self.app_x * rx)
+                            + self.app_x * Jx)
         dphi_y = 2 * np.pi * (self.dmu_y
                             + self.Qp_y * beam.dp
-                            + self.app_y * ry)
+                            + self.app_y * Jy)
 
         return dphi_x, dphi_y
 

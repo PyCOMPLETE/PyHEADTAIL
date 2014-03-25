@@ -30,12 +30,12 @@ def plot_bunch(filename):
 
     bunch = h5py.File(filename, 'r')['Bunch']
 
-    beta_x = plt.amax(bunch['mean_x'][:]) / plt.amax(bunch['mean_xp'][:])
-    r = plt.sqrt(bunch['mean_x'][:] ** 2 + (beta_x * bunch['mean_xp'][:]) ** 2)
+    beta_x = plt.amax(bunch['mean_y'][:]) / plt.amax(bunch['mean_yp'][:])
+    r = plt.sqrt(bunch['mean_y'][:] ** 2 + (beta_x * bunch['mean_yp'][:]) ** 2)
 
     ax1 = plt.gca()
     ax2 = plt.twinx(ax1)
-    ax1.plot(bunch['mean_x'], 'r')
+    ax1.plot(bunch['mean_y'], 'r')
     ax1.plot(+r, c='brown', lw=2)
     ax1.plot(-r, c='brown', lw=2)
     plt.show()
