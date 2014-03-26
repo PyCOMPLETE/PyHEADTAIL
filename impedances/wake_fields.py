@@ -242,6 +242,7 @@ class Wake_table(Wakefields):
     def unit_conversion(self):
         transverse_wakefield_keys = ['dipolar_x', 'dipolar_y', 'quadrupolar_x', 'quadrupolar_y']
         longitudinal_wakefield_keys = ['longitudinal']
+        self.wake_field_keys = []
         print 'Converting wake table to correct units ... '
         self.wake_table['time'] *= 1e-9 # unit convention [ns]
         print '\t converted time from [ns] to [s]'        
@@ -249,12 +250,14 @@ class Wake_table(Wakefields):
             try: 
                 self.wake_table[wake] *= - 1.e15 # unit convention [V/pC/mm] and sign convention !!
                 print '\t converted "' + wake + '" wake from [V/pC/mm] to [V/C/m] and inverted sign'
+                self.wake_field_keys += [wake]
             except:
                 print '\t "' + wake + '" wake not provided'
         for wake in longitudinal_wakefield_keys:
             try: 
                 self.wake_table[wake] *= - 1.e12 # unit convention [V/pC] and sign convention !!
                 print '\t converted "' + wake + '" wake from [V/pC/mm] to [V/C/m]'
+                self.wake_field_keys += [wake]
             except:
                 print '\t "' + wake + '" wake not provided'
  
@@ -275,40 +278,39 @@ class Wake_table(Wakefields):
         
 
     def dipole_wake_x(self, bunch, z):
-        return self.wake_transverse('dipolar_x', bunch, z)
+        if 'dipolar_x' in self.wake_field_keys: return self.wake_transverse('dipolar_x', bunch, z)
+        return 0
         
     def dipole_wake_y(self, bunch, z):
-        return self.wake_transverse('dipolar_y', bunch, z)
+        if 'dipolar_y' in self.wake_field_keys: return self.wake_transverse('dipolar_y', bunch, z)
+        return 0
 
     def quadrupole_wake_x(self, bunch, z):
-        return self.wake_transverse('quadrupolar_x', bunch, z)
+        if 'quadrupolar_x' in self.wake_field_keys: return self.wake_transverse('quadrupolar_x', bunch, z)
+        return 0
 
     def quadrupole_wake_y(self, bunch, z):
-        return self.wake_transverse('quadrupolar_y', bunch, z) 
+        if 'quadrupolar_y' in self.wake_field_keys: return self.wake_transverse('quadrupolar_y', bunch, z) 
+        return 0
                        
-    #~ def dipole_wake_xy(self, bunch, z):
-        #~ return self.wake_transverse(5, bunch, z)
-        #~ 
-    #~ def dipole_wake_yx(self, bunch, z):
-        #~ return self.wake_transverse(5, bunch, z)
-#~ 
-    #~ def quadrupole_wake_xy(self, bunch, z):
-        #~ return self.wake_transverse(6, bunch, z)
-#~ 
-    #~ def quadrupole_wake_yx(self, bunch, z):
-        #~ return self.wake_transverse(6, bunch, z)
 
+    def wake_longitudinal(self, bunch, z):
+        time = np.array(self.wake_table['time'])
+        wake = np.array(self.wake_table['longitudinal'])
+        # beam loading theorem: half value of wake at z=0; wake in front not yet taken into account. 
+        return (np.sign(-z) + 1) / 2 * np.interp(- z / c / bunch.beta, time, wake, left=0, right=0)
+    
+    
     def track(self, bunch):
         bunch.compute_statistics()    
-        wakefield_kicks_x = self.transverse_wakefield_kicks('x')
-        wakefield_kicks_x(bunch)
-        wakefield_kicks_y = self.transverse_wakefield_kicks('y')
-        wakefield_kicks_y(bunch)            
-        #~ if self.wake_table[0].shape == 7:
-            #~ wakefield_kicks_xy = self.transverse_wakefield_kicks('xy')
-            #~ wakefield_kicks_xy(bunch)
-            #~ wakefield_kicks_yx = self.transverse_wakefield_kicks('yx')
-            #~ wakefield_kicks_yx(bunch)        
+        if ('dipolar_x' or 'quadrupolar_x') in self.wake_field_keys:
+            wakefield_kicks_x = self.transverse_wakefield_kicks('x')
+            wakefield_kicks_x(bunch)
+        if ('dipolar_y' or 'quadrupolar_y') in self.wake_field_keys:
+            wakefield_kicks_y = self.transverse_wakefield_kicks('y')
+            wakefield_kicks_y(bunch) 
+        if 'longitudinal' in self.wake_field_keys:
+            self.longitudinal_wakefield_kicks(bunch)
 
 
 class BB_Resonator_longitudinal(Wakefields):

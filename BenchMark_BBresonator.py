@@ -1,6 +1,6 @@
 from __future__ import division
 from IPython.lib.deepreload import reload as dreload
-import cProfile, itertools, ipdb, time, timeit
+import cProfile, itertools, time, timeit
 import numpy as np
 
 from beams.bunch import *

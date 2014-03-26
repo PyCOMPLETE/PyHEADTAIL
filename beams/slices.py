@@ -7,7 +7,7 @@ Created on 06.01.2014
 
 import numpy as np
 '''http://docs.scipy.org/doc/numpy/reference/routines.html'''
-import cobra_functions.cobra_functions as cp
+import cobra_functions.stats as cp
 
 
 class Slices(object):
