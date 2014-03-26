@@ -37,7 +37,7 @@ class LinearPeriodicMap(object):
     def track(self, beam):
         
         dphi_x, dphi_y = self.detune(beam)
-                             
+                      
         cos_dphi_x = cos(dphi_x)
         cos_dphi_y = cos(dphi_y)
         sin_dphi_x = sin(dphi_x)

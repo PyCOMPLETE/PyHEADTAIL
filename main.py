@@ -2,8 +2,8 @@ from __future__ import division
 from IPython.lib.deepreload import reload as dreload
 import cProfile, itertools, ipdb, time, timeit
 
+from scipy.constants import c, e, m_p
 
-from configuration import *
 from cobra_functions import stats, random
 from beams.bunch import *
 from beams import slices
@@ -11,7 +11,7 @@ from beams.matching import match_transverse, match_longitudinal
 from monitors.monitors import *
 from solvers.grid import *
 from solvers.poissonfft import *
-from impedances.wake_resonator import *
+from impedances.wake_fields import *
 from trackers.transverse_tracker import *
 from trackers.longitudinal_tracker import *
 
@@ -46,20 +46,38 @@ cavity = CSCavity(C, 18, 0.017)
 # bunch = Bunch.from_empty(2e3, charge, energy, intensity, mass)
 # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
 # Bunch
-bunch = bunch_matched_and_sliced(n_particles, charge, energy, intensity, mass,
-                                 2.5, 2.5, linear_map[0], 0.21, bucket=0.5, matching=None,
+charge = 1
+energy = 26
+intensity = 1.15e11
+mass = m_p
+bunch = bunch_matched_and_sliced(10000, charge, energy, intensity, mass,
+                                 5, 2.5, linear_map[0], 0.21, bucket=0.5, matching=None,
                                  n_slices=64, nsigmaz=None, slicemode='cspace')
 bunch.update_slices()
 
 # PIC grid
-poisson = PoissonFFT(plt.std(bunch.x) * 10, plt.std(bunch.y) * 10, 128, 128)
-# poisson.gather(1, bunch)
-[plt.axvline(v, c='r') for v in poisson.mx]
-[plt.axhline(h, c='r') for h in poisson.my]
-plt.scatter(bunch.x, bunch.y, marker='.')
-plt.gca().set_xlim(poisson.mx[0], poisson.mx[-1])
-plt.gca().set_ylim(poisson.my[0], poisson.my[-1])
-plt.plot(poisson.rho)
+poisson = PoissonFFT(plt.std(bunch.x) * 20, plt.std(bunch.y) * 10, 64, 64)
+poisson.gather(1, bunch)
+t0 = time.clock()
+poisson.compute_potential()
+print 'Time took', time.clock() - t0, 's'
+# [plt.axvline(v, c='orange') for v in poisson.mx[0,:]]
+# [plt.axhline(h, c='orange') for h in poisson.my[:,0]]
+# plt.gca().set_xlim(plt.amin(poisson.mx), plt.amax(poisson.mx[-1]))
+# plt.gca().set_ylim(plt.amin(poisson.my), plt.amax(poisson.my[-1]))
+# plt.scatter(bunch.x, bunch.y, marker='.')
+# plt.scatter(poisson.mx, poisson.my, s=poisson.rho*2, c=poisson.rho)
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)#, sharex=True, sharey=True)
+ax1.contour(poisson.fgreen.T, 100)
+ax3.contour(poisson.rho[:poisson.ny, :poisson.nx], 100)
+ax3.contour(poisson.phi[:poisson.ny, :poisson.nx], 100, lw=2)
+
+t0 = time.clock()
+poisson.compute_potential_fgreenm2m()
+print 'Time took', time.clock() - t0, 's'
+ax3.contour(poisson.phi, 100, cmap=plt.cm.get_cmap('hsv'))
+
+# plt.gca().set_aspect('equal')
 plt.show()
 exit(-1)
 

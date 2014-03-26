@@ -17,7 +17,6 @@ from scipy.integrate import quad, dblquad
 from abc import ABCMeta, abstractmethod 
 from scipy.constants import c, e
 
-
 sin = np.sin
 cos = np.cos
 

@@ -11,98 +11,21 @@ class UniformGrid(object):
     
     def __init__(self, extension_x, extension_y, nx, ny):
         
-        dx = 2 * extension_x / (nx - 1)
-        dy = 2 * extension_y / (ny - 1)
+        self.n_particles = nx * ny
 
-        self.mx = np.arange(-extension_x, extension_x + dx, dx)
-        self.my = np.arange(-extension_y, extension_y + dy, dy)
+        self.id = np.arange(1, nx * ny + 1)
+
+        self.nx, self.ny = nx, ny
 
         self.rho = np.zeros((nx, ny))
 
-# template<typename T>
-# void PoissonBase::gather(T t, int i_slice)
-# {
-#     size_t k;
-#     int m, n;
-#     double dx, dy, xp, yp;
-#     double a1, a2, a3, a4;
+        self.dx = 2 * extension_x / (nx - 1)
+        self.dy = 2 * extension_y / (ny - 1)
 
-#     // Initialise
-#     for (k=0; k<n_points; k++)
-#         t.rho_g[k] = 0;
+        mx = np.arange(-extension_x, extension_x + self.dx, self.dx)
+        my = np.arange(-extension_y, extension_y + self.dy, self.dy)
 
-#     int np;
-#     double qp;
-#     std::vector<int> ip;
-
-#     // Line charge density and particle selection
-#     t.get_slice(i_slice, np, qp, ip);
-
-#     // On regular mesh
-#     dx = (mx.back() - mx.front()) / (n_points_x - 1);
-#     dy = (my.back() - my.front()) / (n_points_y - 1);
-#     // TODO: on adaptive mesh
-
-#     for (int j=0; j<np; j++)
-#     {
-#         xp = t.x[ip[j]];
-#         yp = t.y[ip[j]];
-
-#         // Find cells
-#         m = std::floor((xp - mx[0]) / dx);
-#         n = std::floor((yp - my[0]) / dy);
-
-# //        m = 0;
-# //        n = 0;
-# //        while (mx[m] < xp)
-# //            m++;
-# //        while (my[n] < yp)
-# //            n++;
-# //        m--;
-# //        n--;
-
-#         // Store cell for reuse in scatter
-#         t.cell[ip[j]] = n * (n_points_x - 1) + m;
-
-#         /*
-#          * Cell
-#          *
-#          *  3 ------------ 4
-#          *  |     |        |
-#          *  |     |        |
-#          *  |     |        |
-#          *  |     |        |
-#          *  |-----x--------|
-#          *  |     |        |
-#          *  1 ------------ 2
-#          */
-
-# //        dx = mx[m + 1] - mx[m];
-# //        dy = my[n + 1] - my[n];
-
-#         a1 = (dx - std::abs(xp - mx[m]))
-#            * (dy - std::abs(yp - my[n]));
-#         a2 = (dx - std::abs(xp - mx[m + 1]))
-#            * (dy - std::abs(yp - my[n]));
-#         a3 = (dx - std::abs(xp - mx[m]))
-#            * (dy - std::abs(yp - my[n + 1]));
-#         a4 = (dx - std::abs(xp - mx[m + 1]))
-#            * (dy - std::abs(yp - my[n + 1]));
-
-#         // Point 1
-#         k = n * n_points_x + m;
-#         t.rho_g[k] += qp * a1 / (dx * dy) * 1 / (dx * dy);
-#         // Point 2
-#         k = n * n_points_x + m + 1;
-#         t.rho_g[k] += qp * a2 / (dx * dy) * 1 / (dx * dy);
-#         // Point 3
-#         k = (n + 1) * n_points_x + m;
-#         t.rho_g[k] += qp * a3 / (dx * dy) * 1 / (dx * dy);
-#         // Point 4
-#         k = (n + 1) * n_points_x + m + 1;
-#         t.rho_g[k] += qp * a4 / (dx * dy) * 1 / (dx * dy);
-#     }
-# }
+        self.x, self.y = np.meshgrid(mx, my)
 
     def gather(self, i_slice, bunch):
 
@@ -119,13 +42,11 @@ class UniformGrid(object):
         '''
 
         # Initialise
-        nx, ny = len(self.mx), len(self.my)
-        # for (size_t k=0; k<n_points; k++)
-            # t.rho_g[k] = 0;
+        self.rho[:] = 0
 
         # On regular mesh
-        dx = self.mx[1] - self.mx[0]
-        dy = self.my[1] - self.my[0]
+        dx = self.x[0, 1] - self.x[0, 0]
+        dy = self.y[1, 0] - self.y[0, 0]
         dxi = 1 / dx
         dyi = 1 / dy
         ai = 1 / (dx * dy)
@@ -136,132 +57,28 @@ class UniformGrid(object):
         # std::vector<int> index;
         # t.get_slice(i_slice, lambda, index);
         # int np = index.size();
-
-        x = bunch.x
-        y = bunch.y
         l = 1
 
-        for j in xrange(1000):
-            xp, yp = x[j], y[j]
+        fx, fy = (bunch.x - self.x[0,0]) * dxi, (bunch.y - self.y[0,0]) * dyi
+        ix, iy = np.floor(fx).astype(int), np.floor(fy).astype(int)
+        fx, fy = fx - ix, fy - iy
 
-            # Compute points
-            fx = (xp - self.mx[0]) * dxi
-            fy = (yp - self.my[0]) * dyi
-            ix, iy = np.floor(fx), np.floor(fy)
+        H, xedges, yedges = np.histogram2d(ix, iy, bins=self.rho.shape)
+        self.rho += H
 
-            k1 = iy * nx + ix
-            k2 = iy * nx + ix + 1
-            k3 = (iy + 1) * nx + ix
-            k4 = (iy + 1) * nx + ix + 1
+        # a1 = (1 - fx) * (1 - fy)
+        # a2 = fx * (1 - fy)
+        # a3 = (1 - fx) * fy
+        # a4 = fx * fy
 
-            # Compute normalized area
-            fx -= ix
-            fy -= iy
-
-            a1 = (1 - fx) * (1 - fy);
-            a2 = fx * (1 - fy);
-            a3 = (1 - fx) * fy;
-            a4 = fx * fy;
-
-            self.rho[ix, iy] += l * a1 * ai;
-            self.rho[ix + 1, iy] += l * a2 * ai;
-            self.rho[ix, iy + 1] += l * a3 * ai;
-            self.rho[ix + 1, iy + 1] += l * a4 * ai;
-
-# template<typename T, typename U>
-# void PoissonBase::scatter(T t, U u, int i_slice)
-# {
-#     double dx, dy, xp, yp;
-#     double a1, a2, a3, a4;
-#     int ic, ic1, ic2, ic3, ic4;
-
-#     /*
-#      * Cell
-#      *
-#      *  3 ------------ 4
-#      *  |     |        |
-#      *  |     |        |
-#      *  |     |        |
-#      *  |     |        |
-#      *  |-----x--------|
-#      *  |     |        |
-#      *  1 ------------ 2
-#      */
-
-#     // Line charge density and particle selection
-#     double lambda;
-#     std::vector<int> index;
-#     t.get_slice(i_slice, lambda, index);
-#     int np = index.size();
-
-#     // t impacting fields
-#     for (int j=0; j<np; j++)
-#     {
-#         xp = t.x[index[j]];
-#         yp = t.y[index[j]];
-
-# //        ic = t.cell[index[j]];
-#         ic1 = cells[ic][0];
-#         ic2 = cells[ic][1];
-#         ic3 = cells[ic][2];
-#         ic4 = cells[ic][3];
-
-#         dx = geometry[ic4][0] - geometry[ic1][0];
-#         dy = geometry[ic4][1] - geometry[ic1][1];
-
-#         a1 = (dx - std::abs(xp - geometry[ic1][0]))
-#            * (dy - std::abs(yp - geometry[ic1][1])) / (dx * dy);
-#         a2 = (dx - std::abs(xp - geometry[ic2][0]))
-#            * (dy - std::abs(yp - geometry[ic2][1])) / (dx * dy);
-#         a3 = (dx - std::abs(xp - geometry[ic3][0]))
-#            * (dy - std::abs(yp - geometry[ic3][1])) / (dx * dy);
-#         a4 = (dx - std::abs(xp - geometry[ic4][0]))
-#            * (dy - std::abs(yp - geometry[ic4][1])) / (dx * dy);
-
-#         t.kx[index[j]] =
-#             (u.ex_g[ic1] * a1 + u.ex_g[ic2] * a2
-#            + u.ex_g[ic3] * a3 + u.ex_g[ic4] * a4);
-#         t.ky[index[j]] =
-#             (u.ey_g[ic1] * a1 + u.ey_g[ic2] * a2
-#            + u.ey_g[ic3] * a3 + u.ey_g[ic4] * a4);
-#     }
-
-#     // Line charge density and particle selection
-#     u.get_slice(i_slice, lambda, index);
-#     np = index.size();
-
-#     // u impacting fields
-#     for (int j=0; j<np; j++)
-#     {
-#         xp = u.x[index[j]];
-#         yp = u.y[index[j]];
-
-# //        ic = u.cell[ip[j]];
-#         ic1 = cells[ic][0];
-#         ic2 = cells[ic][1];
-#         ic3 = cells[ic][2];
-#         ic4 = cells[ic][3];
-
-#         dx = geometry[ic4][0] - geometry[ic1][0];
-#         dy = geometry[ic4][1] - geometry[ic1][1];
-
-#         a1 = (dx - std::abs(xp - geometry[ic1][0]))
-#            * (dy - std::abs(yp - geometry[ic1][1])) / (dx * dy);
-#         a2 = (dx - std::abs(xp - geometry[ic2][0]))
-#            * (dy - std::abs(yp - geometry[ic2][1])) / (dx * dy);
-#         a3 = (dx - std::abs(xp - geometry[ic3][0]))
-#            * (dy - std::abs(yp - geometry[ic3][1])) / (dx * dy);
-#         a4 = (dx - std::abs(xp - geometry[ic4][0]))
-#            * (dy - std::abs(yp - geometry[ic4][1])) / (dx * dy);
-
-#         u.kx[j] =
-#             (t.ex_g[ic1] * a1 + t.ex_g[ic2] * a2
-#            + t.ex_g[ic3] * a3 + t.ex_g[ic4] * a4);
-#         u.ky[j] =
-#             (t.ey_g[ic1] * a1 + t.ey_g[ic2] * a2
-#            + t.ey_g[ic3] * a3 + t.ey_g[ic4] * a4);
-#     }
-# }
+        # print self.rho[ix,iy]
+        # self.rho[ix, iy] += l
+        # print self.rho[ix,iy]
+            
+        # self.rho[ix, iy] += l * a1 * ai
+        # self.rho[ix + 1, iy] += l * a2 * ai
+        # self.rho[ix, iy + 1] += l * a3 * ai
+        # self.rho[ix + 1, iy + 1] += l * a4 * ai
 
 # template<typename T, typename U>
 # void PoissonBase::fastscatter(T t, U u, int i_slice)

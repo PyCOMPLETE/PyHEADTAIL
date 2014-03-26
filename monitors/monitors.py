@@ -34,7 +34,7 @@ class BunchMonitor(Monitor):
 
     #     self.h5file.close()
     #     print "Closed!"
-        
+
     def dump(self, bunch):
 
         if not self.i_steps:
@@ -112,43 +112,51 @@ class BunchMonitor(Monitor):
 
 class ParticleMonitor(Monitor):
 
-    def __init__(self, filename, n_steps):
+    def __init__(self, filename, stride):
 
         self.h5file = hp.File(filename + '.h5part', 'w')
-        self.n_steps = n_steps
+        self.stride = stride
+        # self.n_steps = n_steps
         self.i_steps = 0
 
     def dump(self, bunch):
 
         if not self.i_steps:
-            self.z0 = np.copy(bunch.dz)
+            resorting_indices = np.argsort(bunch.id)[::self.stride]
+            self.z0 = np.copy(bunch.dz[resorting_indices])
 
         h5group = self.h5file.create_group("Step#" + str(self.i_steps))
-        self.create_data(h5group, (bunch.n_macroparticles,))
+        self.create_data(h5group, (bunch.n_macroparticles // self.stride,))
         self.write_data(bunch, h5group)
 
         self.i_steps += 1
 
     def create_data(self, h5group, dims):
 
-        h5group.create_dataset("x", dims)
+        h5group.create_dataset("x", dims) # perhaps name to x1, x2, x3, v1, v2, v3
         h5group.create_dataset("xp", dims)
         h5group.create_dataset("y", dims)
         h5group.create_dataset("yp", dims)
         h5group.create_dataset("dz", dims)
         h5group.create_dataset("dp", dims)
-        h5group.create_dataset("identity", dims)
+
+        # Do we need/want this here?
+        h5group.create_dataset("id", dims)
 
         h5group.create_dataset("c", dims)
 
     def write_data(self, bunch, h5group):
 
-        h5group["x"][:] = bunch.x
-        h5group["xp"][:] = bunch.xp
-        h5group["y"][:] = bunch.y
-        h5group["yp"][:] = bunch.yp
-        h5group["dz"][:] = bunch.dz
-        h5group["dp"][:] = bunch.dp
-        h5group["identity"][:] = bunch.identity
-        
+        resorting_indices = np.argsort(bunch.id)[::self.stride]
+
+        h5group["x"][:] = bunch.x[resorting_indices]
+        h5group["xp"][:] = bunch.yp[resorting_indices]
+        h5group["y"][:] = bunch.y[resorting_indices]
+        h5group["yp"][:] = bunch.yp[resorting_indices]
+        h5group["dz"][:] = bunch.dz[resorting_indices]
+        h5group["dp"][:] = bunch.dp[resorting_indices]
+
+        # Do we need/want this here?
+        h5group["id"][:] = bunch.id[resorting_indices]
+
         h5group["c"][:] = self.z0
