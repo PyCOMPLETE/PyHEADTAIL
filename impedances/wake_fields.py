@@ -297,8 +297,12 @@ class Wake_table(Wakefields):
     def wake_longitudinal(self, bunch, z):
         time = np.array(self.wake_table['time'])
         wake = np.array(self.wake_table['longitudinal'])
-        # beam loading theorem: half value of wake at z=0; wake in front not yet taken into account. 
-        return (np.sign(-z) + 1) / 2 * np.interp(- z / c / bunch.beta, time, wake, left=0, right=0)
+        wake_interpolated = np.interp(- z / c / bunch.beta, time, wake, left=0, right=0)
+        if time[0] < 0:
+            return wake_interpolated
+        elif time[0] == 0:
+            # beam loading theorem: half value of wake at z=0; wake in front not yet taken into account. 
+            return (np.sign(-z) + 1) / 2 * wake_interpolated
     
     
     def track(self, bunch):
