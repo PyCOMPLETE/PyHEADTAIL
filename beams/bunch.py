@@ -14,13 +14,13 @@ from beams.slices import *
 from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
 
 
-def bunch_matched_and_sliced(n_macroparticles, charge, energy, n_particles, mass,
+def bunch_matched_and_sliced(n_macroparticles, n_particles, charge, energy, mass,
                              epsn_x, epsn_y, ltm, bunch_length, bucket, matching,
                              n_slices, nsigmaz, slicemode='cspace'):
 
-    # bunch = Bunch.from_empty(1e3, charge, energy, n_particles, mass)
+    # bunch = Bunch.from_empty(1e3, n_particles, charge, energy, mass)
     # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
-    bunch = Bunch.from_gaussian(n_macroparticles, charge, energy, n_particles, mass)
+    bunch = Bunch.from_gaussian(n_macroparticles, n_particles, charge, energy, mass)
     bunch.match_transverse(epsn_x, epsn_y, ltm)
     bunch.match_longitudinal(bunch_length, bucket, matching)
     bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
@@ -28,10 +28,10 @@ def bunch_matched_and_sliced(n_macroparticles, charge, energy, n_particles, mass
 
     return bunch
 
-def bunch_unmatched_inbucket_sliced(n_macroparticles, charge, energy, n_particles, mass,
-                             epsn_x, epsn_y, ltm, sigma_dz, sigma_dp, bucket,
-                             n_slices, nsigmaz, slicemode='cspace'):
-    bunch = Bunch.from_gaussian(n_macroparticles, charge, energy, n_particles, mass)
+def bunch_unmatched_inbucket_sliced(n_macroparticles, n_particles, charge, energy, mass,
+                                    epsn_x, epsn_y, ltm, sigma_dz, sigma_dp, bucket,
+                                    n_slices, nsigmaz, slicemode='cspace'):
+    bunch = Bunch.from_gaussian(n_macroparticles, n_particles, charge, energy, mass)
     bunch.match_transverse(epsn_x, epsn_y, ltm)
     bunch.unmatched_inbucket(sigma_dz, sigma_dp, bucket)
     bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
@@ -39,10 +39,10 @@ def bunch_unmatched_inbucket_sliced(n_macroparticles, charge, energy, n_particle
 
     return bunch
 
-def bunch_from_file(filename, step, charge, energy, n_particles, mass,
-                             n_slices, nsigmaz, slicemode='cspace'):
+def bunch_from_file(filename, step, n_particles, charge, energy, mass,
+                    n_slices, nsigmaz, slicemode='cspace'):
 
-    bunch = Bunch.from_h5file(filename, step, charge, energy, n_particles, mass)
+    bunch = Bunch.from_h5file(filename, step, n_particles, charge, energy, mass)
     bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
     bunch.update_slices()
 
@@ -78,7 +78,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_scalar_quantities(n_particles, charge, energy, mass)
+        self.set_bunch_physics(n_particles, charge, energy, mass)
+        self.set_bunch_numerics()
 
         return self
 
@@ -96,10 +97,10 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.n_macroparticles = len(x)
-        self.n_macroparticles_lost = 0
+        self.set_bunch_physics(n_particles, charge, energy, mass)
+        self.set_bunch_numerics()
+
         self.id = np.array(particles['Step#' + str(step)]['id'])
-        self.set_scalar_quantities(charge, energy, n_particles, mass)
 
         return self
 
@@ -115,10 +116,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.n_macroparticles = len(x)
-        self.n_macroparticles_lost = 0
-        self.id = np.arange(n_macroparticles) + 1
-        self.set_scalar_quantities(charge, energy, n_particles, mass)
+        self.set_bunch_physics(n_particles, charge, energy, mass)
+        self.set_bunch_numerics()
 
         return self
 
@@ -134,41 +133,40 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.n_macroparticles = len(x)
-        self.n_macroparticles_lost = 0
-        self.id = np.arange(n_macroparticles) + 1
-        self.set_scalar_quantities(charge, energy, n_particles, mass)
+        self.set_bunch_physics(n_particles, charge, energy, mass)
+        self.set_bunch_numerics()
 
         return self
 
     def set_bunch_physics(self, n_particles, charge, energy, mass):
-
+        '''
+        Set the physical quantities of the beam
+        '''
         self.n_particles = n_particles
         self.charge = charge
-        if energy > 2:
-            self.gamma = energy * 1e9 * e / (mass * c ** 2)
-        else:
-            self.gamma = energy * 1e9 * e / (mass * c ** 2) + 1
+        self.gamma = energy * e / (mass * c ** 2)
         self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
         self.mass = mass
         self.p0 = mass * self.gamma * self.beta * c
 
-    def set_bunch_numerics(self, n_macroparticles):
-
-        self.n_macroparticles = n_macroparticles
+    def set_bunch_numerics(self):
+        '''
+        Set the numerical quantities of the beam
+        '''
+        self.n_macroparticles = len(self.x)
         self.n_macroparticles_lost = 0
 
-        self.id = np.arange(1, n_macroparticles + 1)
-        self.np = np.ones(n_macroparticles) * self.n_particles / n_macroparticles
+        self.id = np.arange(1, len(self.x) + 1)
+        self.np = np.ones(self.n_macroparticles) * self.n_particles / self.n_macroparticles
 
-    def set_scalar_quantities(self, charge, energy, n_particles, mass):
+    # def set_scalar_quantities(self, charge, energy, n_particles, mass):
 
-        self.charge = charge
-        self.gamma = energy * 1e9 * charge * e / (mass * c ** 2) # + 1 only for below PS
-        self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
-        self.n_particles = n_particles
-        self.mass = mass
-        self.p0 = mass * self.gamma * self.beta * c
+    #     self.charge = charge
+    #     self.gamma = energy * charge * e / (mass * c ** 2)
+    #     self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
+    #     self.n_particles = n_particles
+    #     self.mass = mass
+    #     self.p0 = mass * self.gamma * self.beta * c
 
     def match_transverse(self, epsn_x, epsn_y, ltm):
 
