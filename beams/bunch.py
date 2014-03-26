@@ -156,7 +156,7 @@ class Bunch(object):
         self.n_macroparticles = len(self.x)
         self.n_macroparticles_lost = 0
 
-        self.id = np.arange(1, len(self.x) + 1)
+        self.id = np.arange(1, len(self.x) + 1, dtype=np.int)
         self.np = np.ones(self.n_macroparticles) * self.n_particles / self.n_macroparticles
 
     # def set_scalar_quantities(self, charge, energy, n_particles, mass):

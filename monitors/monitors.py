@@ -141,7 +141,7 @@ class ParticleMonitor(Monitor):
         h5group.create_dataset("dp", dims)
 
         # Do we need/want this here?
-        h5group.create_dataset("id", dims)
+        h5group.create_dataset("id", dims, dtype=np.int)
 
         h5group.create_dataset("c", dims)
 

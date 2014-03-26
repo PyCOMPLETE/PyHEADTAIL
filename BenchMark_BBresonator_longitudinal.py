@@ -18,7 +18,7 @@ from scipy.constants import physical_constants
 # simulation setup
 charge = e
 mass = m_p
-n_particles = 1.15e11 
+n_particles = 1.95e11 
 beta_x = 54.6408 # [m]
 beta_y = 54.5054 # [m]
 bunch_length = 0.2 # [m]
@@ -28,7 +28,7 @@ epsn_y = 2.0 # [um]
 gamma_t = 1/np.sqrt(0.00192)
 C = 6911. # [m]
 energy = 26e9 # total [eV]
-n_turns = 5000
+n_turns = 500
 nsigmaz = 3
 Qx = 26.13
 Qy = 26.18
