@@ -112,7 +112,7 @@ class BunchMonitor(Monitor):
 
 class ParticleMonitor(Monitor):
 
-    def __init__(self, filename, stride):
+    def __init__(self, filename, stride=1):
 
         self.h5file = hp.File(filename + '.h5part', 'w')
         self.stride = stride

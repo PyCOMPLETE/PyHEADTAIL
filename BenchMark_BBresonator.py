@@ -38,9 +38,9 @@ n_macroparticles = 1000000
 n_slices = 500
 R_frequency = 1.0e9 # [Hz]
 Q = 1.
-R_shunt = 18e6 # [Ohm/m]
-initial_kick_x = 0.1*np.sqrt(beta_x * epsn_x*1.e-6 / (energy / 0.938))
-initial_kick_y = 0.1*np.sqrt(beta_y * epsn_y*1.e-6 / (energy / 0.938))
+R_shunt = 20e6 # [Ohm/m]
+initial_kick_x = 0.1*np.sqrt(beta_x * epsn_x*1.e-6 / (energy / 0.938e9))
+initial_kick_y = 0.1*np.sqrt(beta_y * epsn_y*1.e-6 / (energy / 0.938e9))
 RF_voltage = 4e6 # [V]
 harmonic_number = 4620
 
@@ -79,11 +79,11 @@ bunch =  bunch_unmatched_inbucket_sliced(n_macroparticles, n_particles, charge, 
 bunch.x += initial_kick_x
 bunch.y += initial_kick_y
 
-#~ # save initial distribution
-#~ ParticleMonitor('initial_distribution2', 0).dump(bunch)
+# save initial distribution
+ParticleMonitor('initial_distribution').dump(bunch)
 
 # distribution from file
-#~ bunch = bunch_from_file('initial_distribution2', 0, charge, energy, n_particles, mass, n_slices, nsigmaz, slicemode='cspace')
+#~ bunch = bunch_from_file('initial_distribution', 0, n_particles, charge, energy, mass, n_slices, nsigmaz, slicemode='cspace')
 
 
 # Resonator wakefields
