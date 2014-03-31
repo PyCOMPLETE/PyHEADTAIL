@@ -301,7 +301,7 @@ class Wake_table(Wakefields):
         if time[0] < 0:
             return wake_interpolated
         elif time[0] == 0:
-            # beam loading theorem: half value of wake at z=0; wake in front not yet taken into account. 
+            # beam loading theorem: half value of wake at z=0; 
             return (np.sign(-z) + 1) / 2 * wake_interpolated
     
     
@@ -325,30 +325,30 @@ class BB_Resonator_longitudinal(Wakefields):
         '''
         Constructor
         '''
-        self.R_shunt = R_shunt
-        self.frequency = frequency
-        self.Q = Q
-        
+        self.R_shunt = np.array([R_shunt]).flatten()
+        self.frequency = np.array([frequency]).flatten()
+        self.Q = np.array([Q]).flatten()    
+
+
     def wake_longitudinal(self, bunch, z):
-        Rs = self.R_shunt
-        frequency = self.frequency
-        Q = self.Q
-        beta_r = bunch.beta
-        
+        return reduce(lambda x,y: x+y, [self.wake_BB_resonator(self.R_shunt[i], self.frequency[i], self.Q[i], bunch, z) for i in np.arange(len(self.Q))])
+
+    
+    def wake_BB_resonator(self, R_shunt, frequency, Q, bunch, z):        
         # Taken from Alex Chao's resonator model (2.82)
         omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
         omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
-        
-        if self.Q > 0.5:
-            wake =  - (np.sign(z) - 1) * Rs * alpha * np.exp(alpha * z.clip(max=0) / c / beta_r) * \
-                    (cos(omegabar * z.clip(max=0) / c / beta_r) + alpha / omegabar * sin(omegabar * z.clip(max=0) / c / beta_r))
-        elif self.Q == 0.5:			
-            wake =  - (np.sign(z) - 1) * Rs * alpha * np.exp(alpha * z.clip(max=0) / c / beta_r) * \
-                    (1. + alpha * z.clip(max=0) / c / beta_r)
-        elif self.Q < 0.5:			
-            wake =  - (np.sign(z) - 1) * Rs * alpha * np.exp(alpha * z.clip(max=0) / c / beta_r) * \
-                    (np.cosh(omegabar * z.clip(max=0) / c / beta_r) + alpha / omegabar * np.sinh(omegabar * z.clip(max=0) / c / beta_r))                         
+
+        if Q > 0.5:
+            wake =  - (np.sign(z) - 1) * R_shunt * alpha * np.exp(alpha * z.clip(max=0) / c / bunch.beta) * \
+                    (cos(omegabar * z.clip(max=0) / c / bunch.beta) + alpha / omegabar * sin(omegabar * z.clip(max=0) / c / bunch.beta))
+        elif Q == 0.5:
+            wake =  - (np.sign(z) - 1) * R_shunt * alpha * np.exp(alpha * z.clip(max=0) / c / bunch.beta) * \
+                    (1. + alpha * z.clip(max=0) / c / bunch.beta)
+        elif Q < 0.5:
+            wake =  - (np.sign(z) - 1) * R_shunt * alpha * np.exp(alpha * z.clip(max=0) / c / bunch.beta) * \
+                    (np.cosh(omegabar * z.clip(max=0) / c / bunch.beta) + alpha / omegabar * np.sinh(omegabar * z.clip(max=0) / c / bunch.beta))
         return wake
         
         

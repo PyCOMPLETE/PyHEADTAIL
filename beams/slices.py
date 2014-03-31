@@ -35,7 +35,6 @@ class Slices(object):
         self.epsn_z = np.zeros(n_slices + 4)
 
         self.n_macroparticles = np.zeros(n_slices + 4, dtype=int)
-        self.dz_bins = np.zeros(n_slices + 3)
         self.dz_centers = np.zeros(n_slices + 3)
 
         self.nsigmaz = nsigmaz
@@ -53,14 +52,14 @@ class Slices(object):
         cutleft, cutright = self.determine_longitudinal_cuts(bunch, nsigmaz)
             
         # First bins
-        self.dz_bins[0] = bunch.dz[0]
-        self.dz_bins[-1] = bunch.dz[- 1 - bunch.n_macroparticles_lost]
+        dz_bins = np.zeros(self.n_slices + 3)
+        dz_bins[0] = bunch.dz[0]
+        dz_bins[-1] = bunch.dz[- 1 - bunch.n_macroparticles_lost]
         dz = (cutright - cutleft) / self.n_slices
-        self.dz_bins[1:-1] = cutleft + np.arange(self.n_slices + 1) * dz        
-        self.dz_centers[:-1] = self.dz_bins[:-1] \
-                          + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
+        dz_bins[1:-1] = cutleft + np.arange(self.n_slices + 1) * dz        
+        self.dz_centers[:-1] = dz_bins[:-1] + (dz_bins[1:] - dz_bins[:-1]) / 2.
         self.dz_centers[-1] = self.mean_dz[-1]
-        index_after_bin_edges = np.searchsorted(bunch.dz[:-bunch.n_macroparticles_lost-1],self.dz_bins)
+        index_after_bin_edges = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_bins)  
         index_after_bin_edges[-1] += 1  
         
         # Get n_macroparticles
@@ -80,20 +79,25 @@ class Slices(object):
         cutleft, cutright = self.determine_longitudinal_cuts(bunch, nsigmaz)
 
         # First n_macroparticles
-        self.n_macroparticles[0] = np.searchsorted(bunch.dz[:-1 - bunch.n_macroparticles_lost],cutleft)
-        self.n_macroparticles[-3] = bunch.n_macroparticles - bunch.n_macroparticles_lost - np.searchsorted(bunch.dz[:-1 - bunch.n_macroparticles_lost],cutright)
+        particles_in_left_cut = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], cutleft)
+        particles_in_right_cut = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], cutright)
+        # set number of macro_particles in the slices that are cut (slice 0 and n_slices+1)
+        self.n_macroparticles[0] = particles_in_left_cut
+        self.n_macroparticles[-3] = bunch.n_macroparticles - bunch.n_macroparticles_lost - particles_in_right_cut  
+        # determine number of macroparticles used for slicing
         q0 = bunch.n_macroparticles - bunch.n_macroparticles_lost - self.n_macroparticles[0] - self.n_macroparticles[-3]
+        # distribute macroparticles uniformly along slices
         self.n_macroparticles[1:-3] = int(q0 / self.n_slices)
         self.n_macroparticles[1:(q0 % self.n_slices + 1)] += 1
+        # number of macroparticles in full bunch slice and lost particles slice
         self.n_macroparticles[-2:] =  bunch.n_macroparticles - bunch.n_macroparticles_lost, bunch.n_macroparticles_lost
 
-        # Get bins
+        # Get indices of the particles defining the bin edges
         index_after_bin_edges = np.append(0, np.cumsum(self.n_macroparticles[:-2]))
-        self.dz_bins[-1] = bunch.dz[-1 - bunch.n_macroparticles_lost]
-        self.dz_bins[:-1] = bunch.dz[index_after_bin_edges[:-1]] 
-        self.dz_centers[:-1] = self.dz_bins[:-1] \
-                          + (self.dz_bins[1:] - self.dz_bins[:-1]) / 2.
-        self.dz_centers[-1] = self.mean_dz[-1]
+
+        # bin centers
+        self.dz_centers[:-1] = map((lambda i: cp.mean(bunch.dz[index_after_bin_edges[i]:index_after_bin_edges[i+1]])), np.arange(self.n_slices + 2))  
+        self.dz_centers[-1] = cp.mean(bunch.dz)
         
         # .in_slice indicates in which slice the particle is (needed for wakefields)     
         bunch.set_in_slice(index_after_bin_edges)
@@ -105,7 +109,8 @@ class Slices(object):
             cutright = bunch.dz[-1 - bunch.n_macroparticles_lost]
         else:
             sigma_dz = cp.std(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            cutleft = -nsigmaz * sigma_dz
-            cutright = nsigmaz * sigma_dz
+            mean_dz = cp.mean(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+            cutleft = -nsigmaz * sigma_dz + mean_dz
+            cutright = nsigmaz * sigma_dz + mean_dz
         return cutleft, cutright
 

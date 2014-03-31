@@ -245,13 +245,13 @@ class Bunch(object):
         else:
             dz_argsorted = np.argsort(self.dz)
 
-        self.x = self.x[dz_argsorted]
-        self.xp = self.xp[dz_argsorted]
-        self.y = self.y[dz_argsorted]
-        self.yp = self.yp[dz_argsorted]
-        self.dz = self.dz[dz_argsorted]
-        self.dp = self.dp[dz_argsorted]
-        self.id = self.id[dz_argsorted]
+        self.x = self.x.take(dz_argsorted)
+        self.xp = self.xp.take(dz_argsorted)
+        self.y = self.y.take(dz_argsorted)
+        self.yp = self.yp.take(dz_argsorted)
+        self.dz = self.dz.take(dz_argsorted)
+        self.dp = self.dp.take(dz_argsorted)
+        self.id = self.id.take(dz_argsorted)   
 
     def set_in_slice(self, index_after_bin_edges):
         self.in_slice = (self.slices.n_slices + 3) * np.ones(self.n_macroparticles, dtype=np.int)
