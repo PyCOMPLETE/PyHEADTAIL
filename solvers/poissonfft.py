@@ -109,9 +109,9 @@ class PoissonFFT(UniformGrid):
         tmprho[:self.ny, :self.nx] = self.rho[:self.ny, :self.nx]
 
         fftphi = np.fft.fft2(tmprho) * np.fft.fft2(self.fgreen)
-        
+
         tmpphi = np.fft.ifft2(fftphi)
-        self.phi = tmpphi[:self.ny, :self.nx]
+        self.phi = np.abs(tmpphi[:self.ny, :self.nx])
 
         # for (size_t j=0; j<np; j++)
         # {
@@ -139,11 +139,12 @@ class PoissonFFT(UniformGrid):
 #         fgreen[k] += fgreenbase[j + 1][i + 1];
 #     }
 
-    @profile
+    # @profile
     def py_green_m2m(self):
 
         self.phi = np.zeros((self.ny, self.nx))
 
+        da = self.dx * self.dy
         x, y = self.x.flatten(), self.y.flatten()
         phi, rho = self.phi.flatten(), self.rho.flatten()
 
@@ -152,7 +153,7 @@ class PoissonFFT(UniformGrid):
             for j in xrange(self.n_points):
                 xj, yj = x[j], y[j]
                 r2 = (xi - xj) ** 2 + (yi - yj) ** 2 + 1e-6
-                phi[i] += (-rho[j] * 1 / 2 * np.log(r2)) # * self.dx * self.dy / (2 * np.pi))
+                phi[i] += (-rho[j] * da * 1 / 2 * np.log(r2)) # * self.dx * self.dy / (2 * np.pi))
 
         self.phi = np.reshape(phi, (self.ny, self.nx))
         #     for j in points:

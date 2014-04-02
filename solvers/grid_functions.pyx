@@ -1,104 +1,78 @@
-from __future__ import division
 
 
 import numpy as np
+cimport numpy as np
 
 
-import pylab as plt
-from solvers.grid_functions import fastgather
+from libc.math cimport floor
+from cython.parallel import parallel, prange
 
 
-class UniformGrid(object):
+# Try using numpy arrays
+# cdef fastgather(self, np.ndarray[double, ndim=1] x,
+#                      np.ndarray[double, ndim=1] y,
+#                      np.ndarray[double, ndim=2] rho):
+def fastgather(self, double[:] x, double[:] y, double[:,:] rho):
+
     '''
-    classdocs
+    Cell
+    3 ------------ 4
+    |     |        |
+    |     |        |
+    |     |        |
+    |     |        |
+    |-----x--------|
+    |     |        |
+    1 ------------ 2
     '''
 
-    def __init__(self, extension_x, extension_y, nx, ny):
+    # Initialise
+    rho[:] = 0
 
-        self.n_macroparticles = nx * ny
+    # On regular mesh
+    cdef double x0 = self.x[0,0]
+    cdef double x1 = self.x[0,1]
+    cdef double dx = x1 - x0
+    cdef double y0 = self.y[0,0]
+    cdef double y1 = self.y[1,0]
+    cdef double dy = y1 - y0
+    cdef double dxi = 1 / dx
+    cdef double dyi = 1 / dy
+    cdef double ai = 1 / (dx * dy)
+    # TODO: on adaptive mesh
 
-        self.id = np.arange(1, nx * ny + 1)
+    # Line charge density and particle selection
+    # double lambda;
+    # std::vector<int> index;
+    # t.get_slice(i_slice, lambda, index);
+    # int np = index.size();
 
-        self.nx, self.ny = nx, ny
-
-        self.rho = np.zeros((nx, ny))
-
-        self.dx = 2 * extension_x / (nx - 1)
-        self.dy = 2 * extension_y / (ny - 1)
-
-        mx = np.arange(-extension_x, extension_x + self.dx, self.dx)
-        my = np.arange(-extension_y, extension_y + self.dy, self.dy)
-
-        self.x, self.y = np.meshgrid(mx, my)
-
-        from types import MethodType
-        UniformGrid.fastgather = MethodType(fastgather, None, UniformGrid)
-
-    def gather(self, bunch, i_slice):
-
-        '''
-        Cell
-        3 ------------ 4
-        |     |        |
-        |     |        |
-        |     |        |
-        |     |        |
-        |-----x--------|
-        |     |        |
-        1 ------------ 2
-        '''
-
-        # Initialise
-        self.rho[:] = 0
-
-        # On regular mesh
-        dx = self.x[0, 1] - self.x[0, 0]
-        dy = self.y[1, 0] - self.y[0, 0]
-        dxi = 1 / dx
-        dyi = 1 / dy
-        ai = 1 / (dx * dy)
-        # TODO: on adaptive mesh
-
-        # Line charge density and particle selection
-        # double lambda;
-        # std::vector<int> index;
-        # t.get_slice(i_slice, lambda, index);
-        # int np = index.size();
-        l = 1
-        x, y = bunch.x, bunch.y
-
-        fx, fy = (x - self.x[0,0]) * dxi, (y - self.y[0,0]) * dyi
-        ix, iy = np.floor(fx).astype(int), np.floor(fy).astype(int)
+    cdef double fx, fy
+    cdef int ix, iy
+    cdef int i, n = len(x)
+    print n
+    for i in prange(n, nogil=True):
+    # for i in xrange(n):
+        fx, fy = (x[i] - x0) * dxi, (y[i] - y0) * dyi
+        ix, iy = <int> fx, <int> fy
         fx, fy = fx - ix, fy - iy
 
-        H, xedges, yedges = np.histogram2d(ix, iy, bins=self.rho.shape)
-        self.rho += H
+    # H, xedges, yedges = np.histogram2d(ix, iy, bins=self.rho.shape)
+    # self.rho += H
 
-        # a1 = (1 - fx) * (1 - fy)
-        # a2 = fx * (1 - fy)
-        # a3 = (1 - fx) * fy
-        # a4 = fx * fy
+    # a1 = (1 - fx) * (1 - fy)
+    # a2 = fx * (1 - fy)
+    # a3 = (1 - fx) * fy
+    # a4 = fx * fy
 
-        # print self.rho[ix,iy]
-        # self.rho[ix, iy] += l
-        # print self.rho[ix,iy]
+    # print self.rho[ix,iy]
+    # self.rho[ix, iy] += l
+    # print self.rho[ix,iy]
 
-        # self.rho[ix, iy] += l * a1 * ai
-        # self.rho[ix + 1, iy] += l * a2 * ai
-        # self.rho[ix, iy + 1] += l * a3 * ai
-        # self.rho[ix + 1, iy + 1] += l * a4 * ai
-
-    @profile
-    def track(self, bunch):
-
-        fig, (ax) = plt.subplots(1)#, sharex=True, sharey=True)
-        for i in xrange(bunch.slices.n_slices):
-            self.gather(bunch, i)
-            self.fastgather(bunch.x, bunch.y, self.rho)
-
-            ax.cla()
-            ax.contourf(self.rho, 100)
-            plt.draw()
+    # self.rho[ix, iy] += l * a1 * ai
+    # self.rho[ix + 1, iy] += l * a2 * ai
+    # self.rho[ix, iy + 1] += l * a3 * ai
+    # self.rho[ix + 1, iy + 1] += l * a4 * ai
 
 # template<typename T, typename U>
 # void PoissonBase::fastscatter(T t, U u, int i_slice)
@@ -364,31 +338,3 @@ class UniformGrid(object):
 # //}
 # //}
 # }
-
-
-
-class AdaptiveGrid(object):
-    '''
-    classdocs
-    '''
-
-    def __init__(self, extension_x, extension_y, nx, ny):
-        '''
-        l = sum_{k=1}^n dx_k
-        dx_k = m * k
-        => l = m * sum_{k=1}^n k = m * (n * (n + 1) / 2); m = 2 * l / (n * (n + 1))
-        '''
-        nx, ny = nx // 2, ny // 2
-        mx = 2 * extension_x / (nx * (nx + 1))
-        my = 2 * extension_y / (ny * (ny + 1))
-        # dxk = np.arange(1, nx + 1) * mx
-        # dyk = np.arange(1, ny + 1) * my
-        lx, ly = np.zeros(nx), np.zeros(ny)
-        lx[0], ly[0] = mx, my
-        for i in xrange(1, nx):
-            lx[i] = lx[i - 1] + mx * (i + 1)
-        for i in xrange(1, ny):
-            ly[i] = ly[i - 1] + my * (i + 1)
-
-        self.mx = np.hstack((-lx[::-1], lx))
-        self.my = np.hstack((-ly[::-1], ly))

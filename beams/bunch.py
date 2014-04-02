@@ -9,10 +9,33 @@ import numpy as np
 
 
 import h5py, sys
+from abc import ABCMeta, abstractmethod
 from scipy.constants import c, e
 from beams.slices import *
 from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
 
+
+class BeamBase(object):
+
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def set_beam_physics(self): pass
+
+    @abstractmethod
+    def set_beam_numerics(self): pass
+
+class Cloud(object):
+
+    def set_beam_physics(self, density, charge, mass): pass
+
+    def set_beam_numerics(self): pass
+
+class Ghost(object):
+
+    def set_beam_physics(self): pass
+
+    def set_beam_numerics(self): pass
 
 def bunch_matched_and_sliced(n_macroparticles, n_particles, charge, energy, mass,
                              epsn_x, epsn_y, ltm, bunch_length, bucket, matching,
@@ -78,8 +101,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_bunch_physics(n_particles, charge, energy, mass)
-        self.set_bunch_numerics()
+        self.set_beam_physics(n_particles, charge, energy, mass)
+        self.set_beam_numerics()
 
         return self
 
@@ -97,8 +120,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_bunch_physics(n_particles, charge, energy, mass)
-        self.set_bunch_numerics()
+        self.set_beam_physics(n_particles, charge, energy, mass)
+        self.set_beam_numerics()
 
         self.id = np.array(particles['Step#' + str(step)]['id'])
 
@@ -116,8 +139,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_bunch_physics(n_particles, charge, energy, mass)
-        self.set_bunch_numerics()
+        self.set_beam_physics(n_particles, charge, energy, mass)
+        self.set_beam_numerics()
 
         return self
 
@@ -133,12 +156,12 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_bunch_physics(n_particles, charge, energy, mass)
-        self.set_bunch_numerics()
+        self.set_beam_physics(n_particles, charge, energy, mass)
+        self.set_beam_numerics()
 
         return self
 
-    def set_bunch_physics(self, n_particles, charge, energy, mass):
+    def set_beam_physics(self, n_particles, charge, energy, mass):
         '''
         Set the physical quantities of the beam
         '''
@@ -149,7 +172,7 @@ class Bunch(object):
         self.mass = mass
         self.p0 = mass * self.gamma * self.beta * c
 
-    def set_bunch_numerics(self):
+    def set_beam_numerics(self):
         '''
         Set the numerical quantities of the beam
         '''
