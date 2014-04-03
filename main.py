@@ -18,7 +18,7 @@ from trackers.longitudinal_tracker import *
 from plots import *
 
 
-plt.ion()
+# plt.ion()
 n_turns = 100
 
 # Monitors
@@ -47,7 +47,7 @@ bunch = bunch_matched_and_sliced(10000, n_particles=1.15e11, charge=1*e, energy=
 bunch.update_slices()
 
 # PIC grid
-poisson = PoissonFFT(plt.std(bunch.x) * 20, plt.std(bunch.y) * 10, 64, 64)
+poisson = PoissonFFT(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128)
 poisson.track(bunch)
 t0 = time.clock()
 poisson.compute_potential()

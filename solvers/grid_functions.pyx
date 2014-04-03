@@ -12,7 +12,7 @@ from cython.parallel import parallel, prange
 # cdef fastgather(self, np.ndarray[double, ndim=1] x,
 #                      np.ndarray[double, ndim=1] y,
 #                      np.ndarray[double, ndim=2] rho):
-def fastgather(self, double[:] x, double[:] y, double[:,:] rho):
+def fastgather(self, double[:] x, double[:] y):
 
     '''
     Cell
@@ -27,6 +27,7 @@ def fastgather(self, double[:] x, double[:] y, double[:,:] rho):
     '''
 
     # Initialise
+    cdef double[:,:] rho = self.rho
     rho[:] = 0
 
     # On regular mesh
@@ -48,31 +49,33 @@ def fastgather(self, double[:] x, double[:] y, double[:,:] rho):
     # int np = index.size();
 
     cdef double fx, fy
+    cdef double a1, a2, a3, a4
     cdef int ix, iy
     cdef int i, n = len(x)
-    print n
-    for i in prange(n, nogil=True):
-    # for i in xrange(n):
+    cdef int l=1
+    # for i in prange(n, nogil=True, num_threads=2):
+    for i in xrange(n):
         fx, fy = (x[i] - x0) * dxi, (y[i] - y0) * dyi
         ix, iy = <int> fx, <int> fy
         fx, fy = fx - ix, fy - iy
 
+        a1 = (1 - fx) * (1 - fy)
+        a2 = fx * (1 - fy)
+        a3 = (1 - fx) * fy
+        a4 = fx * fy
+
+        rho[iy, ix] += l * a1 * ai
+        rho[iy + 1, ix] += l * a2 * ai
+        rho[iy, ix + 1] += l * a3 * ai
+        rho[iy + 1, ix + 1] += l * a4 * ai
+
+        # rho[ix, iy] += l * a1 * ai
+        # rho[ix + 1, iy] += l * a2 * ai
+        # rho[ix, iy + 1] += l * a3 * ai
+        # rho[ix + 1, iy + 1] += l * a4 * ai
+
     # H, xedges, yedges = np.histogram2d(ix, iy, bins=self.rho.shape)
     # self.rho += H
-
-    # a1 = (1 - fx) * (1 - fy)
-    # a2 = fx * (1 - fy)
-    # a3 = (1 - fx) * fy
-    # a4 = fx * fy
-
-    # print self.rho[ix,iy]
-    # self.rho[ix, iy] += l
-    # print self.rho[ix,iy]
-
-    # self.rho[ix, iy] += l * a1 * ai
-    # self.rho[ix + 1, iy] += l * a2 * ai
-    # self.rho[ix, iy + 1] += l * a3 * ai
-    # self.rho[ix + 1, iy + 1] += l * a4 * ai
 
 # template<typename T, typename U>
 # void PoissonBase::fastscatter(T t, U u, int i_slice)

@@ -21,7 +21,7 @@ class UniformGrid(object):
 
         self.nx, self.ny = nx, ny
 
-        self.rho = np.zeros((nx, ny))
+        self.rho = np.zeros((ny, nx))
 
         self.dx = 2 * extension_x / (nx - 1)
         self.dy = 2 * extension_y / (ny - 1)
@@ -74,31 +74,24 @@ class UniformGrid(object):
         H, xedges, yedges = np.histogram2d(ix, iy, bins=self.rho.shape)
         self.rho += H
 
-        # a1 = (1 - fx) * (1 - fy)
-        # a2 = fx * (1 - fy)
-        # a3 = (1 - fx) * fy
-        # a4 = fx * fy
-
-        # print self.rho[ix,iy]
-        # self.rho[ix, iy] += l
-        # print self.rho[ix,iy]
-
-        # self.rho[ix, iy] += l * a1 * ai
-        # self.rho[ix + 1, iy] += l * a2 * ai
-        # self.rho[ix, iy + 1] += l * a3 * ai
-        # self.rho[ix + 1, iy + 1] += l * a4 * ai
-
     @profile
     def track(self, bunch):
 
-        fig, (ax) = plt.subplots(1)#, sharex=True, sharey=True)
+        fig, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
+
         for i in xrange(bunch.slices.n_slices):
             self.gather(bunch, i)
-            self.fastgather(bunch.x, bunch.y, self.rho)
+        ax1.contourf(self.x, self.y, self.rho, 100)
+        ax1.scatter(bunch.x, bunch.y, c='y', marker='.', alpha=0.1, lw=0)
+        ax1.set_aspect('equal')
 
-            ax.cla()
-            ax.contourf(self.rho, 100)
-            plt.draw()
+        for i in xrange(bunch.slices.n_slices):
+            self.fastgather(bunch.x, bunch.y)
+        ax2.contourf(self.x, self.y, self.rho, 100)
+        ax2.scatter(bunch.x, bunch.y, c='y', marker='.', alpha=0.1, lw=0)
+        ax2.set_aspect('equal')
+
+        plt.show()
 
 # template<typename T, typename U>
 # void PoissonBase::fastscatter(T t, U u, int i_slice)
