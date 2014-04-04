@@ -47,7 +47,7 @@ bunch = bunch_matched_and_sliced(10000, n_particles=1.15e11, charge=1*e, energy=
 bunch.update_slices()
 
 # PIC grid
-poisson = PoissonFFT(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128)
+poisson = PoissonFFT(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 64)
 poisson.track(bunch)
 t0 = time.clock()
 poisson.compute_potential()
