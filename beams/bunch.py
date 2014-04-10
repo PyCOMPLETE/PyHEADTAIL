@@ -8,11 +8,16 @@ Created on 06.01.2014
 import numpy as np
 
 
-from abc import ABCMeta, abstractmethod
-from scipy.constants import c, e, m_e
 import h5py, sys
+from abc import ABCMeta, abstractmethod
+from scipy.constants import c, e, epsilon_0, m_e, m_p, pi
+
 from beams.slices import *
 from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
+
+
+re = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_e
+rp = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_p
 
 
 class BaseBeam(object):
@@ -73,10 +78,10 @@ class BaseBeam(object):
         return self
 
     @abstractmethod
-    def set_beam_physics(self): pass
+    def set_beam_physics(self): return None
 
     @abstractmethod
-    def set_beam_numerics(self): pass
+    def set_beam_numerics(self): return None
 
 
 class Beam(BaseBeam):
@@ -133,115 +138,46 @@ class Cloud(BaseBeam):
 
     def add_poisson_solver(self, nx, ny): pass
 
-// Privates
-void Cloud::match_distribution(double extent_x, double extent_y)
-{
-    // Assignment
-    qsgn = (density > 0) - (density < 0);
+    def push(self, bunch, i_slice):
 
-    //    const PoissonFFT poisson(128, 128);
-    //    this->poisson = poisson;
+        # Normalization factors to speed up computations
+        dz = bunch.slice_dz[i_slice + 1] - bunch.slice_dz[i_slice]
+        dt = dz / (bunch.beta * c)
+        c_e = -2 * c * re * 1 / bunch.beta * dz
+        c_p = -2 * c * rp * 1 / (bunch.gamma * bunch.beta * bunch.beta) * length / c
 
-    // Cloud dimensions
-    min_x = -std::max(std::abs(*std::min_element(x0.begin(), x0.end())),
-             std::abs(*std::max_element(x0.begin(), x0.end())));
-    max_x = -min_x;
-    min_y = -std::max(std::abs(*std::min_element(y0.begin(), y0.end())),
-             std::abs(*std::max_element(y0.begin(), y0.end())));
-    max_y = -min_y;
-}
+        # Line charge density and particle selection
+        lambda_e = self.density / self.n_macroparticles * (max_x - min_x) * (max_y - min_y)
+        lambda_p = bunch.n_particles / bunch.n_macroparticles / dz;
 
-    void track(Bunch& bunch);
-    void rebuild(const Bunch& bunch);
-    void get_slice(int i_slice, double& lambda, std::vector<int>& index);
+        # Push bunch
+        indices = np.s_[::2]
+        bunch.xp[indices] += c_p * bunch.kx[indices]
+        bunch.yp[indices] += c_p * bunch.ky[indices]
 
-    int qsgn;//#
+        # Push cloud
+        self.xp += c_e * self.kx
+        self.yp += c_e * self.ky
+        self.x += self.xp * dt
+        self.y += self.yp * dt
 
-    //@{
-    double density;
-    double length;
-    double min_x;
-    double max_x;
-    double min_y;
-    double max_y;
-    //@}
-};
+    def track(self, bunch):
 
-void Cloud::get_slice(int i_slice, double& lambda, std::vector<int>& index)
-{
-    lambda = density / get_nparticles() * (max_x - min_x) * (max_y - min_y);
-    index.resize(get_nparticles());
-    for (int i=0; i<get_nparticles(); i++)
-        index[i] = i;
-}
+        self.reinitialize()
+        self.poisson.initialize<Bunch&, Cloud&>(bunch, *this)
 
-void Cloud::push(Bunch& bunch, int i_slice)
-{
-//    double t1 = omp_get_wtime();
+        for i in xrange(bunch.slices.n_slices):
+            # poisson.fastgather<Bunch&>(bunch, i)
+            # poisson.computePotential<Bunch&>(bunch, i)
+            # poisson.compute_field<Bunch&>(bunch, i)
 
-    // Normalization factors to speed up computations
-    const double dz = bunch.slice_dz[i_slice + 1] - bunch.slice_dz[i_slice];
-    const double dt = dz / (bunch.beta * c);
-    const double c_e = -re * 2 * c / bunch.beta * dz;
-    const double c_p = -rp * 2 / (bunch.gamma * bunch.beta * bunch.beta) * length;
+            # poisson.fastgather<Cloud&>(*this, i)
+            # poisson.computePotential<Cloud&>(*this, i)
+            # poisson.compute_field<Cloud&>(*this, i)
 
-    // Line charge density and particle selection
-    double lambda;
-    std::vector<int> index;
-    bunch.get_slice(i_slice, lambda, index);
-    int np_e = get_nparticles();
-    int np_p = index.size();
+            # poisson.parallelscatter<Bunch&, Cloud&>(bunch, *this, i)
 
-//    t1 = omp_get_wtime();
-    // Push bunch
-//#   pragma omp parallel for num_threads(2)
-    for (int j=0; j<np_p; j++)
-    {
-        int k = index[j];
-        bunch.xp[k] += c_p * bunch.kx[k];
-        bunch.yp[k] += c_p * bunch.ky[k];
-    }
-
-    // Push cloud
-//#   pragma omp parallel for num_threads(2) //schedule(dynamic)
-    for (int j=0; j<np_e; j++)
-    {
-        xp[j] += c_e * kx[j];
-        yp[j] += c_e * ky[j];
-        x[j] += xp[j] * dt;
-        y[j] += yp[j] * dt;
-    }
-//    t0 += omp_get_wtime() - t1;
-}
-
-void Cloud::track(Bunch& bunch)
-{
-    t0 = 0;
-    t1 = omp_get_wtime();
-    if (bunch.is_sliced)
-    {
-        this->rebuild(bunch);
-        poisson.initialize<Bunch&, Cloud&>(bunch, *this);
-
-        for (size_t i=1; i<bunch.get_nslices() + 1; i++)
-        {
-            poisson.fastgather<Bunch&>(bunch, i);
-            poisson.computePotential<Bunch&>(bunch, i);
-            poisson.compute_field<Bunch&>(bunch, i);
-
-            poisson.fastgather<Cloud&>(*this, i);
-            poisson.computePotential<Cloud&>(*this, i);
-            poisson.compute_field<Cloud&>(*this, i);
-
-            poisson.parallelscatter<Bunch&, Cloud&>(bunch, *this, i);
-
-            this->push(bunch, i);
-        }
-        t0 += omp_get_wtime() - t1;
-        std::cout << "\n  Time elapsed: " << std::scientific
-                  << t0 << " s" << std::endl;
-    }
-}
+            self.push(bunch, i)
 
 
 class Ghost(object):
