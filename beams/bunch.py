@@ -143,10 +143,12 @@ class Cloud(BaseBeam):
         # Normalization factors to speed up computations
         dz = bunch.slice_dz[i_slice + 1] - bunch.slice_dz[i_slice]
         dt = dz / (bunch.beta * c)
-        c_e = -2 * c * re * 1 / bunch.beta * dz
-        c_p = -2 * c * rp * 1 / (bunch.gamma * bunch.beta * bunch.beta) * length / c
+        c_e = -2 * c * re * dz * 1 / (1 * bunch.beta)
+        #   = -2 * c ** 2 * re  * Ex / dz * dt * 1 / gamma
+        c_p = -2 * 1 * rp * dL * 1 / (bunch.gamma * bunch.beta ** 2)
+        #   = -2 * c ** 2 * rp  * Ex / dL * dL * 1 / gamma / (beta * c) ** 2
 
-        # Line charge density and particle selection
+        # Line charge density
         lambda_e = self.density / self.n_macroparticles * (max_x - min_x) * (max_y - min_y)
         lambda_p = bunch.n_particles / bunch.n_macroparticles / dz;
 
@@ -221,6 +223,7 @@ def bunch_from_file(filename, step, n_particles, charge, energy, mass,
 
     return bunch
 
+
 class Bunch(object):
     '''
     Fundamental entity for collective beam dynamics simulations
@@ -258,7 +261,7 @@ class Bunch(object):
 
     @classmethod
     def from_h5file(cls, filename, step, n_particles, charge, energy, mass):
-        # TO DO
+        # TODO
         particles = h5py.File(filename + '.h5part', 'r')
 
         x = np.array(particles['Step#' + str(step)]['x'], dtype=np.double)
