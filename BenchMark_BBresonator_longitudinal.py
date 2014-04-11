@@ -78,17 +78,32 @@ bunch =  bunch_unmatched_inbucket_sliced(n_macroparticles, n_particles, charge, 
 bunch.x += initial_kick_x
 bunch.y += initial_kick_y
 
-#~ # save initial distribution
-#~ ParticleMonitor('initial_distribution').dump(bunch)
+# save initial distribution
+ParticleMonitor('initial_distribution').dump(bunch)
 
 # distribution from file
-#~ bunch = bunch_from_file('initial_distribution', 0, n_particles, charge, energy, mass, n_slices, nsigmaz, slicemode='cspace')
+bunch = bunch_from_file('initial_distribution', 0, n_particles, charge, energy, mass, n_slices, nsigmaz, slicemode='cspace')
+
+# fix the longitudinal slice cuts
+bunch.slices.dz_cut_tail, bunch.slices.dz_cut_head = -0.75, 0.75
+bunch.update_slices()
 
 
 # Resonator wakefields
 #~ wakes = BB_Resonator_Circular(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
 #~ wakes = BB_Resonator_ParallelPlates(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
 wakes = BB_Resonator_longitudinal(R_shunt=R_shunt, frequency=R_frequency, Q=Q)
+
+#################
+# calculate the wakefield once to prepare for a lookup table
+delta_t = np.linspace(-1,1,100001) / c / bunch.beta
+wake_longitudinal = wakes.wake_longitudinal(bunch, - delta_t * c * bunch.beta)
+# Wakefield interpolating from table
+wakes = Wake_table()
+wakes.wake_table['time'] = delta_t
+wakes.wake_table['longitudinal'] = wake_longitudinal
+wakes.wake_field_keys=['longitudinal']
+#################
 
 # Resistive wall
 #~ wakes = Resistive_wall_Circular(pipe_radius=0.05, length_resistive_wall=C, conductivity=5.4e17)

@@ -48,24 +48,25 @@ class Slices(object):
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)        
         bunch.sort_particles() 
         
-        # determine the longitudinal cuts        
-        cutleft, cutright = self.determine_longitudinal_cuts(bunch, nsigmaz)
-            
+        # determine the longitudinal cuts (this allows for the user defined static cuts: self.dz_cut_tail, self.dz_cut_head)
+        try:
+            dz_cut_tail, dz_cut_head = self.dz_cut_tail, self.dz_cut_head
+        except:
+            dz_cut_tail, dz_cut_head = self.determine_longitudinal_cuts(bunch, nsigmaz)
+
         # First bins
         dz_bins = np.zeros(self.n_slices + 3)
-        dz_bins[0] = bunch.dz[0]
-        dz_bins[-1] = bunch.dz[- 1 - bunch.n_macroparticles_lost]
-        dz = (cutright - cutleft) / self.n_slices
-        dz_bins[1:-1] = cutleft + np.arange(self.n_slices + 1) * dz        
+        dz_bins[0] = np.min([bunch.dz[0], dz_cut_tail])
+        dz_bins[-1] = np.max([bunch.dz[- 1 - bunch.n_macroparticles_lost], dz_cut_head])
+        dz_bins[1:-1] = np.linspace(dz_cut_tail, dz_cut_head, self.n_slices + 1)
         self.dz_centers[:-1] = dz_bins[:-1] + (dz_bins[1:] - dz_bins[:-1]) / 2.
         self.dz_centers[-1] = self.mean_dz[-1]
         index_after_bin_edges = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_bins)  
-        index_after_bin_edges[-1] += 1  
-        
+        index_after_bin_edges[np.where(dz_bins == bunch.dz[-1 - bunch.n_macroparticles_lost])] += 1
         # Get n_macroparticles
         self.n_macroparticles = np.diff(index_after_bin_edges)
         self.n_macroparticles = np.concatenate((self.n_macroparticles, [bunch.n_macroparticles - bunch.n_macroparticles_lost], [bunch.n_macroparticles_lost]))
-        
+
         # .in_slice indicates in which slice the particle is (needed for wakefields)     
         bunch.set_in_slice(index_after_bin_edges)
 
@@ -76,14 +77,14 @@ class Slices(object):
         bunch.sort_particles() 
         
         # determine the longitudinal cuts        
-        cutleft, cutright = self.determine_longitudinal_cuts(bunch, nsigmaz)
+        dz_cut_tail, dz_cut_head = self.determine_longitudinal_cuts(bunch, nsigmaz)
 
         # First n_macroparticles
-        particles_in_left_cut = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], cutleft)
-        particles_in_right_cut = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], cutright)
+        particles_in_left_cut = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_cut_tail)
+        particles_in_right_cut = bunch.n_macroparticles - bunch.n_macroparticles_lost - np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_cut_head)
         # set number of macro_particles in the slices that are cut (slice 0 and n_slices+1)
         self.n_macroparticles[0] = particles_in_left_cut
-        self.n_macroparticles[-3] = bunch.n_macroparticles - bunch.n_macroparticles_lost - particles_in_right_cut  
+        self.n_macroparticles[-3] = particles_in_right_cut  
         # determine number of macroparticles used for slicing
         q0 = bunch.n_macroparticles - bunch.n_macroparticles_lost - self.n_macroparticles[0] - self.n_macroparticles[-3]
         # distribute macroparticles uniformly along slices
@@ -105,12 +106,12 @@ class Slices(object):
 
     def determine_longitudinal_cuts(self, bunch, nsigmaz):
         if nsigmaz == None:
-            cutleft = bunch.dz[0]
-            cutright = bunch.dz[-1 - bunch.n_macroparticles_lost]
+            dz_cut_tail = bunch.dz[0]
+            dz_cut_head = bunch.dz[-1 - bunch.n_macroparticles_lost]
         else:
             sigma_dz = cp.std(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
             mean_dz = cp.mean(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            cutleft = -nsigmaz * sigma_dz + mean_dz
-            cutright = nsigmaz * sigma_dz + mean_dz
-        return cutleft, cutright
+            dz_cut_tail = -nsigmaz * sigma_dz + mean_dz
+            dz_cut_head = nsigmaz * sigma_dz + mean_dz
+        return dz_cut_tail, dz_cut_head
 
