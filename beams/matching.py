@@ -65,23 +65,23 @@ def match_none(bunch, length, bucket):
     bunch.dz *= sigma_dz
     bunch.dp *= sigma_dp
 
-# TODO: improve implementation of match_simple 
-def match_simple(bunch, sigma_dz, bucket):    
+# TODO: improve implementation of match_simple
+def match_simple(bunch, sigma_dz, bucket):
     R = bucket.circumference / (2 * np.pi)
     eta = bucket.eta(bunch)
     Qs = bucket.Qs(bunch)
-    
+
     # Assuming a gaussian-type stationary distribution
     sigma_dp = sigma_dz * Qs / eta / R
     unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket)
-                
+
 def unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket):
     for i in xrange(bunch.n_macroparticles):
         if not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
             while not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
                 bunch.dz[i] = sigma_dz * np.random.randn()
                 bunch.dp[i] = sigma_dp * np.random.randn()
-                
+
 def match_full(bunch, length, bucket):
 
     R = bucket.circumference / (2 * np.pi)
@@ -105,7 +105,7 @@ def match_full(bunch, length, bucket):
     epsn_z = 4 * np.pi * Qs / eta / R * sigma_dz ** 2 * bunch.p0 / e
     print '\nStatistical parameters from initialisation:'
     print 'sigma_dz:', sigma_dz, 'sigma_dp:', sigma_dp, 'epsn_z:', epsn_z
-    
+
     print '\n--> Bunchlength:'
     sigma_dz = bunchlength(bunch, bucket, sigma_dz)
     sigma_dp = sigma_dz * Qs / eta / R
@@ -129,7 +129,7 @@ def match_full(bunch, length, bucket):
                 break
         bunch.dz[i] = s
         bunch.dp[i] = t
-        
+
     epsz = np.sqrt(np.mean(bunch.dz * bunch.dz) * np.mean(bunch.dp * bunch.dp)
                  - np.mean(bunch.dz * bunch.dp) * np.mean(bunch.dz * bunch.dp))
     print '\nStatistical parameters from distribution:'

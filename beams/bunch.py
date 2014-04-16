@@ -14,13 +14,14 @@ from scipy.constants import c, e, epsilon_0, m_e, m_p, pi
 
 from beams.slices import *
 from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
+from solvers.poissonfft import *
 
 
 re = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_e
 rp = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_p
 
 
-class BaseBeam(object):
+class Ensemble(object):
 
     __metaclass__ = ABCMeta
 
@@ -36,7 +37,7 @@ class BaseBeam(object):
         self.dp = dp
 
     @classmethod
-    def from_empty(self, n_macroparticles):
+    def from_empty(cls, n_macroparticles):
 
         x = np.zeros(n_macroparticles)
         xp = np.zeros(n_macroparticles)
@@ -50,7 +51,7 @@ class BaseBeam(object):
         return self
 
     @classmethod
-    def from_gauss(self, n_macroparticles):
+    def from_gauss(cls, n_macroparticles):
 
         x = np.random.randn(n_macroparticles)
         xp = np.random.randn(n_macroparticles)
@@ -64,7 +65,7 @@ class BaseBeam(object):
         return self
 
     @classmethod
-    def from_uniform(self, n_macroparticles):
+    def from_uniform(cls, n_macroparticles):
 
         x = 2 * np.random.rand(n_macroparticles) - 1
         xp = 2 * np.random.rand(n_macroparticles) - 1
@@ -84,18 +85,18 @@ class BaseBeam(object):
     def set_beam_numerics(self): return None
 
 
-class Beam(BaseBeam):
+class Beam(Ensemble):
 
     pass
 
 
-class Cloud(BaseBeam):
+class Cloud(Ensemble):
 
     @classmethod
     def from_file(self): pass
 
     @classmethod
-    def from_parameters(n_macroparticles, density, extent_x, extent_y, extent_z):
+    def from_parameters(cls, n_macroparticles, density, extent_x, extent_y, extent_z):
 
         self = cls.from_uniform(n_macroparticles)
 
@@ -105,6 +106,9 @@ class Cloud(BaseBeam):
         self.yp *= 0
         self.dz *= 0
         self.dp *= 0
+
+        self.set_beam_physics(density, extent_x, extent_y, extent_z)
+        self.set_beam_numerics()
 
         self.x0 = self.x
         self.xp0 = self.xp
@@ -120,14 +124,27 @@ class Cloud(BaseBeam):
         self.gamma = 1
         self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
         self.mass = m_e
-        self.p0 = mass * self.gamma * self.beta * c
+        self.p0 = self.mass * self.gamma * self.beta * c
 
     def set_beam_numerics(self):
 
         self.n_macroparticles = len(self.x)
 
-        self.id = np.arange(1, len(x) + 1)
-        self.np = np.ones(n_macroparticles) * self.n_particles / self.n_macroparticles
+        self.id = np.arange(1, len(self.x) + 1)
+        self.np = np.ones(self.n_macroparticles) * self.n_particles / self.n_macroparticles
+
+    # def add_poisson(self, extent_x, extent_y, nx, ny):
+
+    #     self.poisson = PoissonFFT(extent_x, extent_y, nx, ny)
+
+    # # def add_poisson(self, poisson):
+
+    #     # self.poisson_self = poisson
+    #     # self.poisson_other = copy.copy(poisson)
+
+    # def copy_poisson(self, poisson):
+
+    #     self.poisson = copy.copy(poisson)
 
     def reinitialize(self):
 
@@ -135,8 +152,6 @@ class Cloud(BaseBeam):
         self.xp = self.xp0
         self.y = self.y0
         self.yp = self.yp0
-
-    def add_poisson_solver(self, nx, ny): pass
 
     def push(self, bunch, i_slice):
 
@@ -165,10 +180,22 @@ class Cloud(BaseBeam):
 
     def track(self, bunch):
 
-        self.reinitialize()
-        self.poisson.initialize<Bunch&, Cloud&>(bunch, *this)
+        # self.reinitialize()
+        # self.poisson.initialize<Bunch&, Cloud&>(bunch, *this)
 
         for i in xrange(bunch.slices.n_slices):
+            dz = 1
+            poisson = self.poisson_self
+            lambda_ = self.n_particles / self.n_macroparticles * self.charge / dz
+            poisson.fastgather(self.x, self.y, lambda_)
+            poisson.compute_potential(poisson)
+
+            dz = 1
+            poisson = bunch.poisson_other
+            lambda_ = bunch.n_particles / bunch.n_macroparticles * bunch.charge / dz
+            poisson.fastgather(bunch.x, bunch.y, lambda_)
+            poisson.compute_potential(poisson)
+
             # poisson.fastgather<Bunch&>(bunch, i)
             # poisson.computePotential<Bunch&>(bunch, i)
             # poisson.compute_field<Bunch&>(bunch, i)
@@ -179,10 +206,10 @@ class Cloud(BaseBeam):
 
             # poisson.parallelscatter<Bunch&, Cloud&>(bunch, *this, i)
 
-            self.push(bunch, i)
+            # self.push(bunch, i)
 
 
-class Ghost(object):
+class Ghost(Ensemble):
 
     def set_beam_physics(self): pass
 
@@ -409,7 +436,6 @@ class Bunch(object):
         elif self.slices.slicemode == 'cspace':
             self.slices.slice_constant_space(self, self.slices.nsigmaz)
 
-
     #~ @profile
     def sort_particles(self):
         # update the number of lost particles
@@ -433,3 +459,12 @@ class Bunch(object):
         self.in_slice = (self.slices.n_slices + 3) * np.ones(self.n_macroparticles, dtype=np.int)
         for i in xrange(self.slices.n_slices + 2):
             self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i
+
+    # def add_poisson(self, poisson):
+
+    #     self.poisson_self = poisson
+    #     # self.poisson_other = copy.copy(poisson)
+
+    # def copy_poisson(self, poisson):
+
+    #     self.poisson = copy.copy(poisson)

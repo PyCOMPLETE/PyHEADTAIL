@@ -9,13 +9,14 @@ Created on 08.01.2014
 import numpy as np
 
 
+import copy
 from solvers.grid import *
 from solvers.compute_potential_fgreenm2m import compute_potential_fgreenm2m
 
 
 class PoissonFFT(UniformGrid):
     '''
-    classdocs
+    FFT Poisson solver operates on a grid
     '''
 
     # @profile
@@ -25,18 +26,16 @@ class PoissonFFT(UniformGrid):
         '''
         super(PoissonFFT, self).__init__(*args, **kwargs)
 
+        self.tmprho = np.zeros((2 * self.ny, 2 * self.nx))
         self.fgreen = np.zeros((2 * self.ny, 2 * self.nx))
 
         mx = -self.dx / 2 + np.arange(self.nx + 1) * self.dx
         my = -self.dy / 2 + np.arange(self.ny + 1) * self.dy
-
         x, y = np.meshgrid(mx, my)
         r2 = x ** 2 + y ** 2
-
         # Antiderivative
         tmpfgreen = -1 / 2 * (-3 * x * y + x * y * np.log(r2)
                    + x * x * np.arctan(y / x) + y * y * np.arctan(x / y)) # * 2 / dx / dy
-        # tmpfgreen = tmpfgreen.T
 
         # Integration and circular Green's function
         self.fgreen[:self.ny, :self.nx] = tmpfgreen[1:, 1:] + tmpfgreen[:-1, :-1] - tmpfgreen[1:, :-1] - tmpfgreen[:-1, 1:]
@@ -51,16 +50,62 @@ class PoissonFFT(UniformGrid):
         from types import MethodType
         PoissonFFT.compute_potential_fgreenm2m = MethodType(compute_potential_fgreenm2m, None, PoissonFFT)
 
+    def inject(self, o, mode):
+
+        if mode == "self":
+            o.poisson_self = copy.copy(self)
+        elif mode == "other":
+            o.poisson_other = copy.copy(self)
+        else:
+            raise ValueError
+
+# class PoissonFFT(object):
+#     '''
+#     FFT Poisson solver operates on a grid
+#     '''
+
+#     # @profile
+#     def __init__(self, grid):
+#         '''
+#         Constructor
+#         '''
+#         self.grid = grid
+
+#         self.rho = np.zeros((2 * grid.ny, 2 * grid.nx))
+#         self.fgreen = np.zeros((2 * grid.ny, 2 * grid.nx))
+
+#         mx = -grid.dx / 2 + np.arange(grid.nx + 1) * grid.dx
+#         my = -grid.dy / 2 + np.arange(grid.ny + 1) * grid.dy
+#         x, y = np.meshgrid(mx, my)
+#         r2 = x ** 2 + y ** 2
+#         # Antiderivative
+#         tmpfgreen = -1 / 2 * (-3 * x * y + x * y * np.log(r2)
+#                    + x * x * np.arctan(y / x) + y * y * np.arctan(x / y)) # * 2 / dx / dy
+
+#         # Integration and circular Green's function
+#         self.fgreen[:grid.ny, :grid.nx] = tmpfgreen[1:, 1:] + tmpfgreen[:-1, :-1] - tmpfgreen[1:, :-1] - tmpfgreen[:-1, 1:]
+#         self.fgreen[grid.ny:, :grid.nx] = self.fgreen[grid.ny:0:-1, :grid.nx]
+#         self.fgreen[:grid.ny, grid.nx:] = self.fgreen[:grid.ny, grid.nx:0:-1]
+#         self.fgreen[grid.ny:, grid.nx:] = self.fgreen[grid.ny:0:-1, grid.nx:0:-1]
+#         # # Would expect to be fully symmetric
+#         # self.fgreen[grid.nx:, :grid.ny] = self.fgreen[grid.nx - 1::-1, :grid.ny]
+#         # self.fgreen[:grid.nx, grid.ny:] = self.fgreen[:grid.nx, grid.ny - 1::-1]
+#         # self.fgreen[grid.nx:, grid.ny:] = self.fgreen[grid.nx - 1::-1, self.ny - 1::-1]
+
+#         from types import MethodType
+#         PoissonFFT.compute_potential_fgreenm2m = MethodType(compute_potential_fgreenm2m, None, PoissonFFT)
+
     # @profile
-    def compute_potential(self):
+    def compute_potential(self, grid_other):
 
-        tmprho = np.zeros((2 * self.ny, 2 * self.nx))
-        tmprho[:self.ny, :self.nx] = self.rho
+        # TODO assert
 
-        fftphi = np.fft.fft2(tmprho) * np.fft.fft2(self.fgreen)
+        self.tmprho[:self.ny, :self.nx] = grid_other.rho
+
+        fftphi = np.fft.fft2(self.tmprho) * np.fft.fft2(self.fgreen)
 
         tmpphi = np.fft.ifft2(fftphi)
-        self.phi = np.abs(tmpphi[:self.ny, :self.nx])
+        grid_other.phi = np.abs(tmpphi[:self.ny, :self.nx])
 
         # for (size_t j=0; j<np; j++)
         # {
@@ -68,6 +113,10 @@ class PoissonFFT(UniformGrid):
         #               + fftw_phi[j][1] * fftw_phi[j][1]);
         #     tmpphi[j] *= norm; // FFT specific
         # }
+
+    def compute_fields(self):
+
+        pass
 
     # @profile
     def py_green_m2m(self):

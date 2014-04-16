@@ -12,7 +12,7 @@ from cython.parallel import parallel, prange
 # cdef fastgather(self, np.ndarray[double, ndim=1] x,
 #                      np.ndarray[double, ndim=1] y,
 #                      np.ndarray[double, ndim=2] rho):
-def fastgather(self, double[:] x, double[:] y):
+def fastgather(self, double[:] x, double[:] y, double s):
     '''
     Cell
     3 ------------ 4
@@ -24,6 +24,10 @@ def fastgather(self, double[:] x, double[:] y):
     |     |        |
     1 ------------ 2
     '''
+
+    # Line charge density
+    # lambda_e = self.density / self.n_macroparticles * (max_x - min_x) * (max_y - min_y)
+    # lambda_p = bunch.n_particles / bunch.n_macroparticles / dz;
 
     # Initialise
     cdef double[:,:] rho = self.rho
@@ -51,12 +55,11 @@ def fastgather(self, double[:] x, double[:] y):
     cdef double a1, a2, a3, a4
     cdef int ix, iy
     cdef int i, n = len(x)
-    cdef int lambda_ = 1 # number_of_particles / dz
 
-    # Line charge density
-    # lambda_e = self.density / self.n_macroparticles * (max_x - min_x) * (max_y - min_y)
-    # lambda_p = bunch.n_particles / bunch.n_macroparticles / dz;
-
+    # x, y = other.x, other.y
+    # kx, ky = other.kx, other.ky
+    # n = other.n_macroparticles
+    # s = other.n_particles / other.n_macroparticles / dz
     # for i in prange(n, nogil=True, num_threads=2):
     for i in xrange(n):
         fx, fy = (x[i] - x0) * dxi, (y[i] - y0) * dyi
@@ -68,15 +71,10 @@ def fastgather(self, double[:] x, double[:] y):
         a3 = (1 - fx) * fy
         a4 = fx * fy
 
-        rho[iy, ix] += a1 * ai * lambda_
-        rho[iy + 1, ix] += a2 * ai * lambda_
-        rho[iy, ix + 1] += a3 * ai * lambda_
-        rho[iy + 1, ix + 1] += a4 * ai * lambda_
-
-        # rho[ix, iy] += l * a1 * ai
-        # rho[ix + 1, iy] += l * a2 * ai
-        # rho[ix, iy + 1] += l * a3 * ai
-        # rho[ix + 1, iy + 1] += l * a4 * ai
+        rho[iy, ix] += a1 * ai * s
+        rho[iy + 1, ix] += a2 * ai * s
+        rho[iy, ix + 1] += a3 * ai * s
+        rho[iy + 1, ix + 1] += a4 * ai * s
 
     # H, xedges, yedges = np.histogram2d(ix, iy, bins=self.rho.shape)
     # self.rho += H
@@ -166,7 +164,7 @@ def fastgather(self, double[:] x, double[:] y):
 # #       u.ky[ip[j]] = (t.ey_g[k1] * a1 + t.ey_g[k2] * a2
 # #                      + t.ey_g[k3] * a3 + t.ey_g[k4] * a4);
 
-def scatter_a_to_b(self, a, b):
+def scatter_a_to_b(self, other):
     '''
     Cell
     3 ------------ 4
@@ -180,9 +178,8 @@ def scatter_a_to_b(self, a, b):
     '''
 
     # Initialise
-    cdef double[:,:] ex, ey
-    cdef double[:,:] rho = self.rho
-    rho[:] = 0
+    cdef double[:,:] ex = self.ex
+    cdef double[:,:] ey = self.ey
 
     # On regular mesh
     cdef double x0 = self.x[0,0]
@@ -200,14 +197,12 @@ def scatter_a_to_b(self, a, b):
     cdef double a1, a2, a3, a4
     cdef int ix, iy
 
-    cdef int i, n
-    cdef double dz, linedensity
-    cdef double[::1] x, y, kx, ky
-
-    x, y = a.x, a.y
-    kx, ky = a.kx, a.ky
-    n = a.n_macroparticles
-    linedensity = a.n_particles / a.n_macroparticles / dz
+    cdef double[::1] x = other.x
+    cdef double[::1] y = other.y
+    cdef double[::1] kx = other.kx
+    cdef double[::1] ky = other.ky
+    cdef int i, n = other.n_macroparticles
+    # s = other.n_particles / other.n_macroparticles / dz
     # for i in prange(n, nogil=True, num_threads=2):
     for i in xrange(n):
         fx, fy = (x[i] - x0) * dxi, (y[i] - y0) * dyi
@@ -218,7 +213,6 @@ def scatter_a_to_b(self, a, b):
         a2 = fx * (1 - fy)
         a3 = (1 - fx) * fy
         a4 = fx * fy
-
 
     	# size_t k1 = iy * n_points_x + ix;
     	# size_t k2 = iy * n_points_x + ix + 1;
@@ -242,8 +236,8 @@ def scatter_a_to_b(self, a, b):
 
 
         # Scatter fields
-        kx[i] = rho[iy, ix] * a1  + rho[iy + 1, ix] * a2 * rho[iy, ix + 1] * a3 + rho[iy + 1, ix + 1] * a4
-        ky[i] = rho[iy, ix] * a1  + rho[iy + 1, ix] * a2 * rho[iy, ix + 1] * a3 + rho[iy + 1, ix + 1] * a4
+        kx[i] = ex[iy, ix] * a1  + ex[iy + 1, ix] * a2 * ex[iy, ix + 1] * a3 + ex[iy + 1, ix + 1] * a4
+        ky[i] = ey[iy, ix] * a1  + ey[iy + 1, ix] * a2 * ey[iy, ix + 1] * a3 + ey[iy + 1, ix + 1] * a4
 #       t.kx[ip[j]] = (u.ex_g[k1] * a1 + u.ex_g[k2] * a2
 #                      + u.ex_g[k3] * a3 + u.ex_g[k4] * a4);
 #       t.ky[ip[j]] = (u.ey_g[k1] * a1 + u.ey_g[k2] * a2

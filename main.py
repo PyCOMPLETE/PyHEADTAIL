@@ -46,18 +46,23 @@ bunch = bunch_matched_and_sliced(10000, n_particles=1.15e11, charge=1*e, energy=
                                  n_slices=64, nsigmaz=None, slicemode='cspace')
 bunch.update_slices()
 
+# Cloud
+cloud = Cloud.from_parameters(100000, 5e11, plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, C)
+
 # PIC grid
 poisson = PoissonFFT(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128)
-poisson.track(bunch)
+poisson.inject(cloud, 'self')
+poisson.inject(bunch, 'other')
 t0 = time.clock()
-poisson.compute_potential()
 print 'Time took', time.clock() - t0, 's'
+cloud.track(bunch)
 # [plt.axvline(v, c='orange') for v in poisson.mx[0,:]]
 # [plt.axhline(h, c='orange') for h in poisson.my[:,0]]
 # plt.gca().set_xlim(plt.amin(poisson.mx), plt.amax(poisson.mx[-1]))
 # plt.gca().set_ylim(plt.amin(poisson.my), plt.amax(poisson.my[-1]))
 # plt.scatter(bunch.x, bunch.y, marker='.')
 # plt.scatter(poisson.mx, poisson.my, s=poisson.rho*2, c=poisson.rho)
+poisson = bunch.poisson_other
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)#, sharex=True, sharey=True)
 ax1.contour(poisson.fgreen.T, 100)
 ax2.plot(poisson.phi[poisson.ny / 2, :poisson.nx], '-g')
