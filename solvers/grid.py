@@ -5,7 +5,7 @@ import numpy as np
 
 
 import pylab as plt
-from solvers.grid_functions import fastgather, scatter_a_to_b
+from solvers.grid_functions import gather_from, scatter_to
 
 
 class Grid(object):
@@ -35,8 +35,8 @@ class UniformGrid(Grid):
         self.x, self.y = np.meshgrid(mx, my)
 
         from types import MethodType
-        UniformGrid.fastgather = MethodType(fastgather, None, UniformGrid)
-        UniformGrid.scatter_a_to_b = MethodType(scatter_a_to_b, None, UniformGrid)
+        UniformGrid.gather_from = MethodType(gather_from, None, UniformGrid)
+        UniformGrid.scatter_to = MethodType(scatter_to, None, UniformGrid)
 
     def gather(self, bunch, i_slice):
         '''

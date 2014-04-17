@@ -50,62 +50,25 @@ class PoissonFFT(UniformGrid):
         from types import MethodType
         PoissonFFT.compute_potential_fgreenm2m = MethodType(compute_potential_fgreenm2m, None, PoissonFFT)
 
-    def inject(self, o, mode):
+    def inject(self, master, slave=None):
 
-        if mode == "self":
-            o.poisson_self = copy.copy(self)
-        elif mode == "other":
-            o.poisson_other = copy.copy(self)
-        else:
-            raise ValueError
-
-# class PoissonFFT(object):
-#     '''
-#     FFT Poisson solver operates on a grid
-#     '''
-
-#     # @profile
-#     def __init__(self, grid):
-#         '''
-#         Constructor
-#         '''
-#         self.grid = grid
-
-#         self.rho = np.zeros((2 * grid.ny, 2 * grid.nx))
-#         self.fgreen = np.zeros((2 * grid.ny, 2 * grid.nx))
-
-#         mx = -grid.dx / 2 + np.arange(grid.nx + 1) * grid.dx
-#         my = -grid.dy / 2 + np.arange(grid.ny + 1) * grid.dy
-#         x, y = np.meshgrid(mx, my)
-#         r2 = x ** 2 + y ** 2
-#         # Antiderivative
-#         tmpfgreen = -1 / 2 * (-3 * x * y + x * y * np.log(r2)
-#                    + x * x * np.arctan(y / x) + y * y * np.arctan(x / y)) # * 2 / dx / dy
-
-#         # Integration and circular Green's function
-#         self.fgreen[:grid.ny, :grid.nx] = tmpfgreen[1:, 1:] + tmpfgreen[:-1, :-1] - tmpfgreen[1:, :-1] - tmpfgreen[:-1, 1:]
-#         self.fgreen[grid.ny:, :grid.nx] = self.fgreen[grid.ny:0:-1, :grid.nx]
-#         self.fgreen[:grid.ny, grid.nx:] = self.fgreen[:grid.ny, grid.nx:0:-1]
-#         self.fgreen[grid.ny:, grid.nx:] = self.fgreen[grid.ny:0:-1, grid.nx:0:-1]
-#         # # Would expect to be fully symmetric
-#         # self.fgreen[grid.nx:, :grid.ny] = self.fgreen[grid.nx - 1::-1, :grid.ny]
-#         # self.fgreen[:grid.nx, grid.ny:] = self.fgreen[:grid.nx, grid.ny - 1::-1]
-#         # self.fgreen[grid.nx:, grid.ny:] = self.fgreen[grid.nx - 1::-1, self.ny - 1::-1]
-
-#         from types import MethodType
-#         PoissonFFT.compute_potential_fgreenm2m = MethodType(compute_potential_fgreenm2m, None, PoissonFFT)
+        master.poisson_self = copy.deepcopy(self)
+        master.kx = np.zeros(master.n_macroparticles)
+        master.ky = np.zeros(master.n_macroparticles)
+        if slave:
+            slave.poisson_other = copy.deepcopy(self)
+            slave.kx = np.zeros(slave.n_macroparticles)
+            slave.ky = np.zeros(slave.n_macroparticles)
 
     # @profile
-    def compute_potential(self, grid_other):
+    def compute_potential(self):
 
-        # TODO assert
-
-        self.tmprho[:self.ny, :self.nx] = grid_other.rho
+        self.tmprho[:self.ny, :self.nx] = self.rho
 
         fftphi = np.fft.fft2(self.tmprho) * np.fft.fft2(self.fgreen)
 
         tmpphi = np.fft.ifft2(fftphi)
-        grid_other.phi = np.abs(tmpphi[:self.ny, :self.nx])
+        self.phi = np.abs(tmpphi[:self.ny, :self.nx])
 
         # for (size_t j=0; j<np; j++)
         # {
@@ -116,7 +79,9 @@ class PoissonFFT(UniformGrid):
 
     def compute_fields(self):
 
-        pass
+        self.ey, self.ex = np.gradient(self.phi, self.dy, self.dx)
+        self.ex *= -1
+        self.ey *= -1
 
     # @profile
     def py_green_m2m(self):

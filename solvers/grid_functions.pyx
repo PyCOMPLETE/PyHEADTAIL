@@ -12,7 +12,7 @@ from cython.parallel import parallel, prange
 # cdef fastgather(self, np.ndarray[double, ndim=1] x,
 #                      np.ndarray[double, ndim=1] y,
 #                      np.ndarray[double, ndim=2] rho):
-def fastgather(self, double[:] x, double[:] y, double s):
+def gather_from(self, double[:] x, double[:] y, double[:,:] rho):
     '''
     Cell
     3 ------------ 4
@@ -30,7 +30,6 @@ def fastgather(self, double[:] x, double[:] y, double s):
     # lambda_p = bunch.n_particles / bunch.n_macroparticles / dz;
 
     # Initialise
-    cdef double[:,:] rho = self.rho
     rho[:] = 0
 
     # On regular mesh
@@ -51,15 +50,10 @@ def fastgather(self, double[:] x, double[:] y, double s):
     # t.get_slice(i_slice, lambda, index);
     # int np = index.size();
 
+    cdef int i, n = len(x)
+    cdef int ix, iy
     cdef double fx, fy
     cdef double a1, a2, a3, a4
-    cdef int ix, iy
-    cdef int i, n = len(x)
-
-    # x, y = other.x, other.y
-    # kx, ky = other.kx, other.ky
-    # n = other.n_macroparticles
-    # s = other.n_particles / other.n_macroparticles / dz
     # for i in prange(n, nogil=True, num_threads=2):
     for i in xrange(n):
         fx, fy = (x[i] - x0) * dxi, (y[i] - y0) * dyi
@@ -71,10 +65,10 @@ def fastgather(self, double[:] x, double[:] y, double s):
         a3 = (1 - fx) * fy
         a4 = fx * fy
 
-        rho[iy, ix] += a1 * ai * s
-        rho[iy + 1, ix] += a2 * ai * s
-        rho[iy, ix + 1] += a3 * ai * s
-        rho[iy + 1, ix + 1] += a4 * ai * s
+        rho[iy, ix] += a1 * ai
+        rho[iy + 1, ix] += a2 * ai
+        rho[iy, ix + 1] += a3 * ai
+        rho[iy + 1, ix + 1] += a4 * ai
 
     # H, xedges, yedges = np.histogram2d(ix, iy, bins=self.rho.shape)
     # self.rho += H
@@ -164,7 +158,7 @@ def fastgather(self, double[:] x, double[:] y, double s):
 # #       u.ky[ip[j]] = (t.ey_g[k1] * a1 + t.ey_g[k2] * a2
 # #                      + t.ey_g[k3] * a3 + t.ey_g[k4] * a4);
 
-def scatter_a_to_b(self, other):
+def scatter_to(self, o):
     '''
     Cell
     3 ------------ 4
@@ -193,16 +187,14 @@ def scatter_a_to_b(self, other):
     cdef double ai = 1 / (dx * dy)
     # TODO: on adaptive mesh
 
+    cdef int ix, iy
     cdef double fx, fy
     cdef double a1, a2, a3, a4
-    cdef int ix, iy
-
-    cdef double[::1] x = other.x
-    cdef double[::1] y = other.y
-    cdef double[::1] kx = other.kx
-    cdef double[::1] ky = other.ky
-    cdef int i, n = other.n_macroparticles
-    # s = other.n_particles / other.n_macroparticles / dz
+    cdef int i, n = o.n_macroparticles
+    cdef double[::1] x = o.x
+    cdef double[::1] y = o.y
+    cdef double[::1] kx = o.kx
+    cdef double[::1] ky = o.ky
     # for i in prange(n, nogil=True, num_threads=2):
     for i in xrange(n):
         fx, fy = (x[i] - x0) * dxi, (y[i] - y0) * dyi
