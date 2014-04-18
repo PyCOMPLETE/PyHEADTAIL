@@ -8,7 +8,7 @@ Created on 06.01.2014
 import numpy as np
 
 
-import h5py, sys
+import copy, h5py, sys
 from abc import ABCMeta, abstractmethod
 from scipy.constants import c, e, epsilon_0, m_e, m_p, pi
 
@@ -92,6 +92,9 @@ class Beam(Ensemble):
 
 class Cloud(Ensemble):
 
+    # TODO: rather go for charge, intensity, unitcharge
+    # instead of n_macroparticles, n_particles, charge
+    # or macrocharge, charge, unitcharge
     @classmethod
     def from_file(self): pass
 
@@ -133,9 +136,16 @@ class Cloud(Ensemble):
         self.id = np.arange(1, len(self.x) + 1)
         self.np = np.ones(self.n_macroparticles) * self.n_particles / self.n_macroparticles
 
-    # def add_poisson(self, extent_x, extent_y, nx, ny):
+    def add_poisson(self, extent_x, extent_y, nx, ny, other=None):
 
-    #     self.poisson = PoissonFFT(extent_x, extent_y, nx, ny)
+        self.poisson_self = PoissonFFT(extent_x, extent_y, nx, ny)
+        self.kx = np.zeros(self.n_macroparticles)
+        self.ky = np.zeros(self.n_macroparticles)
+
+        if other:
+            other.poisson_other = copy.deepcopy(self.poisson_self)
+            other.kx = np.zeros(other.n_macroparticles)
+            other.ky = np.zeros(other.n_macroparticles)
 
     # # def add_poisson(self, poisson):
 

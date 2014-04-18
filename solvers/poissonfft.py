@@ -50,15 +50,15 @@ class PoissonFFT(UniformGrid):
         from types import MethodType
         PoissonFFT.compute_potential_fgreenm2m = MethodType(compute_potential_fgreenm2m, None, PoissonFFT)
 
-    def inject(self, master, slave=None):
+    # def inject(self, master, slave=None):
 
-        master.poisson_self = copy.deepcopy(self)
-        master.kx = np.zeros(master.n_macroparticles)
-        master.ky = np.zeros(master.n_macroparticles)
-        if slave:
-            slave.poisson_other = copy.deepcopy(self)
-            slave.kx = np.zeros(slave.n_macroparticles)
-            slave.ky = np.zeros(slave.n_macroparticles)
+    #     master.poisson_self = copy.deepcopy(self)
+    #     master.kx = np.zeros(master.n_macroparticles)
+    #     master.ky = np.zeros(master.n_macroparticles)
+    #     if slave:
+    #         slave.poisson_other = copy.deepcopy(self)
+    #         slave.kx = np.zeros(slave.n_macroparticles)
+    #         slave.ky = np.zeros(slave.n_macroparticles)
 
     # @profile
     def compute_potential(self):
