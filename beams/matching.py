@@ -89,7 +89,7 @@ def match_full(bunch, length, bucket):
     Qs = bucket.Qs(bunch)
 
     zmax = np.pi * R / bucket.h
-    pmax = 2 * Qs / eta / bucket.h
+    pmax = 2 * Qs / (eta * bucket.h)
     Hmax1 = bucket.hamiltonian(zmax, 0, bunch)
     Hmax2 = bucket.hamiltonian(0, pmax, bunch)
     # assert(Hmax1 == Hmax2)
@@ -98,17 +98,17 @@ def match_full(bunch, length, bucket):
     print '\nStatistical parameters from RF bucket:'
     print 'zmax:', zmax, 'pmax:', pmax, 'epsn_z:', epsn_z
 
-    # Assuming a gaussian-type stationary distribution
+    # Assuming a Gaussian-type stationary distribution
     sigma_dz = length # np.std(bunch.dz)
-    sigma_dp = sigma_dz * Qs / eta / R
+    sigma_dp = sigma_dz * Qs / (eta * R)
     H0 = eta * bunch.beta * c * sigma_dp ** 2
-    epsn_z = 4 * np.pi * Qs / eta / R * sigma_dz ** 2 * bunch.p0 / e
+    epsn_z = (4 * np.pi * Qs * sigma_dz ** 2 * bunch.p0) / (eta * R * e)
     print '\nStatistical parameters from initialisation:'
     print 'sigma_dz:', sigma_dz, 'sigma_dp:', sigma_dp, 'epsn_z:', epsn_z
     
     print '\n--> Bunchlength:'
     sigma_dz = bunchlength(bunch, bucket, sigma_dz)
-    sigma_dp = sigma_dz * Qs / eta / R
+    sigma_dp = sigma_dz * Qs / (eta * R)
     H0 = eta * bunch.beta * c * sigma_dp ** 2
 
     psi = stationary_exponential(bucket.hamiltonian, Hmax, H0, bunch)
@@ -152,7 +152,7 @@ def bunchlength(bunch, cavity, sigma_dz):
 
     # Initial values
     z0 = sigma_dz
-    p0 = z0 * Qs / eta / R            #Matching condition
+    p0 = z0 * Qs / (eta * R)            #Matching condition
     H0 = eta * bunch.beta * c * p0 ** 2
 
     z1 = z0
@@ -179,7 +179,7 @@ def bunchlength(bunch, cavity, sigma_dz):
         # print z1, z2, eps
         z1 -= eps
 
-        p0 = z1 * Qs / eta / R
+        p0 = z1 * Qs / (eta * R)
         H0 = eta * bunch.beta * c * p0 ** 2
 
         counter += 1

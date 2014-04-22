@@ -10,6 +10,7 @@ from aperture.aperture import *
 from impedances.wake_fields  import *
 from trackers.transverse_tracker import *
 from trackers.longitudinal_tracker import *
+from trackers.libintegr import symple, non_symple
 from plots import *
 from scipy.constants import c, e, m_p
 from scipy.constants import physical_constants
@@ -28,7 +29,7 @@ epsn_y = 2.0 # [um]
 gamma_t = 1/np.sqrt(0.00192)
 C = 6911. # [m]
 energy = 26e9 # total [eV]
-n_turns = 500
+n_turns = 20
 nsigmaz = 3
 Qx = 26.13
 Qy = 26.18
@@ -64,7 +65,8 @@ linear_map = TransverseTracker.from_copy(s,
 
 
 # Synchrotron motion
-cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0, integrator='rk4')
+cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0, integrator=symple.Euler_Cromer)
+# cavity = RFCavity(C, C, gamma_t, harmonic_number, RF_voltage, 0, integrator='euler-cromer')
 
 
 # Bunch
@@ -120,7 +122,7 @@ for i in range(n_turns):
         m.track(bunch) 
         #~ print m, ', elapsed time: ' + str(time.clock() - t1) + ' s'
     bunchmonitor.dump(bunch)
-    print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f} \t {9:4e} \t {10:3s}'.format(i, bunch.slices.mean_x[-2], bunch.slices.mean_y[-2], bunch.slices.mean_dz[-2], bunch.slices.epsn_x[-2], bunch.slices.epsn_y[-2], bunch.slices.epsn_z[-2], bunch.slices.sigma_dz[-2], bunch.slices.sigma_dp[-2], bunch.slices.n_macroparticles[-2] / bunch.n_macroparticles * bunch.n_particles, str(time.clock() - t0))
+    # print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f} \t {9:4e} \t {10:3s}'.format(i, bunch.slices.mean_x[-2], bunch.slices.mean_y[-2], bunch.slices.mean_dz[-2], bunch.slices.epsn_x[-2], bunch.slices.epsn_y[-2], bunch.slices.epsn_z[-2], bunch.slices.sigma_dz[-2], bunch.slices.sigma_dp[-2], bunch.slices.n_macroparticles[-2] / bunch.n_macroparticles * bunch.n_particles, str(time.clock() - t0))
     
     #~ particlemonitor.dump(bunch)
     #~ aperture.limit_y -= 2e-5

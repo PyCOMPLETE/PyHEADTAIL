@@ -57,7 +57,7 @@ class Bunch(object):
         '''
         Most minimalistic constructor - pure python name binding
         '''
-        assert(len(x) == len(xp) == len(y) == len(yp) == len(dz) == len(dp))
+        assert (len(x) == len(xp) == len(y) == len(yp) == len(dz) == len(dp))
 
         self.x = x
         self.xp = xp
