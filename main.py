@@ -18,6 +18,30 @@ from trackers.longitudinal_tracker import *
 from plots import *
 
 
+@profile
+def track():
+    phi1 = plt.zeros((bunch.poisson_other.ny, bunch.poisson_other.nx))
+    phi2 = plt.zeros((bunch.poisson_other.ny, bunch.poisson_other.nx))
+
+    # Cloud track
+    cloud.poisson_self.gather_from(cloud.x, cloud.y, cloud.poisson_self.rho)
+    cloud.poisson_self.compute_potential()
+    cloud.poisson_self.compute_fields()
+    # cloud.poisson_self.scatter_to(bunch)
+
+    bunch.poisson_other.gather_from(bunch.x, bunch.y, bunch.poisson_other.rho)
+    bunch.poisson_other.compute_potential()
+    bunch.poisson_other.compute_fields()
+    bunch.poisson_other.compute_potential_fgreenm2m(bunch.poisson_other.x, bunch.poisson_other.y,
+                                                    phi1, bunch.poisson_other.rho)
+    bunch.poisson_other.compute_potential_fgreenp2m(bunch.x, bunch.y,
+                                                    bunch.poisson_other.x, bunch.poisson_other.y,
+                                                    phi2, bunch.poisson_other.rho)
+    # bunch.poisson_other.scatter_to(cloud)
+
+    return phi1, phi2
+
+
 # plt.ion()
 n_turns = 100
 
@@ -56,19 +80,7 @@ cloud.add_poisson(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128, other=bu
 # Test the PIC here!
 t0 = time.clock()
 print 'Time took', time.clock() - t0, 's'
-# Cloud track
-cloud.poisson_self.gather_from(cloud.x, cloud.y, cloud.poisson_self.rho)
-cloud.poisson_self.compute_potential()
-cloud.poisson_self.compute_fields()
-# cloud.poisson_self.scatter_to(bunch)
-
-bunch.poisson_other.gather_from(bunch.x, bunch.y, bunch.poisson_other.rho)
-bunch.poisson_other.compute_potential()
-bunch.poisson_other.compute_fields()
-phi = plt.zeros((bunch.poisson_other.ny, bunch.poisson_other.nx))
-bunch.poisson_other.compute_potential_fgreenm2m(bunch.poisson_other.x, bunch.poisson_other.y,
-                                                phi, bunch.poisson_other.rho)
-# bunch.poisson_other.scatter_to(cloud)
+phi1, phi2 = track()
 
 # Plot results
 # [plt.axvline(v, c='orange') for v in poisson.mx[0,:]]
@@ -82,7 +94,8 @@ p = bunch.poisson_other
 fig1, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)#, sharex=True, sharey=True)
 ax1.contour(p.fgreen.T, 100)
 ax2.plot(p.phi[p.ny / 2,:], '-g')
-ax2.plot(phi[p.ny / 2,:], '-r')
+ax2.plot(phi1[p.ny / 2,:], '-r')
+ax2.plot(phi2[p.ny / 2,:], '-', c='orange')
 ax3.contourf(p.x, p.y, p.rho, 100)
 ax3.contour(p.x, p.y, p.phi, 100, lw=2)
 ax3.scatter(bunch.x, bunch.y, marker='.', c='y', alpha=0.8)

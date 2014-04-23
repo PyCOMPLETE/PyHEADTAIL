@@ -11,7 +11,7 @@ import numpy as np
 
 import copy
 from solvers.grid import *
-from solvers.compute_potential_fgreenm2m import compute_potential_fgreenm2m
+from solvers.compute_potential_fgreenm2m import compute_potential_fgreenm2m, compute_potential_fgreenp2m
 
 
 class PoissonFFT(UniformGrid):
@@ -49,6 +49,7 @@ class PoissonFFT(UniformGrid):
 
         from types import MethodType
         PoissonFFT.compute_potential_fgreenm2m = MethodType(compute_potential_fgreenm2m, None, PoissonFFT)
+        PoissonFFT.compute_potential_fgreenp2m = MethodType(compute_potential_fgreenp2m, None, PoissonFFT)
 
     # def inject(self, master, slave=None):
 
