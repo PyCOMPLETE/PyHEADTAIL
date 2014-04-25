@@ -34,9 +34,9 @@ def track():
 
         # Cloud track
         cloud.poisson_self.gather_from(cloud.x, cloud.y, cloud.poisson_self.rho)
-        # cloud.poisson_self.compute_potential()
-        # cloud.poisson_self.compute_fields()
-        # cloud.poisson_self.scatter_to(bunch)
+        cloud.poisson_self.compute_potential()
+        cloud.poisson_self.compute_fields()
+        cloud.poisson_self.scatter_to(bunch)
 
         bunch.poisson_other.gather_from(bunch.x[ix], bunch.y[ix], bunch.poisson_other.rho)
         bunch.poisson_other.compute_potential()
@@ -52,26 +52,17 @@ def track():
 
 
         [ax.cla() for ax in (ax1, ax2, ax3, ax4)]
+        # [ax.set_aspect('equal') for ax in (ax1, ax2, ax3, ax4)]
         ax1.contour(p.fgreen.T, 100)
         ax2.plot(p.phi[p.ny / 2,:], '-g')
         ax2.plot(phi1[p.ny / 2,:], '-r')
         ax2.plot(phi2[p.ny / 2,:], '-', c='orange')
-
         ax3.contourf(p.x, p.y, -10 * plt.log10(p.rho), 100)
         # ax3.scatter(cloud.x[::20], cloud.y[::20], c='b', marker='.')
         # ax3.quiver(cloud.x[::50], cloud.y[::50], cloud.kx[::50], cloud.ky[::50], color='g')
         # ax3.contour(p.x, p.y, p.phi, 100, lw=2)
         ax3.scatter(bunch.x[ix], bunch.y[ix], c='y', marker='.', alpha=0.8)
         ax4.imshow(plt.sqrt(bunch.poisson_other.ex ** 2 + bunch.poisson_other.ey ** 2), origin='lower', aspect='auto', extent=(p.x[0,0], p.x[0,-1], p.y[0,0], p.y[-1,0]))
-
-        # # ax3.contourf(p.x, p.y, -10 * plt.log10(p.rho), 100)
-        # # ax3.scatter(cloud.x[::20], cloud.y[::20], c='b', marker='.')
-        # ax3.contour(p.x, p.y, plt.sqrt(p.ex ** 2 + p.ey ** 2), 100)
-        # ax3.quiver(bunch.x[::50], bunch.y[::50], bunch.kx[::50], bunch.ky[::50], color='g')
-        # # ax3.contour(p.x, p.y, p.phi, 100, lw=2)
-        # # ax3.scatter(bunch.x[ix], bunch.y[ix], c='y', marker='.', alpha=0.8)
-        # ax4.contour(p.x, p.y, p.phi, 100)
-        # # ax4.imshow(plt.sqrt(p.ex ** 2 + p.ey ** 2), origin='lower', aspect='auto', extent=(p.x[0,0], p.x[0,-1], p.y[0,0], p.y[-1,0]))
 
         plt.draw()
 
@@ -126,7 +117,7 @@ print 'Time took', time.clock() - t0, 's'
 # plt.scatter(poisson.mx, poisson.my, s=poisson.rho*2, c=poisson.rho)
 
 p = cloud.poisson_self
-fig1, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)#, sharex=True, sharey=True)
+fig1, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12,12))#, sharex=True, sharey=True)
 phi1, phi2 = track()
 # ax1.contour(p.fgreen.T, 100)
 # ax2.plot(p.phi[p.ny / 2,:], '-g')
