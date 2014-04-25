@@ -36,6 +36,7 @@ class Slices(object):
 
         self.n_macroparticles = np.zeros(n_slices + 4, dtype=int)
         self.dz_centers = np.zeros(n_slices + 3)
+        self.dz_bins = np.zeros(n_slices + 3)
 
         self.nsigmaz = nsigmaz
         self.slicemode = slicemode
@@ -45,9 +46,9 @@ class Slices(object):
     #~ @profile
     def slice_constant_space(self, bunch, nsigmaz=None):
 
-        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)        
-        bunch.sort_particles() 
-        
+        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+        bunch.sort_particles()
+
         # determine the longitudinal cuts (this allows for the user defined static cuts: self.dz_cut_tail, self.dz_cut_head)
         try:
             dz_cut_tail, dz_cut_head = self.dz_cut_tail, self.dz_cut_head
@@ -61,22 +62,22 @@ class Slices(object):
         dz_bins[1:-1] = np.linspace(dz_cut_tail, dz_cut_head, self.n_slices + 1)
         self.dz_centers[:-1] = dz_bins[:-1] + (dz_bins[1:] - dz_bins[:-1]) / 2.
         self.dz_centers[-1] = self.mean_dz[-1]
-        index_after_bin_edges = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_bins)  
+        index_after_bin_edges = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_bins)
         index_after_bin_edges[np.where(dz_bins == bunch.dz[-1 - bunch.n_macroparticles_lost])] += 1
         # Get n_macroparticles
         self.n_macroparticles = np.diff(index_after_bin_edges)
         self.n_macroparticles = np.concatenate((self.n_macroparticles, [bunch.n_macroparticles - bunch.n_macroparticles_lost], [bunch.n_macroparticles_lost]))
 
-        # .in_slice indicates in which slice the particle is (needed for wakefields)     
+        # .in_slice indicates in which slice the particle is (needed for wakefields)
         bunch.set_in_slice(index_after_bin_edges)
 
 
     def slice_constant_charge(self, bunch, nsigmaz=None):
-       
-        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)        
-        bunch.sort_particles() 
-        
-        # determine the longitudinal cuts        
+
+        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+        bunch.sort_particles()
+
+        # determine the longitudinal cuts
         dz_cut_tail, dz_cut_head = self.determine_longitudinal_cuts(bunch, nsigmaz)
 
         # First n_macroparticles
@@ -84,7 +85,7 @@ class Slices(object):
         particles_in_right_cut = bunch.n_macroparticles - bunch.n_macroparticles_lost - np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_cut_head)
         # set number of macro_particles in the slices that are cut (slice 0 and n_slices+1)
         self.n_macroparticles[0] = particles_in_left_cut
-        self.n_macroparticles[-3] = particles_in_right_cut  
+        self.n_macroparticles[-3] = particles_in_right_cut
         # determine number of macroparticles used for slicing
         q0 = bunch.n_macroparticles - bunch.n_macroparticles_lost - self.n_macroparticles[0] - self.n_macroparticles[-3]
         # distribute macroparticles uniformly along slices
@@ -97,10 +98,10 @@ class Slices(object):
         index_after_bin_edges = np.append(0, np.cumsum(self.n_macroparticles[:-2]))
 
         # bin centers
-        self.dz_centers[:-1] = map((lambda i: cp.mean(bunch.dz[index_after_bin_edges[i]:index_after_bin_edges[i+1]])), np.arange(self.n_slices + 2))  
+        self.dz_centers[:-1] = map((lambda i: cp.mean(bunch.dz[index_after_bin_edges[i]:index_after_bin_edges[i+1]])), np.arange(self.n_slices + 2))
         self.dz_centers[-1] = cp.mean(bunch.dz)
-        
-        # .in_slice indicates in which slice the particle is (needed for wakefields)     
+
+        # .in_slice indicates in which slice the particle is (needed for wakefields)
         bunch.set_in_slice(index_after_bin_edges)
 
 
@@ -114,4 +115,3 @@ class Slices(object):
             dz_cut_tail = -nsigmaz * sigma_dz + mean_dz
             dz_cut_head = nsigmaz * sigma_dz + mean_dz
         return dz_cut_tail, dz_cut_head
-

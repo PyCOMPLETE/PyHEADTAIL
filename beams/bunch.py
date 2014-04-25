@@ -79,10 +79,10 @@ class Ensemble(object):
         return self
 
     @abstractmethod
-    def set_beam_physics(self): return None
+    def _set_beam_physics(self): pass
 
     @abstractmethod
-    def set_beam_numerics(self): return None
+    def _set_beam_numerics(self): pass
 
 
 class Beam(Ensemble):
@@ -95,6 +95,7 @@ class Cloud(Ensemble):
     # TODO: rather go for charge, intensity, unitcharge
     # instead of n_macroparticles, n_particles, charge
     # or macrocharge, charge, unitcharge
+    # or macrocharge, totalcharge, unitcharge, gamma, mass; particles: q
     @classmethod
     def from_file(self): pass
 
@@ -110,8 +111,8 @@ class Cloud(Ensemble):
         self.dz *= 0
         self.dp *= 0
 
-        self.set_beam_physics(density, extent_x, extent_y, extent_z)
-        self.set_beam_numerics()
+        self._set_beam_physics(density, extent_x, extent_y, extent_z)
+        self._set_beam_numerics()
 
         self.x0 = self.x
         self.xp0 = self.xp
@@ -120,7 +121,7 @@ class Cloud(Ensemble):
 
         return self
 
-    def set_beam_physics(self, density, extent_x, extent_y, extent_z):
+    def _set_beam_physics(self, density, extent_x, extent_y, extent_z):
 
         self.n_particles = density * extent_x * extent_y * extent_z
         self.charge = e
@@ -129,7 +130,7 @@ class Cloud(Ensemble):
         self.mass = m_e
         self.p0 = self.mass * self.gamma * self.beta * c
 
-    def set_beam_numerics(self):
+    def _set_beam_numerics(self):
 
         self.n_macroparticles = len(self.x)
 
@@ -163,24 +164,22 @@ class Cloud(Ensemble):
         self.y = self.y0
         self.yp = self.yp0
 
-    def push(self, bunch, i_slice):
+    def push(self, bunch, ix):
 
         # Normalization factors to speed up computations
-        dz = bunch.slice_dz[i_slice + 1] - bunch.slice_dz[i_slice]
+        dz = bunch.slices.dz_centers[5] - bunch.slices.dz_centers[4]
         dt = dz / (bunch.beta * c)
-        c_e = -2 * c * re * dz * 1 / (1 * bunch.beta)
-        #   = -2 * c ** 2 * re  * Ex / dz * dt * 1 / gamma
-        c_p = -2 * 1 * rp * dL * 1 / (bunch.gamma * bunch.beta ** 2)
-        #   = -2 * c ** 2 * rp  * Ex / dL * dL * 1 / gamma / (beta * c) ** 2
 
-        # Line charge density
-        lambda_e = self.density / self.n_macroparticles * (max_x - min_x) * (max_y - min_y)
-        lambda_p = bunch.n_particles / bunch.n_macroparticles / dz;
+        qe = self.n_particles / self.n_macroparticles
+        qp = bunch.n_particles / bunch.n_macroparticles
+        c_e = -2 * c * re * 1 / bunch.beta * 1e3#* qe
+        #   = -2 * c ** 2 * re  * ex / dz * dt * 1 / gamma
+        c_p = -2 * 1 * rp * 1 / (bunch.gamma * bunch.beta ** 2) #* qp
+        #   = -2 * c ** 2 * rp  * ex / dL * dL * 1 / gamma / (beta * c) ** 2
 
         # Push bunch
-        indices = np.s_[::2]
-        bunch.xp[indices] += c_p * bunch.kx[indices]
-        bunch.yp[indices] += c_p * bunch.ky[indices]
+        bunch.xp[ix] += c_p * bunch.kx[ix]
+        bunch.yp[ix] += c_p * bunch.ky[ix]
 
         # Push cloud
         self.xp += c_e * self.kx
@@ -221,9 +220,9 @@ class Cloud(Ensemble):
 
 class Ghost(Ensemble):
 
-    def set_beam_physics(self): pass
+    def _set_beam_physics(self): pass
 
-    def set_beam_numerics(self): pass
+    def _set_beam_numerics(self): pass
 
 
 def bunch_matched_and_sliced(n_macroparticles, n_particles, charge, energy, mass,
@@ -291,8 +290,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_beam_physics(n_particles, charge, energy, mass)
-        self.set_beam_numerics()
+        self._set_beam_physics(n_particles, charge, energy, mass)
+        self._set_beam_numerics()
 
         return self
 
@@ -310,8 +309,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_beam_physics(n_particles, charge, energy, mass)
-        self.set_beam_numerics()
+        self._set_beam_physics(n_particles, charge, energy, mass)
+        self._set_beam_numerics()
 
         self.id = np.array(particles['Step#' + str(step)]['id'])
 
@@ -329,8 +328,8 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_beam_physics(n_particles, charge, energy, mass)
-        self.set_beam_numerics()
+        self._set_beam_physics(n_particles, charge, energy, mass)
+        self._set_beam_numerics()
 
         return self
 
@@ -346,12 +345,12 @@ class Bunch(object):
 
         self = cls(x, xp, y, yp, dz, dp)
 
-        self.set_beam_physics(n_particles, charge, energy, mass)
-        self.set_beam_numerics()
+        self._set_beam_physics(n_particles, charge, energy, mass)
+        self._set_beam_numerics()
 
         return self
 
-    def set_beam_physics(self, n_particles, charge, energy, mass):
+    def _set_beam_physics(self, n_particles, charge, energy, mass):
         '''
         Set the physical quantities of the beam
         '''
@@ -362,7 +361,7 @@ class Bunch(object):
         self.mass = mass
         self.p0 = mass * self.gamma * self.beta * c
 
-    def set_beam_numerics(self):
+    def _set_beam_numerics(self):
         '''
         Set the numerical quantities of the beam
         '''
@@ -463,7 +462,7 @@ class Bunch(object):
         self.yp = self.yp.take(dz_argsorted)
         self.dz = self.dz.take(dz_argsorted)
         self.dp = self.dp.take(dz_argsorted)
-        self.id = self.id.take(dz_argsorted)   
+        self.id = self.id.take(dz_argsorted)
 
     def set_in_slice(self, index_after_bin_edges):
         self.in_slice = (self.slices.n_slices + 3) * np.ones(self.n_macroparticles, dtype=np.int)

@@ -18,26 +18,49 @@ from trackers.longitudinal_tracker import *
 from plots import *
 
 
-@profile
+plt.ion()
+
+
+# @profile
 def track():
     phi1 = plt.zeros((bunch.poisson_other.ny, bunch.poisson_other.nx))
     phi2 = plt.zeros((bunch.poisson_other.ny, bunch.poisson_other.nx))
 
-    # Cloud track
-    cloud.poisson_self.gather_from(cloud.x, cloud.y, cloud.poisson_self.rho)
-    cloud.poisson_self.compute_potential()
-    cloud.poisson_self.compute_fields()
-    # cloud.poisson_self.scatter_to(bunch)
+    index_after_bin_edges = np.cumsum(bunch.slices.n_macroparticles)[:-3]
+    index_after_bin_edges[0] = 0
 
-    bunch.poisson_other.gather_from(bunch.x, bunch.y, bunch.poisson_other.rho)
-    bunch.poisson_other.compute_potential()
-    bunch.poisson_other.compute_fields()
-    bunch.poisson_other.compute_potential_fgreenm2m(bunch.poisson_other.x, bunch.poisson_other.y,
-                                                    phi1, bunch.poisson_other.rho)
-    bunch.poisson_other.compute_potential_fgreenp2m(bunch.x, bunch.y,
-                                                    bunch.poisson_other.x, bunch.poisson_other.y,
-                                                    phi2, bunch.poisson_other.rho)
-    # bunch.poisson_other.scatter_to(cloud)
+    for i in xrange(bunch.slices.n_slices):
+        ix = np.s_[index_after_bin_edges[i]:index_after_bin_edges[i + 1]]
+
+        # Cloud track
+        cloud.poisson_self.gather_from(cloud.x, cloud.y, cloud.poisson_self.rho)
+        cloud.poisson_self.compute_potential()
+        cloud.poisson_self.compute_fields()
+        cloud.poisson_self.scatter_to(bunch)
+
+        bunch.poisson_other.gather_from(bunch.x[ix], bunch.y[ix], bunch.poisson_other.rho)
+        bunch.poisson_other.compute_potential()
+        bunch.poisson_other.compute_fields()
+        # bunch.poisson_other.compute_potential_fgreenm2m(bunch.poisson_other.x, bunch.poisson_other.y,
+        #                                                 phi1, bunch.poisson_other.rho)
+        # bunch.poisson_other.compute_potential_fgreenp2m(bunch.x, bunch.y,
+        #                                                 bunch.poisson_other.x, bunch.poisson_other.y,
+        #                                                 phi2, bunch.poisson_other.rho)
+        bunch.poisson_other.scatter_to(cloud)
+
+        cloud.push(bunch, ix)
+
+        [ax.cla() for ax in (ax1, ax2, ax3, ax4)]
+        ax1.contour(p.fgreen.T, 100)
+        ax2.plot(p.phi[p.ny / 2,:], '-g')
+        ax2.plot(phi1[p.ny / 2,:], '-r')
+        ax2.plot(phi2[p.ny / 2,:], '-', c='orange')
+        ax3.contourf(p.x, p.y, -10 * plt.log10(p.rho), 100)
+        ax3.quiver(cloud.x[::100], cloud.y[::100], cloud.kx[::100], cloud.ky[::100])
+        # ax3.contour(p.x, p.y, p.phi, 100, lw=2)
+        ax3.scatter(bunch.x[ix], bunch.y[ix], marker='.', c='y', alpha=0.8)
+        ax4.imshow(p.ey, origin='lower', aspect='auto', extent=(p.x[0,0], p.x[0,-1], p.y[0,0], p.y[-1,0]))
+        plt.draw()
 
     return phi1, phi2
 
@@ -65,14 +88,14 @@ cavity = CSCavity(C, 18, 0.017)
 # bunch = Bunch.from_empty(2e3, charge, energy, intensity, mass)
 # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
 # Bunch
-bunch = bunch_matched_and_sliced(10000, n_particles=1.15e11, charge=1*e, energy=26e9, mass=m_p,
+bunch = bunch_matched_and_sliced(100000, n_particles=1.15e11, charge=1*e, energy=26e9, mass=m_p,
                                  epsn_x=2.5, epsn_y=2.5, ltm=linear_map[0], bunch_length=0.21, bucket=0.5, matching=None,
                                  n_slices=64, nsigmaz=None, slicemode='cspace')
 bunch.update_slices()
 
 # Cloud
 cloud = Cloud.from_parameters(100000, 5e11, plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, C)
-cloud.add_poisson(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128, other=bunch)
+cloud.add_poisson(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 128, 128, other=bunch)
 
 # PIC grid
 # poisson = PoissonFFT(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128)
@@ -80,7 +103,6 @@ cloud.add_poisson(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128, other=bu
 # Test the PIC here!
 t0 = time.clock()
 print 'Time took', time.clock() - t0, 's'
-phi1, phi2 = track()
 
 # Plot results
 # [plt.axvline(v, c='orange') for v in poisson.mx[0,:]]
@@ -90,16 +112,17 @@ phi1, phi2 = track()
 # plt.scatter(bunch.x, bunch.y, marker='.')
 # plt.scatter(poisson.mx, poisson.my, s=poisson.rho*2, c=poisson.rho)
 
-p = bunch.poisson_other
+p = cloud.poisson_self
 fig1, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)#, sharex=True, sharey=True)
-ax1.contour(p.fgreen.T, 100)
-ax2.plot(p.phi[p.ny / 2,:], '-g')
-ax2.plot(phi1[p.ny / 2,:], '-r')
-ax2.plot(phi2[p.ny / 2,:], '-', c='orange')
-ax3.contourf(p.x, p.y, p.rho, 100)
-ax3.contour(p.x, p.y, p.phi, 100, lw=2)
-ax3.scatter(bunch.x, bunch.y, marker='.', c='y', alpha=0.8)
-ax4.imshow(p.ex, origin='lower', aspect='auto', extent=(p.x[0,0], p.x[0,-1], p.y[0,0], p.y[-1,0]))
+phi1, phi2 = track()
+# ax1.contour(p.fgreen.T, 100)
+# ax2.plot(p.phi[p.ny / 2,:], '-g')
+# ax2.plot(phi1[p.ny / 2,:], '-r')
+# ax2.plot(phi2[p.ny / 2,:], '-', c='orange')
+# ax3.contourf(p.x, p.y, p.rho, 100)
+# ax3.contour(p.x, p.y, p.phi, 100, lw=2)
+# ax3.scatter(bunch.x, bunch.y, marker='.', c='y', alpha=0.8)
+# ax4.imshow(p.ex, origin='lower', aspect='auto', extent=(p.x[0,0], p.x[0,-1], p.y[0,0], p.y[-1,0]))
 
 # p = cloud.poisson_self
 # fig2, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)#, sharex=True, sharey=True)
