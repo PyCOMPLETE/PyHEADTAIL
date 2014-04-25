@@ -228,8 +228,15 @@ def scatter_to(self, other):
 
 
         # Scatter fields
-        kx[i] = ex[iy, ix] * a1  + ex[iy + 1, ix] * a2 * ex[iy, ix + 1] * a3 + ex[iy + 1, ix + 1] * a4
-        ky[i] = ey[iy, ix] * a1  + ey[iy + 1, ix] * a2 * ey[iy, ix + 1] * a3 + ey[iy + 1, ix + 1] * a4
+        # if i in range(1000, 1200):
+            # print '=============================================='
+            # print a1 + a2 + a3 + a4
+            # print ex[iy, ix], ex[iy, ix + 1], ex[iy + 1, ix], ex[iy + 1, ix + 1]
+        kx[i] = ex[iy, ix] * a1  + ex[iy, ix + 1] * a2 + ex[iy + 1, ix] * a3 + ex[iy + 1, ix + 1] * a4
+            # print kx[i]
+            # print ey[iy, ix], ey[iy, ix + 1], ey[iy + 1, ix], ey[iy + 1, ix + 1]
+        ky[i] = ey[iy, ix] * a1  + ey[iy, ix + 1] * a2 + ey[iy + 1, ix] * a3 + ey[iy + 1, ix + 1] * a4
+            # print ky[i]
 #       t.kx[ip[j]] = (u.ex_g[k1] * a1 + u.ex_g[k2] * a2
 #                      + u.ex_g[k3] * a3 + u.ex_g[k4] * a4);
 #       t.ky[ip[j]] = (u.ey_g[k1] * a1 + u.ey_g[k2] * a2

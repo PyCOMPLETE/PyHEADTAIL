@@ -34,9 +34,9 @@ def track():
 
         # Cloud track
         cloud.poisson_self.gather_from(cloud.x, cloud.y, cloud.poisson_self.rho)
-        cloud.poisson_self.compute_potential()
-        cloud.poisson_self.compute_fields()
-        cloud.poisson_self.scatter_to(bunch)
+        # cloud.poisson_self.compute_potential()
+        # cloud.poisson_self.compute_fields()
+        # cloud.poisson_self.scatter_to(bunch)
 
         bunch.poisson_other.gather_from(bunch.x[ix], bunch.y[ix], bunch.poisson_other.rho)
         bunch.poisson_other.compute_potential()
@@ -50,16 +50,29 @@ def track():
 
         cloud.push(bunch, ix)
 
+
         [ax.cla() for ax in (ax1, ax2, ax3, ax4)]
         ax1.contour(p.fgreen.T, 100)
         ax2.plot(p.phi[p.ny / 2,:], '-g')
         ax2.plot(phi1[p.ny / 2,:], '-r')
         ax2.plot(phi2[p.ny / 2,:], '-', c='orange')
+
         ax3.contourf(p.x, p.y, -10 * plt.log10(p.rho), 100)
-        ax3.quiver(cloud.x[::100], cloud.y[::100], cloud.kx[::100], cloud.ky[::100])
+        # ax3.scatter(cloud.x[::20], cloud.y[::20], c='b', marker='.')
+        # ax3.quiver(cloud.x[::50], cloud.y[::50], cloud.kx[::50], cloud.ky[::50], color='g')
         # ax3.contour(p.x, p.y, p.phi, 100, lw=2)
-        ax3.scatter(bunch.x[ix], bunch.y[ix], marker='.', c='y', alpha=0.8)
-        ax4.imshow(p.ey, origin='lower', aspect='auto', extent=(p.x[0,0], p.x[0,-1], p.y[0,0], p.y[-1,0]))
+        ax3.scatter(bunch.x[ix], bunch.y[ix], c='y', marker='.', alpha=0.8)
+        ax4.imshow(plt.sqrt(bunch.poisson_other.ex ** 2 + bunch.poisson_other.ey ** 2), origin='lower', aspect='auto', extent=(p.x[0,0], p.x[0,-1], p.y[0,0], p.y[-1,0]))
+
+        # # ax3.contourf(p.x, p.y, -10 * plt.log10(p.rho), 100)
+        # # ax3.scatter(cloud.x[::20], cloud.y[::20], c='b', marker='.')
+        # ax3.contour(p.x, p.y, plt.sqrt(p.ex ** 2 + p.ey ** 2), 100)
+        # ax3.quiver(bunch.x[::50], bunch.y[::50], bunch.kx[::50], bunch.ky[::50], color='g')
+        # # ax3.contour(p.x, p.y, p.phi, 100, lw=2)
+        # # ax3.scatter(bunch.x[ix], bunch.y[ix], c='y', marker='.', alpha=0.8)
+        # ax4.contour(p.x, p.y, p.phi, 100)
+        # # ax4.imshow(plt.sqrt(p.ex ** 2 + p.ey ** 2), origin='lower', aspect='auto', extent=(p.x[0,0], p.x[0,-1], p.y[0,0], p.y[-1,0]))
+
         plt.draw()
 
     return phi1, phi2
@@ -94,8 +107,8 @@ bunch = bunch_matched_and_sliced(100000, n_particles=1.15e11, charge=1*e, energy
 bunch.update_slices()
 
 # Cloud
-cloud = Cloud.from_parameters(100000, 5e11, plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, C)
-cloud.add_poisson(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 128, 128, other=bunch)
+cloud = Cloud.from_parameters(100000, 5e11, plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, C)
+cloud.add_poisson(plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, 128, 128, other=bunch)
 
 # PIC grid
 # poisson = PoissonFFT(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128)

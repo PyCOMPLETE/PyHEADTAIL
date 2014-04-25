@@ -172,9 +172,10 @@ class Cloud(Ensemble):
 
         qe = self.n_particles / self.n_macroparticles
         qp = bunch.n_particles / bunch.n_macroparticles
-        c_e = -2 * c * re * 1 / bunch.beta * 1e3#* qe
+        print self.n_particles, self.n_macroparticles
+        c_e = -2 * c * re * 1 / bunch.beta * qe
         #   = -2 * c ** 2 * re  * ex / dz * dt * 1 / gamma
-        c_p = -2 * 1 * rp * 1 / (bunch.gamma * bunch.beta ** 2) #* qp
+        c_p = -2 * 1 * rp * 1 / (bunch.gamma * bunch.beta ** 2) * qp
         #   = -2 * c ** 2 * rp  * ex / dL * dL * 1 / gamma / (beta * c) ** 2
 
         # Push bunch
