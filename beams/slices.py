@@ -109,3 +109,11 @@ class Slices(object):
             cutright = nsigmaz * sigma_dz
         return cutleft, cutright
 
+class SliceUpdater(object):
+    """
+        rebinning of slices in bunch
+    """
+
+    # TODO: move update_slices() from class Bunch to Slices
+    def track(self, bunch):
+        bunch.update_slices()

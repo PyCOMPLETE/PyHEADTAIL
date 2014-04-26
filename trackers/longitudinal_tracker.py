@@ -10,13 +10,14 @@ from __future__ import division
 
 import numpy as np
 import sys
+from functools import partial
 
 
 from beams.distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
 from abc import ABCMeta, abstractmethod 
 from scipy.constants import c, e
-from libintegr import symple
+from libintegrators import symple
 
 sin = np.sin
 cos = np.cos
@@ -28,15 +29,19 @@ class LongitudinalTracker(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def hamiltonian():
+    def hamiltonian(self, dz, dp, bunch):
         pass
 
     @abstractmethod
-    def separatrix():
+    def separatrix(self, dz, bunch):
         pass
 
     @abstractmethod
-    def isin_separatrix():
+    def isin_separatrix(self, dz, dp, bunch):
+        pass
+
+    @abstractmethod
+    def track(self, bunch):
         pass
 
 class RFCavity(LongitudinalTracker):
@@ -45,7 +50,7 @@ class RFCavity(LongitudinalTracker):
     '''
 
     def __init__(self, circumference, length, gamma_transition, 
-                        frequency, voltage, phi_s, integrator=symple.Euler_Cromer):
+                        harmonic, voltage, phi_s, integrator=symple.Euler_Cromer):
         '''
         Constructor
         '''
@@ -57,7 +62,7 @@ class RFCavity(LongitudinalTracker):
         self.circumference = circumference
         self.length = length
         self.gamma_transition = gamma_transition
-        self.h = frequency
+        self.harmonic = harmonic
         self.voltage = voltage
         self.phi_s = phi_s
 
@@ -70,27 +75,32 @@ class RFCavity(LongitudinalTracker):
 
         .. math::
         H = -1 / 2 * eta * beta * c * delta ** 2
-           - e * V / (p0 * 2 * np.pi * h) * (np.cos(phi) - np.cos(phi_s) + (phi - phi_s) * np.sin(phi_s))
+           + e * V / (p0 * 2 * np.pi * h) * (np.cos(phi) - np.cos(phi_s) + (phi - phi_s) * np.sin(phi_s))
         '''
-        Qs = np.sqrt(e * self.voltage * np.abs(self.eta(bunch)) * self.h / (2 * np.pi * bunch.p0 * bunch.beta * c))
+        Qs = np.sqrt(e * self.voltage * np.abs(self.eta(bunch)) * self.harmonic \
+                / (2 * np.pi * bunch.p0 * bunch.beta * c))
 
         return Qs
-    
-    def hamiltonian(self, dz, dp, bunch):
+
+    def potential(self, dz, bunch):
+        """the potential part V(dz) of the cavity's separable Hamiltonian"""
 
         R = self.circumference / (2 * np.pi)
-        eta = self.eta(bunch)
+        phi = self.harmonic / R * dz + self.phi_s
 
-        phi = self.h / R * dz + self.phi_s
-
-        H = -0.5 * eta * bunch.beta * c * dp ** 2 \
-           + e * self.voltage / (bunch.p0 * 2 * np.pi * self.h) \
+        return e * self.voltage / (bunch.p0 * 2 * np.pi * self.harmonic) \
            * (cos(phi) - cos(self.phi_s) + (phi - self.phi_s) * sin(self.phi_s))
 
-        return H
+    def hamiltonian(self, dz, dp, bunch):
+        """the full separable Hamiltonian of the cavity"""
+
+        kinetic = -0.5 * self.eta(bunch) * bunch.beta * c * dp ** 2
+
+        return kinetic + self.potential(dz, bunch)
 
     def separatrix(self, dz, bunch):
         '''
+        returns the separatrix momentum depending on dz.
         Separatrix defined by
 
         .. math::
@@ -101,12 +111,10 @@ class RFCavity(LongitudinalTracker):
         eta = self.eta(bunch)
         Qs = self.Qs(bunch)
 
-        phi = self.h / R * dz + self.phi_s 
-        cf1 = 2 * Qs ** 2 / (eta * self.h) ** 2
+        phi = self.harmonic / R * dz + self.phi_s 
+        cf1 = 2 * Qs ** 2 / (eta * self.harmonic) ** 2
 
-        p_sq =  cf1 * (1 + cos(phi) + (phi - np.pi) * sin(self.phi_s))
-
-        return np.sqrt(p_sq)
+        return np.sqrt( cf1 * (1 + cos(phi) + (phi - np.pi) * sin(self.phi_s)) )
 
     def isin_separatrix(self, dz, dp, bunch):
 
@@ -114,13 +122,13 @@ class RFCavity(LongitudinalTracker):
         eta = self.eta(bunch)
         Qs = self.Qs(bunch) #np.sqrt(e * self.voltage * np.abs(eta) * h / (2 * np.pi * p0 * bunch.beta * c))
 
-        phi = self.h / R * dz + self.phi_s
-        cf1 = 2 * Qs ** 2 / (eta * self.h) ** 2
+        phi = self.harmonic / R * dz + self.phi_s
+        cf1 = 2 * Qs ** 2 / (eta * self.harmonic) ** 2
 
-        zmax = np.pi * R / self.h
-        pmax = cf1 * (-1 - cos(phi) + (np.pi - phi) * sin(self.phi_s))
+        zmax = np.pi * R / self.harmonic
+        psqmax = cf1 * (-1 - cos(phi) + (np.pi - phi) * sin(self.phi_s))
 
-        isin = np.abs(dz) < zmax and dp ** 2 < np.abs(pmax)
+        isin = np.abs(dz) < zmax and dp ** 2 < np.abs(psqmax)
 
         return isin
 
@@ -130,22 +138,94 @@ class RFCavity(LongitudinalTracker):
         R = self.circumference / (2 * np.pi)
         eta = self.eta(bunch)
          
-        cf1 = self.h / R
+        cf1 = self.harmonic / R
         cf2 = np.sign(eta) * e * self.voltage / (bunch.p0 * bunch.beta * c)
 
         def drift(dp): return -eta * self.length * dp           # Hamiltonian derived by dp
         def kick(dz): return -cf2 * sin(cf1 * dz + self.phi_s)  # Hamiltonian derived by dz
 
-        # vectorised:
         bunch.dz, bunch.dp = self.integrator(
                         bunch.dz, bunch.dp, self.length, drift, kick)
 
-        bunch.update_slices()
+class RFCavityArray(LongitudinalTracker):
+    """
+        provides an array of RFCavities which is able to accelerate.
+        The signature is the same as for RFCavity except that frequencies, voltages
+        and phi_s are passed as lists with as many entries as there are RFCavities.
+        The length of each RFCavity will be 0 except for the last one
+        covering the whole length.
+        The acceleration method shall only be applied once per turn!
+        For one RFCavityArray per ring layout (with all RFCavities at the 
+        same longitudinal position) the longitudinal separatrix function 
+        is exact and makes a valid local statement about stability!
+    """
+    def __init__(self, circumference, length, gamma_transition, 
+                harmonic_list, voltage_list, phi_s_list, integrator=symple.Euler_Cromer):
+
+        if not len(harmonic_list) == len(voltage_list) == len(phi_s_list):
+            print ("Warning: parameter lists for RFCavityArray do not have the same length!")
+        self.cavities = []
+        parameters = zip(harmonic_list, voltage_list, phi_s_list)
+        # drive-thru from the back
+        parameters.reverse()
+        l = length
+        for harmonic, voltage, phi_s in parameters:
+            self.cavities.append( 
+                            RFCavity(self, circumference, l, gamma_transition, 
+                                                    harmonic, voltage, phi_s, integrator)
+                                )
+            l = 0
+        self.cavities.reverse()
+
+    def track(self, bunch):
+        for cavity in self.cavities:
+            cavity.track(bunch)
+
+    def hamiltonian(self, dz, dp, bunch):
+        def fetch_potential(cavity):
+            return cavity.potential(dz, bunch)
+        potential_list = map(fetch_potential, self.cavities)
+        kinetic = -0.5 * self.eta(bunch) * bunch.beta * c * dp ** 2
+        return kinetic + sum(potential_list)
+
+    # def separatrix(self, dz, bunch):
+    #     pass
+
+    def isin_separatrix(self, dz, dp, bunch):
+        # the proper way to do it:
+        #   - define bucket reference interval (as lowest symmetry interval)
+        #       by lowest harmonic number of cavities
+        #   - search the highest maxima of the same value
+        #   - (make sure reference interval of bucket starts at first one)
+        #   - if bucket non-accelerated (i.e. right side same value as left side)
+        #       -> real bucket is between two consecutive highest maxima
+        #   - if bucket accelerated (i.e. right side has offset from left side value)
+        #       -> 
+        pass
+
+    def accelerate_to(self, bunch, gamma):
+        """accelerates the given bunch to the given gamma, i.e.
+        - its transverse geometric emittances shrink
+        - its gamma becomes the given gamma
+        - phi_s of the cavities changes
+        for the moment, acceleration only works for Euler-Cromer,
+        as the other multi-step integrators have to be adapted to
+        change parameters (adapted to respective gammas) during integration!"""
+
+        assert (self.integrator is symple.Euler-Cromer)
+        self.phi_s = 
+        gamma_old   = bunch.gamma
+        beta_old    = bunch.beta
+        bunch.gamma = gamma
+        bunch.x    *= np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
+        bunch.xp   *= np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
+        bunch.y    *= np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
+        bunch.yp   *= np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
 
 
 class CSCavity(object):
     '''
-    classdocs
+        Courant-Snyder transportation.
     '''
 
     def __init__(self, circumference, gamma_transition, Qs):
@@ -156,7 +236,6 @@ class CSCavity(object):
 
     def track(self, bunch):
 
-        p0 = bunch.mass * bunch.gamma * bunch.beta * c
         eta = 1 / self.gamma_transition ** 2 - 1 / bunch.gamma ** 2
 
         omega_0 = 2 * np.pi * bunch.beta * c / self.circumference
