@@ -79,7 +79,7 @@ class Beams(object):
 
     def _set_beam_geometry(self, alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp): pass
 
-    @property:
+    @property
     def macrocharge(self):
 
         return len(self.x)
