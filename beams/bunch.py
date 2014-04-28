@@ -114,10 +114,10 @@ class Cloud(Ensemble):
         self._set_beam_physics(density, extent_x, extent_y, extent_z)
         self._set_beam_numerics()
 
-        self.x0 = self.x[:]
-        self.xp0 = self.xp[:]
-        self.y0 = self.y[:]
-        self.yp0 = self.yp[:]
+        self.x0 = self.x.copy()
+        self.xp0 = self.xp.copy()
+        self.y0 = self.y.copy()
+        self.yp0 = self.yp.copy()
 
         return self
 
@@ -150,10 +150,10 @@ class Cloud(Ensemble):
 
     def reinitialize(self):
 
-        self.x = self.x0[:]
-        self.xp = self.xp0[:]
-        self.y = self.y0[:]
-        self.yp = self.yp0[:]
+        np.copyto(self.x, self.x0)
+        np.copyto(self.xp, self.xp0)
+        np.copyto(self.y, self.y0)
+        np.copyto(self.yp, self.yp0)
 
     def push(self, bunch, ix):
 
@@ -178,11 +178,11 @@ class Cloud(Ensemble):
         self.x += self.xp * dt
         self.y += self.yp * dt
 
+    # @profile
     def track(self, bunch):
 
-                
+        bunch.compute_statistics()
         self.reinitialize()
-        print self.x0
 
         # phi1 = plt.zeros((bunch.poisson_other.ny, bunch.poisson_other.nx))
         # phi2 = plt.zeros((bunch.poisson_other.ny, bunch.poisson_other.nx))
@@ -197,7 +197,7 @@ class Cloud(Ensemble):
             self.poisson_self.gather_from(self.x, self.y, self.poisson_self.rho)
             self.poisson_self.compute_potential()
             self.poisson_self.compute_fields()
-            self.poisson_self.scatter_to(bunch)
+            self.poisson_self.scatter_to(bunch.x[ix], bunch.y[ix], bunch.kx[ix], bunch.ky[ix])
 
             bunch.poisson_other.gather_from(bunch.x[ix], bunch.y[ix], bunch.poisson_other.rho)
             bunch.poisson_other.compute_potential()
@@ -207,29 +207,30 @@ class Cloud(Ensemble):
             # bunch.poisson_other.compute_potential_fgreenp2m(bunch.x, bunch.y,
             #                                                 bunch.poisson_other.x, bunch.poisson_other.y,
             #                                                 phi2, bunch.poisson_other.rho)
-            bunch.poisson_other.scatter_to(self)
+            bunch.poisson_other.scatter_to(self.x, self.y, self.kx, self.ky)
     
             self.push(bunch, ix)
 
-            if i == 0:
-                fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 12))
-            [ax.cla() for ax in (ax1, ax2, ax3, ax4)]
-            # [ax.set_aspect('equal') for ax in (ax1, ax2, ax3, ax4)]
-            ax1.contour(bunch.poisson_other.fgreen.T, 100)
-            ax2.plot(bunch.poisson_other.phi[bunch.poisson_other.ny / 2,:], '-g')
-            # ax2.plot(phi1[bunch.poisson_other.ny / 2,:], '-r')
-            # ax2.plot(phi2[bunch.poisson_other.ny / 2,:], '-', c='orange')
-            # ax3.contourf(self.poisson_self.x, self.poisson_self.y, 10 * plt.log10(self.poisson_self.rho), 100)
-            ax3.imshow(10 * plt.log10(self.poisson_self.rho), origin='lower', aspect='auto',
-                       extent=(self.poisson_self.x[0,0], self.poisson_self.x[0,-1], self.poisson_self.y[0,0], self.poisson_self.y[-1,0]))
-            # ax3.scatter(self.x[::20], self.y[::20], c='b', marker='.')
-            # ax3.quiver(self.x[::50], self.y[::50], self.kx[::50], self.ky[::50], color='g')
-            # ax3.contour(p.x, p.y, p.phi, 100, lw=2)
-            # ax3.scatter(bunch.x[ix], bunch.y[ix], c='y', marker='.', alpha=0.8)
-            ax4.imshow(plt.sqrt(bunch.poisson_other.ex ** 2 + bunch.poisson_other.ey ** 2), origin='lower', aspect='auto',
-                       extent=(bunch.poisson_other.x[0,0], bunch.poisson_other.x[0,-1], bunch.poisson_other.y[0,0], bunch.poisson_other.y[-1,0]))
+            # if i == 0:
+            #     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 12))
+            # [ax.cla() for ax in (ax1, ax2, ax3, ax4)]
+            # # [ax.set_aspect('equal') for ax in (ax1, ax2, ax3, ax4)]
+            # ax1.contour(bunch.poisson_other.fgreen.T, 100)
+            # ax2.plot(bunch.poisson_other.phi[bunch.poisson_other.ny / 2,:], '-g')
+            # # ax2.plot(phi1[bunch.poisson_other.ny / 2,:], '-r')
+            # # ax2.plot(phi2[bunch.poisson_other.ny / 2,:], '-', c='orange')
+            # # ax3.contourf(self.poisson_self.x, self.poisson_self.y, 10 * plt.log10(self.poisson_self.rho), 100)
+            # print 10 * plt.log10(self.poisson_self.rho)
+            # ax3.imshow(10 * plt.log10(self.poisson_self.rho), origin='lower', aspect='auto', vmin=10, vmax=1e2,
+            #            extent=(self.poisson_self.x[0,0], self.poisson_self.x[0,-1], self.poisson_self.y[0,0], self.poisson_self.y[-1,0]))
+            # # ax3.scatter(self.x[::20], self.y[::20], c='b', marker='.')
+            # # ax3.quiver(self.x[::50], self.y[::50], self.kx[::50], self.ky[::50], color='g')
+            # # ax3.contour(p.x, p.y, p.phi, 100, lw=2)
+            # # ax3.scatter(bunch.x[ix], bunch.y[ix], c='y', marker='.', alpha=0.8)
+            # ax4.imshow(plt.sqrt(bunch.poisson_other.ex ** 2 + bunch.poisson_other.ey ** 2), origin='lower', aspect='auto',
+            #            extent=(bunch.poisson_other.x[0,0], bunch.poisson_other.x[0,-1], bunch.poisson_other.y[0,0], bunch.poisson_other.y[-1,0]))
 
-            plt.draw()
+            # plt.draw()
 
 
 class Ghost(Ensemble):

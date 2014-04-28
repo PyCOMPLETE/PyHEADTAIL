@@ -158,7 +158,7 @@ def gather_from(self, double[:] x, double[:] y, double[:,:] rho):
 # #       u.ky[ip[j]] = (t.ey_g[k1] * a1 + t.ey_g[k2] * a2
 # #                      + t.ey_g[k3] * a3 + t.ey_g[k4] * a4);
 
-def scatter_to(self, other):
+def scatter_to(self, double[::1] x, double[::1] y, double[::1] kx, double[::1] ky):
     '''
     Cell
     3 ------------ 4
@@ -190,11 +190,11 @@ def scatter_to(self, other):
     cdef int ix, iy
     cdef double fx, fy
     cdef double a1, a2, a3, a4
-    cdef int i, n = other.n_macroparticles
-    cdef double[::1] x = other.x
-    cdef double[::1] y = other.y
-    cdef double[::1] kx = other.kx
-    cdef double[::1] ky = other.ky
+    cdef int i, n = len(x)
+    # cdef double[::1] x = other.x
+    # cdef double[::1] y = other.y
+    # cdef double[::1] kx = other.kx
+    # cdef double[::1] ky = other.ky
     # for i in prange(n, nogil=True, num_threads=2):
     for i in xrange(n):
         fx, fy = (x[i] - x0) * dxi, (y[i] - y0) * dyi
@@ -206,38 +206,5 @@ def scatter_to(self, other):
         a3 = (1 - fx) * fy
         a4 = fx * fy
 
-    	# size_t k1 = iy * n_points_x + ix;
-    	# size_t k2 = iy * n_points_x + ix + 1;
-    	# size_t k3 = (iy + 1) * n_points_x + ix;
-    	# size_t k4 = (iy + 1) * n_points_x + ix + 1;
-
-    	# // Compute normalized area
-    	# fx -= ix;
-    	# fy -= iy;
-
-    	# double a1 = (1 - fx) * (1 - fy);
-    	# double a2 = fx * (1 - fy);
-    	# double a3 = (1 - fx) * fy;
-    	# double a4 = fx * fy;
-
-    	# // Scatter fields
-    	# t.kx[ip[j]] = (u.ex_g[k1] * a1 + u.ex_g[k2] * a2
-        #              + u.ex_g[k3] * a3 + u.ex_g[k4] * a4);
-    	# t.ky[ip[j]] = (u.ey_g[k1] * a1 + u.ey_g[k2] * a2
-        #              + u.ey_g[k3] * a3 + u.ey_g[k4] * a4);
-
-
-        # Scatter fields
-        # if i in range(1000, 1200):
-            # print '=============================================='
-            # print a1 + a2 + a3 + a4
-            # print ex[iy, ix], ex[iy, ix + 1], ex[iy + 1, ix], ex[iy + 1, ix + 1]
         kx[i] = ex[iy, ix] * a1  + ex[iy, ix + 1] * a2 + ex[iy + 1, ix] * a3 + ex[iy + 1, ix + 1] * a4
-            # print kx[i]
-            # print ey[iy, ix], ey[iy, ix + 1], ey[iy + 1, ix], ey[iy + 1, ix + 1]
         ky[i] = ey[iy, ix] * a1  + ey[iy, ix + 1] * a2 + ey[iy + 1, ix] * a3 + ey[iy + 1, ix + 1] * a4
-            # print ky[i]
-#       t.kx[ip[j]] = (u.ex_g[k1] * a1 + u.ex_g[k2] * a2
-#                      + u.ex_g[k3] * a3 + u.ex_g[k4] * a4);
-#       t.ky[ip[j]] = (u.ey_g[k1] * a1 + u.ey_g[k2] * a2
-#                      + u.ey_g[k3] * a3 + u.ey_g[k4] * a4);

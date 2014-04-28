@@ -19,14 +19,14 @@ from plots import *
 
 
 plt.ion()
-n_turns = 10
+n_turns = 50
 
 # Monitors
 bunchmonitor = BunchMonitor('bunch', n_turns)
 # particlemonitor = ParticleMonitor('particles', n_turns)
 
 # Betatron
-n_segments = 1
+n_segments = 10
 C = 6911.
 s = np.arange(1, n_segments + 1) * C / n_segments
 linear_map = TransverseTracker.from_copy(s,
@@ -41,7 +41,7 @@ cavity = CSCavity(C, 18, 0.017)
 # bunch = Bunch.from_empty(2e3, charge, energy, intensity, mass)
 # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
 # Bunch
-bunch = bunch_matched_and_sliced(100000, n_particles=1.15e11, charge=1*e, energy=26e9, mass=m_p,
+bunch = bunch_matched_and_sliced(500000, n_particles=1.15e11, charge=1*e, energy=26e9, mass=m_p,
                                  epsn_x=2.5, epsn_y=2.5, ltm=linear_map[0], bunch_length=0.21, bucket=0.5, matching=None,
                                  n_slices=64, nsigmaz=None, slicemode='cspace')
 bunch.update_slices()
@@ -63,19 +63,19 @@ cloud.add_poisson(plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, 128, 128, other=
 
 # Resonator wakefields
 # wakes = WakeResonator(R_shunt=2e6, frequency=1e9, Q=1)
-
-map_ = linear_map +  [cavity] + [cloud]
+map_ = list(itertools.chain.from_iterable([[l] + [cloud] for l in linear_map] + [[cavity]]))
+exit(-1)
 
 t1 = time.clock()
 normalization = np.max(bunch.dz) / np.max(bunch.dp)
 r = bunch.dz ** 2 + (normalization * bunch.dp) ** 2
 for i in range(n_turns):
-    # t1 = time.clock()
+    t0 = time.clock()
+
     for m in map_:
-#            t1 = time.clock()
         m.track(bunch)
-#            t0 = time.clock() - t1
-#            print m, ', elapsed time: ' + str(t0) + ' s'
+
+    print 'Turn',i,': elapsed time: ' + '{:3f}'.format(time.clock() - t0) + ' s'
     bunchmonitor.dump(bunch)
     # particlemonitor.dump(bunch)
     # plot_phasespace(bunch, r)
