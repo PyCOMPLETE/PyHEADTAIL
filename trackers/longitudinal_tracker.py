@@ -144,8 +144,7 @@ class RFCavity(LongitudinalTracker):
         def drift(dp): return -eta * self.length * dp           # Hamiltonian derived by dp
         def kick(dz): return -cf2 * sin(cf1 * dz + self.phi_s)  # Hamiltonian derived by dz
 
-        bunch.dz, bunch.dp = self.integrator(
-                        bunch.dz, bunch.dp, self.length, drift, kick)
+        bunch.dz, bunch.dp = self.integrator(bunch.dz, bunch.dp, 1, drift, kick)
 
 class RFCavityArray(LongitudinalTracker):
     """
@@ -166,16 +165,18 @@ class RFCavityArray(LongitudinalTracker):
             print ("Warning: parameter lists for RFCavityArray do not have the same length!")
         self.cavities = []
         parameters = zip(harmonic_list, voltage_list, phi_s_list)
+        self.
         # drive-thru from the back
         parameters.reverse()
         l = length
         for harmonic, voltage, phi_s in parameters:
-            self.cavities.append( 
+            self.cavities.append(
                             RFCavity(self, circumference, l, gamma_transition, 
                                                     harmonic, voltage, phi_s, integrator)
                                 )
             l = 0
         self.cavities.reverse()
+
 
     def track(self, bunch):
         for cavity in self.cavities:
@@ -213,14 +214,15 @@ class RFCavityArray(LongitudinalTracker):
         change parameters (adapted to respective gammas) during integration!"""
 
         assert (self.integrator is symple.Euler-Cromer)
-        self.phi_s = 
+        self.phi_s = np.arcsin
         gamma_old   = bunch.gamma
         beta_old    = bunch.beta
         bunch.gamma = gamma
-        bunch.x    *= np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
-        bunch.xp   *= np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
-        bunch.y    *= np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
-        bunch.yp   *= np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
+        geo_emittance_factor = np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
+        bunch.x    *= geo_emittance_factor
+        bunch.xp   *= geo_emittance_factor
+        bunch.y    *= geo_emittance_factor
+        bunch.yp   *= geo_emittance_factor
 
 
 class CSCavity(object):
