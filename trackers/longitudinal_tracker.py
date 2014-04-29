@@ -114,19 +114,19 @@ class RFCavity(LongitudinalTracker):
         phi = self.harmonic / R * dz + self.phi_s 
         cf1 = 2 * Qs ** 2 / (eta * self.harmonic) ** 2
 
-        return np.sqrt( cf1 * (1 + cos(phi) + (phi - np.pi) * sin(self.phi_s)) )
+        return np.sqrt( cf1 * (1 + cos(phi - self.phi_s) + (phi - np.pi) * sin(self.phi_s)) )
 
     def isin_separatrix(self, dz, dp, bunch):
 
         R = self.circumference / (2 * np.pi)
         eta = self.eta(bunch)
-        Qs = self.Qs(bunch) #np.sqrt(e * self.voltage * np.abs(eta) * h / (2 * np.pi * p0 * bunch.beta * c))
+        Qs = self.Qs(bunch) 
 
         phi = self.harmonic / R * dz + self.phi_s
         cf1 = 2 * Qs ** 2 / (eta * self.harmonic) ** 2
 
         zmax = np.pi * R / self.harmonic
-        psqmax = cf1 * (-1 - cos(phi) + (np.pi - phi) * sin(self.phi_s))
+        psqmax = cf1 * (-1 - cos(phi - self.phi_s) + (np.pi - phi) * sin(self.phi_s))
 
         isin = np.abs(dz) < zmax and dp ** 2 < np.abs(psqmax)
 
@@ -214,7 +214,6 @@ class RFCavityArray(LongitudinalTracker):
         change parameters (adapted to respective gammas) during integration!"""
 
         assert (self.integrator is symple.Euler-Cromer)
-        self.phi_s = np.arcsin
         gamma_old   = bunch.gamma
         beta_old    = bunch.beta
         bunch.gamma = gamma
@@ -223,7 +222,11 @@ class RFCavityArray(LongitudinalTracker):
         bunch.xp   *= geo_emittance_factor
         bunch.y    *= geo_emittance_factor
         bunch.yp   *= geo_emittance_factor
-
+        # the difference
+        prate = 
+        phi_s_new = np.arcsin( np.sign(self.eta(bunch)) *\
+                        np.sqrt( prate * self.circumference / (e * self.voltage) ) )
+        
 
 class CSCavity(object):
     '''
