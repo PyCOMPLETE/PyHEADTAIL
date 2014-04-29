@@ -134,6 +134,9 @@ class RFCavity(LongitudinalTracker):
 
     # @profile
     def track(self, bunch):
+        """
+            one turn!!!
+        """
 
         R = self.circumference / (2 * np.pi)
         eta = self.eta(bunch)
@@ -144,7 +147,8 @@ class RFCavity(LongitudinalTracker):
         def drift(dp): return -eta * self.length * dp           # Hamiltonian derived by dp
         def kick(dz): return -cf2 * sin(cf1 * dz + self.phi_s)  # Hamiltonian derived by dz
 
-        bunch.dz, bunch.dp = self.integrator(bunch.dz, bunch.dp, 1, drift, kick)
+        bunch.dz, bunch.dp = self.integrator(bunch.dz, bunch.dp, 
+                                1, drift, kick)
 
 class RFCavityArray(LongitudinalTracker):
     """
