@@ -158,7 +158,7 @@ def gather_from(self, double[:] x, double[:] y, double[:,:] rho):
 # #       u.ky[ip[j]] = (t.ey_g[k1] * a1 + t.ey_g[k2] * a2
 # #                      + t.ey_g[k3] * a3 + t.ey_g[k4] * a4);
 
-def scatter_to(self, double[::1] x, double[::1] y, double[::1] kx, double[::1] ky):
+def scatter_to(self, double[:,:] ex, double[:,:] ey, double[::1] x, double[::1] y, double[::1] kx, double[::1] ky):
     '''
     Cell
     3 ------------ 4
@@ -172,8 +172,8 @@ def scatter_to(self, double[::1] x, double[::1] y, double[::1] kx, double[::1] k
     '''
 
     # Initialise
-    cdef double[:,:] ex = self.ex
-    cdef double[:,:] ey = self.ey
+    # cdef double[:,:] ex = self.ex
+    # cdef double[:,:] ey = self.ey
 
     # On regular mesh
     cdef double x0 = self.x[0,0]

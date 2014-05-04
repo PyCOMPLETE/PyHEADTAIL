@@ -8,8 +8,7 @@ from beams.bunch import *
 from beams import slices
 from beams.matching import match_transverse, match_longitudinal
 from monitors.monitors import *
-from solvers.grid import *
-from solvers.poissonfft import *
+from spacecharge.spacecharge import *
 from impedances.wake_fields import *
 from trackers.transverse_tracker import *
 from trackers.longitudinal_tracker import *
@@ -19,14 +18,14 @@ from plots import *
 
 
 plt.ion()
-n_turns = 50
+n_turns = 3
 
 # Monitors
 bunchmonitor = BunchMonitor('bunch', n_turns)
 # particlemonitor = ParticleMonitor('particles', n_turns)
 
 # Betatron
-n_segments = 10
+n_segments = 1
 C = 6911.
 s = np.arange(1, n_segments + 1) * C / n_segments
 linear_map = TransverseTracker.from_copy(s,
@@ -47,12 +46,10 @@ bunch = bunch_matched_and_sliced(500000, n_particles=1.15e11, charge=1*e, energy
 bunch.update_slices()
 
 # Cloud
-cloud = Cloud.from_parameters(100000, 5e11, plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, C)
-cloud.add_poisson(plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, 128, 128, other=bunch)
+ecloud = Cloud.from_parameters(100000, 5e11, plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, C)
 
-# PIC grid
-# poisson = PoissonFFT(plt.std(bunch.x) * 16, plt.std(bunch.y) * 8, 64, 128)
-# poisson.inject(master=cloud, slave=bunch)
+# Space charge
+cloud = SpaceCharge(ecloud, 'cloud', plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, 128, 128)
 # Test the PIC here!
 
 # pdf, bins, patches = plt.hist(bunch.dz, n_slices)
@@ -64,7 +61,6 @@ cloud.add_poisson(plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, 128, 128, other=
 # Resonator wakefields
 # wakes = WakeResonator(R_shunt=2e6, frequency=1e9, Q=1)
 map_ = list(itertools.chain.from_iterable([[l] + [cloud] for l in linear_map] + [[cavity]]))
-exit(-1)
 
 t1 = time.clock()
 normalization = np.max(bunch.dz) / np.max(bunch.dp)

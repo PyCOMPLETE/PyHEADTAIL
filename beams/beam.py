@@ -36,12 +36,12 @@ class Beams(object):
         _set_beam_physics(totalcharge, unitcharge, gamma, mass)
         _set_beam_geometry(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp)
 
-        self.x0 = self.x
-        self.xp0 = self.xp
-        self.y0 = self.y
-        self.yp0 = self.yp
-        self.z0 = self.z
-        self.dp0 = self.dp
+        self.x0 = self.x.copy()
+        self.xp0 = self.xp.copy()
+        self.y0 = self.y.copy()
+        self.yp0 = self.yp.copy()
+        self.z0 = self.z.copy()
+        self.dp0 = self.dp.copy()
 
     def _create_empty(self, macrocharge):
 
@@ -77,7 +77,8 @@ class Beams(object):
         self.gamma = gamma
         self.mass = mass
 
-    def _set_beam_geometry(self, alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp): pass
+    def _set_beam_geometry(self, alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp,
+                           distribution='gauss'): pass
 
     @property
     def macrocharge(self):
@@ -86,12 +87,12 @@ class Beams(object):
 
     def reinit():
 
-        self.x = self.x0
-        self.xp = self.xp0
-        self.y = self.y0
-        self.yp = self.yp0
-        self.z = self.z0
-        self.sp = self.sp0
+        np.copyto(self.x, self.x0)
+        np.copyto(self.xp, self.xp0)
+        np.copyto(self.y, self.y0)
+        np.copyto(self.yp, self.yp0)
+        np.copyto(self.z, self.z0)
+        np.copyto(self.dp, self.dp0)
 
 class Cloud(Ensemble):
 

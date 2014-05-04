@@ -208,7 +208,7 @@ class Cloud(Ensemble):
             #                                                 bunch.poisson_other.x, bunch.poisson_other.y,
             #                                                 phi2, bunch.poisson_other.rho)
             bunch.poisson_other.scatter_to(self.x, self.y, self.kx, self.ky)
-    
+
             self.push(bunch, ix)
 
             # if i == 0:
