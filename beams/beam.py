@@ -22,18 +22,18 @@ from solvers.poissonfft import *
 
 class Beams(object):
 
-    def __init__(self, macrocharge, totalcharge, unitcharge, gamma, mass,
+    def __init__(self, n_macroparticles, n_particles, charge, gamma, mass,
                  alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp,
                  distribution='gauss'):
 
         if distribution == 'empty':
-            _create_empty(macrocharge)
+            _create_empty(n_macroparticles)
         elif distribution == 'gauss':
-            _creat_gauss(macrocharge)
+            _creat_gauss(n_macroparticles)
         elif distribution == "uniform":
-            _create_uniform(macrocharge)
+            _create_uniform(n_macroparticles)
 
-        _set_beam_physics(totalcharge, unitcharge, gamma, mass)
+        _set_beam_physics(n_particles, charge, gamma, mass)
         _set_beam_geometry(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp)
 
         self.x0 = self.x.copy()
@@ -43,37 +43,37 @@ class Beams(object):
         self.z0 = self.z.copy()
         self.dp0 = self.dp.copy()
 
-    def _create_empty(self, macrocharge):
+    def _create_empty(self, n_macroparticles):
 
-        self.x = np.zeros(macrocharge)
-        self.xp = np.zeros(macrocharge)
-        self.y = np.zeros(macrocharge)
-        self.yp = np.zeros(macrocharge)
-        self.z = np.zeros(macrocharge)
-        self.dp = np.zeros(macrocharge)
+        self.x = np.zeros(n_macroparticles)
+        self.xp = np.zeros(n_macroparticles)
+        self.y = np.zeros(n_macroparticles)
+        self.yp = np.zeros(n_macroparticles)
+        self.z = np.zeros(n_macroparticles)
+        self.dp = np.zeros(n_macroparticles)
 
-    def _create_gauss(self, macrocharge):
+    def _create_gauss(self, n_macroparticles):
 
-        self.x = np.random.randn(macrocharge)
-        self.xp = np.random.randn(macrocharge)
-        self.y = np.random.randn(macrocharge)
-        self.yp = np.random.randn(macrocharge)
-        self.z = np.random.randn(macrocharge)
-        self.dp = np.random.randn(macrocharge)
+        self.x = np.random.randn(n_macroparticles)
+        self.xp = np.random.randn(n_macroparticles)
+        self.y = np.random.randn(n_macroparticles)
+        self.yp = np.random.randn(n_macroparticles)
+        self.z = np.random.randn(n_macroparticles)
+        self.dp = np.random.randn(n_macroparticles)
 
-    def _create_uniform(self, macrocharge):
+    def _create_uniform(self, n_macroparticles):
 
-        self.x = 2 * np.random.rand(macrocharge) - 1
-        self.xp = 2 * np.random.rand(macrocharge) - 1
-        self.y = 2 * np.random.rand(macrocharge) - 1
-        self.yp = 2 * np.random.rand(macrocharge) - 1
-        self.z = 2 * np.random.rand(macrocharge) - 1
-        self.dp = 2 * np.random.rand(macrocharge) - 1
+        self.x = 2 * np.random.rand(n_macroparticles) - 1
+        self.xp = 2 * np.random.rand(n_macroparticles) - 1
+        self.y = 2 * np.random.rand(n_macroparticles) - 1
+        self.yp = 2 * np.random.rand(n_macroparticles) - 1
+        self.z = 2 * np.random.rand(n_macroparticles) - 1
+        self.dp = 2 * np.random.rand(n_macroparticles) - 1
 
-    def _set_beam_physics(self, totalcharge, unitcharge, gamma, mass):
+    def _set_beam_physics(self, n_particles, charge, gamma, mass):
 
-        self.totalcharge = totalcharge
-        self.unitcharge = unitcharge
+        self.n_particles = n_particles
+        self.charge = charge
         self.gamma = gamma
         self.mass = mass
 
@@ -81,9 +81,19 @@ class Beams(object):
                            distribution='gauss'): pass
 
     @property
-    def macrocharge(self):
+    def n_macroparticles(self):
 
         return len(self.x)
+
+    @property
+    def beta(self):
+
+        return np.sqrt(1 - 1 / self.gamma ** 2)
+
+    @property
+    def p0(self):
+
+        return self.mass * self.gamma * self.beta * c
 
     def reinit():
 
@@ -94,174 +104,129 @@ class Beams(object):
         np.copyto(self.z, self.z0)
         np.copyto(self.dp, self.dp0)
 
-class Cloud(Ensemble):
-
-    # TODO: rather go for charge, intensity, unitcharge
-    # instead of n_macroparticles, n_particles, charge
-    # or macrocharge, charge, unitcharge
-    # or macrocharge, totalcharge, unitcharge, gamma, mass; particles: q
-
-    @classmethod
-    def from_parameters(cls, n_macroparticles, density, extent_x, extent_y, extent_z):
-
-        self = cls.from_uniform(n_macroparticles)
-
-        self.x *= extent_x
-        self.xp *= 0
-        self.y *= extent_y
-        self.yp *= 0
-        self.dz *= 0
-        self.dp *= 0
-
-        self._set_beam_physics(density, extent_x, extent_y, extent_z)
-        self._set_beam_numerics()
-
-        self.x0 = self.x
-        self.xp0 = self.xp
-        self.y0 = self.yp
-        self.yp0 = self.yp
-
-        return self
-
-    def _set_beam_physics(self, density, extent_x, extent_y, extent_z):
-
-        self.n_particles = density * extent_x * extent_y * extent_z
-        self.charge = e
-        self.gamma = 1
-        self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
-        self.mass = m_e
-        self.p0 = self.mass * self.gamma * self.beta * c
-
-    def _set_beam_numerics(self):
-
-        self.n_macroparticles = len(self.x)
-
-        self.id = np.arange(1, len(self.x) + 1)
-        self.np = np.ones(self.n_macroparticles) * self.n_particles / self.n_macroparticles
-
-    def add_poisson(self, extent_x, extent_y, nx, ny, other=None):
-
-        self.poisson_self = PoissonFFT(extent_x, extent_y, nx, ny)
-        self.kx = np.zeros(self.n_macroparticles)
-        self.ky = np.zeros(self.n_macroparticles)
-
-        if other:
-            other.poisson_other = copy.deepcopy(self.poisson_self)
-            other.kx = np.zeros(other.n_macroparticles)
-            other.ky = np.zeros(other.n_macroparticles)
-
-    def push(self, bunch, ix):
-
-        # Normalization factors to speed up computations
-        dz = bunch.slices.dz_centers[5] - bunch.slices.dz_centers[4]
-        dt = dz / (bunch.beta * c)
-
-        qe = self.n_particles / self.n_macroparticles
-        qp = bunch.n_particles / bunch.n_macroparticles
-        c_e = -2 * c * re * 1 / bunch.beta * qp
-        #   = -2 * c ** 2 * re  * ex / dz * dt * 1 / gamma
-        c_p = -2 * 1 * rp * 1 / (bunch.gamma * bunch.beta ** 2) * qe
-        #   = -2 * c ** 2 * rp  * ex / dL * dL * 1 / gamma / (beta * c) ** 2
-
-        # Push bunch
-        bunch.xp[ix] += c_p * bunch.kx[ix]
-        bunch.yp[ix] += c_p * bunch.ky[ix]
-
-        # Push cloud
-        self.xp += c_e * self.kx
-        self.yp += c_e * self.ky
-        self.x += self.xp * dt
-        self.y += self.yp * dt
-
-    def track(self, bunch):
-
-        # self.reinitialize()
-        # self.poisson.initialize<Bunch&, Cloud&>(bunch, *this)
-
-        for i in xrange(bunch.slices.n_slices):
-            dz = 1
-            poisson = self.poisson_self
-            lambda_ = self.n_particles / self.n_macroparticles * self.charge / dz
-            poisson.fastgather(self.x, self.y, lambda_)
-            poisson.compute_potential(poisson)
-
-            dz = 1
-            poisson = bunch.poisson_other
-            lambda_ = bunch.n_particles / bunch.n_macroparticles * bunch.charge / dz
-            poisson.fastgather(bunch.x, bunch.y, lambda_)
-            poisson.compute_potential(poisson)
-
-            # poisson.fastgather<Bunch&>(bunch, i)
-            # poisson.computePotential<Bunch&>(bunch, i)
-            # poisson.compute_field<Bunch&>(bunch, i)
-
-            # poisson.fastgather<Cloud&>(*this, i)
-            # poisson.computePotential<Cloud&>(*this, i)
-            # poisson.compute_field<Cloud&>(*this, i)
-
-            # poisson.parallelscatter<Bunch&, Cloud&>(bunch, *this, i)
-
-            # self.push(bunch, i)
 
 
-def bunch_matched_and_sliced(n_macroparticles, n_particles, charge, energy, mass,
-                             epsn_x, epsn_y, ltm, bunch_length, bucket, matching,
-                             n_slices, nsigmaz, slicemode='cspace'):
 
-    # bunch = Bunch.from_empty(1e3, n_particles, charge, energy, mass)
-    # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
-    bunch = Bunch.from_gaussian(n_macroparticles, n_particles, charge, energy, mass)
-    bunch.match_transverse(epsn_x, epsn_y, ltm)
-    bunch.match_longitudinal(bunch_length, bucket, matching)
-    bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
-    bunch.update_slices()
-
-    return bunch
-
-def bunch_unmatched_inbucket_sliced(n_macroparticles, n_particles, charge, energy, mass,
-                                    epsn_x, epsn_y, ltm, sigma_dz, sigma_dp, bucket,
-                                    n_slices, nsigmaz, slicemode='cspace'):
-    bunch = Bunch.from_gaussian(n_macroparticles, n_particles, charge, energy, mass)
-    bunch.match_transverse(epsn_x, epsn_y, ltm)
-    bunch.unmatched_inbucket(sigma_dz, sigma_dp, bucket)
-    bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
-    bunch.update_slices()
-
-    return bunch
-
-def bunch_from_file(filename, step, n_particles, charge, energy, mass,
-                    n_slices, nsigmaz, slicemode='cspace'):
-
-    bunch = Bunch.from_h5file(filename, step, n_particles, charge, energy, mass)
-    bunch.set_slices(Slices(n_slices, nsigmaz, slicemode))
-    bunch.update_slices()
-
-    return bunch
-
-
-    def _set_beam_physics(self, n_particles, charge, energy, mass):
-        '''
-        Set the physical quantities of the beam
-        '''
-        self.n_particles = n_particles
-        self.charge = charge
-        self.gamma = energy * e / (mass * c ** 2)
-        self.beta = np.sqrt(1 - 1 / self.gamma ** 2)
-        self.mass = mass
-        self.p0 = mass * self.gamma * self.beta * c
-
-    def _set_beam_numerics(self):
-        '''
-        Set the numerical quantities of the beam
-        '''
-        self.n_macroparticles = len(self.x)
-        self.n_macroparticles_lost = 0
-
-        self.id = np.arange(1, len(self.x) + 1, dtype=np.int)
-        self.np = np.ones(self.n_macroparticles) * self.n_particles / self.n_macroparticles
+import cobra_functions.stats as cp
 
 
 class Slices(object):
+    '''
+    classdocs
+    '''
+
+    def __init__(self, n_slices, nsigmaz=None, slicemode='cspace'):
+        '''
+        Constructor
+        '''
+        self.nsigmaz = nsigmaz
+        self.slicemode = slicemode
+
+        self.mean_x = np.zeros(n_slices)
+        self.mean_xp = np.zeros(n_slices)
+        self.mean_y = np.zeros(n_slices)
+        self.mean_yp = np.zeros(n_slices)
+        self.mean_dz = np.zeros(n_slices)
+        self.mean_dp = np.zeros(n_slices)
+        self.sigma_x = np.zeros(n_slices)
+        self.sigma_y = np.zeros(n_slices)
+        self.sigma_dz = np.zeros(n_slices)
+        self.sigma_dp = np.zeros(n_slices)
+        self.epsn_x = np.zeros(n_slices)
+        self.epsn_y = np.zeros(n_slices)
+        self.epsn_z = np.zeros(n_slices)
+
+        self.n_macroparticles = np.zeros(n_slices, dtype=int)
+        self.dz_centers = np.zeros(n_slices)
+        self.dz_bins = np.zeros(n_slices + 1)
+
+    @property
+    def n_slices(self):
+
+        return len(self.mean_x)
+
+    #~ @profile
+    def slice_constant_space(self, bunch):
+
+        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+        bunch.sort_particles()
+
+        # determine the longitudinal cuts (this allows for the user defined static cuts: self.dz_cut_tail, self.dz_cut_head)
+        try:
+            z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
+        except:
+            z_cut_tail, z_cut_head = self.get_longitudinal_cuts(bunch)
+
+        # 1. z-bins
+        z_bins = np.zeros(self.n_slices + 3)
+        # TODO: ask Hannes: is this check neccessary?
+        z_bins[0] = np.min([bunch.dz[0], z_cut_tail])
+        z_bins[-1] = np.max([bunch.dz[- 1 - bunch.n_macroparticles_lost], z_cut_head])
+        # Not so nice, dz not explicit
+        z_bins[1:-1] = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
+        dz = (z_cut_head - z_cut_tail) / self.n_slices
+        z_bin[1:-1] = np.arange(z_cut_tail, z_cut_tail + dz, dz)
+        self.z_centers = dz_bins[:-1] + (dz_bins[1:] - dz_bins[:-1]) / 2.
+        # self.z_centers[-1] = self.mean_dz[-1]
+
+        # 2. n_macroparticles
+        index_after_bin_edges = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_bins)
+        index_after_bin_edges[np.where(dz_bins == bunch.dz[-1 - bunch.n_macroparticles_lost])] += 1
+        # Get n_macroparticles
+        self.n_macroparticles = np.diff(index_after_bin_edges)
+        self.n_macroparticles = np.concatenate((self.n_macroparticles, [bunch.n_macroparticles - bunch.n_macroparticles_lost], [bunch.n_macroparticles_lost]))
+
+        # .in_slice indicates in which slice the particle is (needed for wakefields)
+        bunch.set_in_slice(index_after_bin_edges)
+
+
+    def slice_constant_charge(self, bunch):
+
+        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+        bunch.sort_particles()
+
+        # determine the longitudinal cuts (this allows for the user defined static cuts: self.dz_cut_tail, self.dz_cut_head)
+        try:
+            z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
+        except:
+            z_cut_tail, z_cut_head = self.get_longitudinal_cuts(bunch)
+
+        # 1. n_macroparticles
+        particles_in_left_cut = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_cut_tail)
+        particles_in_right_cut = bunch.n_macroparticles - bunch.n_macroparticles_lost - np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_cut_head)
+        # set number of macro_particles in the slices that are cut (slice 0 and n_slices+1)
+        self.n_macroparticles[0] = particles_in_left_cut
+        self.n_macroparticles[-3] = particles_in_right_cut
+        # determine number of macroparticles used for slicing
+        q0 = bunch.n_macroparticles - bunch.n_macroparticles_lost - self.n_macroparticles[0] - self.n_macroparticles[-3]
+        # distribute macroparticles uniformly along slices
+        self.n_macroparticles[1:-3] = int(q0 / self.n_slices)
+        self.n_macroparticles[1:(q0 % self.n_slices + 1)] += 1
+        # number of macroparticles in full bunch slice and lost particles slice
+        self.n_macroparticles[-2:] =  bunch.n_macroparticles - bunch.n_macroparticles_lost, bunch.n_macroparticles_lost
+
+        # Get indices of the particles defining the bin edges
+        index_after_bin_edges = np.append(0, np.cumsum(self.n_macroparticles[:-2]))
+
+        # bin centers
+        self.dz_centers[:-1] = map((lambda i: cp.mean(bunch.dz[index_after_bin_edges[i]:index_after_bin_edges[i+1]])), np.arange(self.n_slices + 2))
+        self.dz_centers[-1] = cp.mean(bunch.dz)
+
+        # .in_slice indicates in which slice the particle is (needed for wakefields)
+        bunch.set_in_slice(index_after_bin_edges)
+
+    def get_longitudinal_cuts(self, bunch):
+
+        if self.nsigmaz == None:
+            z_cut_tail = bunch.dz[0]
+            z_cut_head = bunch.dz[-1 - bunch.n_macroparticles_lost]
+        else:
+            mean_z = cp.mean(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+            sigma_z = cp.std(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+            z_cut_tail = mean_z - self.nsigmaz * sigma_z
+            z_cut_head = mean_z + self.nsigmaz * sigma_z
+
+        return dz_cut_tail, dz_cut_head
 
     # @profile
     def compute_statistics(self):
@@ -302,13 +267,7 @@ class Slices(object):
                                   * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
                                   * self.mass * self.gamma * self.beta * c / e
 
-    def set_slices(self, slices):
-
-        self.slices = slices
-
     def update_slices(self):
-
-        assert(hasattr(self, 'slices'))
 
         if self.slices.slicemode == 'ccharge':
             self.slices.slice_constant_charge(self, self.slices.nsigmaz)
@@ -335,6 +294,8 @@ class Slices(object):
         self.id = self.id.take(dz_argsorted)
 
     def set_in_slice(self, index_after_bin_edges):
+
         self.in_slice = (self.slices.n_slices + 3) * np.ones(self.n_macroparticles, dtype=np.int)
+
         for i in xrange(self.slices.n_slices + 2):
             self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i
