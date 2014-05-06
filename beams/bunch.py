@@ -123,7 +123,7 @@ class Cloud(Ensemble):
 
     def _set_beam_physics(self, density, extent_x, extent_y, extent_z):
 
-        self.n_particles = density * extent_x * extent_y * extent_z
+        self.n_particles = density * 2 * extent_x * 2 * extent_y * extent_z
         self.charge = e
         self.gamma = 1
         self.beta = np.sqrt(1 - 1 / self.gamma ** 2)

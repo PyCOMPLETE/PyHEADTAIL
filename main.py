@@ -18,7 +18,7 @@ from plots import *
 
 
 plt.ion()
-n_turns = 3
+n_turns = 20
 
 # Monitors
 bunchmonitor = BunchMonitor('bunch', n_turns)
@@ -29,9 +29,9 @@ n_segments = 1
 C = 6911.
 s = np.arange(1, n_segments + 1) * C / n_segments
 linear_map = TransverseTracker.from_copy(s,
-                                         np.zeros(n_segments), np.ones(n_segments) * 100, np.zeros(n_segments),
-                                         np.zeros(n_segments), np.ones(n_segments) * 100, np.zeros(n_segments),
-                                         26.13, 0, 0, 26.18, 0, 0)
+                                         np.zeros(n_segments), np.ones(n_segments) * 54.6, np.zeros(n_segments),
+                                         np.zeros(n_segments), np.ones(n_segments) * 54.6, np.zeros(n_segments),
+                                         20.13, 0, 0, 20.18, 0, 0)
 
 # Synchrotron
 cavity = CSCavity(C, 18, 0.017)
@@ -41,12 +41,15 @@ cavity = CSCavity(C, 18, 0.017)
 # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
 # Bunch
 bunch = bunch_matched_and_sliced(500000, n_particles=1.15e11, charge=1*e, energy=26e9, mass=m_p,
-                                 epsn_x=2.5, epsn_y=2.5, ltm=linear_map[0], bunch_length=0.21, bucket=0.5, matching=None,
-                                 n_slices=64, nsigmaz=None, slicemode='cspace')
+                                 epsn_x=2.5, epsn_y=2.5, ltm=linear_map[0], bunch_length=0.23, bucket=0.5, matching=None,
+                                 n_slices=64, nsigmaz=3, slicemode='cspace')
 bunch.update_slices()
 
 # Cloud
-ecloud = Cloud.from_parameters(100000, 5e11, plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, C)
+ecloud = Cloud.from_parameters(100000, 10e11, plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, C)
+
+# print plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, C
+# exit(-1)
 
 # Space charge
 cloud = SpaceCharge(ecloud, 'cloud', plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, 128, 128)
