@@ -145,55 +145,69 @@ class Slices(object):
 
         return len(self.mean_x)
 
-    #~ @profile
+    def get_longitudinal_cuts(self, bunch):
+
+        if self.nsigmaz == None:
+            z_cut_tail = bunch.dz[0]
+            z_cut_head = bunch.dz[-1 - bunch.n_macroparticles_lost]
+        else:
+            mean_z = cp.mean(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+            sigma_z = cp.std(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+            z_cut_tail = mean_z - self.nsigmaz * sigma_z
+            z_cut_head = mean_z + self.nsigmaz * sigma_z
+
+        return z_cut_tail, z_cut_head
+
+    @profile
     def slice_constant_space(self, bunch):
 
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
         bunch.sort_particles()
 
-        # determine the longitudinal cuts (this allows for the user defined static cuts: self.dz_cut_tail, self.dz_cut_head)
+        # determine the longitudinal cuts (this allows for the user defined static cuts: self.z_cut_tail, self.z_cut_head)
         try:
-            z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
-        except:
-            z_cut_tail, z_cut_head = self.get_longitudinal_cuts(bunch)
+            self.z_cut_tail, self.z_cut_head
+        except AttributeError:
+            self.z_cut_tail, self.z_cut_head = self.get_longitudinal_cuts(bunch)
 
         # 1. z-bins
-        z_bins = np.zeros(self.n_slices + 3)
-        # TODO: ask Hannes: is this check neccessary?
-        z_bins[0] = np.min([bunch.dz[0], z_cut_tail])
-        z_bins[-1] = np.max([bunch.dz[- 1 - bunch.n_macroparticles_lost], z_cut_head])
-        # Not so nice, dz not explicit
-        z_bins[1:-1] = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
-        dz = (z_cut_head - z_cut_tail) / self.n_slices
-        z_bin[1:-1] = np.arange(z_cut_tail, z_cut_tail + dz, dz)
-        self.z_centers = dz_bins[:-1] + (dz_bins[1:] - dz_bins[:-1]) / 2.
-        # self.z_centers[-1] = self.mean_dz[-1]
+        # z_bins = np.zeros(self.n_slices + 3)
+        # # TODO: ask Hannes: is this check neccessary?
+        # z_bins[0] = np.min([bunch.dz[0], z_cut_tail])
+        # z_bins[-1] = np.max([bunch.dz[- 1 - bunch.n_macroparticles_lost], z_cut_head])
+        # # Not so nice, dz not explicit
+        # Constant space
+        dz = (self.z_cut_head - self.z_cut_tail) / self.n_slices
+        self.z_bins = np.arange(self.z_cut_tail, self.z_cut_head + dz, dz)
+        self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
         # 2. n_macroparticles
-        index_after_bin_edges = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_bins)
-        index_after_bin_edges[np.where(dz_bins == bunch.dz[-1 - bunch.n_macroparticles_lost])] += 1
-        # Get n_macroparticles
-        self.n_macroparticles = np.diff(index_after_bin_edges)
-        self.n_macroparticles = np.concatenate((self.n_macroparticles, [bunch.n_macroparticles - bunch.n_macroparticles_lost], [bunch.n_macroparticles_lost]))
+        first_index_in_bin = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost],
+                                             np.hstack((self.z_cut_tail, self.z_bins, self.z_cut_head)))
+        self.z_index = first_index_in_bin[1:-2]
+        # first_index_in_bin[np.where(self.z_bins == bunch.dz[-1 - bunch.n_macroparticles_lost])] += 1
+        n_macroparticles = np.diff(first_index_in_bin)
+        self.n_cut_tail = n_macroparticles[0]
+        self.n_cut_head = n_macroparticles[-1]
+        self.n_macroparticles = n_macroparticles[1:-1]
 
         # .in_slice indicates in which slice the particle is (needed for wakefields)
-        bunch.set_in_slice(index_after_bin_edges)
-
+        # bunch.set_in_slice(index_after_bin_edges)
 
     def slice_constant_charge(self, bunch):
 
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
         bunch.sort_particles()
 
-        # determine the longitudinal cuts (this allows for the user defined static cuts: self.dz_cut_tail, self.dz_cut_head)
+        # determine the longitudinal cuts (this allows for the user defined static cuts: self.z_cut_tail, self.z_cut_head)
         try:
             z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
         except:
             z_cut_tail, z_cut_head = self.get_longitudinal_cuts(bunch)
 
         # 1. n_macroparticles
-        particles_in_left_cut = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_cut_tail)
-        particles_in_right_cut = bunch.n_macroparticles - bunch.n_macroparticles_lost - np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], dz_cut_head)
+        particles_in_left_cut = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], z_cut_tail)
+        particles_in_right_cut = bunch.n_macroparticles - bunch.n_macroparticles_lost - np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], z_cut_head)
         # set number of macro_particles in the slices that are cut (slice 0 and n_slices+1)
         self.n_macroparticles[0] = particles_in_left_cut
         self.n_macroparticles[-3] = particles_in_right_cut
@@ -215,18 +229,12 @@ class Slices(object):
         # .in_slice indicates in which slice the particle is (needed for wakefields)
         bunch.set_in_slice(index_after_bin_edges)
 
-    def get_longitudinal_cuts(self, bunch):
+    def update_slices(self, bunch):
 
-        if self.nsigmaz == None:
-            z_cut_tail = bunch.dz[0]
-            z_cut_head = bunch.dz[-1 - bunch.n_macroparticles_lost]
-        else:
-            mean_z = cp.mean(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            sigma_z = cp.std(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            z_cut_tail = mean_z - self.nsigmaz * sigma_z
-            z_cut_head = mean_z + self.nsigmaz * sigma_z
-
-        return dz_cut_tail, dz_cut_head
+        if self.slicemode == 'ccharge':
+            self.slice_constant_charge(bunch)
+        elif self.slicemode == 'cspace':
+            self.slice_constant_space(bunch)
 
     # @profile
     def compute_statistics(self):
@@ -267,13 +275,6 @@ class Slices(object):
                                   * self.slices.sigma_dz[i] * self.slices.sigma_dp[i] \
                                   * self.mass * self.gamma * self.beta * c / e
 
-    def update_slices(self):
-
-        if self.slices.slicemode == 'ccharge':
-            self.slices.slice_constant_charge(self, self.slices.nsigmaz)
-        elif self.slices.slicemode == 'cspace':
-            self.slices.slice_constant_space(self, self.slices.nsigmaz)
-
     #~ @profile
     def sort_particles(self):
         # update the number of lost particles
@@ -293,9 +294,9 @@ class Slices(object):
         self.dp = self.dp.take(dz_argsorted)
         self.id = self.id.take(dz_argsorted)
 
-    def set_in_slice(self, index_after_bin_edges):
+    # def set_in_slice(self, index_after_bin_edges):
 
-        self.in_slice = (self.slices.n_slices + 3) * np.ones(self.n_macroparticles, dtype=np.int)
+    #     self.in_slice = (self.slices.n_slices + 3) * np.ones(self.n_macroparticles, dtype=np.int)
 
-        for i in xrange(self.slices.n_slices + 2):
-            self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i
+    #     for i in xrange(self.slices.n_slices + 2):
+    #         self.in_slice[index_after_bin_edges[i]:index_after_bin_edges[i+1]] = i

@@ -106,6 +106,7 @@ class Slices(object):
 
 
     def determine_longitudinal_cuts(self, bunch, nsigmaz):
+
         if nsigmaz == None:
             dz_cut_tail = bunch.dz[0]
             dz_cut_head = bunch.dz[-1 - bunch.n_macroparticles_lost]
@@ -114,4 +115,5 @@ class Slices(object):
             mean_dz = cp.mean(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
             dz_cut_tail = -nsigmaz * sigma_dz + mean_dz
             dz_cut_head = nsigmaz * sigma_dz + mean_dz
+
         return dz_cut_tail, dz_cut_head

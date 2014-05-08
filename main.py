@@ -3,9 +3,9 @@ import cProfile, itertools, sys, time, timeit
 
 from scipy.constants import c, e, m_p
 
+import beams.beam as beam
 from cobra_functions import stats, random
 from beams.bunch import *
-from beams import slices
 from beams.matching import match_transverse, match_longitudinal
 from monitors.monitors import *
 from spacecharge.spacecharge import *
@@ -17,7 +17,7 @@ from trackers.longitudinal_tracker import *
 from plots import *
 
 
-plt.ion()
+# plt.ion()
 n_turns = 20
 
 # Monitors
@@ -40,10 +40,25 @@ cavity = CSCavity(C, 18, 0.017)
 # bunch = Bunch.from_empty(2e3, charge, energy, intensity, mass)
 # x, xp, y, yp, dz, dp = random.gsl_quasirandom(bunch)
 # Bunch
-bunch = bunch_matched_and_sliced(500000, n_particles=1.15e11, charge=1*e, energy=26e9, mass=m_p,
+bunch = bunch_matched_and_sliced(100, n_particles=1.15e11, charge=1*e, energy=26e9, mass=m_p,
                                  epsn_x=2.5, epsn_y=2.5, ltm=linear_map[0], bunch_length=0.23, bucket=0.5, matching=None,
                                  n_slices=64, nsigmaz=3, slicemode='cspace')
-bunch.update_slices()
+# bunch.update_slices()
+
+slices1 = beam.Slices(10)
+slices1.update_slices(bunch)
+print slices1.n_cut_tail, slices1.n_cut_head, slices1.n_macroparticles, sum(slices1.n_macroparticles) + slices1.n_cut_tail + slices1.n_cut_head
+print slices1.z_index
+
+plt.hist(bunch.dz, 10)
+[plt.axvline(z, c='m') for z in slices1.z_bins]
+[plt.axvline(z, c='g') for z in slices1.z_centers]
+plt.plot(bunch.dz, plt.ones(bunch.n_macroparticles) * 2, 'o')
+[plt.plot(bunch.dz[i], 2, marker='x', c='y', ms=20) for i in slices1.z_index]
+plt.stem(slices1.z_centers, slices1.n_macroparticles)
+plt.show()
+
+exit(-1)
 
 # Cloud
 ecloud = Cloud.from_parameters(100000, 10e11, plt.std(bunch.x) * 20, plt.std(bunch.y) * 20, C)
