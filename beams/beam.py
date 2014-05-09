@@ -137,8 +137,7 @@ class Slices(object):
         self.epsn_z = np.zeros(n_slices)
 
         self.n_macroparticles = np.zeros(n_slices, dtype=int)
-        # self.dz_centers = np.zeros(n_slices)
-        # self.dz_bins = np.zeros(n_slices + 1)
+        self.z_bins = np.zeros(n_slices + 1)
 
     @property
     def n_slices(self):
@@ -177,9 +176,7 @@ class Slices(object):
         # z_bins[-1] = np.max([bunch.dz[- 1 - bunch.n_macroparticles_lost], z_cut_head])
         # # Not so nice, dz not explicit
         # Constant space
-        # dz = (self.z_cut_head - self.z_cut_tail) / self.n_slices
-        # self.z_bins = np.arange(self.z_cut_tail, self.z_cut_head + dz, dz)
-        self.z_bins = np.linspace(self.z_cut_tail, self.z_cut_head, self.n_slices + 1) # more robust than arange to reach z_cut_head exactly
+        self.z_bins[:] = np.linspace(self.z_cut_tail, self.z_cut_head, self.n_slices + 1) # more robust than arange, to reach z_cut_head exactly
         self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
         # 2. n_macroparticles - equivalet to x0 <= x < x1 binning
@@ -215,36 +212,17 @@ class Slices(object):
         q0 = n_macroparticles_alive - self.n_cut_tail - self.n_cut_head
         self.n_macroparticles[:] = q0 // self.n_slices
         self.n_macroparticles[np.random.randint(self.n_slices, size=q0 % self.n_slices)] += 1
-        n_macroparticles_all = np.hstack((self.n_cut_tail, self.n_macroparticles, self.n_cut_head))
 
         # 2. z-bins
         # Get indices of the particles defining the bin edges
+        n_macroparticles_all = np.hstack((self.n_cut_tail, self.n_macroparticles, self.n_cut_head))
         first_index_in_bin = np.append(0, np.cumsum(n_macroparticles_all))
         self.z_index = first_index_in_bin[1:-2]
         self.z_bins = map(lambda i: bunch.dz[self.z_index[i] - 1] + (bunch.dz[self.z_index[i]] - bunch.dz[self.z_index[i] - 1]) / 2,
                           np.arange(1, self.n_slices))
         self.z_bins = np.hstack((self.z_cut_tail, self.z_bins, self.z_cut_head))
-
-        # # 1. z-bins
-        # # z_bins = np.zeros(self.n_slices + 3)
-        # # # TODO: ask Hannes: is this check neccessary?
-        # # z_bins[0] = np.min([bunch.dz[0], z_cut_tail])
-        # # z_bins[-1] = np.max([bunch.dz[- 1 - bunch.n_macroparticles_lost], z_cut_head])
-        # # # Not so nice, dz not explicit
-        # # Constant space
-        # # dz = (self.z_cut_head - self.z_cut_tail) / self.n_slices
-        # # self.z_bins = np.arange(self.z_cut_tail, self.z_cut_head + dz, dz)
-        # self.z_bins = np.linspace(self.z_cut_tail, self.z_cut_head, self.n_slices + 1) # more robust than arange to reach z_cut_head exactly
-        # self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
-
-        # # 2. n_macroparticles - equivalet to x0 <= x < x1 binning
-        # z_bins_all = np.hstack((self.z_cut_tail, self.z_bins, self.z_cut_head))
-        # first_index_in_bin = np.searchsorted(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost], z_bins_all)
-        # first_index_in_bin[np.where(z_bins_all == bunch.dz[-1 - bunch.n_macroparticles_lost])] += 1 # treat last bin for x0 <= x <= x1
-        # self.z_index = first_index_in_bin[1:-2]
-
-        # bin centers
-        self.z_centers = map((lambda i: cp.mean(bunch.dz[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices))
+        self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
+        # self.z_centers = map((lambda i: cp.mean(bunch.dz[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices))
 
     def update_slices(self, bunch):
 

@@ -45,12 +45,12 @@ bunch = bunch_matched_and_sliced(100, n_particles=1.15e11, charge=1*e, energy=26
                                  n_slices=64, nsigmaz=3, slicemode='cspace')
 # bunch.update_slices()
 
-slices1 = beam.Slices(10, mode='ccharge')
+slices1 = beam.Slices(10, 2, mode='cspace')
 slices1.update_slices(bunch)
 # print slices1.n_cut_tail, slices1.n_cut_head, slices1.n_macroparticles, sum(slices1.n_macroparticles) + slices1.n_cut_tail + slices1.n_cut_head
 # print slices1.z_index
 
-# plt.hist(bunch.dz, 10)
+plt.hist(bunch.dz, 10)
 [plt.axvline(z, c='m') for z in slices1.z_bins]
 # [plt.axvline(z, c='g') for z in slices1.z_centers]
 plt.plot(bunch.dz, plt.ones(bunch.n_macroparticles) * 2, 'o')
