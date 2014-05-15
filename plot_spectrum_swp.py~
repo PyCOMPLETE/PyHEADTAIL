@@ -1,0 +1,158 @@
+from __future__ import division
+
+import h5py
+import matplotlib
+import pylab as plt
+import numpy as np
+import PySussix
+
+
+# Choose fft (flag b_fft=1) and/or sussix (b_sx=1)
+b_fft = 0
+b_sx  = 1
+
+# main tunes
+Qx = 20.15
+Qy = 20.15
+
+# Define up to which # of turns.
+n_turns = 1024
+
+# Number of macroparticles to be used for footprint.
+n_particles = 1000
+
+# Get data from hdf5 file. Pos. y as a function of #turns for each slice.
+hf = h5py.File('particles.h5part', 'r')
+
+# y[i,j]  is a 2D array and keeps track of position y for each turn i for each particle j.
+# yp[i,j] is the same but for particle 'momenta' yp.
+y  = np.zeros((n_turns, n_particles))
+yp = np.zeros((n_turns, n_particles))
+x  = np.zeros((n_turns, n_particles))
+xp = np.zeros((n_turns, n_particles))
+for i in range(0, n_turns):
+    strTurn  = 'Step#' + str(i)
+    turn     = hf[strTurn]
+    y_t      = turn['y']
+    yp_t     = turn['yp']
+    y[i,:]   = y_t[0:n_particles]
+    yp[i,:]  = yp_t[0:n_particles]
+    x_t      = turn['x']
+    xp_t     = turn['xp']
+    x[i,:]   = x_t[0:n_particles]
+    xp[i,:]  = xp_t[0:n_particles]
+    
+# DEBUG
+# Plot position and momentum of particle j as a function of the number of turns i.
+# fig, ( ax11, ax12 ) = plt.subplots(2)
+# turns = np.arange(n_turns)
+# for j in range(0, n_particles):
+#    ax11.plot(turns, y[:,j])
+#    ax12.plot(turns, yp[:,j])
+# plt.show()
+
+# SUSSIX TUNE ANALYSIS
+if(b_sx == 1):
+    # Initialize PySussix
+    SX = PySussix.Sussix()
+
+    # Define 'turns-window' tWin to be analyzed. Use window width tWin_wdt (> 100 ?!) and initial
+    # value tWin_ini. Move window by tWin_stp. Number of iterations n_tWin.
+    tWin_wdt = 100
+    tWin_ini = 1
+    tWin_stp = 1
+    n_tWin   = int((n_turns-tWin_wdt)/tWin_stp)
+
+    # Interactive drawing mode on.
+    plt.ion()
+    
+    # Vectors keeping track of tunes qx, qy of specific particles for each tWin setting.
+    sx_tWin_fx = np.zeros(n_tWin)
+    sx_tWin_fy = np.zeros(n_tWin)
+    for t in range(tWin_ini, n_turns-tWin_wdt, tWin_stp):
+        # Define input parameters to SUSSIX for current window (t, t+turns_wdt).
+        #  'idam'     : Nb. of dim. (recom. to use 1 only), then call function for other 2 dim.
+        #  'ir'       : Flag to specify if signal is complex or real.
+        #  'tunex,y'  : Initial ('guessed')  values for main tune (integer part omitted by %1)
+        SX.sussix_inp(nt1=t, nt2=t+tWin_wdt, idam=1, ir=1, tunex=Qx % 1, tuney=Qx % 1)
+
+        # find main tune (qx, qy) for one specific macroparticle i for current turns-window.
+        i = 0
+        # find qy.
+        SX.sussix(y[:,i], yp[:,i], y[:,i], yp[:,i], y[:,i], yp[:,i])
+        sx_tWin_fy[t] = np.absolute(SX.ox[np.argmax(SX.ax)])
+        # find qx.
+        SX.sussix(x[:,i], xp[:,i], x[:,i], xp[:,i], x[:,i], xp[:,i])
+        sx_tWin_fx[t] = np.absolute(SX.ox[np.argmax(SX.ax)])
+
+        # DEBUG
+        # Plot result continuously
+        fig0, ( ax01 ) = plt.subplots(1)
+        ax01.scatter(sx_tWin_fx[t], sx_tWin_fy[t], c='r')
+        plt.show()
+        
+        # sx_fx = np.zeros(n_particles)
+        # sx_fy = np.zeros(n_particles)
+        # for i in xrange(n_particles):
+            # find qy.
+            # SX.sussix(y[:,i], yp[:,i], y[:,i], yp[:,i], y[:,i], yp[:,i])
+            # sx_fy[i] = np.absolute(SX.ox[np.argmax(SX.ax)])
+            # find qx.
+            # SX.sussix(x[:,i], xp[:,i], x[:,i], xp[:,i], x[:,i], xp[:,i])
+            # sx_fx[i] = np.absolute(SX.ox[np.argmax(SX.ax)])
+
+    # plot tune footprint (qx vs. qy)
+    # fig2, ( ax21 ) = plt.subplots(1)
+    # ax21.scatter(sx_fx, sx_fy, c='r')
+    # ax21.set_xlabel('qx')
+    # ax21.set_ylabel('qy')
+    # ax21.set_autoscaley_on(False)
+    # ax21.set_autoscalex_on(False)
+    # ax21.set_ylim([0.12, 0.17])
+    # ax21.set_xlim([0.12, 0.17])
+    # fig2.suptitle('sussix result')
+
+# STANDARD NUMPY FFT ANALYSIS
+if(b_fft == 1):
+    # find main tune for each macroparticle.
+    fx = np.zeros(n_particles)
+    fy = np.zeros(n_particles)
+    for i in range(0, n_particles):
+        # find qy.
+        fft_y      = np.fft.rfft(y[:,i])
+        f_y        = np.fft.rfftfreq(y[:,i].size, d=1.)
+        abs_fft_y  = np.absolute(fft_y)
+        # find qx.
+        fft_x      = np.fft.rfft(x[:,i])
+        f_x        = np.fft.rfftfreq(x[:,i].size, d=1.)
+        abs_fft_x  = np.absolute(fft_x)
+
+        # DEBUG
+        if(i == 0):
+            fig2, ( ax21, ax22 ) = plt.subplots(2)
+            fig2.subplots_adjust(hspace = 0.4)
+            ax21.plot(y[:,0])
+            ax22.plot(f_y, abs_fft_y)
+            fig2.suptitle('Particle 0 trajectory and fft')
+            ax21.set_ylabel('y pos.')
+            ax21.set_xlabel('# turns')
+            ax22.set_ylabel('ampl.')
+            ax22.set_xlabel('qy')
+            #plt.show()
+    
+        # Find max. contribution and frequency.
+        fy[i] = f_y[abs_fft_y.argmax()]
+        fx[i] = f_x[abs_fft_x.argmax()]
+        
+    # plot tune footprint (qx vs. qy)
+    fig3, ( ax31 ) = plt.subplots(1)
+    ax31.scatter(fx, fy, c='r')
+    ax31.set_xlabel('qx')
+    ax31.set_ylabel('qy')
+    ax31.set_autoscaley_on(False)
+    ax31.set_autoscalex_on(False)
+    ax31.set_ylim([0.12, 0.17])
+    ax31.set_xlim([0.12, 0.17])
+    fig3.suptitle('fft result')
+
+plt.show()
