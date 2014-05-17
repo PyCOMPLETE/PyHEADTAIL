@@ -23,7 +23,7 @@ from solvers.poissonfft import *
 class Beam(object):
 
     def __init__(self, n_macroparticles, charge, gamma, intensity, mass,
-                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp,
+                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z=None, epsn_z=None,
                  distribution='gauss'):
 
         if distribution == 'empty':
@@ -36,7 +36,7 @@ class Beam(object):
         self.id = np.arange(1, n_macroparticles + 1, dtype=int)
 
         _set_beam_quality(charge, gamma, intensity, mass)
-        _set_beam_geometry(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp)
+        _set_beam_geometry(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z, epsn_z)
 
         self.x0 = self.x.copy()
         self.xp0 = self.xp.copy()
@@ -79,8 +79,37 @@ class Beam(object):
         self.intensity = intensity
         self.mass = mass
 
-    def _set_beam_geometry(self, alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, sigma_z, sigma_dp,
-                           distribution='gauss'): pass
+    def _set_beam_geometry(self, alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z=None, epsn_z=None,
+                           distribution='gauss'):
+
+        # Transverse
+        if distribution == 'gauss':
+            sigma_x = np.sqrt(beta_x * epsn_x * 1e-6 / (bunch.gamma * bunch.beta))
+            sigma_xp = sigma_x / beta_x
+            sigma_y = np.sqrt(beta_y * epsn_y * 1e-6 / (bunch.gamma * bunch.beta))
+            sigma_yp = sigma_y / beta_y
+
+            self.x *= sigma_x
+            self.xp *= sigma_xp
+            self.y *= sigma_y
+            self.yp *= sigma_yp
+        else:
+            raise(ValueError)
+
+        # Longitudinal
+        # Assuming a gaussian-type stationary distribution: beta_z = eta * circumference / (2 * np.pi * Qs)
+        if sigma_z and epsn_z:
+            sigma_dp = epsn_z / (4 * np.pi * sigma_z) * e / self.p0
+            if sigma_z / sigma_dp != beta_z:
+                print '*** WARNING: beam mismatched in bucket. Set synchrotron tune to obtain beta_z = ', sigma_z / sigma_dp
+        elif not sigma_z and epsn_z:
+            sigma_z = np.sqrt(beta_z * epsn_z / (4 * np.pi) * e / self.p0)
+            sigma_dp = sigma_dz / beta_z
+        else:
+            sigma_dp = sigma_dz / beta_z
+
+        self.dz *= sigma_dz
+        self.dp *= sigma_dp
 
     @property
     def n_macroparticles(self):
@@ -106,24 +135,24 @@ class Beam(object):
         np.copyto(self.z, self.z0)
         np.copyto(self.dp, self.dp0)
 
-    #~ @profile
-    def sort_particles(self):
-        # update the number of lost particles
-        self.n_macroparticles_lost = (self.n_macroparticles - np.count_nonzero(self.id))
+    # #~ @profile
+    # def sort_particles(self):
+    #     # update the number of lost particles
+    #     self.n_macroparticles_lost = (self.n_macroparticles - np.count_nonzero(self.id))
 
-        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
-        if self.n_macroparticles_lost:
-            dz_argsorted = np.lexsort((self.dz, -np.sign(self.id))) # place lost particles at the end of the array
-        else:
-            dz_argsorted = np.argsort(self.dz)
+    #     # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+    #     if self.n_macroparticles_lost:
+    #         dz_argsorted = np.lexsort((self.dz, -np.sign(self.id))) # place lost particles at the end of the array
+    #     else:
+    #         dz_argsorted = np.argsort(self.dz)
 
-        self.x = self.x.take(dz_argsorted)
-        self.xp = self.xp.take(dz_argsorted)
-        self.y = self.y.take(dz_argsorted)
-        self.yp = self.yp.take(dz_argsorted)
-        self.dz = self.dz.take(dz_argsorted)
-        self.dp = self.dp.take(dz_argsorted)
-        self.id = self.id.take(dz_argsorted)
+    #     self.x = self.x.take(dz_argsorted)
+    #     self.xp = self.xp.take(dz_argsorted)
+    #     self.y = self.y.take(dz_argsorted)
+    #     self.yp = self.yp.take(dz_argsorted)
+    #     self.dz = self.dz.take(dz_argsorted)
+    #     self.dp = self.dp.take(dz_argsorted)
+    #     self.id = self.id.take(dz_argsorted)
 
 
 from random import sample
