@@ -12,7 +12,7 @@ import copy, h5py, sys
 from scipy.constants import c, e, epsilon_0, m_e, m_p, pi
 
 from beams.slices import *
-from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
+# from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
 from solvers.poissonfft import *
 
 
@@ -22,28 +22,28 @@ from solvers.poissonfft import *
 
 class Beam(object):
 
-    def __init__(self, n_macroparticles, charge, gamma, intensity, mass,
-                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z=None, epsn_z=None,
-                 distribution='gauss'):
+    # def __init__(self, n_macroparticles, charge, gamma, intensity, mass,
+    #              alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z=None, epsn_z=None,
+    #              distribution='gauss'):
 
-        if distribution == 'empty':
-            _create_empty(n_macroparticles)
-        elif distribution == 'gauss':
-            _creat_gauss(n_macroparticles)
-        elif distribution == "uniform":
-            _create_uniform(n_macroparticles)
+    #     if distribution == 'empty':
+    #         _create_empty(n_macroparticles)
+    #     elif distribution == 'gauss':
+    #         _creat_gauss(n_macroparticles)
+    #     elif distribution == "uniform":
+    #         _create_uniform(n_macroparticles)
 
-        self.id = np.arange(1, n_macroparticles + 1, dtype=int)
+    #     self.id = np.arange(1, n_macroparticles + 1, dtype=int)
 
-        _set_beam_quality(charge, gamma, intensity, mass)
-        _set_beam_geometry(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z, epsn_z)
+    #     _set_beam_quality(charge, gamma, intensity, mass)
+    #     _set_beam_geometry(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z, epsn_z)
 
-        self.x0 = self.x.copy()
-        self.xp0 = self.xp.copy()
-        self.y0 = self.y.copy()
-        self.yp0 = self.yp.copy()
-        self.z0 = self.z.copy()
-        self.dp0 = self.dp.copy()
+    #     self.x0 = self.x.copy()
+    #     self.xp0 = self.xp.copy()
+    #     self.y0 = self.y.copy()
+    #     self.yp0 = self.yp.copy()
+    #     self.z0 = self.z.copy()
+    #     self.dp0 = self.dp.copy()
 
     # def __init__(self, x, xp, y, yp, z, dp): pass
 
@@ -53,7 +53,7 @@ class Beam(object):
 
         self = cls()
 
-        self._creat_gauss(n_macroparticles)
+        self._create_gauss(n_macroparticles)
 
         # General
         self.charge = charge
@@ -62,9 +62,9 @@ class Beam(object):
         self.mass = mass
 
         # Transverse
-        sigma_x = np.sqrt(beta_x * epsn_x * 1e-6 / (bunch.gamma * bunch.beta))
+        sigma_x = np.sqrt(beta_x * epsn_x * 1e-6 / (gamma * self.beta))
         sigma_xp = sigma_x / beta_x
-        sigma_y = np.sqrt(beta_y * epsn_y * 1e-6 / (bunch.gamma * bunch.beta))
+        sigma_y = np.sqrt(beta_y * epsn_y * 1e-6 / (gamma * self.beta))
         sigma_yp = sigma_y / beta_y
 
         self.x *= sigma_x
@@ -80,21 +80,35 @@ class Beam(object):
                 print '*** WARNING: beam mismatched in bucket. Set synchrotron tune to obtain beta_z = ', sigma_z / sigma_dp
         elif not sigma_z and epsn_z:
             sigma_z = np.sqrt(beta_z * epsn_z / (4 * np.pi) * e / self.p0)
-            sigma_dp = sigma_dz / beta_z
+            sigma_dp = sigma_z / beta_z
         else:
-            sigma_dp = sigma_dz / beta_z
+            sigma_dp = sigma_z / beta_z
 
-        self.dz *= sigma_dz
+        self.z *= sigma_z
         self.dp *= sigma_dp
 
         return self
 
     @classmethod
-    def as_cloud(cls, n_macroparticles):
+    def as_cloud(cls, n_macroparticles, density, extent_x, extent_y, extent_z):
 
         self = cls()
 
         self._create_uniform(n_macroparticles)
+
+        # General
+        self.charge = e
+        self.gamma = 1
+        self.intensity = density * extent_x * extent_y * extent_z
+        self.mass = m_e
+
+        # Transverse
+        self.x *= extent_x
+        self.xp *= 0
+        self.y *= extent_y
+        self.yp *= 0
+        self.z *= extent_z
+        self.dp *= 0
 
         return self
 
