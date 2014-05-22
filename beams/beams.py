@@ -11,8 +11,7 @@ import numpy as np
 import copy, h5py, sys
 from scipy.constants import c, e, epsilon_0, m_e, m_p, pi
 
-from beams.slices import *
-# from beams.matching import match_transverse, match_longitudinal, unmatched_inbucket
+from slices import *
 from solvers.poissonfft import *
 
 
@@ -54,6 +53,7 @@ class Beam(object):
         self = cls()
 
         self._create_gauss(n_macroparticles)
+        self.id = np.arange(1, n_macroparticles + 1, dtype=int)
 
         # General
         self.charge = charge
@@ -205,23 +205,23 @@ class Beam(object):
         np.copyto(self.dp, self.dp0)
 
     # #~ @profile
-    # def sort_particles(self):
-    #     # update the number of lost particles
-    #     self.n_macroparticles_lost = (self.n_macroparticles - np.count_nonzero(self.id))
+    def sort_particles(self):
+        # update the number of lost particles
+        self.n_macroparticles_lost = (self.n_macroparticles - np.count_nonzero(self.id))
 
-    #     # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
-    #     if self.n_macroparticles_lost:
-    #         dz_argsorted = np.lexsort((self.dz, -np.sign(self.id))) # place lost particles at the end of the array
-    #     else:
-    #         dz_argsorted = np.argsort(self.dz)
+        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+        if self.n_macroparticles_lost:
+            z_argsorted = np.lexsort((self.z, -np.sign(self.id))) # place lost particles at the end of the array
+        else:
+            z_argsorted = np.argsort(self.z)
 
-    #     self.x = self.x.take(dz_argsorted)
-    #     self.xp = self.xp.take(dz_argsorted)
-    #     self.y = self.y.take(dz_argsorted)
-    #     self.yp = self.yp.take(dz_argsorted)
-    #     self.dz = self.dz.take(dz_argsorted)
-    #     self.dp = self.dp.take(dz_argsorted)
-    #     self.id = self.id.take(dz_argsorted)
+        self.x = self.x.take(z_argsorted)
+        self.xp = self.xp.take(z_argsorted)
+        self.y = self.y.take(z_argsorted)
+        self.yp = self.yp.take(z_argsorted)
+        self.z = self.z.take(z_argsorted)
+        self.dp = self.dp.take(z_argsorted)
+        self.id = self.id.take(z_argsorted)
 
 
 from random import sample
@@ -256,13 +256,13 @@ class Slices(object):
 
         self.n_macroparticles = np.zeros(n_slices, dtype=int)
         self.z_bins = np.zeros(n_slices + 1)
-        self.static_slices = False
+        # self.static_slices = False
 
         if z_cuts:
-            self.z_cut_tail, self.z_cut_head = z_cuts
-            self.z_bins = np.linspace(self.z_cut_tail, self.z_cut_head, self.n_slices + 1)
+            z_cut_tail, z_cut_head = z_cuts
+            self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
             self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
-            self.static_slices = True
+            self.z_cut_tail, self.z_cut_head = z_cut_tail, z_cut_head
 
     @property
     def n_slices(self):
@@ -272,11 +272,11 @@ class Slices(object):
     def _set_longitudinal_cuts(self, bunch):
 
         if self.nsigmaz == None:
-            z_cut_tail = bunch.dz[0]
-            z_cut_head = bunch.dz[-1 - bunch.n_macroparticles_lost]
+            z_cut_tail = bunch.z[0]
+            z_cut_head = bunch.z[-1 - bunch.n_macroparticles_lost]
         else:
-            mean_z = cp.mean(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            sigma_z = cp.std(bunch.dz[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+            mean_z = cp.mean(bunch.z[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+            sigma_z = cp.std(bunch.z[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
             z_cut_tail = mean_z - self.nsigmaz * sigma_z
             z_cut_head = mean_z + self.nsigmaz * sigma_z
 
@@ -289,22 +289,24 @@ class Slices(object):
         bunch.sort_particles()
 
         # 1. z-bins
-        if not self.static_slices:
-            self.z_cut_tail, self.z_cut_head = self._set_longitudinal_cuts(bunch)
-            self.z_bins = np.linspace(self.z_cut_tail, self.z_cut_head, self.n_slices + 1) # more robust than arange, to reach z_cut_head exactly
+        try:
+            z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
+        except AttributeError:
+            z_cut_tail, z_cut_head = self._set_longitudinal_cuts(bunch)
+            self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1) # more robust than arange, to reach z_cut_head exactly
             self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
         n_macroparticles_alive = bunch.n_macroparticles - bunch.n_macroparticles_lost
-        self.n_cut_tail = +np.searchsorted(bunch.dz[:n_macroparticles_alive], self.z_cut_tail)
-        self.n_cut_head = -np.searchsorted(bunch.dz[:n_macroparticles_alive], self.z_cut_head) + n_macroparticles_alive
+        self.n_cut_tail = +np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_tail)
+        self.n_cut_head = -np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_head) + n_macroparticles_alive
 
         # 2. n_macroparticles
-        z_bins_all = np.hstack((bunch.dz[0], self.z_bins, bunch.dz[n_macroparticles_alive - 1]))
-        first_index_in_bin = np.searchsorted(bunch.dz[:n_macroparticles_alive], z_bins_all)
-        if (self.z_bins[-1] in bunch.dz[:n_macroparticles_alive]): first_index_in_bin[-1] += 1
+        z_bins_all = np.hstack((bunch.z[0], self.z_bins, bunch.z[n_macroparticles_alive - 1]))
+        first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], z_bins_all)
+        if (self.z_bins[-1] in bunch.z[:n_macroparticles_alive]): first_index_in_bin[-1] += 1
         self.z_index = first_index_in_bin[1:-1]
 
-        # first_index_in_bin = np.searchsorted(bunch.dz[:n_macroparticles_alive], self.z_bins)
+        # first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], self.z_bins)
         # self.z_index = first_index_in_bin
 
         # self.n_macroparticles = np.diff(first_index_in_bin)
@@ -320,12 +322,14 @@ class Slices(object):
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
         bunch.sort_particles()
 
-        if not self.static_slices:
-            self.z_cut_tail, self.z_cut_head = self._set_longitudinal_cuts(bunch)
+        # try:
+        #     z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
+        # except AttributeError:
+        z_cut_tail, z_cut_head = self._set_longitudinal_cuts(bunch)
 
         n_macroparticles_alive = bunch.n_macroparticles - bunch.n_macroparticles_lost
-        self.n_cut_tail = +np.searchsorted(bunch.dz[:n_macroparticles_alive], self.z_cut_tail)
-        self.n_cut_head = -np.searchsorted(bunch.dz[:n_macroparticles_alive], self.z_cut_head) + n_macroparticles_alive
+        self.n_cut_tail = +np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_tail)
+        self.n_cut_head = -np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_head) + n_macroparticles_alive
 
         # 1. n_macroparticles - distribute macroparticles uniformly along slices
         q0 = n_macroparticles_alive - self.n_cut_tail - self.n_cut_head
@@ -339,10 +343,10 @@ class Slices(object):
         first_index_in_bin = np.cumsum(n_macroparticles_all)
         self.z_index = first_index_in_bin[:-1]
 
-        self.z_bins = (bunch.dz[self.z_index - 1] + bunch.dz[self.z_index]) / 2.
-        self.z_bins[0], self.z_bins[-1] = self.z_cut_tail, self.z_cut_head
+        self.z_bins = (bunch.z[self.z_index - 1] + bunch.z[self.z_index]) / 2.
+        self.z_bins[0], self.z_bins[-1] = z_cut_tail, z_cut_head
         self.z_centers = (self.z_bins[:-1] + self.z_bins[1:]) / 2.
-        # # self.z_centers = map((lambda i: cp.mean(bunch.dz[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices)
+        # # self.z_centers = map((lambda i: cp.mean(bunch.z[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices)
 
     def update_slices(self, bunch):
 
@@ -374,17 +378,17 @@ class Slices(object):
             self.mean_xp[i] = cp.mean(xp)
             self.mean_y[i] = cp.mean(y)
             self.mean_yp[i] = cp.mean(yp)
-            self.mean_dz[i] = cp.mean(z)
+            self.mean_z[i] = cp.mean(z)
             self.mean_dp[i] = cp.mean(dp)
 
             self.sigma_x[i] = cp.std(x)
             self.sigma_y[i] = cp.std(y)
-            self.sigma_dz[i] = cp.std(z)
+            self.sigma_z[i] = cp.std(z)
             self.sigma_dp[i] = cp.std(dp)
 
             self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma * bunch.beta * 1e6
             self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma * bunch.beta * 1e6
-            self.epsn_z[i] = 4 * np.pi * self.sigma_dz[i] * self.sigma_dp[i] * bunch.p0 / e
+            self.epsn_z[i] = 4 * np.pi * self.sigma_z[i] * self.sigma_dp[i] * bunch.p0 / e
 
     # def sort_particles(self, bunch):
 
@@ -393,15 +397,15 @@ class Slices(object):
 
     #     # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
     #     if bunch.n_macroparticles_lost:
-    #         dz_argsorted = np.lexsort((bunch.dz, -np.sign(bunch.id))) # place lost particles at the end of the array
+    #         dz_argsorted = np.lexsort((bunch.z, -np.sign(bunch.id))) # place lost particles at the end of the array
     #     else:
-    #         dz_argsorted = np.argsort(bunch.dz)
+    #         dz_argsorted = np.argsort(bunch.z)
 
     #     bunch.x = bunch.x.take(dz_argsorted)
     #     bunch.xp = bunch.xp.take(dz_argsorted)
     #     bunch.y = bunch.y.take(dz_argsorted)
     #     bunch.yp = bunch.yp.take(dz_argsorted)
-    #     bunch.dz = bunch.dz.take(dz_argsorted)
+    #     bunch.z = bunch.z.take(dz_argsorted)
     #     bunch.dp = bunch.dp.take(dz_argsorted)
     #     bunch.id = bunch.id.take(dz_argsorted)
 
