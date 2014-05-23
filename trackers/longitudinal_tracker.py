@@ -125,78 +125,102 @@ class RFCavity(LongitudinalTracker):
 
         return isin
 
+    def drift(self, bunch, dp):
+        """the drift (i.e. Delta z) of the particle's z coordinate is given by
+        the (separable) Hamiltonian derived by dp (being (p - p0) / p0).
+        It's a function of dp."""
+        return -self.eta(bunch) * self.length * dp
+
+    def kick(self, bunch, dz):
+        """the kick (i.e. Delta dp) of the particle's dp coordinate is given by
+        the (separable) Hamiltonian derived by z, i.e. the negative force.
+        (negative because of the symplectic structure of the e.o.m.,
+        kills the minus sign of the momentum part in the integrator.)
+        It's a function of z.
+        It is for a stationary bucket (no net momentum update!)."""
+        sgn_eta = np.sign(self.eta(bunch))
+        cf1 = 2 * np.pi * self.harmonic / self.circumference
+        cf2 = sgn_eta * e * self.voltage / (bunch.p0 * bunch.beta * c)
+        force = cf2 * sin(cf1 * dz + self.dphi)
+        return -force
+
     # @profile
     def track(self, bunch):
         """
             It is assumed that this cavity adds fully to the total one-turn kick
-            (this is needed for instance in the RFCavityArray where the cavities
-                with 0 self.length add to the total kick but have no drift, this way
-                we end up with one drift and a sum of kicks by the various cavities while
-                the validity of the separatrix as a local statement is ensured!)
+            (this is needed for instance in the RFSystems where the cavities
+                with zero self.length add to the total kick but have no drift, this way
+                we end up with one drift and a sum of kicks (in the same place) 
+                by the various cavities while the validity of the separatrix 
+                as a local statement of stability is ensured!)
             The self.length of the cavity only tells how much the drift advances.
             (For distributed rf systems around the ring, adaptions have to be made --
-            mind that the separatrix loses it's local meaning as a stability criterion.)
+            mind that then the separatrix loses it's local meaning as a stability criterion.)
         """
-
-        R = self.circumference / (2 * np.pi)
-        eta = self.eta(bunch)
-         
-        cf1 = self.harmonic / R
-        cf2 = np.sign(eta) * e * self.voltage / (bunch.p0 * bunch.beta * c)
-
-        def drift(dp): return -eta * self.length * dp           # Hamiltonian derived by dp
-        def kick(dz): return -cf2 * sin(cf1 * dz + self.dphi)  # Hamiltonian derived by dz
-
-        # we want a "timestep" of 1 since the cavity will contribute to tracking
+        # we want a "time step" of 1 (turn) since the cavity will contribute to tracking
         # over one turn
+        def drift(dp):  return self.drift(bunch, dp)
+        def kick(dz):   return self.kick(bunch, dz)
         bunch.dz, bunch.dp = self.integrator(bunch.dz, bunch.dp, 1, drift, kick)
 
-class RFCavityArray(LongitudinalTracker):
+class RFSystems(LongitudinalTracker):
     """
-        provides an array of (1 or more) RFCavities which is able to accelerate.
+        provides a sequence of (1 or more) RFCavity objects which supports acceleration.
         The signature is the same as for RFCavity except that frequencies, voltages
-        and dphi's are passed as lists with as many entries as there are RFCavities.
-        The length of each RFCavity will be 0 except for the last one
+        and dphi's are passed as lists with as many entries as there are RFCavity objects.
+        The first entry of these lists defines the single accelerating RFCavity!
+        All other following RFCavity objects are not contributing to acceleration of p0!
+        The drifted length of each RFCavity will be 0 except for the first drift
         covering the whole circumference.
         The acceleration method should be applied only once per turn!
-        With one RFCavityArray per ring layout (with all RFCavities at the 
+        With one RFSystems object per ring layout (with all RFCavity objects at the 
         same longitudinal position) the longitudinal separatrix function 
         is exact and makes a valid local statement about stability!
 
-        self.cavities gives a list of all cavities sorted descendingly by harmonic number,
-        self.fundamental_cavity gives the fundamental cavity (with the lowest harmonic),
-        self.phi_s is the synchronous phase
+        self.cavities lists the RFCavity objects in the sequence,
+        self.accelerating_cavity gives the accelerating cavity 
+            (the first entry of self.cavities, usually the one with the lowest harmonic),
+        self.dp_step gives the acceleration Delta p0 for the next turn
+            (initialised to 0, should be adjusted (turnwise) by the user!)
     """
     def __init__(self, circumference, gamma_transition, 
                 harmonic_list, voltage_list, dphi_list, integrator = symple.Euler_Cromer):
 
         if not len(harmonic_list) == len(voltage_list) == len(dphi_list):
-            print ("Warning: parameter lists for RFCavityArray do not have the same length!")
+            print ("Warning: parameter lists for RFSystems do not have the same length!")
         self.cavities = []
         parameters = zip(harmonic_list, voltage_list, dphi_list)
-        # sort for harmonics as to have the lowest harmonic / fundamental cavity
-        # as the last cavity which supports acceleration and which drifts along
-        # the whole length (the circumference most probably).
-        parameters.sort()
-        l = length
+        length = circumference
         for harmonic, voltage, dphi in parameters:
             self.cavities.append(
-                            RFCavity(self, circumference, l, gamma_transition, 
+                            RFCavity(self, circumference, length, gamma_transition, 
                                                     harmonic, voltage, dphi, integrator)
                                 )
-            l = 0
-        self.cavities.reverse()
-        self.fundamental_cavity = self.cavities[-1]
-        self.phi_s = 0
+            length = 0
+        self.accelerating_cavity = self.cavities[0]
+        self.dp_step = 0
+        self.accelerating_cavity._stat_kick = self.accelerating_cavity.kick # need to store other name!
+        def acc_kick(dp):
+
+            self.accelerating_cavity._stat_kick()
 
     def track(self, bunch):
-
+        if self.dp_step:
+            assert (self.integrator is symple.Euler-Cromer)
+            gamma_old   = bunch.gamma
+            beta_old    = bunch.beta
+            p0_old      = bunch.p0
+            bunch.p0    = p0_old + self.dp_step # updates bunch.gamma and bunch.beta as well!
+            geo_emittance_factor = np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
+            bunch.x    *= geo_emittance_factor
+            bunch.xp   *= geo_emittance_factor
+            bunch.y    *= geo_emittance_factor
+            bunch.yp   *= geo_emittance_factor
         for cavity in self.cavities:
             cavity.track(bunch)
 
     def potential(self, dz, bunch):
         """gathers the potentials of the rf system and returns the sum as the total potential"""
-
         def fetch_potential(cavity):
             return cavity.potential(dz, bunch)
         potential_list = map(fetch_potential, self.cavities)
@@ -204,7 +228,6 @@ class RFCavityArray(LongitudinalTracker):
 
     def hamiltonian(self, dz, dp, bunch):
         """the full separable Hamiltonian of the rf system"""
-
         kinetic = -0.5 * self.eta(bunch) * bunch.beta * c * dp ** 2
         return kinetic + self.potential(dz, bunch)
 
@@ -227,31 +250,21 @@ class RFCavityArray(LongitudinalTracker):
         """accelerates the given bunch to the given gamma, i.e.
         - its transverse geometric emittances shrink
         - its gamma becomes the given gamma
-        - phi_s of the cavities changes
+        - 
         for the moment, acceleration only works for Euler-Cromer,
         as the other multi-step integrators have to be adapted to
-        change parameters (adapted to respective gammas) during integration!"""
+        change parameters (adapted to respective gammas) during their integration steps!"""
 
-        assert (self.integrator is symple.Euler-Cromer)
-        gamma_old   = bunch.gamma
-        beta_old    = bunch.beta
-        bunch.gamma = gamma
-        geo_emittance_factor = np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
-        bunch.x    *= geo_emittance_factor
-        bunch.xp   *= geo_emittance_factor
-        bunch.y    *= geo_emittance_factor
-        bunch.yp   *= geo_emittance_factor
-        phi_s_old   = self.phi_s
-        self.phi_s  = self.phi_synchronous(gamma - gamma_old, bunch.mass, 
-                                    self.circumference, self.fundamental_cavity.voltage)
-        self.fundamental_cavity.dphi += self.phi_s - phi_s_old
+        
+        def acc_kick(dz) -------------> this complete function accelerate to should go into track!
 
-    @staticmethod
-    def phi_synchronous(delta_gamma, mass, circumference, voltage):
+    def phi_synchronous(self, bunch, voltage):
+        """calculates the synchronous phase for the given acceleration situation (self.dp_step etc.)"""
         # from HEADTAIL:
         # phi_s = arccos( sgn(eta) * sqrt( 1 - (prate * circumference / e / voltage) ** 2 ) )
         # prate = m * c * gammarate / beta
         # gammarate = delta_gamma * f0
         # f0 = beta * c / circumference
-        deltaE = delta_gamma * mass * c ** 2
-        return np.arcsin( deltaE / (e * voltage) )
+        deltaE = self.dp_step * beta * c
+        sgn_eta = np.sign( self.eta(bunch) )
+        return np.arccos( sgn_eta * np.sqrt( 1 - (deltaE / (e * voltage)) ** 2 ) )
