@@ -19,6 +19,52 @@ from solvers.poissonfft import *
 # rp = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_p
 
 
+class PDF(object):
+    '''
+    Particle distribution functions (probability density functions); this class provides a standard set of normalized 6d phase space distributions.
+    '''
+
+    def _create_empty(self, n_macroparticles):
+        '''
+        Allocate the memory to store the 6d phase space for n_macroparticles macroparticles.
+        '''
+        self.x = np.zeros(n_macroparticles)
+        self.xp = np.zeros(n_macroparticles)
+        self.y = np.zeros(n_macroparticles)
+        self.yp = np.zeros(n_macroparticles)
+        self.z = np.zeros(n_macroparticles)
+        self.dp = np.zeros(n_macroparticles)
+
+    def _create_gaussian(self, n_macroparticles):
+        '''
+        Create a normalized gaussian 6d phase space distribution for n_macroparticles macroparticles with mean = 0 and sigma = 1 in all dimensions.
+        '''
+        self.x = np.random.randn(n_macroparticles)
+        self.xp = np.random.randn(n_macroparticles)
+        self.y = np.random.randn(n_macroparticles)
+        self.yp = np.random.randn(n_macroparticles)
+        self.z = np.random.randn(n_macroparticles)
+        self.dp = np.random.randn(n_macroparticles)
+
+    def _create_uniform(self, n_macroparticles):
+        '''
+        Create a normalized uniform 6d phase space distribution for n_macroparticles macroparticles from -1 to +1 in all dimensions.
+        '''
+        self.x = 2 * np.random.rand(n_macroparticles) - 1
+        self.xp = 2 * np.random.rand(n_macroparticles) - 1
+        self.y = 2 * np.random.rand(n_macroparticles) - 1
+        self.yp = 2 * np.random.rand(n_macroparticles) - 1
+        self.z = 2 * np.random.rand(n_macroparticles) - 1
+        self.dp = 2 * np.random.rand(n_macroparticles) - 1
+
+
+class Ghost(PDF):
+    '''
+    The ghost class represents a particle ensemble that moves along with its parent ensemble, interacting with all fields excited by the parent ensemble but without exciting any fields itself. It is used for diagnostics purposes to uniformly sample the region around the beam to measure fields, detuning etc. The constructor would most likely have to take the parent ensemble as argument.
+    '''
+    pass
+
+
 class Beam(object):
 
     # def __init__(self, n_macroparticles, charge, gamma, intensity, mass,
@@ -110,6 +156,14 @@ class Beam(object):
         self.z *= extent_z
         self.dp *= 0
 
+        # Initial distribution
+        self.x0 = self.x.copy()
+        self.xp0 = self.xp.copy()
+        self.y0 = self.y.copy()
+        self.yp0 = self.yp.copy()
+        self.z0 = self.z.copy()
+        self.dp0 = self.dp.copy()
+
         return self
 
     @classmethod
@@ -195,7 +249,7 @@ class Beam(object):
 
         return self.mass * self.gamma * self.beta * c
 
-    def reinit():
+    def reinit(self):
 
         np.copyto(self.x, self.x0)
         np.copyto(self.xp, self.xp0)
