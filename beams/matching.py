@@ -16,6 +16,13 @@ from scipy.integrate import quad, dblquad
 from scipy.constants import c, e
 
 
+class Match(object):
+    '''
+    Class for general matching of bunch particle distribution to local machine optics. Since the standard matching is taking place within the beam class itself, here, there are only the more complex matching functions to any RF systems configuration. Tha class takes as argument a beam and an RF system.
+    '''
+    pass
+
+
 # def match_longitudinal(length, bucket, matching=None):
 
 #     if not matching and isinstance(bucket, float):
