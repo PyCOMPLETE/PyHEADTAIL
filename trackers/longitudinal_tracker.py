@@ -548,21 +548,20 @@ class LongitudinalMap(LongitudinalTracker):
         bunch.update_slices()
 
 
-class CSCavity(object):
+class LinearMap(object):
     '''
     classdocs
     '''
 
-    def __init__(self, circumference, gamma_transition, Qs):
+    def __init__(self, circumference, momentum_compaction, Qs):
 
         self.circumference = circumference
-        self.gamma_transition = gamma_transition
+        self.alpha = momentum_compaction
         self.Qs = Qs
 
     def track(self, bunch):
 
-        p0 = bunch.mass * bunch.gamma * bunch.beta * c
-        eta = 1 / self.gamma_transition ** 2 - 1 / bunch.gamma ** 2
+        eta = self.alpha - 1 / bunch.gamma ** 2
 
         omega_0 = 2 * np.pi * bunch.beta * c / self.circumference
         omega_s = self.Qs * omega_0
@@ -571,10 +570,10 @@ class CSCavity(object):
         cosdQs = cos(dQs)
         sindQs = sin(dQs)
 
-        dz0 = bunch.dz
+        z0 = bunch.z
         dp0 = bunch.dp
 
-        bunch.dz = dz0 * cosdQs - eta * c / omega_s * dp0 * sindQs
-        bunch.dp = dp0 * cosdQs + omega_s / eta / c * dz0 * sindQs
+        bunch.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
+        bunch.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
 
-        bunch.update_slices()
+        # bunch.update_slices()
