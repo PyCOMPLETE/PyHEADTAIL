@@ -16,72 +16,66 @@ from scipy.integrate import quad, dblquad
 from scipy.constants import c, e
 
 
-def match_transverse(epsn_x, epsn_y, ltm=None):
+class Match(object):
+    '''
+    Class for general matching of bunch particle distribution to local machine optics. Since the standard matching is taking place within the beam class itself, here, there are only the more complex matching functions to any RF systems configuration. Tha class takes as argument a beam and an RF system.
+    '''
+    pass
 
-    beta_x, beta_y = ltm.beta_x, ltm.beta_y
 
-    def match(bunch):
-        sigma_x = np.sqrt(beta_x * epsn_x * 1e-6 / (bunch.gamma * bunch.beta))
-        sigma_xp = sigma_x / beta_x
-        sigma_y = np.sqrt(beta_y * epsn_y * 1e-6 / (bunch.gamma * bunch.beta))
-        sigma_yp = sigma_y / beta_y
+# def match_longitudinal(length, bucket, matching=None):
 
-        bunch.x *= sigma_x
-        bunch.xp *= sigma_xp
-        bunch.y *= sigma_y
-        bunch.yp *= sigma_yp
+#     if not matching and isinstance(bucket, float):
+#         def match(bunch):
+#             match_none(bunch, length, bucket)
+#     elif matching == 'simple':
+#         def match(bunch):
+#             try:
+#                 match_simple(bunch, length, bucket)
+#             except AttributeError:
+#                 raise TypeError("Bad bucket instance for matching!")
+#     elif matching == 'full':
+#         def match(bunch):
+#             try:
+#                 match_full(bunch, length, bucket)
+#             except AttributeError:
+#                 raise TypeError("Bad bucket instance for matching!")
+#     else:
+#         raise ValueError("Unknown matching " + str(matching) + " for bucket " + str(bucket))
 
-    return match
+#     return match
 
-def match_longitudinal(length, bucket, matching=None):
+# # TODO: improve implementation of match_simple
+# def match_simple(bunch, sigma_dz, bucket):
+#     R = bucket.circumference / (2 * np.pi)
+#     eta = bucket.eta(bunch)
+#     Qs = bucket.Qs(bunch)
 
-    if not matching and isinstance(bucket, float):
-        def match(bunch):
-            match_none(bunch, length, bucket)
-    elif matching == 'simple':
-        def match(bunch):
-            try:
-                match_simple(bunch, length, bucket)
-            except AttributeError:
-                raise TypeError("Bad bucket instance for matching!")
-    elif matching == 'full':
-        def match(bunch):
-            try:
-                match_full(bunch, length, bucket)
-            except AttributeError:
-                raise TypeError("Bad bucket instance for matching!")
-    else:
-        raise ValueError("Unknown matching " + str(matching) + " for bucket " + str(bucket))
+#     # Assuming a gaussian-type stationary distribution
+#     sigma_dp = sigma_dz * Qs / eta / R
+#     unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket)
 
-    return match
+# def unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket):
+#     for i in xrange(bunch.n_macroparticles):
+#         if not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
+#             while not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
+#                 bunch.dz[i] = sigma_dz * np.random.randn()
+#                 bunch.dp[i] = sigma_dp * np.random.randn()
 
-def match_none(bunch, length, bucket):
+# def match_longitudinal(bunch):
 
-    sigma_dz = length
-    epsn_z = bucket
-    sigma_dp = epsn_z / (4 * np.pi * sigma_dz) * e / bunch.p0
+#     R = bucket.circumference / (2 * np.pi)
+#     eta = bucket.eta(bunch)
+#     Qs = bucket.Qs(bunch)
 
-    print sigma_dz, sigma_dp
-    bunch.dz *= sigma_dz
-    bunch.dp *= sigma_dp
+#     # Assuming a gaussian-type stationary distribution
+#     sigma_dp = sigma_dz * Qs / eta / R
 
-# TODO: improve implementation of match_simple 
-def match_simple(bunch, sigma_dz, bucket):    
-    R = bucket.circumference / (2 * np.pi)
-    eta = bucket.eta(bunch)
-    Qs = bucket.Qs(bunch)
-    
-    # Assuming a gaussian-type stationary distribution
-    sigma_dp = sigma_dz * Qs / eta / R
-    unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket)
-                
-def unmatched_inbucket(bunch, sigma_dz, sigma_dp, bucket):
+def cut_along_separatrix(bunch, hamiltonian):
+
     for i in xrange(bunch.n_macroparticles):
-        if not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
-            while not bucket.isin_separatrix(bunch.dz[i], bunch.dp[i], bunch):
-                bunch.dz[i] = sigma_dz * np.random.randn()
-                bunch.dp[i] = sigma_dp * np.random.randn()
-                
+        hamiltonian(bunch.dz[i], bunch.dp[i])
+
 def match_full(bunch, length, bucket):
 
     R = bucket.circumference / (2 * np.pi)
@@ -105,7 +99,7 @@ def match_full(bunch, length, bucket):
     epsn_z = (4 * np.pi * Qs * sigma_dz ** 2 * bunch.p0) / (eta * R * e)
     print '\nStatistical parameters from initialisation:'
     print 'sigma_dz:', sigma_dz, 'sigma_dp:', sigma_dp, 'epsn_z:', epsn_z
-    
+
     print '\n--> Bunchlength:'
     sigma_dz = bunchlength(bunch, bucket, sigma_dz)
     sigma_dp = sigma_dz * Qs / (eta * R)
@@ -129,7 +123,7 @@ def match_full(bunch, length, bucket):
                 break
         bunch.dz[i] = s
         bunch.dp[i] = t
-        
+
     epsz = np.sqrt(np.mean(bunch.dz * bunch.dz) * np.mean(bunch.dp * bunch.dp)
                  - np.mean(bunch.dz * bunch.dp) * np.mean(bunch.dz * bunch.dp))
     print '\nStatistical parameters from distribution:'

@@ -9,13 +9,14 @@ Created on 08.01.2014
 import numpy as np
 
 
+import copy
 from solvers.grid import *
-from solvers.compute_potential_fgreenm2m import compute_potential_fgreenm2m
+from solvers.compute_potential_fgreenm2m import compute_potential_fgreenm2m, compute_potential_fgreenp2m
 
 
 class PoissonFFT(UniformGrid):
     '''
-    classdocs
+    FFT Poisson solver operates on a grid
     '''
 
     # @profile
@@ -25,23 +26,22 @@ class PoissonFFT(UniformGrid):
         '''
         super(PoissonFFT, self).__init__(*args, **kwargs)
 
-        self.fgreen = np.zeros((2 * self.nx, 2 * self.ny))
+        self.tmprho = np.zeros((2 * self.ny, 2 * self.nx))
+        self.fgreen = np.zeros((2 * self.ny, 2 * self.nx))
 
         mx = -self.dx / 2 + np.arange(self.nx + 1) * self.dx
         my = -self.dy / 2 + np.arange(self.ny + 1) * self.dy
-
         x, y = np.meshgrid(mx, my)
         r2 = x ** 2 + y ** 2
-
         # Antiderivative
         tmpfgreen = -1 / 2 * (-3 * x * y + x * y * np.log(r2)
                    + x * x * np.arctan(y / x) + y * y * np.arctan(x / y)) # * 2 / dx / dy
 
         # Integration and circular Green's function
-        self.fgreen[:self.nx, :self.ny] = tmpfgreen[1:, 1:] + tmpfgreen[:-1, :-1] - tmpfgreen[1:, :-1] - tmpfgreen[:-1, 1:]
-        self.fgreen[self.nx:, :self.ny] = self.fgreen[self.nx:0:-1, :self.ny]
-        self.fgreen[:self.nx, self.ny:] = self.fgreen[:self.nx, self.ny:0:-1]
-        self.fgreen[self.nx:, self.ny:] = self.fgreen[self.nx:0:-1, self.ny:0:-1]
+        self.fgreen[:self.ny, :self.nx] = tmpfgreen[1:, 1:] + tmpfgreen[:-1, :-1] - tmpfgreen[1:, :-1] - tmpfgreen[:-1, 1:]
+        self.fgreen[self.ny:, :self.nx] = self.fgreen[self.ny:0:-1, :self.nx]
+        self.fgreen[:self.ny, self.nx:] = self.fgreen[:self.ny, self.nx:0:-1]
+        self.fgreen[self.ny:, self.nx:] = self.fgreen[self.ny:0:-1, self.nx:0:-1]
         # # Would expect to be fully symmetric
         # self.fgreen[self.nx:, :self.ny] = self.fgreen[self.nx - 1::-1, :self.ny]
         # self.fgreen[:self.nx, self.ny:] = self.fgreen[:self.nx, self.ny - 1::-1]
@@ -49,69 +49,27 @@ class PoissonFFT(UniformGrid):
 
         from types import MethodType
         PoissonFFT.compute_potential_fgreenm2m = MethodType(compute_potential_fgreenm2m, None, PoissonFFT)
+        PoissonFFT.compute_potential_fgreenp2m = MethodType(compute_potential_fgreenp2m, None, PoissonFFT)
 
-        # self.fgreen1 = np.zeros(4 * self.nx * self.ny)
+    # def inject(self, master, slave=None):
 
-        # tmpfgreen1 = np.zeros((self.nx + 1, self.ny + 1))
-        # for i in range(self.nx + 1):
-        #     for j in range(self.ny + 1):
-        #         x = -self.dx / 2 + i * self.dx
-        #         y = -self.dy / 2 + j * self.dy
-        #         r2 = x ** 2 + y ** 2
-        #         tmpfgreen1[i, j] = -1 / 2 * (-3 * x * y + x * y * np.log(r2)
-        #                           + x * x * np.arctan(y / x) + y * y * np.arctan(x / y))
+    #     master.poisson_self = copy.deepcopy(self)
+    #     master.kx = np.zeros(master.n_macroparticles)
+    #     master.ky = np.zeros(master.n_macroparticles)
+    #     if slave:
+    #         slave.poisson_other = copy.deepcopy(self)
+    #         slave.kx = np.zeros(slave.n_macroparticles)
+    #         slave.ky = np.zeros(slave.n_macroparticles)
 
-        # # Base region
-        # for i in range(self.nx):
-        #     for j in range(self.ny):
-        #         k = i * 2 * self.ny + j
-        #         self.fgreen1[k] += tmpfgreen1[i, j]
-        #         self.fgreen1[k] -= tmpfgreen1[i + 1, j]
-        #         self.fgreen1[k] -= tmpfgreen1[i, j + 1]
-        #         self.fgreen1[k] += tmpfgreen1[i + 1, j + 1]
-        # # Mirror x
-        # for i in range(self.nx):
-        #     for j in range(1, self.ny):
-        #         k = (2 * self.ny) * (i + 1)  - j
-        #         self.fgreen1[k] += tmpfgreen1[i, j]
-        #         self.fgreen1[k] -= tmpfgreen1[i + 1, j]
-        #         self.fgreen1[k] -= tmpfgreen1[i, j + 1]
-        #         self.fgreen1[k] += tmpfgreen1[i + 1, j + 1]
-        # # Mirror y
-        # for i in range(1, self.nx):
-        #     for j in range(self.ny):
-        #         k = ((2 * self.nx)
-        #            * (2 * self.ny - i) + j)
-        #         self.fgreen1[k] += tmpfgreen1[i, j]
-        #         self.fgreen1[k] -= tmpfgreen1[i + 1, j]
-        #         self.fgreen1[k] -= tmpfgreen1[i, j + 1]
-        #         self.fgreen1[k] += tmpfgreen1[i + 1, j + 1]
-        # # Mirror xy
-        # for i in range(1, self.nx):
-        #     for j in range(1, self.ny):
-        #         k = ((2 * self.nx)
-        #            * (2 * self.ny - (i - 1)) - (j))
-        #         self.fgreen1[k] += tmpfgreen1[i, j]
-        #         self.fgreen1[k] -= tmpfgreen1[i + 1, j]
-        #         self.fgreen1[k] -= tmpfgreen1[i, j + 1]
-        #         self.fgreen1[k] += tmpfgreen1[i + 1, j + 1]
+    @profile
+    def compute_potential(self, rho, phi):
 
-        # self.fgreen1 = np.reshape(self.fgreen1, (2 * self.nx, 2 * self.ny))
+        self.tmprho[:self.ny, :self.nx] = rho
 
-        # print self.fgreen[:self.nx, 0]
-        # print self.fgreen[2 * self.nx:self.nx:-1, 0]
-        # print self.fgreen[:self.nx, 0] - self.fgreen[2 * self.nx:self.nx:-1, 0]
+        fftphi = np.fft.fft2(self.tmprho) * np.fft.fft2(self.fgreen)
 
-    # @profile
-    def compute_potential(self):
-
-        tmprho = np.zeros((2 * self.ny, 2 * self.nx))
-        tmprho[:self.ny, :self.nx] = self.rho[:self.ny, :self.nx]
-
-        fftphi = np.fft.fft2(tmprho) * np.fft.fft2(self.fgreen)
-        
         tmpphi = np.fft.ifft2(fftphi)
-        self.phi = tmpphi[:self.ny, :self.nx]
+        phi[:] = np.abs(tmpphi[:self.ny, :self.nx])
 
         # for (size_t j=0; j<np; j++)
         # {
@@ -120,30 +78,18 @@ class PoissonFFT(UniformGrid):
         #     tmpphi[j] *= norm; // FFT specific
         # }
 
-        # // Assign
-        # for (size_t n=0; n<ny; n++)
-        # {
-        #     for (size_t m=0; m<nx; m++)
-        #     {
-        #         size_t k = n * nx + m;
-        #         size_t l = n * 2 * nx + m;
-        #         (*t.phi)[i_slice][k] = t.qsgn * tmpphi[l];
-        #     }
-        # }
+    def compute_fields(self, phi, ex, ey):
 
-#     void set_integrated_green_circular(size_t i, size_t j, size_t k)
-#     {
-#         fgreen[k] += fgreenbase[j][i];
-#         fgreen[k] -= fgreenbase[j][i + 1];
-#         fgreen[k] -= fgreenbase[j + 1][i];
-#         fgreen[k] += fgreenbase[j + 1][i + 1];
-#     }
+        ey[:], ex[:] = np.gradient(phi, self.dy, self.dx)
+        ex[:] *= -1
+        ey[:] *= -1
 
-    @profile
+    # @profile
     def py_green_m2m(self):
 
         self.phi = np.zeros((self.ny, self.nx))
 
+        da = self.dx * self.dy
         x, y = self.x.flatten(), self.y.flatten()
         phi, rho = self.phi.flatten(), self.rho.flatten()
 
@@ -152,7 +98,7 @@ class PoissonFFT(UniformGrid):
             for j in xrange(self.n_points):
                 xj, yj = x[j], y[j]
                 r2 = (xi - xj) ** 2 + (yi - yj) ** 2 + 1e-6
-                phi[i] += (-rho[j] * 1 / 2 * np.log(r2)) # * self.dx * self.dy / (2 * np.pi))
+                phi[i] += (-rho[j] * da * 1 / 2 * np.log(r2)) # * self.dx * self.dy / (2 * np.pi))
 
         self.phi = np.reshape(phi, (self.ny, self.nx))
         #     for j in points:
