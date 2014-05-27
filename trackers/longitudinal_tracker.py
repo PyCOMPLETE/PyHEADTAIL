@@ -1,270 +1,239 @@
 from __future__ import division
 '''
-@class Cavity
-@author Kevin Li
-@date 03.02.2014
-@brief Class for creation and management of the synchrotron transport matrices
+@author Adrian Oeftiger
+@date 26.05.2014
 @copyright CERN
 '''
 
 
 import numpy as np
-import sys
-from functools import partial
 
-
-from beams.distributions import stationary_exponential
-from scipy.integrate import quad, dblquad
 from abc import ABCMeta, abstractmethod 
 from scipy.constants import c, e
-from libintegrators import symple
 
 sin = np.sin
 cos = np.cos
 
+class LongitudinalMap(object):
+    """A longitudinal map represents a longitudinal dynamical element 
+    (e.g. a kick or a drift...), i.e. an abstraction of a single cavity 
+    of an RF system etc.
+    LongitudinalMap objects can compose a longitudinal one turn map!
+    Definitions of various orders of the slippage factor eta(dp)
+    should be implemented in this class. Any derived objects will access self.eta(beam).
+    
+    Note: the momentum compaction factors are defined by the change of radius
+        Delta R / R0 = \sum_i alpha_i * (Delta p / p0)^i
+        hence yielding expressions for the higher order slippage factors
+        Delta w / w0 = \sum_j  eta_j  * (Delta p / p0)^i
+        (for the revolution frequency w)
+    """
 
+    self.__metaclass__ = ABCMeta
 
-class LongitudinalTracker(object):
+    def __init__(self, alpha_array):
+        """The length of the momentum compaction factor array /alpha_array/
+        defines the order of the slippage factor expansion. 
+        Depending on the number of entries in /alpha_array/ the according definition
+        of eta will be chosen for the wrapper self.eta(beam).
 
-    __metaclass__ = ABCMeta
+        Note: Please implement higher order slippage factors as static methods
+        with name _eta<N> where <N> is the order of delta in (eta * delta)
+        and with signature (alpha_array, beam)."""
+        eta_chosen = '_eta' + str(len(alpha_array))
+        self.eta = lambda beam: getattr(self, eta_chosen)(alpha_array, beam)
 
     @abstractmethod
-    def hamiltonian(self, dz, dp, bunch):
+    def track(self, beam):
         pass
 
-    @abstractmethod
-    def separatrix(self, dz, bunch):
-        pass
+    @staticmethod
+    def _eta0(alpha_array, beam):
+        return 0
 
-    @abstractmethod
-    def isin_separatrix(self, dz, dp, bunch):
-        pass
+    @staticmethod
+    def _eta1(alpha_array, beam):
+        return alpha_array[0] - beam.gamma ** -2
 
-    @abstractmethod
-    def track(self, bunch):
-        pass
+class Drift(LongitudinalMap):
+    """the drift (i.e. Delta z) of the particle's z coordinate is given by
+    the (separable) Hamiltonian derived by dp (defined by (p - p0) / p0).
 
-class RFCavity(LongitudinalTracker):
+    self.length is the drift length. It is either given at instantiation
+        or set to beam.circumference at the first call of self.track(beam)."""
 
-    def __init__(self, circumference, length, gamma_transition, 
-                        harmonic, voltage, dphi, integrator=symple.Euler_Cromer):
-
-        self.integrator = integrator
-
-        self.i_turn = 0
-        self.time = 0
-
-        self.circumference = circumference
+    def __init__(self, length=None):
         self.length = length
-        self.gamma_transition = gamma_transition
-        self.harmonic = harmonic
-        self.voltage = voltage
-        self.dphi = dphi
 
-    def eta(self, bunch):
-        return self.gamma_transition**-2 - bunch.gamma**-2
+    def track(self, beam):
+        if not self.length:
+            self.length = beam.circumference
+        beam.dz += -self.eta(beam) * beam.dp * self.length
 
-    def Qs(self, bunch):
+class Kick(LongitudinalMap):
+    """The Kick class represents the kick by a single RF element in a ring!
+    The kick (i.e. Delta dp) of the particle's dp coordinate is given by
+    the (separable) Hamiltonian derived by z, i.e. the force.
+
+    self.p_increment is the momentum step per turn of the synchronous particle,
+        it can be continuously adjusted to reflect different slopes 
+        in the dipole magnet strength ramp.
+
+    self.phi_offset reflects an offset of the cavity's reference system."""
+
+    def __init__(self, harmonic, voltage, phi_offset = 0, p_increment = 0):
+        self.harmonic   = harmonic
+        self.voltage    = voltage
+        self.phi_offset = phi_offset
+        self.p_increment = p_increment
+
+    def track(self, beam):
+        sgn_eta     = np.sign(self.eta(beam))
+        amplitude   = sgn_eta * e * self.voltage / (beam.beta * c)
+        Phi         = self.harmonic * beam.theta + self.phi_offset
+        beam.Deltap += amplitude * sin(Phi) - self.p_increment
+        beam.p0    += self.p_increment
+
+    def Qs(self, beam):
         '''
         Synchrotron tune derived from the linearized Hamiltonian
 
         .. math::
         H = -1 / 2 * eta * beta * c * delta ** 2
            + e * V / (p0 * 2 * np.pi * h) * (np.cos(phi) - np.cos(dphi) + (phi - dphi) * np.sin(dphi))
+        ASSUMPTION: this is the only Kick instance in the ring layout 
+            (i.e. only a single harmonic RF system)!
         '''
-        Qs = np.sqrt(e * self.voltage * np.abs(self.eta(bunch)) * self.harmonic \
-                / (2 * np.pi * bunch.p0 * bunch.beta * c))
-
+        Qs = np.sqrt(e * self.voltage * np.abs(self.eta(beam)) * self.harmonic \
+                / (2 * np.pi * beam.p0 * beam.beta * c))
         return Qs
 
-    def potential(self, dz, bunch):
-        """the potential part V(dz) of the cavity's separable Hamiltonian"""
+    def Phi_0(self):
+        """The synchronous phase calculated from the momentum increase per turn.
+        It includes the jump in the e.o.m. (via sign(eta)) at transition energy:
+            gamma < gamma_transition <==> Phi_0 ~ pi
+            gamma > gamma_transition <==> Phi_0 ~ 0
+        ASSUMPTION: this is the only Kick instance adding to overall acceleration
+            (i.e. technically the only Kick instance with self.p_increment != 0)!"""
+        deltaE = self.p_increment * beta * c
+        sgn_eta = np.sign( self.eta(beam) )
+        return np.arccos( sgn_eta * np.sqrt( 1 - (deltaE / (e * voltage)) ** 2 ) )
 
-        R = self.circumference / (2 * np.pi)
-        phi = self.harmonic / R * dz + self.dphi
+    def potential(self, z, beam):
+        """The contribution of this kick to the overall potential V(z).
+        ASSUMPTION: there is one Kick instance adding to overall acceleration
+            (i.e. technically only one Kick instance with self.p_increment != 0)!"""
+        Phi = -self.harmonic * z / beam.R + self.phi_offset
+        amplitude  = e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
+        modulation = (cos(Phi) - cos(self.Phi_0) + (Phi - self.Phi_0) * sin(self.Phi_0))
+        return amplitude * modulation
 
-        return e * self.voltage / (bunch.p0 * 2 * np.pi * self.harmonic) \
-           * (cos(phi) - cos(self.dphi) + (phi - self.dphi) * sin(self.dphi))
 
-    def hamiltonian(self, dz, dp, bunch):
-        """the full separable Hamiltonian of the rf cavity"""
 
-        kinetic = -0.5 * self.eta(bunch) * bunch.beta * c * dp ** 2
+class LongitudinalOneTurnMap(object):
+    """A longitudinal one turn map tracks over a complete turn.
+    Any inheriting classes guarantee to provide a self.track(beam) method that 
+    tracks around the whole ring!
 
-        return kinetic + self.potential(dz, bunch)
+    LongitudinalOneTurnMap classes possibly comprise several LongitudinalMap objects."""
 
-    def separatrix(self, dz, bunch):
-        '''
-        returns the separatrix momentum depending on dz.
-        Separatrix defined by
+    self.__metaclass__ = ABCMeta
 
-        .. math::
-        p(dz): (H(dz, dp) == H(zmax, 0))
-        '''
-
-        R = self.circumference / (2 * np.pi)
-        Qs = self.Qs(bunch)
-
-        phi = self.harmonic / R * dz + self.dphi 
-        cf1 = 2 * Qs ** 2 / (self.eta(bunch) * self.harmonic) ** 2
-
-        return np.sqrt( cf1 * (1 + cos(phi - self.dphi) + (phi - np.pi) * sin(self.dphi)) )
-
-    def isin_separatrix(self, dz, dp, bunch):
-
-        R = self.circumference / (2 * np.pi)
-        Qs = self.Qs(bunch) 
-
-        phi = self.harmonic / R * dz + self.dphi
-        cf1 = 2 * Qs ** 2 / (self.eta(bunch) * self.harmonic) ** 2
-
-        zmax = np.pi * R / self.harmonic
-        psqmax = cf1 * (-1 - cos(phi - self.dphi) + (np.pi - phi) * sin(self.dphi))
-
-        isin = np.abs(dz) < zmax and dp ** 2 < np.abs(psqmax)
-
-        return isin
-
-    def drift(self, bunch, dp):
-        """the drift (i.e. Delta z) of the particle's z coordinate is given by
-        the (separable) Hamiltonian derived by dp (being (p - p0) / p0).
-        It's a function of dp."""
-        return -self.eta(bunch) * self.length * dp
-
-    def kick(self, bunch, dz):
-        """the kick (i.e. Delta dp) of the particle's dp coordinate is given by
-        the (separable) Hamiltonian derived by z, i.e. the negative force.
-        (negative because of the symplectic structure of the e.o.m.,
-        kills the minus sign of the momentum part in the integrator.)
-        It's a function of z.
-        It is for a stationary bucket (no net momentum update!)."""
-        sgn_eta = np.sign(self.eta(bunch))
-        cf1 = 2 * np.pi * self.harmonic / self.circumference
-        cf2 = sgn_eta * e * self.voltage / (bunch.p0 * bunch.beta * c)
-        force = cf2 * sin(cf1 * dz + self.dphi)
-        return -force
-
-    # @profile
-    def track(self, bunch):
-        """
-            It is assumed that this cavity adds fully to the total one-turn kick
-            (this is needed for instance in the RFSystems where the cavities
-                with zero self.length add to the total kick but have no drift, this way
-                we end up with one drift and a sum of kicks (in the same place) 
-                by the various cavities while the validity of the separatrix 
-                as a local statement of stability is ensured!)
-            The self.length of the cavity only tells how much the drift advances.
-            (For distributed rf systems around the ring, adaptions have to be made --
-            mind that then the separatrix loses it's local meaning as a stability criterion.)
-        """
-        # we want a "time step" of 1 (turn) since the cavity will contribute to tracking
-        # over one turn
-        def drift(dp):  return self.drift(bunch, dp)
-        def kick(dz):   return self.kick(bunch, dz)
-        bunch.dz, bunch.dp = self.integrator(bunch.dz, bunch.dp, 1, drift, kick)
-
-class RFSystems(LongitudinalTracker):
-    """
-        provides a sequence of (1 or more) RFCavity objects which supports acceleration.
-        The signature is the same as for RFCavity except that frequencies, voltages
-        and dphi's are passed as lists with as many entries as there are RFCavity objects.
-        The first entry of these lists defines the single accelerating RFCavity!
-        All other following RFCavity objects are not contributing to acceleration of p0!
-        The drifted length of each RFCavity will be 0 except for the first drift
-        covering the whole circumference.
-        The acceleration method should be applied only once per turn!
-        With one RFSystems object per ring layout (with all RFCavity objects at the 
-        same longitudinal position) the longitudinal separatrix function 
-        is exact and makes a valid local statement about stability!
-
-        self.cavities lists the RFCavity objects in the sequence,
-        self.accelerating_cavity gives the accelerating cavity 
-            (the first entry of self.cavities, usually the one with the lowest harmonic),
-        self.dp_step gives the acceleration Delta p0 for the next turn
-            (initialised to 0, should be adjusted (turnwise) by the user!)
-    """
-    def __init__(self, circumference, gamma_transition, 
-                harmonic_list, voltage_list, dphi_list, integrator = symple.Euler_Cromer):
-
-        if not len(harmonic_list) == len(voltage_list) == len(dphi_list):
-            print ("Warning: parameter lists for RFSystems do not have the same length!")
-        self.cavities = []
-        parameters = zip(harmonic_list, voltage_list, dphi_list)
-        length = circumference
-        for harmonic, voltage, dphi in parameters:
-            self.cavities.append(
-                            RFCavity(self, circumference, length, gamma_transition, 
-                                                    harmonic, voltage, dphi, integrator)
-                                )
-            length = 0
-        self.accelerating_cavity = self.cavities[0]
-        self.dp_step = 0
-        self.accelerating_cavity._stat_kick = self.accelerating_cavity.kick # need to store other name!
-        def acc_kick(dp):
-
-            self.accelerating_cavity._stat_kick()
-
-    def track(self, bunch):
-        if self.dp_step:
-            assert (self.integrator is symple.Euler-Cromer)
-            gamma_old   = bunch.gamma
-            beta_old    = bunch.beta
-            p0_old      = bunch.p0
-            bunch.p0    = p0_old + self.dp_step # updates bunch.gamma and bunch.beta as well!
-            geo_emittance_factor = np.sqrt(gamma_old * beta_old / (bunch.gamma * bunch.beta))
-            bunch.x    *= geo_emittance_factor
-            bunch.xp   *= geo_emittance_factor
-            bunch.y    *= geo_emittance_factor
-            bunch.yp   *= geo_emittance_factor
-        for cavity in self.cavities:
-            cavity.track(bunch)
-
-    def potential(self, dz, bunch):
-        """gathers the potentials of the rf system and returns the sum as the total potential"""
-        def fetch_potential(cavity):
-            return cavity.potential(dz, bunch)
-        potential_list = map(fetch_potential, self.cavities)
-        return sum(potential_list)
-
-    def hamiltonian(self, dz, dp, bunch):
-        """the full separable Hamiltonian of the rf system"""
-        kinetic = -0.5 * self.eta(bunch) * bunch.beta * c * dp ** 2
-        return kinetic + self.potential(dz, bunch)
-
-    # def separatrix(self, dz, bunch):
-    #     pass
-
-    def isin_separatrix(self, dz, dp, bunch):
-        # the envisaged way to do it:
-        #   - define bucket reference interval (as lowest symmetry interval)
-        #       by lowest harmonic number of cavities
-        #   - search the highest maxima of the same value
-        #   - (make sure reference interval of bucket starts at first one)
-        #   - if bucket non-accelerated (i.e. right side same value as left side)
-        #       -> real bucket is between two consecutive highest maxima
-        #   - if bucket accelerated (i.e. right side has offset from left side value)
-        #       -> 
+    @abstractmethod
+    def track(self, beam):
+        """advances the longitudinal coordinates of the beam over a full turn."""
         pass
 
-    def accelerate_to(self, bunch, gamma):
-        """accelerates the given bunch to the given gamma, i.e.
-        - its transverse geometric emittances shrink
-        - its gamma becomes the given gamma
-        - 
-        for the moment, acceleration only works for Euler-Cromer,
-        as the other multi-step integrators have to be adapted to
-        change parameters (adapted to respective gammas) during their integration steps!"""
+class RFSystems(LongitudinalOneTurnMap):
+    """
+        Having one RFSystems object in the ring layout (with all kicks applied at the 
+        same longitudinal position), the longitudinal separatrix function 
+        is exact and makes a valid local statement about stability!
+    """
 
-        
-        def acc_kick(dz) -------------> this complete function accelerate to should go into track!
+    def __init__(self, harmonic_list, voltage_list, phi_offset_list, alpha_array):
+        """The first entry in harmonic_list, volta_list and phi_offset_list
+        defines the parameters for the accelerating Kick object 
+        (i.e. the accelerating RF system).
 
-    def phi_synchronous(self, bunch, voltage):
-        """calculates the synchronous phase for the given acceleration situation (self.dp_step etc.)"""
-        # from HEADTAIL:
-        # phi_s = arccos( sgn(eta) * sqrt( 1 - (prate * circumference / e / voltage) ** 2 ) )
-        # prate = m * c * gammarate / beta
-        # gammarate = delta_gamma * f0
-        # f0 = beta * c / circumference
-        deltaE = self.dp_step * beta * c
-        sgn_eta = np.sign( self.eta(bunch) )
-        return np.arccos( sgn_eta * np.sqrt( 1 - (deltaE / (e * voltage)) ** 2 ) )
+        The length of the momentum compaction factor array alpha_array
+        defines the order of the slippage factor expansion. 
+        See the LongitudinalMap class for further details.
+
+        self.p_increment is the momentum step per turn of the synchronous particle,
+        it can be continuously adjusted to reflect different slopes 
+        in the dipole magnet strength ramp.
+        See the Kick class for further details."""
+        if not len(harmonic_list) == len(voltage_list) == len(dphi_list):
+            print ("Warning: parameter lists for RFSystems do not have the same length!")
+        self.kicks = []
+        for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list):
+            self.kicks.append( Kick(h, V, dphi) )
+        self.elements = [Drift()] + [kicks]
+        self.p_increment = 0
+
+    def track(self, beam):
+        if p_increment:
+            gamma_old   = beam.gamma
+            beta_old    = beam.beta
+            p0_old      = beam.p0
+        for longMap in self.elements:
+            longMap.track(beam)
+        if p_increment:
+            geo_emittance_factor = np.sqrt(gamma_old * beta_old / (beam.gamma * beam.beta))
+            beam.x    *= geo_emittance_factor
+            beam.xp   *= geo_emittance_factor
+            beam.y    *= geo_emittance_factor
+            beam.yp   *= geo_emittance_factor
+
+    def potential(self, z, beam):
+        """the potential well of the rf system"""
+        def fetch_potential(kick):
+            return kick.potential(z, beam)
+        potential_list = map(fetch_potential, self.elements)
+        return sum(potential_list)
+
+    def hamiltonian(self, z, dp, beam):
+        """the full separable Hamiltonian of the rf system"""
+        kinetic = -0.5 * self.eta(beam) * beam.beta * c * dp ** 2
+        return kinetic + self.potential(z, beam)
+
+    def Hsep(self, beam):
+        """the Hamiltonian value at the separatrix"""
+        pass
+
+    def separatrix(self, z, beam):
+        pass
+
+    def is_in_separatrix(self, z, dp, beam):
+        pass
+
+class LinearMap(LongitudinalOneTurnMap):
+    '''
+    Linear Map represented by a Courant-Snyder transportation matrix.
+    self.alpha is the linear momentum compaction factor.
+    '''
+
+    def __init__(self, alpha, Qs):
+        """alpha is the linear momentum compaction factor,
+        Qs the synchroton tune."""
+        self.alpha = alpha
+        self.Qs = Qs
+
+    def track(self, beam):
+
+        eta = self.alpha - beam.gamma ** -2
+
+        omega_0 = 2 * np.pi * beam.beta * c / beam.circumference
+        omega_s = self.Qs * omega_0
+
+        dQs = 2 * np.pi * self.Qs
+        cosdQs = cos(dQs)
+        sindQs = sin(dQs)
+
+        z0 = beam.z
+        dp0 = beam.dp
+
+        beam.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
+        beam.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
+
