@@ -21,7 +21,8 @@ from scipy.constants import c, e, epsilon_0, m_e, m_p, pi
 
 class PDF(object):
     '''
-    Particle distribution functions (probability density functions); this class provides a standard set of normalized 6d phase space distributions.
+    Particle distribution functions (probability density functions); 
+    this class provides a standard set of normalized 6d phase space distributions.
     '''
 
     def _create_empty(self, n_macroparticles):
@@ -37,7 +38,8 @@ class PDF(object):
 
     def _create_gaussian(self, n_macroparticles):
         '''
-        Create a normalized gaussian 6d phase space distribution for n_macroparticles macroparticles with mean = 0 and sigma = 1 in all dimensions.
+        Create a normalized gaussian 6d phase space distribution for 
+        n_macroparticles macroparticles with mean = 0 and sigma = 1 in all dimensions.
         '''
         self.x = np.random.randn(n_macroparticles)
         self.xp = np.random.randn(n_macroparticles)
@@ -48,7 +50,8 @@ class PDF(object):
 
     def _create_uniform(self, n_macroparticles):
         '''
-        Create a normalized uniform 6d phase space distribution for n_macroparticles macroparticles from -1 to +1 in all dimensions.
+        Create a normalized uniform 6d phase space distribution for 
+        n_macroparticles macroparticles from -1 to +1 in all dimensions.
         '''
         self.x = 2 * np.random.rand(n_macroparticles) - 1
         self.xp = 2 * np.random.rand(n_macroparticles) - 1
@@ -58,15 +61,20 @@ class PDF(object):
         self.Deltap = 2 * np.random.rand(n_macroparticles) - 1
 
 
-class Bunch(PDF):
+class GaussianBunch(PDF):
 
-    def __init__(self, n_macroparticles, charge, gamma, intensity, mass,
-                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z=None, epsn_z=None, match=None):
-
+    def __init__(self, n_macroparticles, charge, gamma, intensity, mass, 
+                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, 
+                 sigma_z=None, epsn_z=None, match=None, LongitudinalOneTurnMap = None):
+        """the LongitudinalOneTurnMap is needed to assign the radius 
+        to the GaussianBunch instance in order to use its theta property."""
         self.charge = charge
         self.p0 = gamma
         self.intensity = intensity
         self.mass = mass
+
+        if LongitudinalOneTurnMap:
+            self._LongitudinalOneTurnMap = LongitudinalOneTurnMap
 
         self._create_gaussian(n_macroparticles)
         self._match_simple_gaussian_transverse(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y)
@@ -125,7 +133,11 @@ class Bunch(PDF):
     @dp.setter
     def dp(self, value):
         self.Deltap = value * self.p0
-    
+
+    @property
+    def R(self):
+        return self._LongitudinalOneTurnMap.circumference / (2 * np.pi)
+
     @property
     def theta(self):
         return self.z / self.R
@@ -139,7 +151,7 @@ class Bunch(PDF):
         # update the number of lost particles
         self.n_macroparticles_lost = (self.n_macroparticles - np.count_nonzero(self.id))
 
-        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+        # sort particles according to z (this is needed for correct functioning of bunch.compute_statistics)
         if self.n_macroparticles_lost:
             z_argsorted = np.lexsort((self.z, -np.sign(self.id))) # place lost particles at the end of the array
         else:
@@ -200,7 +212,12 @@ class Cloud(PDF):
 
 class Ghost(PDF):
     '''
-    The ghost class represents a particle ensemble that moves along with its parent ensemble, interacting with all fields excited by the parent ensemble but without exciting any fields itself. It is used for diagnostics purposes to uniformly sample the region around the beam to measure fields, detuning etc. The constructor would most likely have to take the parent ensemble as argument; there would be a similar relationship as with the Slices class. The parent ensemble has no knowledge about the ghost, but the ghost knows about its parent ensemble.
+    The ghost class represents a particle ensemble that moves along with its parent ensemble, 
+    interacting with all fields excited by the parent ensemble but without exciting any fields itself. 
+    It is used for diagnostics purposes to uniformly sample the region around the beam to measure fields, 
+    detuning etc. The constructor would most likely have to take the parent ensemble as argument; 
+    there would be a similar relationship as with the Slices class. The parent ensemble has no knowledge 
+    about the ghost, but the ghost knows about its parent ensemble.
     '''
     pass
 
