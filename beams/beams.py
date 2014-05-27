@@ -103,18 +103,21 @@ class Bunch(PDF):
 
     @property
     def n_macroparticles(self):
-
         return len(self.x)
 
     @property
     def beta(self):
-
-        return np.sqrt(1 - 1 / self.gamma ** 2)
+        return np.sqrt(1 - 1. / self.gamma ** 2)
+    @beta.setter
+    def beta(self, value):
+        self.gamma = 1. / np.sqrt(1 - value ** 2)
 
     @property
     def p0(self):
-
         return self.mass * self.gamma * self.beta * c
+    @p0.setter
+    def p0(self, value):
+        self.gamma = value / (self.mass * self.beta * c)
 
     # #~ @profile
     def sort_particles(self):
