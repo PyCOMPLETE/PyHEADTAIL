@@ -183,7 +183,7 @@ class RFSystems(LongitudinalOneTurnMap):
 
         self.kicks = []
         for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list):
-            self.kicks.append( Kick(h, V, dphi) )
+            self.kicks.append( Kick(alpha_array, h, V, dphi) )
         self.kicks[0].p_increment = self.p_increment
         self.elements = [ Drift(self.circumference) ] + [kicks]
 
