@@ -187,6 +187,13 @@ class Ghost(PDF):
     pass
 
 
+class Line(object):
+    '''
+    A specialized 1d bunch class that can be used when doing purely longitudinal studies.
+    '''
+    pass
+
+
 class Beam(object):
 
     #     _set_beam_quality(charge, gamma, intensity, mass)

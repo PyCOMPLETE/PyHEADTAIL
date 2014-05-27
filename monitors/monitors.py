@@ -19,11 +19,12 @@ class Monitor(object):
 
 class BunchMonitor(Monitor):
 
-    def __init__(self, filename, n_steps, dictionary=None):
+    def __init__(self, filename, n_steps, dictionary=None, slices=Slices(100)):
 
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
         self.i_steps = 0
+        self.slice = slices
 
         if dictionary:
             for key in dictionary:
@@ -102,7 +103,7 @@ class BunchMonitor(Monitor):
 
 class SliceMonitor(Monitor):
 
-    def __init__(self, filename, n_steps):
+    def __init__(self, filename, n_steps, slices=Slices(100)):
 
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
@@ -195,7 +196,7 @@ class SliceMonitor(Monitor):
 
 class ParticleMonitor(Monitor):
 
-    def __init__(self, filename, stride=1):
+    def __init__(self, filename, stride=1, slices=Slices(100)):
 
         self.h5file = hp.File(filename + '.h5part', 'w')
         self.stride = stride
