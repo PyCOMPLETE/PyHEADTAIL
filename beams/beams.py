@@ -65,16 +65,11 @@ class GaussianBunch(PDF):
 
     def __init__(self, n_macroparticles, charge, gamma, intensity, mass, 
                  alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, 
-                 sigma_z=None, epsn_z=None, match=None, LongitudinalOneTurnMap = None):
-        """the LongitudinalOneTurnMap is needed to assign the radius 
-        to the GaussianBunch instance in order to use its theta property."""
+                 sigma_z=None, epsn_z=None, match=None):
         self.charge = charge
         self.p0 = gamma
         self.intensity = intensity
         self.mass = mass
-
-        if LongitudinalOneTurnMap:
-            self._LongitudinalOneTurnMap = LongitudinalOneTurnMap
 
         self._create_gaussian(n_macroparticles)
         self._match_simple_gaussian_transverse(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y)
@@ -133,17 +128,6 @@ class GaussianBunch(PDF):
     @dp.setter
     def dp(self, value):
         self.Deltap = value * self.p0
-
-    @property
-    def R(self):
-        return self._LongitudinalOneTurnMap.circumference / (2 * np.pi)
-
-    @property
-    def theta(self):
-        return self.z / self.R
-    @theta.setter
-    def theta(self, value):
-        self.z = value * self.R
     
 
     # #~ @profile

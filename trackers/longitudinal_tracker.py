@@ -29,7 +29,7 @@ class LongitudinalMap(object):
         (for the revolution frequency w)
     """
 
-    self.__metaclass__ = ABCMeta
+    __metaclass__ = ABCMeta
 
     def __init__(self, alpha_array):
         """The length of the momentum compaction factor array /alpha_array/
@@ -65,7 +65,7 @@ class Drift(LongitudinalMap):
         self.length = length
 
     def track(self, beam):
-        beam.dz += -self.eta(beam) * beam.dp * self.length
+        beam.z += -self.eta(beam) * beam.dp * self.length
 
 class Kick(LongitudinalMap):
     """The Kick class represents the kick by a single RF element in a ring!
@@ -87,10 +87,11 @@ class Kick(LongitudinalMap):
     def track(self, beam):
         sgn_eta     = np.sign(self.eta(beam))
         amplitude   = sgn_eta * e * self.voltage / (beam.beta * c)
-        Phi         = self.harmonic * beam.theta + self.phi_offset
+        theta       = (2 * np.pi / self.circumference) * beam.z
+        Phi         = self.harmonic * theta + self.phi_offset
 
         beam.Deltap += amplitude * sin(Phi) - self.p_increment
-        beam.p0    += self.p_increment
+        beam.p0     += self.p_increment
 
     def Qs(self, beam):
         '''
@@ -106,14 +107,14 @@ class Kick(LongitudinalMap):
                 / (2 * np.pi * beam.p0 * beam.beta * c))
         return Qs
 
-    def Phi_0(self):
+    def Phi_0(self, beam):
         """The synchronous phase calculated from the momentum increase per turn.
         It includes the jump in the e.o.m. (via sign(eta)) at transition energy:
             gamma < gamma_transition <==> Phi_0 ~ pi
             gamma > gamma_transition <==> Phi_0 ~ 0
         ASSUMPTION: this is the only Kick instance adding to overall acceleration
             (i.e. technically the only Kick instance with self.p_increment != 0)!"""
-        deltaE = self.p_increment * beta * c
+        deltaE  = self.p_increment * c / beam.beta
         sgn_eta = np.sign( self.eta(beam) )
         return np.arccos( sgn_eta * np.sqrt( 1 - (deltaE / (e * voltage)) ** 2 ) )
 
@@ -121,9 +122,11 @@ class Kick(LongitudinalMap):
         """The contribution of this kick to the overall potential V(z).
         ASSUMPTION: there is one Kick instance adding to overall acceleration
             (i.e. technically only one Kick instance with self.p_increment != 0)!"""
-        Phi = -self.harmonic * z / beam.R + self.phi_offset
+        theta = (2 * np.pi / self.circumference) * z
+        Phi   = self.harmonic * theta + self.phi_offset
+        Phi_0 = self.Phi_0(beam)
         amplitude  = e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
-        modulation = (cos(Phi) - cos(self.Phi_0) + (Phi - self.Phi_0) * sin(self.Phi_0))
+        modulation = (cos(Phi) - cos(Phi_0) + (Phi - Phi_0) * sin(Phi_0))
         return amplitude * modulation
 
 
@@ -135,7 +138,7 @@ class LongitudinalOneTurnMap(object):
 
     LongitudinalOneTurnMap classes possibly comprise several LongitudinalMap objects."""
 
-    self.__metaclass__ = ABCMeta
+    __metaclass__ = ABCMeta
 
     def __init__(self, circumference):
         """LongitudinalOneTurnMap objects know their circumference: 
@@ -179,7 +182,7 @@ class RFSystems(LongitudinalOneTurnMap):
         for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list):
             self.kicks.append( Kick(h, V, dphi) )
         self.kicks[0].p_increment = self.p_increment
-        self.elements = [Drift(self.circumference)] + [kicks]
+        self.elements = [ Drift(self.circumference) ] + [kicks]
 
     def track(self, beam):
         if self.p_increment:
