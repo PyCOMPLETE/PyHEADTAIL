@@ -33,7 +33,7 @@ class PDF(object):
         self.y = np.zeros(n_macroparticles)
         self.yp = np.zeros(n_macroparticles)
         self.z = np.zeros(n_macroparticles)
-        self.dp = np.zeros(n_macroparticles)
+        self.Deltap = np.zeros(n_macroparticles)
 
     def _create_gaussian(self, n_macroparticles):
         '''
@@ -44,7 +44,7 @@ class PDF(object):
         self.y = np.random.randn(n_macroparticles)
         self.yp = np.random.randn(n_macroparticles)
         self.z = np.random.randn(n_macroparticles)
-        self.dp = np.random.randn(n_macroparticles)
+        self.Deltap = np.random.randn(n_macroparticles)
 
     def _create_uniform(self, n_macroparticles):
         '''
@@ -55,7 +55,7 @@ class PDF(object):
         self.y = 2 * np.random.rand(n_macroparticles) - 1
         self.yp = 2 * np.random.rand(n_macroparticles) - 1
         self.z = 2 * np.random.rand(n_macroparticles) - 1
-        self.dp = 2 * np.random.rand(n_macroparticles) - 1
+        self.Deltap = 2 * np.random.rand(n_macroparticles) - 1
 
 
 class Bunch(PDF):
@@ -64,7 +64,7 @@ class Bunch(PDF):
                  alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z=None, epsn_z=None, match=None):
 
         self.charge = charge
-        self.gamma = gamma
+        self.p0 = gamma
         self.intensity = intensity
         self.mass = mass
 
@@ -118,6 +118,21 @@ class Bunch(PDF):
     @p0.setter
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
+
+    @property
+    def dp(self):
+        return self.Deltap / self.p0
+    @dp.setter
+    def dp(self, value):
+        self.Deltap = value * self.p0
+    
+    @property
+    def theta(self):
+        return self.z / self.R
+    @theta.setter
+    def theta(self, value):
+        self.z = value * self.R
+    
 
     # #~ @profile
     def sort_particles(self):

@@ -59,15 +59,12 @@ class Drift(LongitudinalMap):
     """the drift (i.e. Delta z) of the particle's z coordinate is given by
     the (separable) Hamiltonian derived by dp (defined by (p - p0) / p0).
 
-    self.length is the drift length. It is either given at instantiation
-        or set to beam.circumference at the first call of self.track(beam)."""
+    self.length is the drift length."""
 
-    def __init__(self, length=None):
+    def __init__(self, length):
         self.length = length
 
     def track(self, beam):
-        if not self.length:
-            self.length = beam.circumference
         beam.dz += -self.eta(beam) * beam.dp * self.length
 
 class Kick(LongitudinalMap):
@@ -91,6 +88,7 @@ class Kick(LongitudinalMap):
         sgn_eta     = np.sign(self.eta(beam))
         amplitude   = sgn_eta * e * self.voltage / (beam.beta * c)
         Phi         = self.harmonic * beam.theta + self.phi_offset
+
         beam.Deltap += amplitude * sin(Phi) - self.p_increment
         beam.p0    += self.p_increment
 
@@ -139,6 +137,11 @@ class LongitudinalOneTurnMap(object):
 
     self.__metaclass__ = ABCMeta
 
+    def __init__(self, circumference):
+        """LongitudinalOneTurnMap objects know their circumference: 
+            this is THE place to store the circumference in the simulations!"""
+        self.circumference = circumference
+
     @abstractmethod
     def track(self, beam):
         """advances the longitudinal coordinates of the beam over a full turn."""
@@ -151,7 +154,8 @@ class RFSystems(LongitudinalOneTurnMap):
         is exact and makes a valid local statement about stability!
     """
 
-    def __init__(self, harmonic_list, voltage_list, phi_offset_list, alpha_array):
+    def __init__(self, circumference, harmonic_list, voltage_list, phi_offset_list, 
+                    alpha_array, p_increment = 0):
         """The first entry in harmonic_list, volta_list and phi_offset_list
         defines the parameters for the accelerating Kick object 
         (i.e. the accelerating RF system).
@@ -164,27 +168,37 @@ class RFSystems(LongitudinalOneTurnMap):
         it can be continuously adjusted to reflect different slopes 
         in the dipole magnet strength ramp.
         See the Kick class for further details."""
+
+        super(RFSystems, self).__init__(circumference)
+        self.p_increment = p_increment
+
         if not len(harmonic_list) == len(voltage_list) == len(dphi_list):
             print ("Warning: parameter lists for RFSystems do not have the same length!")
+
         self.kicks = []
         for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list):
             self.kicks.append( Kick(h, V, dphi) )
-        self.elements = [Drift()] + [kicks]
-        self.p_increment = 0
+        self.kicks[0].p_increment = self.p_increment
+        self.elements = [Drift(self.circumference)] + [kicks]
 
     def track(self, beam):
-        if p_increment:
+        if self.p_increment:
             gamma_old   = beam.gamma
             beta_old    = beam.beta
             p0_old      = beam.p0
+            self.kicks[0].p_increment = self.p_increment
         for longMap in self.elements:
             longMap.track(beam)
-        if p_increment:
+        if self.p_increment:
             geo_emittance_factor = np.sqrt(gamma_old * beta_old / (beam.gamma * beam.beta))
-            beam.x    *= geo_emittance_factor
-            beam.xp   *= geo_emittance_factor
-            beam.y    *= geo_emittance_factor
-            beam.yp   *= geo_emittance_factor
+            self._shrink_transverse_emittance(beam, geo_emittance_factor)
+
+    @staticmethod
+    def _shrink_transverse_emittance(beam, geo_emittance_factor):
+        beam.x    *= geo_emittance_factor
+        beam.xp   *= geo_emittance_factor
+        beam.y    *= geo_emittance_factor
+        beam.yp   *= geo_emittance_factor
 
     def potential(self, z, beam):
         """the potential well of the rf system"""
@@ -214,9 +228,10 @@ class LinearMap(LongitudinalOneTurnMap):
     self.alpha is the linear momentum compaction factor.
     '''
 
-    def __init__(self, alpha, Qs):
+    def __init__(self, circumference, alpha, Qs):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
+        self.circumference = circumference
         self.alpha = alpha
         self.Qs = Qs
 
@@ -224,7 +239,7 @@ class LinearMap(LongitudinalOneTurnMap):
 
         eta = self.alpha - beam.gamma ** -2
 
-        omega_0 = 2 * np.pi * beam.beta * c / beam.circumference
+        omega_0 = 2 * np.pi * beam.beta * c / self.circumference
         omega_s = self.Qs * omega_0
 
         dQs = 2 * np.pi * self.Qs
