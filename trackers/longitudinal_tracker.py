@@ -61,7 +61,8 @@ class Drift(LongitudinalMap):
 
     self.length is the drift length."""
 
-    def __init__(self, length):
+    def __init__(self, alpha_array, length):
+        super(Drift, self).__init__(alpha_array)
         self.length = length
 
     def track(self, beam):
@@ -78,7 +79,9 @@ class Kick(LongitudinalMap):
 
     self.phi_offset reflects an offset of the cavity's reference system."""
 
-    def __init__(self, harmonic, voltage, phi_offset = 0, p_increment = 0):
+    def __init__(self, alpha_array, harmonic, voltage, 
+                                    phi_offset = 0, p_increment = 0):
+        super(Drift, self).__init__(alpha_array)
         self.harmonic   = harmonic
         self.voltage    = voltage
         self.phi_offset = phi_offset
