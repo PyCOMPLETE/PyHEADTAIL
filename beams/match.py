@@ -11,7 +11,7 @@ from __future__ import division
 import numpy as np
 
 
-from beams.distributions import stationary_exponential
+from .distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
 from scipy.constants import c, e
 
@@ -71,25 +71,28 @@ class Match(object):
 #     # Assuming a gaussian-type stationary distribution
 #     sigma_dp = sigma_dz * Qs / eta / R
 
-def cut_along_separatrix(bunch, hamiltonian):
+def cut_along_separatrix(bunch, sigma_z, sigma_dp, cavity):
 
     for i in xrange(bunch.n_macroparticles):
-        hamiltonian(bunch.dz[i], bunch.dp[i])
+        if not cavity.is_in_separatrix(bunch.z[i], bunch.dp[i], bunch):
+            while not cavity.is_in_separatrix(bunch.z[i], bunch.dp[i], bunch):
+                bunch.z[i] = sigma_z * np.random.randn()
+                bunch.dp[i] = sigma_dp * np.random.randn()
 
-def match_full(bunch, length, bucket):
+def match_to_bucket(bunch, length, cavity):
 
-    R = bucket.circumference / (2 * np.pi)
-    eta = bucket.eta(bunch)
-    Qs = bucket.Qs(bunch)
+    R = cavity.circumference / (2 * np.pi)
+    eta = cavity.eta(bunch)
+    Qs = cavity.Qs(bunch)
 
-    zmax = np.pi * R / bucket.h
-    pmax = 2 * Qs / eta / bucket.h
-    Hmax1 = bucket.hamiltonian(zmax, 0, bunch)
-    Hmax2 = bucket.hamiltonian(0, pmax, bunch)
+    zmax = np.pi * R / cavity.h
+    pmax = 2 * Qs / eta / cavity.h
+    Hmax1 = cavity.hamiltonian(zmax, 0, bunch)
+    Hmax2 = cavity.hamiltonian(0, pmax, bunch)
     # assert(Hmax1 == Hmax2)
     Hmax = Hmax1
     epsn_z = np.pi / 2 * zmax * pmax * bunch.p0 / e
-    print '\nStatistical parameters from RF bucket:'
+    print '\nStatistical parameters from RF cavity:'
     print 'zmax:', zmax, 'pmax:', pmax, 'epsn_z:', epsn_z
 
     # Assuming a gaussian-type stationary distribution
@@ -101,11 +104,11 @@ def match_full(bunch, length, bucket):
     print 'sigma_dz:', sigma_dz, 'sigma_dp:', sigma_dp, 'epsn_z:', epsn_z
 
     print '\n--> Bunchlength:'
-    sigma_dz = bunchlength(bunch, bucket, sigma_dz)
+    sigma_dz = bunchlength(bunch, cavity, sigma_dz)
     sigma_dp = sigma_dz * Qs / eta / R
     H0 = eta * bunch.beta * c * sigma_dp ** 2
 
-    psi = stationary_exponential(bucket.hamiltonian, Hmax, H0, bunch)
+    psi = stationary_exponential(cavity.hamiltonian, Hmax, H0, bunch)
 
     zl = np.linspace(-zmax, zmax, 1000) * 1.5
     pl = np.linspace(-pmax, pmax, 1000) * 1.5

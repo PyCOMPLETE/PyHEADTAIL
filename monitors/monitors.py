@@ -19,7 +19,7 @@ class Monitor(object):
 
 class BunchMonitor(Monitor):
 
-    def __init__(self, filename, n_steps, dictionary=None, slices=Slices(100)):
+    def __init__(self, filename, n_steps, dictionary=None, slices=None):
 
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
@@ -38,6 +38,9 @@ class BunchMonitor(Monitor):
     #     print "Closed!"
 
     def dump(self, bunch):
+
+        if not self.slices:
+            self.slices = bunch.slices
 
         if not self.i_steps:
             n_steps = self.n_steps
@@ -103,7 +106,7 @@ class BunchMonitor(Monitor):
 
 class SliceMonitor(Monitor):
 
-    def __init__(self, filename, n_steps, slices=Slices(100)):
+    def __init__(self, filename, n_steps, slices=None):
 
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
@@ -152,8 +155,8 @@ class SliceMonitor(Monitor):
         h5group.create_dataset("mean_dp", dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("sigma_x", dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("sigma_y", dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("sigma_dz", dims)
-        h5group.create_dataset("sigma_dp", dims)
+        h5group.create_dataset("sigma_dz", dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("sigma_dp", dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("epsn_x", dims)
         h5group.create_dataset("epsn_y", dims)
         h5group.create_dataset("epsn_z", dims)
@@ -196,7 +199,7 @@ class SliceMonitor(Monitor):
 
 class ParticleMonitor(Monitor):
 
-    def __init__(self, filename, stride=1, slices=Slices(100)):
+    def __init__(self, filename, stride=1, slices=None):
 
         self.h5file = hp.File(filename + '.h5part', 'w')
         self.stride = stride
