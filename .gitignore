@@ -1,7 +1,7 @@
 *.html
 *.o
 *.so
-*.pyx
+*.c
 *.pyc
 build/
 scripts/
