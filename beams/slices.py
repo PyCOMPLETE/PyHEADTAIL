@@ -1,7 +1,7 @@
 '''
 Created on 06.01.2014
 
-@author: Kevin Li, Hannes Bartosik
+@author: Kevin Li, Hannes Bartosik, Michael Schenk
 '''
 
 
@@ -17,7 +17,7 @@ class Slices(object):
     classdocs
     '''
 
-    def __init__(self, n_slices, nsigmaz=None, mode='const_space', z_cuts=None):
+    def __init__(self, n_slices, n_macroparticles, nsigmaz=None, mode='const_space', z_cuts=None):
         '''
         Constructor
         '''
@@ -28,16 +28,19 @@ class Slices(object):
         self.mean_xp = np.zeros(n_slices)
         self.mean_y = np.zeros(n_slices)
         self.mean_yp = np.zeros(n_slices)
-        self.mean_dz = np.zeros(n_slices)
+        self.mean_z = np.zeros(n_slices)
         self.mean_dp = np.zeros(n_slices)
         self.sigma_x = np.zeros(n_slices)
         self.sigma_y = np.zeros(n_slices)
-        self.sigma_dz = np.zeros(n_slices)
+        self.sigma_z = np.zeros(n_slices)
         self.sigma_dp = np.zeros(n_slices)
         self.epsn_x = np.zeros(n_slices)
         self.epsn_y = np.zeros(n_slices)
         self.epsn_z = np.zeros(n_slices)
 
+        self.slice_index_of_particle = np.zeros(n_macroparticles, dtype=np.int)
+
+        # self.n_slices = n_slices
         # self.n_macroparticles = np.zeros(n_slices, dtype=int)
         # self.z_bins = np.zeros(n_slices + 1)
         # self.static_slices = False
@@ -50,7 +53,6 @@ class Slices(object):
 
     @property
     def n_slices(self):
-
         return len(self.mean_x)
 
     def _set_longitudinal_cuts(self, bunch):
@@ -68,7 +70,6 @@ class Slices(object):
 
     # @profile
     def _slice_constant_space(self, bunch):
-
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
         bunch.sort_particles()
 
@@ -99,13 +100,13 @@ class Slices(object):
         self.n_macroparticles = np.diff(first_index_in_bin)[1:-1]
 
         # .in_slice indicates in which slice the particle is (needed for wakefields)
+        self._set_slice_index_of_particle(first_index_in_bin)
         # bunch.set_in_slice(index_after_bin_edges)
 
     def _slice_constant_charge(self, bunch):
-
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
         bunch.sort_particles()
-
+        
         # try:
         #     z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
         # except AttributeError:
@@ -115,10 +116,12 @@ class Slices(object):
         self.n_cut_tail = +np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_tail)
         self.n_cut_head = -np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_head) + n_macroparticles_alive
 
-        # 1. n_macroparticles - distribute macroparticles uniformly along slices
+        # 1. n_macroparticles - distribute macroparticles uniformly along slices.
+        # Must be integer. Distribute remaining particles randomly among slices with indices 'ix'.
         q0 = n_macroparticles_alive - self.n_cut_tail - self.n_cut_head
         ix = sample(range(self.n_slices), q0 % self.n_slices)
-        self.n_macroparticles[:] = q0 // self.n_slices
+
+        self.n_macroparticles = (q0 // self.n_slices)*np.ones(self.n_slices)
         self.n_macroparticles[ix] += 1
 
         # 2. z-bins
@@ -126,14 +129,23 @@ class Slices(object):
         n_macroparticles_all = np.hstack((self.n_cut_tail, self.n_macroparticles, self.n_cut_head))
         first_index_in_bin = np.cumsum(n_macroparticles_all)
         self.z_index = first_index_in_bin[:-1]
-
+        self.z_index = (self.z_index).astype(int)
+        
+        # print(self.z_index.shape)
         self.z_bins = (bunch.z[self.z_index - 1] + bunch.z[self.z_index]) / 2.
         self.z_bins[0], self.z_bins[-1] = z_cut_tail, z_cut_head
         self.z_centers = (self.z_bins[:-1] + self.z_bins[1:]) / 2.
+
+        self._set_slice_index_of_particle(first_index_in_bin)
+
         # # self.z_centers = map((lambda i: cp.mean(bunch.z[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices)
 
+    def _set_slice_index_of_particle(self, first_index_in_bin):
+        for i in range(self.n_slices):
+            self.slice_index_of_particle[first_index_in_bin[i]:first_index_in_bin[i+1]] = i
+            
+        
     def update_slices(self, bunch):
-
         if self.mode == 'const_charge':
             self._slice_constant_charge(bunch)
         elif self.mode == 'const_space':
@@ -151,11 +163,11 @@ class Slices(object):
         # i0[-2] = 0
 
         for i in xrange(self.n_slices):
-            x = bunch.x[index[i]:index[i + 1]]
+            x  = bunch.x[index[i]:index[i + 1]]
             xp = bunch.xp[index[i]:index[i + 1]]
-            y = bunch.y[index[i]:index[i + 1]]
+            y  = bunch.y[index[i]:index[i + 1]]
             yp = bunch.yp[index[i]:index[i + 1]]
-            z = bunch.z[index[i]:index[i + 1]]
+            z  = bunch.z[index[i]:index[i + 1]]
             dp = bunch.dp[index[i]:index[i + 1]]
 
             self.mean_x[i] = cp.mean(x)
@@ -172,7 +184,7 @@ class Slices(object):
 
             self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma * bunch.beta * 1e6
             self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma * bunch.beta * 1e6
-            self.epsn_z[i] = 4 * np.pi * self.sigma_z[i] * self.sigma_dp[i] * bunch.p0 / e
+            self.epsn_z[i] = 4 * np.pi * self.sigma_z[i] * self.sigma_dp[i] * bunch.p0 / bunch.charge
 
     # def sort_particles(self, bunch):
 

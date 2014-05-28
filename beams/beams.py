@@ -7,9 +7,9 @@ Created on 06.01.2014
 
 import numpy as np
 
-
 import copy, h5py, sys
 from scipy.constants import c, e, epsilon_0, m_e, m_p, pi
+import cobra_functions.stats as cp
 
 # from slices import *
 # from solvers.poissonfft import *
@@ -135,6 +135,23 @@ class Bunch(PDF):
         self.dp = self.dp.take(z_argsorted)
         self.id = self.id.take(z_argsorted)
 
+    def compute_statistics(self):
+        self.mean_x  = cp.mean(self.x)
+        self.mean_xp = cp.mean(self.xp)
+        self.mean_y  = cp.mean(self.y)
+        self.mean_yp = cp.mean(self.yp)
+        self.mean_z  = cp.mean(self.z)
+        self.mean_dp = cp.mean(self.dp)
+
+        self.sigma_x  = cp.std(self.x)
+        self.sigma_y  = cp.std(self.y)
+        self.sigma_z  = cp.std(self.z)
+        self.sigma_dp = cp.std(self.dp)
+
+        self.epsn_x = cp.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
+        self.epsn_y = cp.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
+        self.epsn_z = 4 * np.pi * self.sigma_z * self.sigma_dp * self.p0 / self.charge
+
 
 class Cloud(PDF):
 
@@ -167,7 +184,7 @@ class Cloud(PDF):
 
     @property
     def n_macroparticles(self):
-
+ 
         return len(self.x)
 
     def reinit(self):
@@ -241,6 +258,7 @@ class Beam(object):
         self = cls()
 
         self._create_uniform(n_macroparticles)
+        self.id = np.arange(1, n_macroparticles + 1, dtype=int)
 
         # General
         self.charge = e
@@ -376,4 +394,3 @@ class Beam(object):
         self.z = self.z.take(z_argsorted)
         self.dp = self.dp.take(z_argsorted)
         self.id = self.id.take(z_argsorted)
-

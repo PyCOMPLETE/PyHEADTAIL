@@ -1,0 +1,7 @@
+*.o
+*.so
+*.pyx
+*.pyc
+build/
+scripts/
+*~
