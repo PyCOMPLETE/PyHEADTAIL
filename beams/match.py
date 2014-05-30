@@ -1,7 +1,7 @@
 from __future__ import division
 '''
 @file matching
-@author Kevin Li
+@author Kevin Li, Adrian Oeftiger
 @date February 2014
 @brief Module for matching transverse and longitudinal distributions
 @copyright CERN
@@ -10,18 +10,98 @@ from __future__ import division
 
 import numpy as np
 
+from abc import ABCMeta, abstractmethod 
 
-from beams.distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
 from scipy.constants import c, e
 
 
-class Match(object):
-    '''
-    Class for general matching of bunch particle distribution to local machine optics. Since the standard matching is taking place within the beam class itself, here, there are only the more complex matching functions to any RF systems configuration. Tha class takes as argument a beam and an RF system.
-    '''
-    pass
+def stationary_exponential(H, Hmax, H0, bunch):
 
+    def psi(dz, dp):
+        result = np.exp(H(dz, dp, bunch) / H0) - np.exp(Hmax / H0)
+        return result
+
+    return psi
+
+
+class Matching(object):
+    '''
+    Class for general matching of beam particle distribution 
+    (to local machine optics). 
+    '''
+    
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def match(self, beam):
+        """Matches the beam to the established conditions 
+        (depends on the implementing class)."""
+        pass
+
+class TransverseGaussian(Matching):
+    """Transverse Gaussian matching."""
+
+    def __init__(self, sigma_x, sigma_xp, sigma_y, sigma_yp):
+        """Initiates the transverse beam coordinates 
+        to a given Gaussian shape."""
+        self.sigma_x  = sigma_x
+        self.sigma_xp = sigma_xp
+        self.sigma_y  = sigma_y
+        self.sigma_yp = sigma_yp
+
+    @classmethod
+    def fromOptics(cls, alpha_x, beta_x, epsn_x, 
+                                alpha_y, beta_y, epsn_y, betagamma):
+        """Initialise TransverseGaussian from the given optics functions."""
+        sigma_x  = np.sqrt(beta_x * epsn_x * 1e-6 / betagamma)
+        sigma_xp = sigma_x / beta_x
+        sigma_y  = np.sqrt(beta_y * epsn_y * 1e-6 / betagamma)
+        sigma_yp = sigma_y / beta_y
+        return cls(sigma_x, sigma_xp, sigma_y, sigma_yp)
+
+    def match(self, beam):
+        beam.x  = self.sigma_x  * np.random.randn(beam.n_macroparticles)
+        beam.xp = self.sigma_xp * np.random.randn(beam.n_macroparticles)
+        beam.y  = self.sigma_y  * np.random.randn(beam.n_macroparticles)
+        beam.yp = self.sigma_yp * np.random.randn(beam.n_macroparticles)
+
+class LongitudinalGaussian(Matching):
+    """Longitudinal Gaussian matching."""
+
+    def __init__(self, sigma_z, sigma_dp, is_in_separatrix = None):
+        """Initiates the longitudinal beam coordinates to a given 
+        Gaussian shape. If the argument is_in_separatrix is set to
+        the is_in_separatrix(z, dp, beam) method of a RFSystems object 
+        (or similar), initialised macroparticles will be reinitialised
+        if is_in_separatrix returns False."""
+        self.sigma_z  = sigma_z
+        self.sigma_dp = sigma_dp
+        self.is_in_separatrix = is_in_separatrix
+
+    @classmethod
+    def fromOptics(cls, beta_z, epsn_z, p0, is_in_separatrix = None):
+        """Initialise LongitudinalGaussian from the given optics functions. 
+        If the argument is_in_separatrix is set to the 
+        is_in_separatrix(z, dp, beam) method of a RFSystems object (or similar), 
+        initialised macroparticles will be reinitialised if is_in_separatrix 
+        returns False."""
+        sigma_z  = np.sqrt(beta_z * epsn_z * p0 / (4 * np.pi) * e)
+        sigma_dp = sigma_z / beta_z
+        return cls(sigma_z, sigma_dp, is_in_separatrix)
+
+    def match(self, beam):
+        beam.z  = self.sigma_z  * np.random.randn(beam.n_macroparticles)
+        beam.dp = self.sigma_dp * np.random.randn(beam.n_macroparticles)
+        if self.is_in_separatrix:
+            self._rematch(beam)
+
+    def _rematch(self, beam):
+        n = beam.n_macroparticles
+        for i in xrange(n):
+            while not self.is_in_separatrix(beam.z[i], beam.dp[i], beam):
+                beam.z[i]  = self.sigma_z  * np.random.randn(n)
+                beam.dp[i] = self.sigma_dp * np.random.randn(n)
 
 # def match_longitudinal(length, bucket, matching=None):
 
@@ -71,41 +151,44 @@ class Match(object):
 #     # Assuming a gaussian-type stationary distribution
 #     sigma_dp = sigma_dz * Qs / eta / R
 
-def cut_along_separatrix(bunch, hamiltonian):
+def cut_along_separatrix(bunch, sigma_z, sigma_dp, cavity):
 
     for i in xrange(bunch.n_macroparticles):
-        hamiltonian(bunch.dz[i], bunch.dp[i])
+        if not cavity.is_in_separatrix(bunch.z[i], bunch.dp[i], bunch):
+            while not cavity.is_in_separatrix(bunch.z[i], bunch.dp[i], bunch):
+                bunch.z[i] = sigma_z * np.random.randn()
+                bunch.dp[i] = sigma_dp * np.random.randn()
 
-def match_full(bunch, length, bucket):
+def match_to_bucket(bunch, length, cavity):
 
-    R = bucket.circumference / (2 * np.pi)
-    eta = bucket.eta(bunch)
-    Qs = bucket.Qs(bunch)
+    R = cavity.circumference / (2 * np.pi)
+    eta = cavity.eta(bunch)
+    Qs = cavity.Qs(bunch)
 
-    zmax = np.pi * R / bucket.h
-    pmax = 2 * Qs / (eta * bucket.h)
-    Hmax1 = bucket.hamiltonian(zmax, 0, bunch)
-    Hmax2 = bucket.hamiltonian(0, pmax, bunch)
+    zmax = np.pi * R / cavity.h
+    pmax = 2 * Qs / eta / cavity.h
+    Hmax1 = cavity.hamiltonian(zmax, 0, bunch)
+    Hmax2 = cavity.hamiltonian(0, pmax, bunch)
     # assert(Hmax1 == Hmax2)
     Hmax = Hmax1
     epsn_z = np.pi / 2 * zmax * pmax * bunch.p0 / e
-    print '\nStatistical parameters from RF bucket:'
+    print '\nStatistical parameters from RF cavity:'
     print 'zmax:', zmax, 'pmax:', pmax, 'epsn_z:', epsn_z
 
-    # Assuming a Gaussian-type stationary distribution
+    # Assuming a gaussian-type stationary distribution
     sigma_dz = length # np.std(bunch.dz)
-    sigma_dp = sigma_dz * Qs / (eta * R)
+    sigma_dp = sigma_dz * Qs / eta / R
     H0 = eta * bunch.beta * c * sigma_dp ** 2
-    epsn_z = (4 * np.pi * Qs * sigma_dz ** 2 * bunch.p0) / (eta * R * e)
+    epsn_z = 4 * np.pi * Qs / eta / R * sigma_dz ** 2 * bunch.p0 / e
     print '\nStatistical parameters from initialisation:'
     print 'sigma_dz:', sigma_dz, 'sigma_dp:', sigma_dp, 'epsn_z:', epsn_z
 
     print '\n--> Bunchlength:'
-    sigma_dz = bunchlength(bunch, bucket, sigma_dz)
-    sigma_dp = sigma_dz * Qs / (eta * R)
+    sigma_dz = bunchlength(bunch, cavity, sigma_dz)
+    sigma_dp = sigma_dz * Qs / eta / R
     H0 = eta * bunch.beta * c * sigma_dp ** 2
 
-    psi = stationary_exponential(bucket.hamiltonian, Hmax, H0, bunch)
+    psi = stationary_exponential(cavity.hamiltonian, Hmax, H0, bunch)
 
     zl = np.linspace(-zmax, zmax, 1000) * 1.5
     pl = np.linspace(-pmax, pmax, 1000) * 1.5
