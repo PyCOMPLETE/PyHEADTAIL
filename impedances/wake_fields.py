@@ -234,8 +234,8 @@ class Wake_table(Wakefields):
         Constructor
         '''
         Wakefields.__init__(self, slices)
-        self.wake_table = {}
-
+        self.wake_table      = {}
+        self.wake_field_keys = []
 
     @classmethod
     def from_ASCII(cls, wake_file, keys):
@@ -248,7 +248,7 @@ class Wake_table(Wakefields):
     def unit_conversion(self):
         transverse_wakefield_keys = ['dipolar_x', 'dipolar_y', 'quadrupolar_x', 'quadrupolar_y']
         longitudinal_wakefield_keys = ['longitudinal']
-        self.wake_field_keys = []
+        # self.wake_field_keys = []
         print 'Converting wake table to correct units ... '
         self.wake_table['time'] *= 1e-9 # unit convention [ns]
         print '\t converted time from [ns] to [s]'
