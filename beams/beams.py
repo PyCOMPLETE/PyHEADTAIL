@@ -6,7 +6,7 @@ Created on 06.01.2014
 
 
 import numpy as np
-import matching
+import match
 
 import copy, h5py, sys
 from scipy.constants import c, e, epsilon_0, m_e, m_p, pi
@@ -80,8 +80,8 @@ class Bunch(PDF):
         """Initialises a Gaussian bunch from the given optics functions."""
         betagamma = np.sqrt(gamma ** 2 - 1)
         p0 = betagamma * mass * c
-        match_z  = matching.LongitudinalGaussian.fromOptics(beta_z, epsn_z, p0)
-        match_xy = matching.TransverseGaussian.fromOptics(alpha_x, beta_x, 
+        match_z  = match.LongitudinalGaussian.fromOptics(beta_z, epsn_z, p0)
+        match_xy = match.TransverseGaussian.fromOptics(alpha_x, beta_x, 
                                     epsn_x, alpha_y, beta_y, epsn_y, betagamma)
         return cls(n_macroparticles, charge, gamma, intensity, mass, 
                                                             match_z, match_xy)
