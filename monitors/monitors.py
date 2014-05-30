@@ -208,7 +208,7 @@ class ParticleMonitor(Monitor):
         resorting_indices = np.argsort(bunch.id)[::self.stride]
 
         h5group["x"][:]  = bunch.x[resorting_indices]
-        h5group["xp"][:] = bunch.yp[resorting_indices]
+        h5group["xp"][:] = bunch.xp[resorting_indices]
         h5group["y"][:]  = bunch.y[resorting_indices]
         h5group["yp"][:] = bunch.yp[resorting_indices]
         h5group["z"][:]  = bunch.z[resorting_indices]
