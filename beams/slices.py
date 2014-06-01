@@ -142,8 +142,7 @@ class Slices(object):
 
     def _set_slice_index_of_particle(self, first_index_in_bin):
         for i in range(self.n_slices):
-            self.slice_index_of_particle[first_index_in_bin[i]:first_index_in_bin[i+1]] = i
-            
+            self.slice_index_of_particle[first_index_in_bin[i+1]:first_index_in_bin[i+2]] = i
         
     def update_slices(self, bunch):
         if self.mode == 'const_charge':

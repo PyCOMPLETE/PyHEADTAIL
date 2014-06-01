@@ -154,7 +154,7 @@ class BB_Resonator_transverse(Wakefields):
         if not self.slices:
             self.slices = bunch.slices
 
-        # bunch.compute_statistics()
+	# bunch.compute_statistics()
         self.slices.update_slices(bunch)
         self.slices.compute_statistics(bunch)
 
