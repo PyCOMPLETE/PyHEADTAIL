@@ -16,91 +16,104 @@ from scipy.integrate import quad, dblquad
 from scipy.constants import c, e
 
 
-def stationary_exponential(H, Hmax, H0, bunch):
-
-    def psi(dz, dp):
-        result = np.exp(H(dz, dp, bunch) / H0) - np.exp(Hmax / H0)
-        return result
-
-    return psi
-
-
-class Matching(object):
-    '''
-    Class for general matching of beam particle distribution 
-    (to local machine optics). 
-    '''
+class PhaseSpace(object):
+    """Knows how to distribute particle coordinates for a beam
+    according to certain distribution functions.
+    """
     
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def match(self, beam):
-        """Matches the beam to the established conditions 
-        (depends on the implementing class)."""
+    def generate(self, beam):
+        """Creates the beam macroparticles according to a 
+        distribution function (depends on the implementing class).
+        """
         pass
 
-class TransverseGaussian(Matching):
-    """Transverse Gaussian matching."""
+class GaussianX(PhaseSpace):
+    """Horizontal Gaussian particle phase space distribution."""
 
-    def __init__(self, sigma_x, sigma_xp, sigma_y, sigma_yp):
-        """Initiates the transverse beam coordinates 
-        to a given Gaussian shape."""
+    def __init__(self, n_macroparticles, sigma_x, sigma_xp):
+        """Initiates the horizontal beam coordinates 
+        to the given Gaussian shape.
+        """
+        self.n_macroparticles = n_macroparticles
         self.sigma_x  = sigma_x
         self.sigma_xp = sigma_xp
+
+    @classmethod
+    def from_optics(cls, n_macroparticles, alpha_x, beta_x, epsn_x, betagamma):
+        """Initialise GaussianX from the given optics functions.
+        beta_x is given in meters and epsn_x in micrometers.
+        """
+        sigma_x  = np.sqrt(beta_x * epsn_x * 1e-6 / betagamma)
+        sigma_xp = sigma_x / beta_x
+        return cls(n_macroparticles, sigma_x, sigma_xp)
+
+    def generate(self, beam):
+        beam.x = self.sigma_x * np.random.randn(self.n_macroparticles)
+        beam.xp = self.sigma_xp * np.random.randn(self.n_macroparticles)
+
+class GaussianY(PhaseSpace):
+    """Vertical Gaussian particle phase space distribution."""
+
+    def __init__(self, n_macroparticles, sigma_y, sigma_yp):
+        """Initiates the vertical beam coordinates 
+        to the given Gaussian shape.
+        """
+        self.n_macroparticles = n_macroparticles
         self.sigma_y  = sigma_y
         self.sigma_yp = sigma_yp
 
     @classmethod
-    def fromOptics(cls, alpha_x, beta_x, epsn_x, 
-                                alpha_y, beta_y, epsn_y, betagamma):
-        """Initialise TransverseGaussian from the given optics functions."""
-        sigma_x  = np.sqrt(beta_x * epsn_x * 1e-6 / betagamma)
-        sigma_xp = sigma_x / beta_x
+    def from_optics(cls, n_macroparticles, alpha_y, beta_y, epsn_y, betagamma):
+        """Initialise GaussianY from the given optics functions.
+        beta_y is given in meters and epsn_y in micrometers.
+        """
         sigma_y  = np.sqrt(beta_y * epsn_y * 1e-6 / betagamma)
         sigma_yp = sigma_y / beta_y
-        return cls(sigma_x, sigma_xp, sigma_y, sigma_yp)
+        return cls(n_macroparticles, sigma_y, sigma_yp)
 
-    def match(self, beam):
-        beam.x  = self.sigma_x  * np.random.randn(beam.n_macroparticles)
-        beam.xp = self.sigma_xp * np.random.randn(beam.n_macroparticles)
-        beam.y  = self.sigma_y  * np.random.randn(beam.n_macroparticles)
-        beam.yp = self.sigma_yp * np.random.randn(beam.n_macroparticles)
+    def generate(self, beam):
+        beam.y = self.sigma_y * np.random.randn(self.n_macroparticles)
+        beam.yp = self.sigma_yp * np.random.randn(self.n_macroparticles)
 
-class LongitudinalGaussian(Matching):
-    """Longitudinal Gaussian matching."""
+class GaussianZ(PhaseSpace):
+    """Longitudinal Gaussian particle phase space distribution."""
 
-    def __init__(self, sigma_z, sigma_dp, is_in_separatrix = None):
+    def __init__(self, n_macroparticles, sigma_z, sigma_dp, is_accepted = None):
         """Initiates the longitudinal beam coordinates to a given 
-        Gaussian shape. If the argument is_in_separatrix is set to
-        the is_in_separatrix(z, dp, beam) method of a RFSystems object 
-        (or similar), initialised macroparticles will be reinitialised
-        if is_in_separatrix returns False."""
-        self.sigma_z  = sigma_z
+        Gaussian shape. If the argument is_accepted is set to
+        the is_in_separatrix(z, dp, beam) method of a RFSystems 
+        object (or similar), macroparticles will be initialised
+        until is_accepted returns True.
+        """
+        self.n_macroparticles = n_macroparticles
+        self.sigma_z = sigma_z
         self.sigma_dp = sigma_dp
-        self.is_in_separatrix = is_in_separatrix
+        self.is_accepted = is_accepted
 
     @classmethod
-    def fromOptics(cls, beta_z, epsn_z, p0, is_in_separatrix = None):
-        """Initialise LongitudinalGaussian from the given optics functions. 
-        If the argument is_in_separatrix is set to the 
-        is_in_separatrix(z, dp, beam) method of a RFSystems object (or similar), 
-        initialised macroparticles will be reinitialised if is_in_separatrix 
-        returns False."""
-        sigma_z  = np.sqrt(beta_z * epsn_z * p0 / (4 * np.pi) * e)
+    def from_optics(cls, n_macroparticles, beta_z, epsn_z, p0, 
+            is_accepted = None):
+        """Initialise GaussianZ from the given optics functions. 
+        For the argument is_accepted see __init__.
+        """
+        sigma_z = np.sqrt(beta_z * epsn_z * p0 / (4 * np.pi) * e)
         sigma_dp = sigma_z / beta_z
-        return cls(sigma_z, sigma_dp, is_in_separatrix)
+        return cls(n_macroparticles, sigma_z, sigma_dp, is_accepted)
 
-    def match(self, beam):
-        beam.z  = self.sigma_z  * np.random.randn(beam.n_macroparticles)
-        beam.dp = self.sigma_dp * np.random.randn(beam.n_macroparticles)
-        if self.is_in_separatrix:
-            self._rematch(beam)
+    def generate(self, beam):
+        beam.z = self.sigma_z * np.random.randn(self.n_macroparticles)
+        beam.dp = self.sigma_dp * np.random.randn(self.n_macroparticles)
+        if self.is_accepted:
+            self._redistribute(beam)
 
-    def _rematch(self, beam):
-        n = beam.n_macroparticles
+    def _redistribute(self, beam):
+        n = self.n_macroparticles
         for i in xrange(n):
-            while not self.is_in_separatrix(beam.z[i], beam.dp[i], beam):
-                beam.z[i]  = self.sigma_z  * np.random.randn(n)
+            while not self.is_accepted(beam.z[i], beam.dp[i], beam):
+                beam.z[i]  = self.sigma_z * np.random.randn(n)
                 beam.dp[i] = self.sigma_dp * np.random.randn(n)
 
 # def match_longitudinal(length, bucket, matching=None):
@@ -158,6 +171,16 @@ def cut_along_separatrix(bunch, sigma_z, sigma_dp, cavity):
             while not cavity.is_in_separatrix(bunch.z[i], bunch.dp[i], bunch):
                 bunch.z[i] = sigma_z * np.random.randn()
                 bunch.dp[i] = sigma_dp * np.random.randn()
+
+
+def stationary_exponential(H, Hmax, H0, bunch):
+
+    def psi(dz, dp):
+        result = np.exp(H(dz, dp, bunch) / H0) - np.exp(Hmax / H0)
+        return result
+
+    return psi
+
 
 def match_to_bucket(bunch, length, cavity):
 
