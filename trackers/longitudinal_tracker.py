@@ -96,7 +96,7 @@ class Kick(LongitudinalMap):
     self.phi_offset reflects an offset of the cavity's reference system."""
 
     def __init__(self, alpha_array, circumference, harmonic, voltage, 
-                 phi_offset = 0, p_increment = 0):
+                 phi_offset=0, p_increment=0):
         super(Kick, self).__init__(alpha_array)
         self.circumference = circumference
         self.harmonic = harmonic
@@ -182,7 +182,7 @@ class RFSystems(LongitudinalOneTurnMap):
     """
 
     def __init__(self, circumference, harmonic_list, voltage_list, 
-                        phi_offset_list, alpha_array, p_increment = 0):
+                        phi_offset_list, alpha_array, p_increment=0):
         """The first entry in harmonic_list, voltage_list and phi_offset_list
         defines the parameters for the one accelerating Kick object 
         (i.e. the accelerating RF system).
@@ -201,7 +201,6 @@ class RFSystems(LongitudinalOneTurnMap):
         self.accelerating_kick"""
 
         super(RFSystems, self).__init__(alpha_array, circumference)
-        self.p_increment = p_increment
 
         if not len(harmonic_list) == len(voltage_list) == len(phi_offset_list):
             print ("Warning: parameter lists for RFSystems " +
@@ -211,10 +210,10 @@ class RFSystems(LongitudinalOneTurnMap):
         for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list):
             kick = Kick(alpha_array, self.circumference, h, V, dphi)
             self.kicks.append(kick)
-        self.accelerating_kick = self.kicks[0]
-        self.accelerating_kick.p_increment = self.p_increment
         self.elements = [Drift(alpha_array, self.circumference)] + [self.kicks]
-        self.fundamental_kick = max(self.kicks, key = lambda kick: kick.voltage)
+        self.accelerating_kick = self.kicks[0]
+        self.p_increment = p_increment
+        self.fundamental_kick = min(self.kicks, key=lambda kick: kick.harmonic)
 
     def track(self, beam):
         if self.p_increment:
@@ -234,11 +233,21 @@ class RFSystems(LongitudinalOneTurnMap):
         beam.y *= geo_emittance_factor
         beam.yp *= geo_emittance_factor
 
+    @property
+    def p_increment(self):
+        return self.accelerating_kick.p_increment
+    @p_increment.setter
+    def p_increment(self, value):
+        self.accelerating_kick.p_increment = value
+    
+
     def potential(self, z, beam):
         """the potential well of the rf system"""
         phi_0 = self.accelerating_kick.calc_phi_0(beam)
+        h1 = self.accelerating_kick.harmonic
         def fetch_potential(kick):
-            return kick.potential(z, beam, phi_0)
+            phi_0_i = kick.harmonic / h1 * phi_0
+            return kick.potential(z, beam, phi_0_i)
         potential_list = map(fetch_potential, self.kicks)
         return sum(potential_list)
 
