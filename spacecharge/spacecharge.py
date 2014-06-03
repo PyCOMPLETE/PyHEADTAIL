@@ -61,7 +61,7 @@ class SpaceCharge():
         cloud.x += dt * cloud.xp
         cloud.y += dt * cloud.yp
 
-    @profile
+    # @profile
     def track(self, beam):
 
         if not hasattr(beam, 'kx'):

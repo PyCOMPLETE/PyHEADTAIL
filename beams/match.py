@@ -11,17 +11,192 @@ from __future__ import division
 import numpy as np
 
 
-from .distributions import stationary_exponential
 from scipy.integrate import quad, dblquad
 from scipy.constants import c, e
 
 
-class Match(object):
-    '''
-    Class for general matching of bunch particle distribution to local machine optics. Since the standard matching is taking place within the beam class itself, here, there are only the more complex matching functions to any RF systems configuration. Tha class takes as argument a beam and an RF system.
-    '''
-    pass
+import pylab as plt
 
+
+class StationaryExponential(object):
+
+    def __init__(self, H):
+        self.H = H
+        self.H0 = 1
+
+    def function(self, phi, dp):
+        return (np.exp(self.H(phi, dp) / self.H0) - 1) / (np.exp(self.H(0, 0) / self.H0) - 1)
+
+    # @property
+    # def H0(self):
+    #     return self.H0
+    # @H0.setter
+    # def H0(self, value):
+    #     self.H0 = value
+
+
+class Particles(object): pass
+
+
+class RFSystems(object):
+
+    def __init__(self, bunch):
+        alpha = 1 / 18 ** 2
+
+        self.dp_absolute = 0.0
+        self.circumference = 6911
+        self.eta = alpha - 1 / bunch.gamma ** 2
+        self.Qs = 0.017
+
+        self.h = 4620
+
+        self.bunch = bunch
+
+    @property
+    def beta(self):
+        return self.bunch.beta
+
+    @property
+    def p0(self):
+        return self.bunch.p0
+
+    @property
+    def R(self):
+        return self.circumference / (2 * np.pi)
+
+    @property
+    def beta_z(self):
+        return self.eta * self.R / self.Qs
+
+    def potential(self, phi):
+
+        V1, h1 = 2e6, 4620
+        V2, h2 = -0.5 * V1, 2 * h1
+        V3, h3 = -0.25 * V1, 4 * h1
+
+        return (e * V1 / (2 * np.pi * self.p0 * h1) * np.cos(phi)
+              + e * V2 / (2 * np.pi * self.p0 * h2) * np.cos(h2 / h1 * phi)
+              + e * V3 / (2 * np.pi * self.p0 * h3) * np.cos(h3 / h1 * phi))
+
+    def hamiltonian(self, phi, dp):
+
+        return -1 / 2 * self.eta * self.beta * c * dp ** 2 + self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute
+
+    def p_sep(self, phi):
+
+        return np.sqrt(2 / (self.eta * self.beta * c) * (self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute))
+
+    def z(self, phi):
+
+        return phi * self.R / self.h
+
+
+class PhaseSpace(object):
+    '''
+    Class for general matching of bunch particle distribution to local machine
+    optics. Since the standard matching is taking place within the beam class
+    itself, here, there are only the more complex matching functions to any RF
+    systems configuration. Tha class takes as argument a beam and an RF system.
+    '''
+
+    def __init__(self, bunch, rfsystem):
+
+        self.rf = RFSystems(bunch)
+
+    def _std_targeted(self, psi, sigma):
+        print 'Iterative evaluation of bunch length...'
+
+        counter = 0
+        eps = 1
+
+        # Test for maximum bunch length
+        z0 = self.rf.circumference
+        H0 = self.rf.eta * self.rf.beta * c * (z0 / self.rf.beta_z) ** 2
+        psi.H0 = H0
+        s = self._std_computed(psi.function, self.rf.p_sep, -np.pi, np.pi)
+        zS = self.rf.z(np.sqrt(s))
+        print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
+        if sigma > zS * 0.95:
+            print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+        # Initial values
+        z0 = sigma
+        H0 = self.rf.eta * self.rf.beta * c * (z0 / self.rf.beta_z) ** 2
+        psi.H0 = H0
+
+        # Iteratively obtain true H0 to make target sigma
+        zH = z0
+        while abs(eps)>1e-6:
+            s = self._std_computed(psi.function, self.rf.p_sep, -np.pi, np.pi)
+
+            zS = self.rf.z(np.sqrt(s))
+            eps = zS - z0
+            print counter, zH, zS, eps
+            zH -= 0.5 * eps
+            H0 = self.rf.eta * self.rf.beta * c * (zH / self.rf.beta_z) ** 2
+            psi.H0 = H0
+
+            counter += 1
+            if counter > 100:
+                print "\n*** WARNING: too many interation steps! There are several possible reasons for that:"
+                print "1. Is the Hamiltonian correct?"
+                print "2. Is the stationary distribution function convex around zero?"
+                print "3. Is the bunch too long to fit into the bucket?"
+                print "4. Is this algorithm not qualified?"
+                print "Aborting..."
+                sys.exit(-1)
+
+        return psi.function
+
+    def _std_computed(self, psi, p_sep, xmin, xmax):
+        '''
+        Compute the variance of the distribution function psi from xmin to xmax
+        along the contours p_sep using numerical integration methods.
+        '''
+        # xx, yy = np.linspace(xmin, xmax), np.linspace(ymin, ymax)
+        # XX, YY = np.meshgrid(xx, yy)
+        # PP = psi(XX, YY)
+        # VV = var(XX, YY)
+
+        # psi_max = np.amax(PP)
+        # var_max = np.amax(VV)
+
+        Q, error = dblquad(lambda y, x: psi(x, y), xmin, xmax,
+                    lambda x: 0, lambda x: p_sep(x))
+        V, error = dblquad(lambda y, x: x ** 2 * psi(x, y), xmin, xmax,
+                    lambda x: 0, lambda x: p_sep(x))
+
+        return V / Q
+
+    def generate(self, n_particles, sigma):
+        '''
+        Generate a 2d phase space of n_particles particles randomly distributed
+        according to the particle distribution function psi within the region
+        [xmin, xmax, ymin, ymax].
+        '''
+        x = np.zeros(n_particles)
+        y = np.zeros(n_particles)
+
+        i, j = 0, 0
+        xmin, xmax = -np.pi, np.pi
+        ymin, ymax = -3e-3, 3e-3
+
+        dx = xmax - xmin
+        dy = ymax - ymin
+
+        psi = self._std_targeted(StationaryExponential(self.rf.hamiltonian), sigma)
+
+        while j < n_particles:
+            u = xmin + dx * np.random.random()
+            v = ymin + dy * np.random.random()
+            s = np.random.random()
+            i += 1
+            if s < psi(u, v):
+                x[j] = u
+                y[j] = v
+                j += 1
+
+        return x, y, j / i * dx * dy, psi
 
 # def match_longitudinal(length, bucket, matching=None):
 

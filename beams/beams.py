@@ -386,3 +386,24 @@ class Ghost(PDF):
 #         self.z = self.z.take(z_argsorted)
 #         self.dp = self.dp.take(z_argsorted)
 #         self.id = self.id.take(z_argsorted)
+
+
+class Particles(object):
+    '''
+    A set of particles in 6d phase space
+    '''
+    pass
+
+
+class Magic(object):
+    '''
+    The ultimate super matched particle distribution generation class with a
+    fancy name (instead of boring Match)
+    '''
+    pass
+
+class Generators(object):
+    '''
+    Create and match particle distributions in 6d phase space
+    '''
+    pass

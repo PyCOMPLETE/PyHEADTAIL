@@ -61,7 +61,7 @@ class PoissonFFT(UniformGrid):
     #         slave.kx = np.zeros(slave.n_macroparticles)
     #         slave.ky = np.zeros(slave.n_macroparticles)
 
-    @profile
+    # @profile
     def compute_potential(self, rho, phi):
 
         self.tmprho[:self.ny, :self.nx] = rho
