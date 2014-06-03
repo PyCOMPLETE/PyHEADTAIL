@@ -229,26 +229,23 @@ class Wake_table(Wakefields):
     '''
     classdocs
     '''
+    # Default constructor not implemented.
     def __init__(self, slices=None):
-        '''
-        Constructor
-        '''
-        Wakefields.__init__(self, slices)
-        self.wake_table      = {}
-        self.wake_field_keys = []
+        pass
 
     @classmethod
-    def from_ASCII(cls, wake_file, keys):
+    def from_ASCII(cls, wake_file, keys, slices):
         self = cls()
+        Wakefields.__init__(self, slices)
         table = np.loadtxt(wake_file, delimiter="\t")
         self.wake_table = dict(zip(keys, np.array(zip(*table))))
         self.unit_conversion()
         return self
 
     def unit_conversion(self):
-        transverse_wakefield_keys = ['dipolar_x', 'dipolar_y', 'quadrupolar_x', 'quadrupolar_y']
+        transverse_wakefield_keys   = ['dipolar_x', 'dipolar_y', 'quadrupolar_x', 'quadrupolar_y']
         longitudinal_wakefield_keys = ['longitudinal']
-        # self.wake_field_keys = []
+        self.wake_field_keys = []
         print 'Converting wake table to correct units ... '
         self.wake_table['time'] *= 1e-9 # unit convention [ns]
         print '\t converted time from [ns] to [s]'
@@ -262,11 +259,10 @@ class Wake_table(Wakefields):
         for wake in longitudinal_wakefield_keys:
             try:
                 self.wake_table[wake] *= - 1.e12 # unit convention [V/pC] and sign convention !!
-                print '\t converted "' + wake + '" wake from [V/pC/mm] to [V/C/m]'
+                print '\t converted "' + wake + '" wake from [V/pC] to [V/C]'
                 self.wake_field_keys += [wake]
             except:
                 print '\t "' + wake + '" wake not provided'
-
 
     #~ @profile
     def wake_transverse(self, key, bunch, z):
@@ -299,7 +295,6 @@ class Wake_table(Wakefields):
         if 'quadrupolar_y' in self.wake_field_keys: return self.wake_transverse('quadrupolar_y', bunch, z)
         return 0
 
-
     def wake_longitudinal(self, bunch, z):
         time = np.array(self.wake_table['time'])
         wake = np.array(self.wake_table['longitudinal'])
@@ -309,7 +304,6 @@ class Wake_table(Wakefields):
         elif time[0] == 0:
             # beam loading theorem: half value of wake at z=0;
             return (np.sign(-z) + 1) / 2 * wake_interpolated
-
 
     def track(self, bunch):
         if not self.slices:
