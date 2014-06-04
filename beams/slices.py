@@ -100,8 +100,9 @@ class Slices(object):
         self.n_macroparticles = np.diff(first_index_in_bin)[1:-1]
 
         # .in_slice indicates in which slice the particle is (needed for wakefields)
-        self._set_slice_index_of_particle(first_index_in_bin)
+        self._set_slice_index_of_particle()
         # bunch.set_in_slice(index_after_bin_edges)
+	
 
     def _slice_constant_charge(self, bunch):
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
@@ -136,14 +137,15 @@ class Slices(object):
         self.z_bins[0], self.z_bins[-1] = z_cut_tail, z_cut_head
         self.z_centers = (self.z_bins[:-1] + self.z_bins[1:]) / 2.
 
-        self._set_slice_index_of_particle(first_index_in_bin)
+        self._set_slice_index_of_particle()
 
         # # self.z_centers = map((lambda i: cp.mean(bunch.z[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices)
 
-    def _set_slice_index_of_particle(self, first_index_in_bin):
+    def _set_slice_index_of_particle(self):
         for i in range(self.n_slices):
-            self.slice_index_of_particle[first_index_in_bin[i+1]:first_index_in_bin[i+2]] = i
-        
+            self.slice_index_of_particle[self.z_index[i]:self.z_index[i+1]] = i
+
+                    
     def update_slices(self, bunch):
         if self.mode == 'const_charge':
             self._slice_constant_charge(bunch)
