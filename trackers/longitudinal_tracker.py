@@ -135,15 +135,17 @@ class Kick(LongitudinalMap):
             gamma > gamma_transition <==> phi_0 ~ 0
         ASSUMPTION: this is the only Kick instance adding to acceleration
         (i.e. technically the only Kick instance with self.p_increment != 0)!"""
+        if self.voltage == 0 and self.p_increment == 0:
+            return 0
         deltaE  = self.p_increment * c / beam.beta
-        sgn_eta = np.sign( self.eta(0, beam) )
+        sgn_eta = np.sign(self.eta(0, beam))
         return np.arccos( 
             sgn_eta * np.sqrt(1 - (deltaE / (e * self.voltage)) ** 2))
 
-    def potential(self, z, beam, phi_0):
-        """The contribution of this kick to the overall potential V(z).
-        ASSUMPTION: there is one Kick instance adding to overall acceleration
-        (i.e. technically only one Kick instance with self.p_increment != 0)!"""
+    def potential(self, z, beam, phi_0=None):
+        """The contribution of this kick to the overall potential V(z)."""
+        if phi_0 is None:
+            phi_0 = self.calc_phi_0(beam)
         theta = (2 * np.pi / self.circumference) * z
         phi = self.harmonic * theta + self.phi_offset
         amplitude = -e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
@@ -191,6 +193,15 @@ class RFSystems(LongitudinalOneTurnMap):
         defines the order of the slippage factor expansion. 
         See the LongitudinalMap class for further details.
 
+        RFSystems comprises a half the circumference drift, 
+        then all the kicks by the RF Systems in one location, 
+        then the remaining half the circumference drift. 
+        This Verlet algorithm ("leap-frog" featuring O(n_turn^2) as 
+        opposed to symplectic Euler-Cromer with O(n_turn)) makes
+        sure that the longitudinal phase space is read out in
+        a symmetric way (otherwise phase space should be tilted
+        at the entrance or exit of the cavity / kick location!).
+
         self.p_increment is the momentum step per turn of the synchronous 
         particle, it can be continuously adjusted to reflect different slopes 
         in the dipole magnet strength ramp.
@@ -210,7 +221,10 @@ class RFSystems(LongitudinalOneTurnMap):
         for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list):
             kick = Kick(alpha_array, self.circumference, h, V, dphi)
             self.kicks.append(kick)
-        self.elements = [Drift(alpha_array, self.circumference)] + [self.kicks]
+        self.elements = ( [Drift(alpha_array, self.circumference / 2)] 
+                        + [self.kicks]
+                        + [Drift(alpha_array, self.circumference / 2)]
+                        )
         self.accelerating_kick = self.kicks[0]
         self.p_increment = p_increment
         self.fundamental_kick = min(self.kicks, key=lambda kick: kick.harmonic)
@@ -218,12 +232,11 @@ class RFSystems(LongitudinalOneTurnMap):
     def track(self, beam):
         if self.p_increment:
             betagamma_old   = beam.betagamma
-            self.accelerating_kick.p_increment = self.p_increment
         for longMap in self.elements:
             longMap.track(beam)
         if self.p_increment:
-            self._shrink_transverse_emittance(beam, 
-                                np.sqrt(betagamma_old / beam.betagamma) )
+            self._shrink_transverse_emittance(
+                beam, np.sqrt(betagamma_old / beam.betagamma))
 
     @staticmethod
     def _shrink_transverse_emittance(beam, geo_emittance_factor):
@@ -243,11 +256,12 @@ class RFSystems(LongitudinalOneTurnMap):
 
     def potential(self, z, beam):
         """the potential well of the rf system"""
-        phi_0 = self.accelerating_kick.calc_phi_0(beam)
-        h1 = self.accelerating_kick.harmonic
+        # phi_0 = self.accelerating_kick.calc_phi_0(beam)
+        # h1 = self.accelerating_kick.harmonic
         def fetch_potential(kick):
-            phi_0_i = kick.harmonic / h1 * phi_0
-            return kick.potential(z, beam, phi_0_i)
+            # phi_0_i = kick.harmonic / h1 * phi_0
+            # return kick.potential(z, beam, phi_0)
+            return kick.potential(z, beam)
         potential_list = map(fetch_potential, self.kicks)
         return sum(potential_list)
 
