@@ -135,21 +135,25 @@ class Kick(LongitudinalMap):
             gamma > gamma_transition <==> phi_0 ~ 0
         ASSUMPTION: this is the only Kick instance adding to acceleration
         (i.e. technically the only Kick instance with self.p_increment != 0)!"""
-        deltaE  = self.p_increment * c / beam.beta
+        if self.p_increment == 0 and self.voltage == 0:
+            return 0
+        # deltaE  = self.p_increment * c / beam.beta
+        deltaE  = self.p_increment * c * beam.beta / beam.gamma
         sgn_eta = np.sign( self.eta(0, beam) )
         return np.arccos( 
             sgn_eta * np.sqrt(1 - (deltaE / (e * self.voltage)) ** 2))
 
-    def potential(self, z, beam, phi_0):
+    def potential(self, z, beam, phi_0=None):
         """The contribution of this kick to the overall potential V(z).
         ASSUMPTION: there is one Kick instance adding to overall acceleration
         (i.e. technically only one Kick instance with self.p_increment != 0)!"""
+        if phi_0 is None:
+            phi_0 = self.calc_phi_0(beam)
         theta = (2 * np.pi / self.circumference) * z
         phi = self.harmonic * theta + self.phi_offset
         amplitude = -e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
         modulation = cos(phi) - cos(phi_0) + (phi - phi_0) * sin(phi_0)
         return amplitude * modulation
-
 
 
 class LongitudinalOneTurnMap(LongitudinalMap):
@@ -246,8 +250,10 @@ class RFSystems(LongitudinalOneTurnMap):
         phi_0 = self.accelerating_kick.calc_phi_0(beam)
         h1 = self.accelerating_kick.harmonic
         def fetch_potential(kick):
-            phi_0_i = kick.harmonic / h1 * phi_0
-            return kick.potential(z, beam, phi_0_i)
+            phi_0_i = -kick.harmonic / h1 * phi_0
+            if kick is not self.accelerating_kick:
+                kick.phi_offset = phi_0_i + np.pi
+            return kick.potential(z, beam)
         potential_list = map(fetch_potential, self.kicks)
         return sum(potential_list)
 
