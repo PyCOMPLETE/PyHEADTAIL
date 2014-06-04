@@ -108,12 +108,11 @@ class Bunch(PDF):
 
     @property
     def beta(self):
+        return np.sqrt(1. - 1. / self.gamma**2)
 
-        return np.sqrt(1 - 1 / self.gamma ** 2)
-
+    # 
     @property
     def p0(self):
-
         return self.mass * self.gamma * self.beta * c
 
     # #~ @profile

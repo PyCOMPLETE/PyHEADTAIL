@@ -154,7 +154,7 @@ class Slices(object):
 
     # @profile
     def compute_statistics(self, bunch):
-
+        
         index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
 
         # # determine the start and end indices of each slices
