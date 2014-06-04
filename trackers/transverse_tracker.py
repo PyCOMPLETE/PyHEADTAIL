@@ -12,26 +12,23 @@ sin = np.sin
 cos = np.cos
 
 
-
 class LinearPeriodicMap(object):
 
     def __init__(self, I, J,
-                 beta_x, dmu_x, Qx, Qp_x, app_x,
-                 beta_y, dmu_y, Qy, Qp_y, app_y):
+                 beta_x, dmu_x, Qp_x, app_x,
+                 beta_y, dmu_y, Qp_y, app_y):
         self.I = I
         self.J = J
 
         self.beta_x = beta_x
-        self.dmu_x = dmu_x
-        self.Qx = Qx
-        self.Qp_x = Qp_x
-        self.app_x = app_x
+        self.dmu_x  = dmu_x
+        self.Qp_x   = Qp_x
+        self.app_x  = app_x
 
         self.beta_y = beta_y
-        self.dmu_y = dmu_y
-        self.Qy = Qy
-        self.Qp_y = Qp_y
-        self.app_y = app_y
+        self.dmu_y  = dmu_y
+        self.Qp_y   = Qp_y
+        self.app_y  = app_y
 
     #~ @profile
     def track(self, beam):
@@ -55,7 +52,6 @@ class LinearPeriodicMap(object):
         beam.x, beam.xp = M00 * beam.x + M01 * beam.xp, M10 * beam.x + M11 * beam.xp
         beam.y, beam.yp = M22 * beam.y + M23 * beam.yp, M32 * beam.y + M33 * beam.yp
        
-
     #~ @profile
     def detune(self, beam):
         Jx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2) / 2
@@ -76,12 +72,12 @@ class TransverseTracker(object):
     classdocs
     '''
 
-    def __init__(self, s, alpha_x, beta_x, D_x, Qx, alpha_y, beta_y, D_y, Qy):
+    def __init__(self, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y):
         '''
         Most minimalistic constructor. Pure python name binding.
         '''
-        assert(len(s) == len(alpha_x) == len(beta_x) == len(D_x)
-                      == len(alpha_y) == len(beta_y) == len(D_y))
+        assert((len(s)-1) == len(alpha_x) == len(beta_x) == len(D_x)
+                          == len(alpha_y) == len(beta_y) == len(D_y))
 
         self.s = s
         self.alpha_x = alpha_x
@@ -91,18 +87,12 @@ class TransverseTracker(object):
         self.beta_y = beta_y
         self.D_y = D_y
 
-        C = self.s[-1]
-        self.mu_x = s / C * Qx
-        self.mu_y = s / C * Qy
-        # Close the loop - position and phase advance have twin values at zero
-        self.mu_x = np.insert(self.mu_x, 0, 0)
-        self.mu_y = np.insert(self.mu_y, 0, 0)
-
+        
     @classmethod
     def default(cls, n_segments, C,
                 beta_x, Qx, Qp_x, app_x, beta_y, Qy, Qp_y, app_y):
 
-        s = np.arange(1, n_segments + 1) * C / n_segments
+        s = np.arange(0, n_segments + 1) * C / n_segments
         alpha_x = np.zeros(n_segments)
         beta_x = np.ones(n_segments) * beta_x
         D_x = np.zeros(n_segments)
@@ -110,7 +100,7 @@ class TransverseTracker(object):
         beta_y = np.ones(n_segments) * beta_y
         D_y = np.zeros(n_segments)
 
-        self = cls(s, alpha_x, beta_x, D_x, Qx, alpha_y, beta_y, D_y, Qy)
+        self = cls(s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y)
 
         self.M = self.build_maps(Qx, Qp_x, app_x, Qy, Qp_y, app_y)
 
@@ -128,7 +118,7 @@ class TransverseTracker(object):
         beta_y = np.copy(beta_y)
         D_y = np.copy(D_y)
 
-        self = cls(s, alpha_x, beta_x, D_x, Qx, alpha_y, beta_y, D_y, Qy)
+        self = cls(s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y)
 
         self.M = self.build_maps(Qx, Qp_x, app_x, Qy, Qp_y, app_y)
 
@@ -180,8 +170,8 @@ class TransverseTracker(object):
 #              np.dot(cls.N1[i], np.dot(cls.R[i], cls.N0[i]))
 #              for i in range(cls.n_segments)]
 
-        n_segments = len(self.s)
-
+        n_segments = len(self.s) - 1
+                
         # Allocate coefficient matrices
         I = [np.zeros((4, 4)) for i in xrange(n_segments)]
         J = [np.zeros((4, 4)) for i in xrange(n_segments)]
@@ -216,12 +206,31 @@ class TransverseTracker(object):
             J[i][3, 3] = -np.sqrt(self.beta_y[s0] / self.beta_y[s1]) \
                        * self.alpha_y[s1]
 
-        dmu_x = np.diff(self.mu_x)
-        dmu_y = np.diff(self.mu_y)
+        # Segment the 1-turn integrated quantities Qx(y), Qp_x(y) and app_x(y).
+        # Scaling assumes the effect of app_x,y, ... to be uniform around the accelerator ring.
+        # self.s[-1] = C.
+        scale_to_segment = np.diff(self.s) / self.s[-1]
 
+        d_mu_x  = scale_to_segment*Qx
+        d_mu_y  = scale_to_segment*Qy
+        d_Qp_x  = scale_to_segment*Qp_x
+        d_app_x = scale_to_segment*app_x
+        d_Qp_y  = scale_to_segment*Qp_y
+        d_app_y = scale_to_segment*app_y
+        
+        # dmu_x = self.s / C * Qx
+        # mu_y = self.s / C * Qy
+        # Close the loop - position and phase advance have twin values at zero.
+        # mu_x = np.insert(mu_x, 0, 0)
+        # mu_y = np.insert(mu_y, 0, 0)
+        # dmu_x = np.diff(mu_x)
+        # dmu_y = np.diff(mu_y)
+        # print 'dmu_x', dmu_x
+
+        # Generate a linear periodic map for every segment.
         M = [LinearPeriodicMap(I[i], J[i],
-                               self.beta_x[i], dmu_x[i], Qx, Qp_x, app_x,
-                               self.beta_y[i], dmu_y[i], Qy, Qp_y, app_y)
+                               self.beta_x[i], d_mu_x[i], d_Qp_x[i], d_app_x[i],
+                               self.beta_y[i], d_mu_y[i], d_Qp_y[i], d_app_y[i])
              for i in xrange(n_segments)]
 
         return M
