@@ -128,8 +128,21 @@ class Kick(LongitudinalMap):
         amplitude = sgn_eta * e * self.voltage / (beam.beta * c)
         theta = (2 * np.pi / self.circumference) * beam.z
         phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
-        beam.delta_p += amplitude * sin(phi) - self.p_increment
+
+        beam.delta_p += amplitude * (sin(phi) - sin(self.calc_phi_0(beam))) #self.p_increment
         beam.p0 += self.p_increment
+
+    def potential(self, z, beam, phi_0=None):
+        """The contribution of this kick to the overall potential V(z)."""
+        sgn_eta = np.sign(self.eta(0, beam))
+        amplitude = (sgn_eta * e * self.voltage / 
+                     (beam.p0 * 2 * np.pi * self.harmonic))
+        if phi_0 is None:
+            phi_0 = self.calc_phi_0(beam)
+        theta = (2 * np.pi / self.circumference) * z
+        phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
+        modulation = cos(phi) - cos(phi_0) + (phi - phi_0) * sin(phi_0)
+        return amplitude * modulation
 
     def Qs(self, beam):
         '''
@@ -161,20 +174,15 @@ class Kick(LongitudinalMap):
         if self.p_increment == 0 and self.voltage == 0:
             return 0
         deltaE  = self.p_increment * c * beam.beta / beam.gamma
-        sgn_eta = np.sign(self.eta(0, beam))
-        return np.arccos( 
-            sgn_eta * np.sqrt(1 - (deltaE / (e * self.voltage)) ** 2))
-
-    def potential(self, z, beam, phi_0=None):
-        """The contribution of this kick to the overall potential V(z)."""
-        if phi_0 is None:
-            phi_0 = self.calc_phi_0(beam)
-        theta = (2 * np.pi / self.circumference) * z
-        phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
-        amplitude = -e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
-        modulation = (cos(-phi) - cos(phi_0)
-                      + (-phi - phi_0) * sin(phi_0))
-        return amplitude * modulation
+        phi_rel = np.arcsin(deltaE / (e * self.voltage))
+        if self.eta(0, beam) < 0:
+            # return np.sign(deltaE) * np.pi - phi_rel
+            return np.pi - phi_rel
+        else:
+            return phi_rel
+        # sgn_eta = np.sign(self.eta(0, beam))
+        # return np.arccos( 
+        #     sgn_eta * np.sqrt(1 - (deltaE / (e * self.voltage)) ** 2))
 
 
 class LongitudinalOneTurnMap(LongitudinalMap):
@@ -229,7 +237,8 @@ class RFSystems(LongitudinalOneTurnMap):
         opposed to symplectic Euler-Cromer with O(n_turn)) makes
         sure that the longitudinal phase space is read out in
         a symmetric way (otherwise phase space should be tilted
-        at the entrance or exit of the cavity / kick location!).
+        at the entrance or exit of the cavity / kick location!
+        cf. discussions with Christian Carli).
 
         The boolean parameter shrinking determines whether the
         shrinkage ratio \\beta_{n+1} / \\beta_n should be taken 
