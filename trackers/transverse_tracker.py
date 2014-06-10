@@ -1,7 +1,7 @@
 '''
 Created on 07.01.2014
 
-@author: Kevin Li
+@author: Kevin Li, Michael Schenk
 '''
 
 from __future__ import division
@@ -12,26 +12,25 @@ sin = np.sin
 cos = np.cos
 
 
-# Note that dependence of app_x,y,xy,yx on p0 has been removed and instead put explicitly in the detune function.
+# The dependence of app_x,y,xy,yx on p0 is put explicitly in the detune function only.
+# Variables dQ_x,y, dQp_x,y, dapp_x,y and dapp_xy,yx refer to segment [s_i, s_i+1], ie. are in general not 1-turn integrated values.
 class LinearPeriodicMap(object):
-
-    def __init__(self, I, J,
-                 beta_x, dmu_x, Qp_x, app_x, app_xy,
-                 beta_y, dmu_y, Qp_y, app_y, app_yx):
+    def __init__(self, I, J, beta_x, dQ_x, dQp_x, dapp_x, dapp_xy,
+                             beta_y, dQ_y, dQp_y, dapp_y, dapp_yx):
         self.I = I
         self.J = J
 
-        self.beta_x = beta_x
-        self.dmu_x  = dmu_x
-        self.Qp_x   = Qp_x
-        self.app_x  = app_x
-        self.app_xy = app_xy
+        self.beta_x  = beta_x
+        self.dQ_x    = dQ_x
+        self.dQp_x   = dQp_x
+        self.dapp_x  = dapp_x
+        self.dapp_xy = dapp_xy
 
-        self.beta_y = beta_y
-        self.dmu_y  = dmu_y
-        self.Qp_y   = Qp_y
-        self.app_y  = app_y
-        self.app_yx = app_yx
+        self.beta_y  = beta_y
+        self.dQ_y    = dQ_y
+        self.dQp_y   = dQp_y
+        self.dapp_y  = dapp_y
+        self.dapp_yx = dapp_yx
         
     #~ @profile
     def track(self, beam):
@@ -59,14 +58,14 @@ class LinearPeriodicMap(object):
         Jx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2) / (2. * self.beta_x)
         Jy = (beam.y ** 2 + (self.beta_y * beam.yp) ** 2) / (2. * self.beta_y)
 
-        dphi_x = 2 * np.pi * (self.dmu_x
-                            + self.Qp_x * beam.dp
-                            + self.app_x/beam.p0 * Jx
-                            + self.app_xy/beam.p0 * Jy)
-        dphi_y = 2 * np.pi * (self.dmu_y
-                            + self.Qp_y * beam.dp
-                            + self.app_y/beam.p0 * Jy
-                            + self.app_yx/beam.p0 * Jx)
+        dphi_x = 2 * np.pi * (self.dQ_x
+                            + self.dQp_x * beam.dp
+                            + self.dapp_x/beam.p0 * Jx
+                            + self.dapp_xy/beam.p0 * Jy)
+        dphi_y = 2 * np.pi * (self.dQ_y
+                            + self.dQp_y * beam.dp
+                            + self.dapp_y/beam.p0 * Jy
+                            + self.dapp_yx/beam.p0 * Jx)
 
         return dphi_x, dphi_y
 
@@ -75,8 +74,8 @@ class TransverseTracker(object):
     '''
     classdocs
     '''
-
-    def __init__(self, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y):
+    def __init__(self, s, alpha_x, beta_x, D_x, Q_x, Qp_x, app_x, app_xy,
+                          alpha_y, beta_y, D_y, Q_y, Qp_y, app_y, app_yx):
         '''
         Most minimalistic constructor. Pure python name binding.
         '''
@@ -84,51 +83,112 @@ class TransverseTracker(object):
                           == len(alpha_y) == len(beta_y) == len(D_y))
 
         self.s = s
+
         self.alpha_x = alpha_x
-        self.beta_x = beta_x
-        self.D_x = D_x
+        self.beta_x  = beta_x
+        self.D_x     = D_x
         self.alpha_y = alpha_y
-        self.beta_y = beta_y
-        self.D_y = D_y
+        self.beta_y  = beta_y
+        self.D_y     = D_y
+        
+        # Segment the 1-turn integrated quantities Q_x,y, Qp_x,y, app_x,y and app_xy,yx.
+        # Scaling assumes the effect of app_x,y, ... to be uniform around the accelerator ring.
+        # self.s[-1] = C.
+        scale_to_segment = np.diff(s) / s[-1]
+
+        self.dQ_x    = scale_to_segment*Q_x
+        self.dQp_x   = scale_to_segment*Qp_x
+        self.dapp_x  = scale_to_segment*app_x
+        self.dapp_xy = scale_to_segment*app_xy
+        self.dQ_y    = scale_to_segment*Q_y
+        self.dQp_y   = scale_to_segment*Qp_y
+        self.dapp_y  = scale_to_segment*app_y
+        self.dapp_yx = scale_to_segment*app_yx
 
         
     @classmethod
-    def default(cls, n_segments, C,
-                beta_x, Qx, Qp_x, app_x, app_xy, beta_y, Qy, Qp_y, app_y, app_yx):
+    def default(cls, n_segments, C, beta_x, Q_x, Qp_x, app_x, app_xy,
+                                    beta_y, Q_y, Qp_y, app_y, app_yx):
 
         s = np.arange(0, n_segments + 1) * C / n_segments
+
         alpha_x = np.zeros(n_segments)
-        beta_x = np.ones(n_segments) * beta_x
-        D_x = np.zeros(n_segments)
+        beta_x  = np.ones(n_segments) * beta_x
+        D_x     = np.zeros(n_segments)
         alpha_y = np.zeros(n_segments)
-        beta_y = np.ones(n_segments) * beta_y
-        D_y = np.zeros(n_segments)
+        beta_y  = np.ones(n_segments) * beta_y
+        D_y     = np.zeros(n_segments)
 
-        self = cls(s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y)
-
-        self.M = self.build_maps(Qx, Qp_x, app_x, app_xy, Qy, Qp_y, app_y, app_yx)
+        self   = cls(s, alpha_x, beta_x, D_x, Q_x, Qp_x, app_x, app_xy,
+                        alpha_y, beta_y, D_y, Q_y, Qp_y, app_y, app_yx)
+        self.M = self.build_maps()
 
         return self.M
 
+    
     @classmethod
     def from_copy(cls, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
-                  Qx, Qp_x, app_x, app_xy, Qy, Qp_y, app_y, app_yx):
+                  Q_x, Qp_x, app_x, app_xy, Q_y, Qp_y, app_y, app_yx):
 
-        s = np.copy(s)
+        s       = np.copy(s)
         alpha_x = np.copy(alpha_x)
-        beta_x = np.copy(beta_x)
-        D_x = np.copy(D_x)
+        beta_x  = np.copy(beta_x)
+        D_x     = np.copy(D_x)
         alpha_y = np.copy(alpha_y)
-        beta_y = np.copy(beta_y)
-        D_y = np.copy(D_y)
+        beta_y  = np.copy(beta_y)
+        D_y     = np.copy(D_y)
 
-        self = cls(s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y)
-
-        self.M = self.build_maps(Qx, Qp_x, app_x, app_xy, Qy, Qp_y, app_y, app_yx)
+        self   = cls(s, alpha_x, beta_x, D_x, Q_x, Qp_x, app_x, app_xy,
+                        alpha_y, beta_y, D_y, Q_y, Qp_y, app_y, app_yx)
+        self.M = self.build_maps()
 
         return self.M
 
-    def build_maps(self, Qx, Qp_x, app_x, app_xy, Qy, Qp_y, app_y, app_yx):
+    
+    def build_maps(self):
+        n_segments = len(self.s) - 1
+                
+        # Allocate coefficient matrices
+        I = [np.zeros((4, 4)) for i in xrange(n_segments)]
+        J = [np.zeros((4, 4)) for i in xrange(n_segments)]
+
+        for i in range(n_segments):
+            s0 = i % n_segments
+            s1 = (i + 1) % n_segments
+            # sine component
+            I[i][0, 0] = np.sqrt(self.beta_x[s1] / self.beta_x[s0])
+            I[i][0, 1] = 0
+            I[i][1, 0] = np.sqrt(1 / (self.beta_x[s0] * self.beta_x[s1])) \
+                       * (self.alpha_x[s0] - self.alpha_x[s1])
+            I[i][1, 1] = np.sqrt(self.beta_x[s0] / self.beta_x[s1])
+            I[i][2, 2] = np.sqrt(self.beta_y[s1] / self.beta_y[s0])
+            I[i][2, 3] = 0
+            I[i][3, 2] = np.sqrt(1 / (self.beta_y[s0] * self.beta_y[s1])) \
+                       * (self.alpha_y[s0] - self.alpha_y[s1])
+            I[i][3, 3] = np.sqrt(self.beta_y[s0] / self.beta_y[s1])
+            # cosine component
+            J[i][0, 0] = np.sqrt(self.beta_x[s1] / self.beta_x[s0]) \
+                       * self.alpha_x[s0]
+            J[i][0, 1] = np.sqrt(self.beta_x[s0] * self.beta_x[s1])
+            J[i][1, 0] = -np.sqrt(1 / (self.beta_x[s0] * self.beta_x[s1])) \
+                       * (1 + self.alpha_x[s0] * self.alpha_x[s1])
+            J[i][1, 1] = -np.sqrt(self.beta_x[s0] / self.beta_x[s1]) \
+                       * self.alpha_x[s1]
+            J[i][2, 2] = np.sqrt(self.beta_y[s1] / self.beta_y[s0]) \
+                       * self.alpha_y[s0]
+            J[i][2, 3] = np.sqrt(self.beta_y[s0] * self.beta_y[s1])
+            J[i][3, 2] = -np.sqrt(1 / (self.beta_y[s0] * self.beta_y[s1])) \
+                       * (1 + self.alpha_y[s0] * self.alpha_y[s1])
+            J[i][3, 3] = -np.sqrt(self.beta_y[s0] / self.beta_y[s1]) \
+                       * self.alpha_y[s1]
+        
+        # Generate a linear periodic map for every segment.
+        M = [LinearPeriodicMap(I[i], J[i], self.beta_x[i], self.dQ_x[i], self.dQp_x[i], self.dapp_x[i], self.dapp_xy[i],
+                                           self.beta_y[i], self.dQ_y[i], self.dQp_y[i], self.dapp_y[i], self.dapp_yx[i])
+             for i in xrange(n_segments)]
+
+        return M
+
 #         cls.R = [np.kron(np.eye(2), np.ones((2, 2)))
 #                  for i in xrange(cls.n_segments)]
 #         cls.N0 = [np.kron(np.eye(2), np.ones((2, 2)))
@@ -174,73 +234,6 @@ class TransverseTracker(object):
 #              np.dot(cls.N1[i], np.dot(cls.R[i], cls.N0[i]))
 #              for i in range(cls.n_segments)]
 
-        n_segments = len(self.s) - 1
-                
-        # Allocate coefficient matrices
-        I = [np.zeros((4, 4)) for i in xrange(n_segments)]
-        J = [np.zeros((4, 4)) for i in xrange(n_segments)]
-
-        for i in range(n_segments):
-            s0 = i % n_segments
-            s1 = (i + 1) % n_segments
-            # sine component
-            I[i][0, 0] = np.sqrt(self.beta_x[s1] / self.beta_x[s0])
-            I[i][0, 1] = 0
-            I[i][1, 0] = np.sqrt(1 / (self.beta_x[s0] * self.beta_x[s1])) \
-                       * (self.alpha_x[s0] - self.alpha_x[s1])
-            I[i][1, 1] = np.sqrt(self.beta_x[s0] / self.beta_x[s1])
-            I[i][2, 2] = np.sqrt(self.beta_y[s1] / self.beta_y[s0])
-            I[i][2, 3] = 0
-            I[i][3, 2] = np.sqrt(1 / (self.beta_y[s0] * self.beta_y[s1])) \
-                       * (self.alpha_y[s0] - self.alpha_y[s1])
-            I[i][3, 3] = np.sqrt(self.beta_y[s0] / self.beta_y[s1])
-            # cosine component
-            J[i][0, 0] = np.sqrt(self.beta_x[s1] / self.beta_x[s0]) \
-                       * self.alpha_x[s0]
-            J[i][0, 1] = np.sqrt(self.beta_x[s0] * self.beta_x[s1])
-            J[i][1, 0] = -np.sqrt(1 / (self.beta_x[s0] * self.beta_x[s1])) \
-                       * (1 + self.alpha_x[s0] * self.alpha_x[s1])
-            J[i][1, 1] = -np.sqrt(self.beta_x[s0] / self.beta_x[s1]) \
-                       * self.alpha_x[s1]
-            J[i][2, 2] = np.sqrt(self.beta_y[s1] / self.beta_y[s0]) \
-                       * self.alpha_y[s0]
-            J[i][2, 3] = np.sqrt(self.beta_y[s0] * self.beta_y[s1])
-            J[i][3, 2] = -np.sqrt(1 / (self.beta_y[s0] * self.beta_y[s1])) \
-                       * (1 + self.alpha_y[s0] * self.alpha_y[s1])
-            J[i][3, 3] = -np.sqrt(self.beta_y[s0] / self.beta_y[s1]) \
-                       * self.alpha_y[s1]
-
-        # Segment the 1-turn integrated quantities Qx(y), Qp_x(y) and app_x(y).
-        # Scaling assumes the effect of app_x,y, ... to be uniform around the accelerator ring.
-        # self.s[-1] = C.
-        scale_to_segment = np.diff(self.s) / self.s[-1]
-
-        d_mu_x   = scale_to_segment*Qx
-        d_Qp_x   = scale_to_segment*Qp_x
-        d_app_x  = scale_to_segment*app_x
-        d_app_xy = scale_to_segment*app_xy
-
-        d_mu_y   = scale_to_segment*Qy
-        d_Qp_y   = scale_to_segment*Qp_y
-        d_app_y  = scale_to_segment*app_y
-        d_app_yx = scale_to_segment*app_yx
-        
-        # dmu_x = self.s / C * Qx
-        # mu_y = self.s / C * Qy
-        # Close the loop - position and phase advance have twin values at zero.
-        # mu_x = np.insert(mu_x, 0, 0)
-        # mu_y = np.insert(mu_y, 0, 0)
-        # dmu_x = np.diff(mu_x)
-        # dmu_y = np.diff(mu_y)
-        # print 'dmu_x', dmu_x
-
-        # Generate a linear periodic map for every segment.
-        M = [LinearPeriodicMap(I[i], J[i],
-                               self.beta_x[i], d_mu_x[i], d_Qp_x[i], d_app_x[i], d_app_xy[i],
-                               self.beta_y[i], d_mu_y[i], d_Qp_y[i], d_app_y[i], d_app_yx[i])
-             for i in xrange(n_segments)]
-
-        return M
 
 
 # CONVENIENCE FUNCTIONS
