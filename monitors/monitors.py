@@ -74,7 +74,11 @@ class BunchMonitor(Monitor):
         h5group["epsn_y"][i_steps]   = bunch.epsn_y
         h5group["epsn_z"][i_steps]   = bunch.epsn_z
         h5group["n_macroparticles"][i_steps] = bunch.n_macroparticles
-                
+
+    def close(self):
+        self.h5file.close()
+
+        
 class SliceMonitor(Monitor):
 
     def __init__(self, filename, n_steps, slices=None, dictionary=None):
@@ -164,6 +168,10 @@ class SliceMonitor(Monitor):
         else:
             raise ValueError("Rank > 2 not supported!")
 
+    def close(self):
+        self.h5file.close()
+        
+        
 class ParticleMonitor(Monitor):
 
     def __init__(self, filename, stride=1, dictionary=None):
@@ -218,3 +226,6 @@ class ParticleMonitor(Monitor):
         h5group["id"][:] = bunch.id[resorting_indices]
 
         h5group["c"][:] = self.z0
+
+    def close(self):
+        self.h5file.close()
