@@ -24,7 +24,7 @@ class BunchMonitor(Monitor):
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
         self.i_steps = 0
-        self.slice = slices
+        self.slices = slices
 
         if dictionary:
             for key in dictionary:
@@ -44,7 +44,7 @@ class BunchMonitor(Monitor):
 
         if not self.i_steps:
             n_steps = self.n_steps
-            n_slices = bunch.slices.n_slices
+            n_slices = self.slices.n_slices
             self.create_data(self.h5file['Bunch'], (n_steps,))
             self.write_data(bunch, np.s_[-2], self.h5file['Bunch'], self.i_steps)
         else:
@@ -72,35 +72,35 @@ class BunchMonitor(Monitor):
     def write_data(self, bunch, indices, h5group, i_steps, rank=1):
 
         if rank == 1:
-            h5group["mean_x"][i_steps] = bunch.slices.mean_x[indices]
-            h5group["mean_xp"][i_steps] = bunch.slices.mean_xp[indices]
-            h5group["mean_y"][i_steps] = bunch.slices.mean_y[indices]
-            h5group["mean_yp"][i_steps] = bunch.slices.mean_yp[indices]
-            h5group["mean_dz"][i_steps] = bunch.slices.mean_dz[indices]
-            h5group["mean_dp"][i_steps] = bunch.slices.mean_dp[indices]
-            h5group["sigma_x"][i_steps] = bunch.slices.sigma_x[indices]
-            h5group["sigma_y"][i_steps] = bunch.slices.sigma_y[indices]
-            h5group["sigma_dz"][i_steps] = bunch.slices.sigma_dz[indices]
-            h5group["sigma_dp"][i_steps] = bunch.slices.sigma_dp[indices]
-            h5group["epsn_x"][i_steps] = bunch.slices.epsn_x[indices]
-            h5group["epsn_y"][i_steps] = bunch.slices.epsn_y[indices]
-            h5group["epsn_z"][i_steps] = bunch.slices.epsn_z[indices]
-            h5group["n_macroparticles"][i_steps] = bunch.slices.n_macroparticles[indices]
+            h5group["mean_x"][i_steps] = self.slices.mean_x[indices]
+            h5group["mean_xp"][i_steps] = self.slices.mean_xp[indices]
+            h5group["mean_y"][i_steps] = self.slices.mean_y[indices]
+            h5group["mean_yp"][i_steps] = self.slices.mean_yp[indices]
+            h5group["mean_dz"][i_steps] = self.slices.mean_dz[indices]
+            h5group["mean_dp"][i_steps] = self.slices.mean_dp[indices]
+            h5group["sigma_x"][i_steps] = self.slices.sigma_x[indices]
+            h5group["sigma_y"][i_steps] = self.slices.sigma_y[indices]
+            h5group["sigma_dz"][i_steps] = self.slices.sigma_dz[indices]
+            h5group["sigma_dp"][i_steps] = self.slices.sigma_dp[indices]
+            h5group["epsn_x"][i_steps] = self.slices.epsn_x[indices]
+            h5group["epsn_y"][i_steps] = self.slices.epsn_y[indices]
+            h5group["epsn_z"][i_steps] = self.slices.epsn_z[indices]
+            h5group["n_macroparticles"][i_steps] = self.slices.n_macroparticles[indices]
         elif rank == 2:
-            h5group["mean_x"][:,i_steps] = bunch.slices.mean_x[indices]
-            h5group["mean_xp"][:,i_steps] = bunch.slices.mean_xp[indices]
-            h5group["mean_y"][:,i_steps] = bunch.slices.mean_y[indices]
-            h5group["mean_yp"][:,i_steps] = bunch.slices.mean_yp[indices]
-            h5group["mean_dz"][:,i_steps] = bunch.slices.mean_dz[indices]
-            h5group["mean_dp"][:,i_steps] = bunch.slices.mean_dp[indices]
-            h5group["sigma_x"][:,i_steps] = bunch.slices.sigma_x[indices]
-            h5group["sigma_y"][:,i_steps] = bunch.slices.sigma_y[indices]
-            h5group["sigma_dz"][:,i_steps] = bunch.slices.sigma_dz[indices]
-            h5group["sigma_dp"][:,i_steps] = bunch.slices.sigma_dp[indices]
-            h5group["epsn_x"][:,i_steps] = bunch.slices.epsn_x[indices]
-            h5group["epsn_y"][:,i_steps] = bunch.slices.epsn_y[indices]
-            h5group["epsn_z"][:,i_steps] = bunch.slices.epsn_z[indices]
-            h5group["n_macroparticles"][:,i_steps] = bunch.slices.n_macroparticles[indices]
+            h5group["mean_x"][:,i_steps] = self.slices.mean_x[indices]
+            h5group["mean_xp"][:,i_steps] = self.slices.mean_xp[indices]
+            h5group["mean_y"][:,i_steps] = self.slices.mean_y[indices]
+            h5group["mean_yp"][:,i_steps] = self.slices.mean_yp[indices]
+            h5group["mean_dz"][:,i_steps] = self.slices.mean_dz[indices]
+            h5group["mean_dp"][:,i_steps] = self.slices.mean_dp[indices]
+            h5group["sigma_x"][:,i_steps] = self.slices.sigma_x[indices]
+            h5group["sigma_y"][:,i_steps] = self.slices.sigma_y[indices]
+            h5group["sigma_dz"][:,i_steps] = self.slices.sigma_dz[indices]
+            h5group["sigma_dp"][:,i_steps] = self.slices.sigma_dp[indices]
+            h5group["epsn_x"][:,i_steps] = self.slices.epsn_x[indices]
+            h5group["epsn_y"][:,i_steps] = self.slices.epsn_y[indices]
+            h5group["epsn_z"][:,i_steps] = self.slices.epsn_z[indices]
+            h5group["n_macroparticles"][:,i_steps] = self.slices.n_macroparticles[indices]
         else:
             raise ValueError("Rank > 2 not supported!")
 
