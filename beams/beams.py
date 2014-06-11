@@ -28,47 +28,55 @@ class PDF(object):
         '''
         Allocate the memory to store the 6d phase space for n_macroparticles macroparticles.
         '''
-        self.x = np.zeros(n_macroparticles)
+        self.x  = np.zeros(n_macroparticles)
         self.xp = np.zeros(n_macroparticles)
-        self.y = np.zeros(n_macroparticles)
+        self.y  = np.zeros(n_macroparticles)
         self.yp = np.zeros(n_macroparticles)
-        self.z = np.zeros(n_macroparticles)
+        self.z  = np.zeros(n_macroparticles)
         self.dp = np.zeros(n_macroparticles)
 
-    def _create_gaussian(self, n_macroparticles):
+    def _create_gaussian(self, n_macroparticles, seed):
         '''
         Create a normalized gaussian 6d phase space distribution for n_macroparticles macroparticles with mean = 0 and sigma = 1 in all dimensions.
         '''
-        self.x = np.random.randn(n_macroparticles)
-        self.xp = np.random.randn(n_macroparticles)
-        self.y = np.random.randn(n_macroparticles)
-        self.yp = np.random.randn(n_macroparticles)
-        self.z = np.random.randn(n_macroparticles)
-        self.dp = np.random.randn(n_macroparticles)
+        random_state = np.random.RandomState()
+        if seed:
+            random_state.seed(seed)
+        
+        self.x  = random_state.randn(n_macroparticles)
+        self.xp = random_state.randn(n_macroparticles)
+        self.y  = random_state.randn(n_macroparticles)
+        self.yp = random_state.randn(n_macroparticles)
+        self.z  = random_state.randn(n_macroparticles)
+        self.dp = random_state.randn(n_macroparticles)
 
-    def _create_uniform(self, n_macroparticles):
+    def _create_uniform(self, n_macroparticles, seed):
         '''
         Create a normalized uniform 6d phase space distribution for n_macroparticles macroparticles from -1 to +1 in all dimensions.
         '''
-        self.x = 2 * np.random.rand(n_macroparticles) - 1
-        self.xp = 2 * np.random.rand(n_macroparticles) - 1
-        self.y = 2 * np.random.rand(n_macroparticles) - 1
-        self.yp = 2 * np.random.rand(n_macroparticles) - 1
-        self.z = 2 * np.random.rand(n_macroparticles) - 1
-        self.dp = 2 * np.random.rand(n_macroparticles) - 1
+        random_state = np.random.RandomState()
+        if seed:
+            random_state.seed(seed)
+
+        self.x  = 2 * random_state.rand(n_macroparticles) - 1
+        self.xp = 2 * random_state.rand(n_macroparticles) - 1
+        self.y  = 2 * random_state.rand(n_macroparticles) - 1
+        self.yp = 2 * random_state.rand(n_macroparticles) - 1
+        self.z  = 2 * random_state.rand(n_macroparticles) - 1
+        self.dp = 2 * random_state.rand(n_macroparticles) - 1
 
 
 class Bunch(PDF):
 
     def __init__(self, n_macroparticles, charge, gamma, intensity, mass,
-                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z=None, epsn_z=None, match=None):
+                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, sigma_z=None, epsn_z=None, match=None, seed=None):
 
         self.charge = charge
         self.gamma = gamma
         self.intensity = intensity
         self.mass = mass
 
-        self._create_gaussian(n_macroparticles)
+        self._create_gaussian(n_macroparticles, seed)
         self._match_simple_gaussian_transverse(alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y)
         self._match_simple_gaussian_longitudinal(beta_z, sigma_z, epsn_z)
 
@@ -103,7 +111,6 @@ class Bunch(PDF):
 
     @property
     def n_macroparticles(self):
-
         return len(self.x)
 
     @property
