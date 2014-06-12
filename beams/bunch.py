@@ -395,7 +395,7 @@ class Bunch(object):
     #     self.mass = mass
     #     self.p0 = mass * self.gamma * self.beta * c
 
-    def match_transverse(self, epsn_x, epsn_y, ltm):
+    def match_transverse(self, epsn_x, epsn_y, ltm):x
 
         match_transverse(epsn_x, epsn_y, ltm)(self)
 
@@ -492,3 +492,8 @@ class Bunch(object):
     # def copy_poisson(self, poisson):
 
     #     self.poisson = copy.copy(poisson)
+
+
+
+
+

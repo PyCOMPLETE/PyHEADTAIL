@@ -72,7 +72,7 @@ class PoissonFFT(UniformGrid):
             print '*** WARNING: pyfftw not available. Falling back to NumPy FFT.'
             self.compute_potential = self.compute_potential_numpy
 
-    @profile
+    # @profile
     def compute_potential_numpy(self, rho, phi):
 
         self.tmprho[:self.ny, :self.nx] = rho
@@ -89,7 +89,7 @@ class PoissonFFT(UniformGrid):
         #     tmpphi[j] *= norm; // FFT specific
         # }
 
-    @profile
+    # @profile
     def compute_potential_fftw(self, rho, phi):
 
         # // FFT solver

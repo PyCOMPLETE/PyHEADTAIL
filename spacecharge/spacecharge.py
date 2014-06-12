@@ -22,7 +22,21 @@ rp = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_p
 
 class SpaceCharge():
     '''
-    Generic class for all types of space charge calculations. It acts on at most 2 particle ensembles. If beam (which represents any other particle ensemble) is not set, only the space charge on the beam, that is passed to the track function, will be calculated; this will be the self-space charge (not yet impolemented, however.) Otherwise, if beam is specified, the beam passed in the contructor will interact with the beam passed in the track function in a way that depends on the beam_type parameter. For now, only bunch-electron cloud interaction is actually implemented. It is also, fow now, locked to the integrated Green's function FFT Poisson solver. As such, it takes as further arguments the physical extension as well as the number of grid lines in each dimension of the computational grid. As with all collective effects classes, the final argument is a slices objects that determines the slicing that is performed on the beam before is tracked through this class. One might think of passing a general poisson solver object to the constructor and have the space charge calcualtions done generically.
+    Generic class for all types of space charge calculations. It acts on at most
+    2 particle ensembles. If beam (which represents any other particle ensemble)
+    is not set, only the space charge on the beam, that is passed to the track
+    function, will be calculated; this will be the self-space charge (not yet
+    implemented, however.) Otherwise, if beam is specified, the beam passed in
+    the contructor will interact with the beam passed in the track function in a
+    way that depends on the beam_type parameter. For now, only bunch-electron
+    cloud interaction is actually implemented. It is also, fow now, locked to the
+    integrated Green's function FFT Poisson solver. As such, it takes as further
+    arguments the physical extension as well as the number of grid lines in each
+    dimension of the computational grid. As with all collective effects classes,
+    the final argument is a slices objects that determines the slicing that is
+    performed on the beam before is tracked through this class. One might think
+    of passing a general poisson solver object to the constructor and have the
+    space charge calcualtions done generically.
     '''
 
     def __init__(self, beam=None, beam_type=None, extension_x=1, extension_y=1, nx=128, ny=128, slices=Slices(100)):
@@ -52,6 +66,7 @@ class SpaceCharge():
         # Push beam
         beam.xp[ix] += cf1 * beam.kx[ix]
         beam.yp[ix] += cf1 * beam.ky[ix]
+        # print cf1, np.amax(beam.kx[ix]), np.amax(beam.ky[ix])
 
     def push_cloud(self, cloud, cf1, dt=0, ix=None):
 
@@ -61,7 +76,7 @@ class SpaceCharge():
         cloud.x += dt * cloud.xp
         cloud.y += dt * cloud.yp
 
-    @profile
+    # @profile
     def track(self, beam):
 
         if not hasattr(beam, 'kx'):
@@ -79,6 +94,7 @@ class SpaceCharge():
         # index_after_bin_edges[0] = 0
 
         for i in xrange(self.slices.n_slices):
+            # TODO: check if this is not going out of bonds...
             ix = np.s_[self.slices.z_index[i]:self.slices.z_index[i + 1]]
 
             self.poisson.gather_from(beam.x[ix], beam.y[ix], self.rho1)
@@ -104,7 +120,6 @@ class SpaceCharge():
                 self.poisson.compute_fields(self.phi2, self.ex2, self.ey2)
                 self.poisson.scatter_to(self.ex2, self.ey2, beam.x[ix], beam.y[ix], beam.kx[ix], beam.ky[ix])
                 cf1 = -2 * 1 * rp * 1 / (beam.gamma * beam.beta ** 2) * self.beam.intensity / self.beam.n_macroparticles
-                # print cf1, self.beam.n_particles / self.beam.n_macroparticles, beam.n_particles / beam.n_macroparticles
                 #   = -2 * c ** 2 * rp  * ex / dL * dL * 1 / gamma / (beta * c) ** 2 # WATCH OUT HERE!!! dL / dz???
                 self.push_beam(beam, cf1, ix=ix)
                 # print "***********************************"
