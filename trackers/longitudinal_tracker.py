@@ -13,7 +13,6 @@ from __future__ import division
 # currently: only Euler Cromer supported in RFSystems
 
 
-
 import numpy as np
 
 
@@ -207,11 +206,6 @@ class LongitudinalOneTurnMap(LongitudinalMap):
         this is THE ONE place to store the circumference in the simulations!"""
         super(LongitudinalOneTurnMap, self).__init__(alpha_array)
         self.circumference = circumference
-        self.length = length
-        self.gamma_transition = gamma_transition
-        self.h = harmonics
-        self.voltages = voltages
-        self.phi_s = phi_s
 
     @abstractmethod
     def track(self, beam):
@@ -315,7 +309,6 @@ class RFSystems(LongitudinalOneTurnMap):
         self.accelerating_kick.p_increment = value
         if self._shrinking:
             self.elements[-1].shrinkage_p_increment = value
-
 
     def potential(self, z, beam):
         """the potential well of the rf system"""

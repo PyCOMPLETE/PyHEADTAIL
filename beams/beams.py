@@ -29,8 +29,8 @@ class Particles(object):
     """
 
     def __init__(self, charge, gamma, intensity, mass, *phase_space_generators):
-        """Initialises the bunch and distributes its particles via the 
-        given PhaseSpace generator instances (minimum 1) for both the 
+        """Initialises the bunch and distributes its particles via the
+        given PhaseSpace generator instances (minimum 1) for both the
         transverse and longitudinal plane.
         """
         self.charge = charge
@@ -44,25 +44,27 @@ class Particles(object):
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
     @classmethod
-    def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass, 
-                    alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, 
+    def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
+                    alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
                     sigma_z, sigma_dp, is_accepted = None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
         betagamma = np.sqrt(gamma ** 2 - 1)
         #p0 = betagamma * mass * c
+
         gaussianx = GaussianX.from_optics(
                         n_macroparticles, alpha_x, beta_x, epsn_x, betagamma)
         gaussiany = GaussianY.from_optics(
                         n_macroparticles, alpha_y, beta_y, epsn_y, betagamma)
         gaussianz = GaussianZ(n_macroparticles, sigma_z, sigma_dp, is_accepted)
-        return cls(charge, gamma, intensity, mass, 
+
+        return cls(charge, gamma, intensity, mass,
                    gaussianx, gaussiany, gaussianz)
 
     @property
     def n_macroparticles(self):
-        return len(self.id)
+        return len(self.z)
 
     @property
     def beta(self):
@@ -94,14 +96,14 @@ class Particles(object):
 
     def sort_particles(self):
         # update the number of lost particles
-        self.n_macroparticles_lost = (self.n_macroparticles - 
+        self.n_macroparticles_lost = (self.n_macroparticles -
                                       np.count_nonzero(self.id))
 
-        # sort particles according to z (this is needed for correct 
+        # sort particles according to z (this is needed for correct
         # functioning of bunch.compute_statistics)
         if self.n_macroparticles_lost:
             # place lost particles at the end of the array
-            z_argsorted = np.lexsort((self.z, -np.sign(self.id))) 
+            z_argsorted = np.lexsort((self.z, -np.sign(self.id)))
         else:
             z_argsorted = np.argsort(self.z)
 
@@ -129,4 +131,3 @@ def compute_statistics(self):
         self.epsn_x = cp.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
         self.epsn_y = cp.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
         self.epsn_z = 4 * np.pi * self.sigma_z * self.sigma_dp * self.p0 / self.charge
-

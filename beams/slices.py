@@ -118,7 +118,7 @@ class Slices(object):
         q0 = n_macroparticles_alive - self.n_cut_tail - self.n_cut_head
         ix = sample(range(self.n_slices), q0 % self.n_slices)
 
-        self.n_macroparticles = (q0 // self.n_slices)*np.ones(self.n_slices)
+        self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices, dtype=int)
         self.n_macroparticles[ix] += 1
 
         # 2. z-bins
