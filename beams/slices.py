@@ -15,7 +15,7 @@ import cobra_functions.stats as cp
 
 class Slices(object):
     '''
-    Slices class that controlls longitudinal discretization of a beam.
+    Slices class that controls longitudinal discretization of a beam.
     '''
 
     def __init__(self, n_slices, nsigmaz=None, mode='const_space', z_cuts=None):

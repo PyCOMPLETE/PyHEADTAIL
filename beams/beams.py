@@ -6,11 +6,10 @@ Created on 06.01.2014
 
 
 import numpy as np
-
+import cobra_functions.stats as cp
 
 from scipy.constants import c, e, m_p
 from generators import GaussianX, GaussianY, GaussianZ
-
 
 # re = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_e
 # rp = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_p
@@ -115,7 +114,7 @@ class Particles(object):
         self.dp = self.dp.take(z_argsorted)
         self.id = self.id.take(z_argsorted)
 
-def compute_statistics(self):
+    def compute_statistics(self):
         self.mean_x  = cp.mean(self.x)
         self.mean_xp = cp.mean(self.xp)
         self.mean_y  = cp.mean(self.y)
