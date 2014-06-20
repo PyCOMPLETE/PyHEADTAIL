@@ -8,6 +8,7 @@ Created on 06.01.2014
 import numpy as np
 
 
+from cobra_functions import stats
 from scipy.constants import c, e, m_p
 from generators import GaussianX, GaussianY, GaussianZ
 
@@ -46,18 +47,20 @@ class Particles(object):
     @classmethod
     def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
                     alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                    sigma_z, sigma_dp, is_accepted = None):
+                    beta_z, epsn_z, is_accepted = None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
         betagamma = np.sqrt(gamma ** 2 - 1)
-        #p0 = betagamma * mass * c
+        p0 = betagamma * mass * c
 
         gaussianx = GaussianX.from_optics(
                         n_macroparticles, alpha_x, beta_x, epsn_x, betagamma)
         gaussiany = GaussianY.from_optics(
                         n_macroparticles, alpha_y, beta_y, epsn_y, betagamma)
-        gaussianz = GaussianZ(n_macroparticles, sigma_z, sigma_dp, is_accepted)
+        gaussianz = GaussianZ.from_optics(
+                        n_macroparticles, beta_z, epsn_z, p0, is_accepted)
+        # gaussianz = GaussianZ(n_macroparticles, sigma_z, sigma_dp, is_accepted)
 
         return cls(charge, gamma, intensity, mass,
                    gaussianx, gaussiany, gaussianz)
@@ -115,19 +118,19 @@ class Particles(object):
         self.dp = self.dp.take(z_argsorted)
         self.id = self.id.take(z_argsorted)
 
-def compute_statistics(self):
-        self.mean_x  = cp.mean(self.x)
-        self.mean_xp = cp.mean(self.xp)
-        self.mean_y  = cp.mean(self.y)
-        self.mean_yp = cp.mean(self.yp)
-        self.mean_z  = cp.mean(self.z)
-        self.mean_dp = cp.mean(self.dp)
+    def compute_statistics(self):
+        self.mean_x  = stats.mean(self.x)
+        self.mean_xp = stats.mean(self.xp)
+        self.mean_y  = stats.mean(self.y)
+        self.mean_yp = stats.mean(self.yp)
+        self.mean_z  = stats.mean(self.z)
+        self.mean_dp = stats.mean(self.dp)
 
-        self.sigma_x  = cp.std(self.x)
-        self.sigma_y  = cp.std(self.y)
-        self.sigma_z  = cp.std(self.z)
-        self.sigma_dp = cp.std(self.dp)
+        self.sigma_x  = stats.std(self.x)
+        self.sigma_y  = stats.std(self.y)
+        self.sigma_z  = stats.std(self.z)
+        self.sigma_dp = stats.std(self.dp)
 
-        self.epsn_x = cp.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
-        self.epsn_y = cp.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
+        self.epsn_x = stats.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
+        self.epsn_y = stats.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
         self.epsn_z = 4 * np.pi * self.sigma_z * self.sigma_dp * self.p0 / self.charge

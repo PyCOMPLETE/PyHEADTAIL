@@ -103,7 +103,9 @@ class GaussianZ(PhaseSpace):
         """Initialise GaussianZ from the given optics functions.
         For the argument is_accepted see __init__.
         """
-        sigma_z = np.sqrt(beta_z * epsn_z * p0 / (4 * np.pi) * e)
+        sigma_z = np.sqrt(beta_z*epsn_z/(4*np.pi) * e/p0)
+        # print sigma_z
+        # exit(-1)
         sigma_dp = sigma_z / beta_z
         return cls(n_macroparticles, sigma_z, sigma_dp, is_accepted)
 
