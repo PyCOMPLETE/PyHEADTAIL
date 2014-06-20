@@ -175,18 +175,26 @@ class SliceMonitor(Monitor):
 
 class ParticleMonitor(Monitor):
 
-    def __init__(self, filename, stride=1, dictionary=None):
+    def __init__(self, filename, stride=1, dictionary=None, slices=None):
 
         self.h5file = hp.File(filename + '.h5part', 'w')
         if dictionary:
             for key in dictionary:
                 self.h5file.attrs[key] = dictionary[key]
 
+        self.slices = slices
         self.stride = stride
         # self.n_steps = n_steps
         self.i_steps = 0
 
     def dump(self, bunch):
+        if not self.slices:
+            self.slices = bunch.slices
+
+        # These methods may be called several times in different places of the code. Ok. for now.
+        bunch.compute_statistics()
+        self.slices.update_slices(bunch)
+        self.slices.compute_statistics(bunch)
 
         if not self.i_steps:
             resorting_indices = np.argsort(bunch.id)[::self.stride]
@@ -200,32 +208,34 @@ class ParticleMonitor(Monitor):
 
     def create_data(self, h5group, dims):
 
-        h5group.create_dataset("x",  dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("xp", dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("y",  dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("yp", dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("z",  dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("dp", dims, compression="gzip", compression_opts=9)
-
+        h5group.create_dataset("x",           dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("xp",          dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("y",           dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("yp",          dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("z",           dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("dp",          dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("slice_index", dims, compression="gzip", compression_opts=9)
+        
         # Do we need/want this here?
         h5group.create_dataset("id", dims, dtype=np.int)
-
-        h5group.create_dataset("c", dims)
+        h5group.create_dataset("c",  dims)
 
     def write_data(self, bunch, h5group):
 
         resorting_indices = np.argsort(bunch.id)[::self.stride]
 
-        h5group["x"][:]  = bunch.x[resorting_indices]
-        h5group["xp"][:] = bunch.xp[resorting_indices]
-        h5group["y"][:]  = bunch.y[resorting_indices]
-        h5group["yp"][:] = bunch.yp[resorting_indices]
-        h5group["z"][:]  = bunch.z[resorting_indices]
-        h5group["dp"][:] = bunch.dp[resorting_indices]
+        h5group["x"][:]           = bunch.x[resorting_indices]
+        h5group["xp"][:]          = bunch.xp[resorting_indices]
+        h5group["y"][:]           = bunch.y[resorting_indices]
+        h5group["yp"][:]          = bunch.yp[resorting_indices]
+        h5group["z"][:]           = bunch.z[resorting_indices]
+        h5group["dp"][:]          = bunch.dp[resorting_indices]
 
+        particle_id = bunch.id[resorting_indices]
+        h5group["slice_index"][:] = self.slices.slice_index_of_particle[particle_id]
+        
         # Do we need/want this here?
-        h5group["id"][:] = bunch.id[resorting_indices]
-
+        h5group["id"][:] = particle_id
         h5group["c"][:] = self.z0
 
     def close(self):
