@@ -148,6 +148,9 @@ class Slices(object):
         for i in range(self.n_slices):
             self.slice_index_of_particle[self.z_index[i]:self.z_index[i+1]] = i
 
+    # def slice_index_of_particles(self):
+
+        # return slice_index
 
     def update_slices(self, bunch):
         if self.mode == 'const_charge':
