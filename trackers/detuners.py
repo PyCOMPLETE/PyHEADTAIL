@@ -1,12 +1,11 @@
 '''
 @author Michael Schenk
-@date June 2014
+@date June, 23rd 2014
 @brief Factory of detuners
 @copyright CERN
 '''
 from __future__ import division
 from abc import ABCMeta, abstractmethod
-
 from scipy.constants import e, c
 import numpy as np
 
@@ -19,14 +18,19 @@ class Detuner(object):
 
     @abstractmethod
     def detune(self, beam):
-        """Calculates the detune of the corresponding detuner element.
+        """
+        Calculates the detune of the corresponding detuner element.
         """
         pass
 
 
-class Sextupole(Detuner):
+"""
+Some examples of commonly used detuner elements. To be extended.
+"""
+class SextupoleSegment(Detuner):
 
     def __init__(self, dQp_x, dQp_y):
+
         self.dQp_x = dQp_x
         self.dQp_y = dQp_y
 
@@ -40,11 +44,11 @@ class Sextupole(Detuner):
         return dphi_x, dphi_y
     
             
-class Octupole(Detuner):
+class OctupoleSegment(Detuner):
 
     def __init__(self, beta_x, beta_y, dapp_x, dapp_y, dapp_xy):
 
-        # dapp_xy == dapp_yx.
+        # For octupole magnets, dapp_xy == dapp_yx.
         self.beta_x  = beta_x
         self.beta_y  = beta_y
         self.dapp_x  = dapp_x
@@ -64,25 +68,114 @@ class Octupole(Detuner):
         return dphi_x, dphi_y
 
         
-class RFQ(Detuner):
+class RFQSegment(Detuner):
+
     pass
 
 
+"""
+Collection classes for each class of detuner. These are the classes instantiated explicitly by a user.
+They use 1-turn integrated values as input and instantiate detuners for each segment in 's' with a
+detuning proportional to the segment length.
+"""
+class Octupole(object):
 
-# CONVENIENCE FUNCTIONS
-def get_LHC_octupole_parameters_from_currents(i_f, i_d):
-    # Calculate app_x, app_y, app_xy = app_yx on the basis of formulae (3.6) in
-    # 'THE LHC TRANSVERSE COUPLED-BUNCH INSTABILITY', N. Mounet, 2012 from
-    # LHC octupole currents i_f, i_d [A].
-    app_x  = 7000.*(267065.*i_f/550. - 7856.*i_d/550.)
-    app_y  = 7000.*(9789.*i_f/550. - 277203.*i_d/550.)
-    app_xy = 7000.*(-102261.*i_f/550. + 93331.*i_d/550.)
+    def __init__(self, s, beta_x, beta_y, app_x, app_y, app_xy):
 
-    convert_to_SI_units = e/(1e-9*c)
-    app_x  *= convert_to_SI_units
-    app_y  *= convert_to_SI_units
-    app_xy *= convert_to_SI_units
+        self.s      = s
+        self.beta_x = beta_x
+        self.beta_y = beta_y
 
-    app_yx = app_xy
+        scale_to_segment = np.diff(s) / s[-1]
+        self.dapp_x  = app_x * scale_to_segment
+        self.dapp_y  = app_y * scale_to_segment
+        self.dapp_xy = app_xy * scale_to_segment          # For octupole magnets, app_xy == app_yx.
 
-    return app_x, app_xy, app_y, app_yx
+        self._generate_segment_detuners()
+        
+        
+    @classmethod
+    def from_currents_LHC(cls, s, beta_x, beta_y, i_focusing, i_defocusing):
+        """
+        Calculate app_x, app_y, app_xy == app_yx on the basis of formulae (3.6) in
+        'THE LHC TRANSVERSE COUPLED-BUNCH INSTABILITY' (EPFL PhD Thesis), N. Mounet, 2012
+        from LHC octupole currents i_focusing, i_defocusing [A].
+
+        Measurement values (hard-coded) were obtained before LS1.
+        """
+        i_max = 550.  # [A]
+        E_max = 7000. # [GeV]
+        
+        app_x  = E_max * (267065. * i_focusing / i_max - 7856. * i_defocusing / i_max)
+        app_y  = E_max * (9789. * i_focusing / i_max - 277203. * i_defocusing / i_max)
+        app_xy = E_max * (-102261. * i_focusing / i_max + 93331. * i_defocusing / i_max)
+
+        convert_to_SI_units = e/(1e-9*c)
+        app_x  *= convert_to_SI_units
+        app_y  *= convert_to_SI_units
+        app_xy *= convert_to_SI_units
+    
+        return cls(s, beta_x, beta_y, app_x, app_y, app_xy)
+
+                
+    def _generate_segment_detuners(self):
+
+        segment_detuners = []
+
+        n_segments = len(self.s) - 1
+        for seg in range(n_segments):
+            segment_detuner = OctupoleSegment(self.beta_x[seg], self.beta_y[seg],
+                                              self.dapp_x[seg], self.dapp_y[seg], self.dapp_xy[seg])
+            segment_detuners.append(segment_detuner)
+
+        self.segment_detuners = segment_detuners
+
+        
+    def __len__(self):
+
+        return len(self.segment_detuners)
+
+    
+    def __getitem__(self, key):
+
+        return self.segment_detuners[key]
+
+    
+class Sextupole(object):
+
+    def __init__(self, s, Qp_x, Qp_y):
+
+        self.s      = s
+
+        scale_to_segment = np.diff(s) / s[-1]
+        self.dQp_x = Qp_x * scale_to_segment
+        self.dQp_y = Qp_y * scale_to_segment
+
+        self._generate_segment_detuners()
+        
+        
+    def _generate_segment_detuners(self):
+
+        segment_detuners = []
+
+        n_segments = len(self.s) - 1
+        for seg in range(n_segments):
+            segment_detuner = SextupoleSegment(self.dQp_x[seg], self.dQp_y[seg])
+            segment_detuners.append(segment_detuner)
+
+        self.segment_detuners = segment_detuners
+
+        
+    def __len__(self):
+
+        return len(self.segment_detuners)
+
+    
+    def __getitem__(self, key):
+
+        return self.segment_detuners[key]
+
+
+class RFQ(object):
+    
+    pass
