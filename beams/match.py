@@ -12,7 +12,8 @@ import numpy as np
 
 
 from scipy.integrate import quad, dblquad
-from scipy.constants import c, e
+from scipy.optimize import brentq
+from scipy.constants import c, e, m_p
 
 
 import pylab as plt
@@ -35,30 +36,34 @@ class StationaryExponential(object):
     #     self.H0 = value
 
 
-class Particles(object): pass
+# class Particles(object): pass
 
 
 class RFSystems(object):
 
-    def __init__(self, bunch):
-        alpha = 1 / 18 ** 2
+    def __init__(self, circumference, gamma, alpha, delta_p, V, h, dphi):
 
-        self.dp_absolute = 0.0
-        self.circumference = 6911
-        self.eta = alpha - 1 / bunch.gamma ** 2
+        self.circumference = circumference
+        self.gamma = gamma
+        self.eta = alpha - 1/gamma**2
+        self.delta_p = delta_p
+
+        self.V = V
+        self.h = h
+        self.dphi = dphi
+
+        self.zmax = self.circumference / (2*np.amin(h))
+        self.zmax += 0.01*self.zmax
+
         self.Qs = 0.017
-
-        self.h = 4620
-
-        self.bunch = bunch
 
     @property
     def beta(self):
-        return self.bunch.beta
+        return np.sqrt(1 - 1/self.gamma**2)
 
     @property
     def p0(self):
-        return self.bunch.p0
+        return m_p * c * np.sqrt(self.gamma**2 - 1)
 
     @property
     def R(self):
@@ -68,27 +73,119 @@ class RFSystems(object):
     def beta_z(self):
         return self.eta * self.R / self.Qs
 
-    def potential(self, phi):
+    def field(self, V, h, dphi):
+        def v(z):
+            return e*V/self.circumference * np.sin(h*z/self.R + dphi)
+        return v
 
-        V1, h1 = 2e6, 4620
-        V2, h2 = -0.5 * V1, 2 * h1
-        V3, h3 = -0.25 * V1, 4 * h1
+    def Ef(self, z):
+        return self.field(self.V[0], self.h[0], self.dphi[0])(z) + self.field(self.V[1], self.h[1], self.dphi[1])(z)
+        # return sum([self.field(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
-        return (e * V1 / (2 * np.pi * self.p0 * h1) * np.cos(phi)
-              + e * V2 / (2 * np.pi * self.p0 * h2) * np.cos(h2 / h1 * phi)
-              + e * V3 / (2 * np.pi * self.p0 * h3) * np.cos(h3 / h1 * phi))
+    def E_acc(self, z):
+        return self.Ef(z) - e*self.delta_p/self.circumference
 
-    def hamiltonian(self, phi, dp):
+    def potential(self, V, h, dphi):
+        def v(z):
+            return e*V/(2*np.pi*h) * np.cos(h*z/self.R + dphi)
+        return v
 
-        return -1 / 2 * self.eta * self.beta * c * dp ** 2 + self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute
+    def Vf(self, z):
+        return self.potential(self.V[0], self.h[0], self.dphi[0])(z) + self.potential(self.V[1], self.h[1], self.dphi[1])(z)
+        # return sum([self.potential(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
-    def p_sep(self, phi):
+    def V_acc(self, z):
+        '''Sign makes sure we stay convex - just nicer'''
+        s = self.get_zmax()
+        # t = self.get_pmax()
 
-        return np.sqrt(2 / (self.eta * self.beta * c) * (self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute))
+        if np.sign(self.eta) < 0:
+            zmax = s[0]
+        else:
+            zmax = s[-1]
 
-    def z(self, phi):
+        return -np.sign(self.eta) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
 
-        return phi * self.R / self.h
+    def _get_phi_s(self):
+
+        V, self.accelerating_cavity = np.amax(self.V), np.argmax(self.V)
+        if self.eta<0:
+            return np.pi - np.arcsin(self.delta_p/V)
+        elif self.eta>0:
+            return np.arcsin(self.delta_p/V)
+        else:
+            return 0
+
+    def _phaselock(self):
+        phi_s = self._get_phi_s()
+        cavities = range(len(self.V))
+        del cavities[self.accelerating_cavity]
+
+        for i in cavities:
+            self.dphi[i] -= self.h[i]/self.h[self.accelerating_cavity] * self._get_phi_s()
+
+        # print self.dphi
+
+    def get_zmax(self):
+        zz = np.linspace(-self.zmax, self.zmax, 200)
+
+        a = np.sign(self.E_acc(zz))
+        b = np.diff(a)
+        ix = np.where(b)[0]
+        s = []
+        for i in ix:
+            s.append(brentq(self.E_acc, zz[i], zz[i + 1]))
+        s = np.array(s)
+
+        self.s = s
+        return [s[0], s[-1]]
+
+    def get_pmax(self):
+        zz = linspace(-self.zmax, self.zmax, 200)
+
+        a = np.sign(self.V_acc(zz))
+        b = np.diff(a)
+        ix = np.where(b)[0]
+        s = []
+        for i in ix:
+            s.append(brentq(self.V_acc, zz[i], zz[i + 1]))
+        s = np.array(s)
+
+        self.t = s
+        return [s[0], s[-1]]
+
+    def p_separatrix(self, z):
+
+        return np.sqrt(2/(self.eta*self.beta*c*self.p0) * self.V_acc(z))
+
+    # def z(self, phi):
+
+    #     return phi * self.R / self.h
+
+    def hamiltonian(self, z, dp):
+        '''Sign makes sure we stay convex - can then always use H<0'''
+        return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
+
+
+
+
+    # def potential(self, phi):
+
+    #     V1, h1 = 2e6, 4620
+    #     V2, h2 = -0. * V1, 2 * h1
+    #     V3, h3 = -0. * V1, 4 * h1
+
+    #     return (e * V1 / (2 * np.pi * self.p0 * h1) * np.cos(phi)
+    #           + e * V2 / (2 * np.pi * self.p0 * h2) * np.cos(h2 / h1 * phi)
+    #           + e * V3 / (2 * np.pi * self.p0 * h3) * np.cos(h3 / h1 * phi))
+
+    # def hamiltonian(self, phi, dp):
+
+    #     return -1 / 2 * self.eta * self.beta * c * dp ** 2 + self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute
+
+    # def p_sep(self, phi):
+
+    #     return np.sqrt(2 / (self.eta * self.beta * c) * (self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute))
 
 
 class PhaseSpace(object):
@@ -101,7 +198,7 @@ class PhaseSpace(object):
 
     def __init__(self, bunch, rfsystem):
 
-        self.rf = RFSystems(bunch)
+        self.rf = rfsystem
 
     def _std_targeted(self, psi, sigma):
         print 'Iterative evaluation of bunch length...'
@@ -113,7 +210,7 @@ class PhaseSpace(object):
         z0 = self.rf.circumference
         H0 = self.rf.eta * self.rf.beta * c * (z0 / self.rf.beta_z) ** 2
         psi.H0 = H0
-        s = self._std_computed(psi.function, self.rf.p_sep, -np.pi, np.pi)
+        s = self._std_computed(psi.function, self.rf.p_sep, -np.pi+0.01, np.pi+0.01)
         zS = self.rf.z(np.sqrt(s))
         print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         if sigma > zS * 0.95:
@@ -127,7 +224,7 @@ class PhaseSpace(object):
         # Iteratively obtain true H0 to make target sigma
         zH = z0
         while abs(eps)>1e-6:
-            s = self._std_computed(psi.function, self.rf.p_sep, -np.pi, np.pi)
+            s = self._std_computed(psi.function, self.rf.p_sep, -np.pi+0.01, np.pi+0.01)
 
             zS = self.rf.z(np.sqrt(s))
             eps = zS - z0
@@ -153,8 +250,10 @@ class PhaseSpace(object):
         Compute the variance of the distribution function psi from xmin to xmax
         along the contours p_sep using numerical integration methods.
         '''
-        # xx, yy = np.linspace(xmin, xmax), np.linspace(ymin, ymax)
-        # XX, YY = np.meshgrid(xx, yy)
+        xx = np.linspace(xmin, xmax, 1000)
+        plt.plot(xx, p_sep(xx))
+        plt.plot(xx, -p_sep(xx))
+        plt.show()
         # PP = psi(XX, YY)
         # VV = var(XX, YY)
 

@@ -1,5 +1,3 @@
-
-from __future__ import division
 '''
 @class Wakefields
 @author Hannes Bartosik & Kevin Li & Giovanni Rumolo & Michael Schenk
@@ -7,6 +5,7 @@ from __future__ import division
 @Class for creation and management of wakefields from impedance sources
 @copyright CERN
 '''
+from __future__ import division
 
 
 import numpy as np
@@ -110,7 +109,7 @@ class BB_Resonator_transverse(Wakefields):
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y2 = Yokoya_Y2
-        
+
     #~ @profile
     def wake_transverse(self, bunch, z):
         Rs = self.R_shunt

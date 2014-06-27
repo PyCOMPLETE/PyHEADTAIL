@@ -3,6 +3,7 @@
 @date 20/06/2014
 @copyright CERN
 '''
+from __future__ import division
 
 
 import numpy as np
@@ -11,65 +12,60 @@ import numpy as np
 from scipy.constants import e
 
 
+class TransferFunction(object):
+
+    def __init__(self, slices): pass
+
+    def convert(self): pass
+
+    def convert_as_one_pole(self, x): pass
+
+    def convert_as_table(self): pass
+
+
 class Pickup(object):
     '''
     '''
 
-    def __init__(self, transfer_function=None, slices=None):
+    def __init__(self, slices, plane='y'):
 
-        self.transfer_function = transfer_function
-
-        if slices:
-            self.slices = slices
-            if self.transfer_function == None:
-                self.transfer_function = np.eye(slices.n_slices)
+        self.slices = slices
+        self.plane = plane
 
     def track(self, beam):
 
-        self._check_slices(beam)
-
-        self.x = self.slices.mean_x
-        self.y = self.slices.mean_y
-        self.xin = np.dot(self.transfer_function, self.x)
-        self.yin = np.dot(self.transfer_function, self.y)
-
-    def _check_slices(self, beam):
-
-        try:
-            slices = self.slices
-        except AttributeError:
-            slices = beam.slices
-            if self.transfer_function == None:
-                self.transfer_function = np.eye(slices.n_slices)
-
-            # self.xout = np.zeros(self.transfer_function.shape[0])
-            # self.yout = np.zeros(self.transfer_function.shape[0])
-
-            self.slices = slices
-
+        slices = self.slices
         slices.update_slices(beam)
         slices.compute_statistics(beam)
+
+        if self.plane == 'x':
+            self.y = np.copy(self.slices.mean_x)
+            self.yin = self.y
+            # self.yin = np.dot(self.transfer_function, self.x)
+        elif self.plane == 'y':
+            self.y = np.copy(self.slices.mean_y)
+            self.yin = self.y
+            # self.yin = np.dot(self.transfer_function, self.y)
 
 
 class Kicker(object):
     '''
     '''
 
-    def __init__(self, pickup, transfer_function=None, filter_fir=[0], filter_iir=[1], closedloop=False, gain=0, slices=None):
+    def __init__(self, pickup, plane='y', transfer_function=None, filter_fir=[0], filter_iir=[1], closedloop=False, gain=0, slices=None):
 
         # TODO: better binding of self.slices
         self.pickup = pickup
+        self.plane = plane
         self.transfer_function = transfer_function
         self.filter_fir = filter_fir
         self.filter_iir = filter_iir
-        self.closedloop = closedloop
         self.gain = gain
+
+        self._prepare_registers(len(self.filter_fir), len(self.filter_iir), pickup.slices.n_slices)
 
         if slices:
             self.slices = slices
-
-            self._prepare_registers(len(self.filter_fir), len(self.filter_iir), slices.n_slices)
-
             if self.transfer_function == None:
                 self.transfer_function = np.eye(slices.n_slices)
 
@@ -81,68 +77,13 @@ class Kicker(object):
         #         self.xout = np.zeros(self.transfer_function.shape[0])
         #         self.yout = np.zeros(self.transfer_function.shape[0])
 
-    def track(self, beam):
-
-        self._check_slices(beam)
-
-        self.controller_fir(beam)
-        self.controller_iir(beam)
-
-        # TODO: this can be modeled with gain=0; kind of redundant...
-        # if self.closedloop:
-        #     self.vout_x = self.gain * self.xout
-        #     self.vout_y = self.gain * self.yout
-        # else:
-        #     self.vout_x = 0
-        #     self.vout_y = 0
-
-        self.vout_x = self.gain * self.xout
-        self.vout_y = self.gain * self.yout
-
-        self.kicker(beam)
-
-        # self.x = self.transfer_function * self.slices.mean_x
-        # self.y = self.transfer_function * self.slices.mean_y
-        # self.xp = self.pickup.x
-        # self.yp = self.pickup.y
-
-    def _prepare_registers(self, n_taps_forward, n_taps_reverse, n_slices):
-
-        self.register_forward_x = np.zeros((n_slices, n_taps_forward))
-        self.register_reverse_x = np.zeros((n_slices, n_taps_reverse))
-        self.register_forward_y = np.zeros((n_slices, n_taps_forward))
-        self.register_reverse_y = np.zeros((n_slices, n_taps_reverse))
-
-    def _check_slices(self, beam):
-
-        try:
-            slices = self.slices
-        except AttributeError:
-            slices = beam.slices
-
-            self._prepare_registers(len(self.filter_fir), len(self.filter_iir), slices.n_slices)
-
-            if not self.transfer_function:
-                self.transfer_function = np.eye(slices.n_slices)
-
-            # self.xout = np.zeros(self.transfer_function.shape[0])
-            # self.yout = np.zeros(self.transfer_function.shape[0])
-
-            self.slices = slices
-
-        slices.update_slices(beam)
-        slices.compute_statistics(beam)
-
     def controller_fir(self, beam):
 
         # Fill shift register
-        self.register_forward_x[:, 1:] = self.register_forward_x[:, :-1]
-        self.register_forward_x[:, 0] = self.pickup.xin
-        self.register_forward_y[:, 1:] = self.register_forward_y[:, :-1]
-        self.register_forward_y[:, 0] = self.pickup.yin
+        self.register_forward[:, 1:] = self.register_forward[:, :-1]
+        self.register_forward[:, 0] = self.pickup.yin
 
-        self.xout = np.dot(self.register_forward_x, self.filter_fir)
-        self.yout = np.dot(self.register_forward_y, self.filter_fir)
+        self.yout = np.dot(self.register_forward, self.filter_fir)
 
         # with the one zero implicit!
         # for (j=0; j<ntabsforward; j++)
@@ -152,19 +93,15 @@ class Kicker(object):
 
     def controller_iir(self, beam):
 
-        tmpxout = np.dot(self.register_reverse_x, self.filter_iir)
-        tmpyout = np.dot(self.register_reverse_y, self.filter_iir)
-        self.xout[:] -= tmpxout
+        tmpyout = np.dot(self.register_reverse, self.filter_iir)
         self.yout[:] -= tmpyout
         # for i in xrange(len(self.filter_iir)):
         #     self.xout[:] -= self.filter_iir[i] * self.register_forward_x[i, :]
         #     self.yout[:] -= self.filter_iir[i] * self.register_forward_y[i, :]
 
         # Fill shift register
-        self.register_reverse_x[:, 1:] = self.register_reverse_x[:, :-1]
-        self.register_reverse_x[:, 0] = self.xout
-        self.register_reverse_y[:, 1:] = self.register_reverse_y[:, :-1]
-        self.register_reverse_y[:, 0] = self.yout
+        self.register_reverse[:, 1:] = self.register_reverse[:, :-1]
+        self.register_reverse[:, 0] = self.yout
 
         # No delay!
         # for (j=0; j<ntabsreverse; j++)
@@ -189,19 +126,71 @@ class Kicker(object):
         #     }
         # }
 
-        self.kick_x = np.dot(self.transfer_function, self.vout_x)
-        self.kick_y = np.dot(self.transfer_function, self.vout_y)
-        # kick_y[j] += vout[i]*FilterKicker[j][i];
+        self.vout = self.gain * self.yout
+        self.kick = np.dot(self.transfer_function, self.vout)
 
         p_absolute = (1+beam.dp) * beam.p0
-        ix = self.slices.slice_index_of_particle
-        beam.xp[ix] += self.kick_x[ix] * e/p_absolute[ix]
-        beam.yp[ix] += self.kick_y[ix] * e/p_absolute[ix]
+        kick = self.kick[self.slices.slice_index_of_particle]
+        if self.plane == 'x':
+            beam.xp += kick * e/p_absolute
+        elif self.plane == 'y':
+            beam.yp += kick * e/p_absolute
         # for i in xrange(self.slices.n_slices):
-            # ix = np.s_[self.slices.z_index[i]:self.slices.z_index[i + 1]]
+        #     ix = np.s_[self.slices.z_index[i]:self.slices.z_index[i + 1]]
 
-            # beam.xp[ix] += self.kick_x[i] * e/p_absolute[ix]
-            # beam.yp[ix] += self.kick_y[i] * e/p_absolute[ix]
+        #     beam.xp[ix] += self.kick_x[i] * e/p_absolute[ix]
+        #     beam.yp[ix] += self.kick_y[i] * e/p_absolute[ix]
+
+    def track(self, beam):
+
+        self._check_slices(beam)
+
+        if self.plane == 'x':
+            self.x = np.copy(self.slices.mean_x)
+        elif self.plane == 'y':
+            self.y = np.copy(self.slices.mean_y)
+
+        self.controller_fir(beam)
+        self.controller_iir(beam)
+        self.kicker(beam)
+
+        # TODO: this can be modeled with gain=0; kind of redundant...
+        # if self.closedloop:
+        #     self.vout_x = self.gain * self.xout
+        #     self.vout_y = self.gain * self.yout
+        # else:
+        #     self.vout_x = 0
+        #     self.vout_y = 0
+
+        # self.x = self.transfer_function * self.slices.mean_x
+        # self.y = self.transfer_function * self.slices.mean_y
+        # self.xp = self.pickup.x
+        # self.yp = self.pickup.y
+
+    def _prepare_registers(self, n_taps_forward, n_taps_reverse, n_slices):
+
+        self.register_forward = np.zeros((n_slices, n_taps_forward))
+        self.register_reverse = np.zeros((n_slices, n_taps_reverse))
+
+    def _check_slices(self, beam):
+
+        try:
+            slices = self.slices
+        except AttributeError:
+            slices = beam.slices
+
+            self._prepare_registers(len(self.filter_fir), len(self.filter_iir), slices.n_slices)
+
+            if not self.transfer_function:
+                self.transfer_function = np.eye(slices.n_slices)
+
+            # self.xout = np.zeros(self.transfer_function.shape[0])
+            # self.yout = np.zeros(self.transfer_function.shape[0])
+
+            self.slices = slices
+
+        slices.update_slices(beam)
+        slices.compute_statistics(beam)
 
 # // Functions
 # void Feedback::init(CFG_IO &cfgfile)
