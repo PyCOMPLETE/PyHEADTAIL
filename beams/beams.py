@@ -45,18 +45,18 @@ class Particles(object):
     @classmethod
     def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
                     alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                    sigma_z, sigma_dp, is_accepted = None):
+                    sigma_z, sigma_dp, is_accepted = None, random_generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
         betagamma = np.sqrt(gamma ** 2 - 1)
         #p0 = betagamma * mass * c
 
-        gaussianx = GaussianX.from_optics(
-                        n_macroparticles, alpha_x, beta_x, epsn_x, betagamma)
-        gaussiany = GaussianY.from_optics(
-                        n_macroparticles, alpha_y, beta_y, epsn_y, betagamma)
-        gaussianz = GaussianZ(n_macroparticles, sigma_z, sigma_dp, is_accepted)
+        gaussianx = GaussianX.from_optics(n_macroparticles, alpha_x, beta_x, epsn_x, betagamma,
+                                          random_generator_seed)
+        gaussiany = GaussianY.from_optics(n_macroparticles, alpha_y, beta_y, epsn_y, betagamma,
+                                          random_generator_seed)
+        gaussianz = GaussianZ(n_macroparticles, sigma_z, sigma_dp, is_accepted, random_generator_seed)
 
         return cls(charge, gamma, intensity, mass,
                    gaussianx, gaussiany, gaussianz)
