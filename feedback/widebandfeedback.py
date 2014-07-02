@@ -9,18 +9,32 @@ from __future__ import division
 import numpy as np
 
 
-from scipy.constants import e
+from scipy.constants import c, e
+import pylab as plt
 
 
 class TransferFunction(object):
 
     def __init__(self, slices): pass
 
+    def one_pole_roll_off(self, frequency):
+
+        def f(z):
+            return np.exp(-2*np.pi*frequency * z/c)
+        return f
+
     def convert(self): pass
 
     def convert_as_one_pole(self, x): pass
 
     def convert_as_table(self): pass
+
+
+def one_pole_roll_off(frequency):
+
+    def f(z):
+        return np.exp(-2*np.pi*frequency * z/c)
+    return f
 
 
 class Pickup(object):
@@ -126,7 +140,17 @@ class Kicker(object):
         #     }
         # }
 
+        dz_to_target_slice = [self.slices.z_centers] - np.transpose([self.pickup.slices.z_centers])
+        tf = one_pole_roll_off(200e6)
+        t = tf(-dz_to_target_slice)
+        fig, (ax1, ax2) = plt.subplots(2)
+        ax1.plot(dz_to_target_slice)
+        ax2.plot(t)
+        plt.show()
+        exit(-1)
+
         self.vout = self.gain * self.yout
+        # Convolution here
         self.kick = np.dot(self.transfer_function, self.vout)
 
         p_absolute = (1+beam.dp) * beam.p0

@@ -9,7 +9,7 @@ import numpy as np
 
 
 from cobra_functions import stats
-from scipy.constants import c, e, m_p
+from scipy.constants import c, e, m_e, m_p
 from generators import GaussianX, GaussianY, GaussianZ
 
 
@@ -134,3 +134,62 @@ class Particles(object):
         self.epsn_x = stats.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
         self.epsn_y = stats.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
         self.epsn_z = 4 * np.pi * self.sigma_z * self.sigma_dp * self.p0 / self.charge
+
+
+class Cloud(object):
+
+    def __init__(self, n_macroparticles, density, extent_x, extent_y, extent_z):
+
+        self.charge = e
+        self.gamma = 1
+        self.intensity = density * 2 * extent_x * 2 * extent_y * extent_z
+        self.mass = m_e
+
+        self._create_uniform(n_macroparticles)
+        self._match_uniform(extent_x, extent_y, extent_z)
+
+        # Initial distribution
+        self.x0 = self.x.copy()
+        self.xp0 = self.xp.copy()
+        self.y0 = self.y.copy()
+        self.yp0 = self.yp.copy()
+        self.z0 = self.z.copy()
+        self.dp0 = self.dp.copy()
+
+    def _create_uniform(self, n_macroparticles, seed=None):
+        '''
+        Create a normalized uniform 6d phase space distribution for n_macroparticles macroparticles from -1 to +1 in all dimensions.
+        '''
+        random_state = np.random.RandomState()
+        if seed:
+            random_state.seed(seed)
+
+        self.x  = 2 * random_state.rand(n_macroparticles) - 1
+        self.xp = 2 * random_state.rand(n_macroparticles) - 1
+        self.y  = 2 * random_state.rand(n_macroparticles) - 1
+        self.yp = 2 * random_state.rand(n_macroparticles) - 1
+        self.z  = 2 * random_state.rand(n_macroparticles) - 1
+        self.dp = 2 * random_state.rand(n_macroparticles) - 1
+
+    def _match_uniform(self, extent_x, extent_y, extent_z):
+
+        self.x *= extent_x
+        self.xp *= 0
+        self.y *= extent_y
+        self.yp *= 0
+        self.z *= extent_z
+        self.dp *= 0
+
+    @property
+    def n_macroparticles(self):
+
+        return len(self.x)
+
+    def reinit(self):
+
+        np.copyto(self.x, self.x0)
+        np.copyto(self.xp, self.xp0)
+        np.copyto(self.y, self.y0)
+        np.copyto(self.yp, self.yp0)
+        np.copyto(self.z, self.z0)
+        np.copyto(self.dp, self.dp0)
