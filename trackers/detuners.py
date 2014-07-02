@@ -69,63 +69,76 @@ class OctupoleSegment(Detuner):
 
         return dphi_x, dphi_y
 
-        
-class RFQSegment(Detuner):
+"""
+Different implementations/parameterizations of the RF Quadrupole as a detuner. The formulae are mainly based on
+'Radio frequency quadrupole for Landau damping in accelerators', A. Grudiev, 2014.
+"""
+class RFQSegmentGeneral(Detuner):
+    """
+    Most general RFQ detuner.
+    """
+    def __init__(self, dapp_xz, dapp_yz, omega_RF, phi_0_RF):
 
-    def __init__(self, dapp_xz, dapp_yz, omega_RF, detune_function_to_use):
-        
-        self.dapp_xz = dapp_xz
-        self.dapp_yz = dapp_yz
         self.omega_RF = omega_RF
-
-        # self.detune_function_to_use = detune_function_to_use
-        self.phi_0_RF = 0
-
-        # SELECT DETUNING FUNCTION
-        if detune_function_to_use == 'general':
-            self.detune = self.detune_general
-        elif detune_function_to_use == 'on_crest':
-            self.detune = self.detune_on_crest
-        elif detune_function_to_use == 'off_crest':
-            self.detune = self.detune_off_crest
-        else:
-            print 'Detuning method not available.'
-
-
-    def detune(self):
-        pass
-
-
-    def detune_general(self, beam):
-        """
-        Most general detuning function.
-        """
-        # HERE WE WILL NEED ACCESS TO PHI_0_RF
-        dphi_x = self.dapp_xz / (beam.dp * beam.p0 + beam.p0) * cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
-        dphi_y = self.dapp_yz / (beam.dp * beam.p0 + beam.p0) * cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
+        self.phi_0_RF = phi_0_RF
+        self.dapp_xz  = dapp_xz
+        self.dapp_yz  = dapp_yz
         
-        return dphi_x, dphi_y
 
-            
-    def detune_on_crest(self, beam):
+    def detune(self, beam):
         """
-        Approximative detuning function assuming beam (center) entering on crest.
+        Warning: relativistic beta is assumed to be exactly the same for all particles.
         """
-        dphi_x = self.dapp_xz / (beam.dp * beam.p0 + beam.p0) * (1. - 1./2. * (beam.z * self.omega_RF / (beam.beta * c))**2)
-        dphi_y = self.dapp_yz / (beam.dp * beam.p0 + beam.p0) * (1. - 1./2. * (beam.z * self.omega_RF / (beam.beta * c))**2)
-
-        return dphi_x, dphi_y
-
-    
-    def detune_off_crest(self, beam):
-        """
-        Approximative detuning function assuming beam (center) entering off crest.
-        """
-        dphi_x = self.dapp_xz / (beam.dp * beam.p0 + beam.p0) * beam.z * self.omega_RF / (beam.beta * c)
-        dphi_y = self.dapp_yz / (beam.dp * beam.p0 + beam.p0) * beam.z * self.omega_RF / (beam.beta * c)
+        cos_dependence = cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF) / ((1 + beam.dp) * beam.p0)
+        dphi_x = self.dapp_xz * cos_dependence 
+        dphi_y = self.dapp_yz * cos_dependence
 
         return dphi_x, dphi_y
         
+
+class RFQSegmentOnCrest(Detuner):
+    """
+    RFQ detuner with beam entering on crest (pure cosine dependence). Using approximation cos(x) \approx 1-x^2/2.
+    """
+    def __init__(self, dapp_xz, dapp_yz, omega_RF):
+
+        self.omega_RF = omega_RF
+        self.dapp_xz  = dapp_xz
+        self.dapp_yz  = dapp_yz
+        
+
+    def detune(self, beam):
+        """
+        Warning: relativistic beta is assumed to be exactly the same for all particles.
+        """
+        approximate_cos_dependence = (1. - 0.5 * (beam.z * self.omega_RF / (beam.beta * c))**2) /  ((1 + beam.dp) * beam.p0)
+        dphi_x = self.dapp_xz * approximate_cos_dependence 
+        dphi_y = self.dapp_yz * approximate_cos_dependence
+
+        return dphi_x, dphi_y
+
+
+class RFQSegmentOffCrest(Detuner):
+    """
+    RFQ detuner with beam entering off crest (pure sine dependence). Using approximation sin(x) \approx 1+x.
+    """
+    def __init__(self, dapp_xz, dapp_yz, omega_RF):
+
+        self.omega_RF = omega_RF
+        self.dapp_xz  = dapp_xz
+        self.dapp_yz  = dapp_yz
+        
+
+    def detune(self, beam):
+        """
+        Warning: relativistic beta is assumed to be exactly the same for all particles.
+        """
+        approximate_sin_dependence = (beam.z * self.omega_RF / (beam.beta * c)) /  ((1 + beam.dp) * beam.p0)
+        dphi_x = self.dapp_xz * approximate_sin_dependence 
+        dphi_y = self.dapp_yz * approximate_sin_dependence
+        
+        return dphi_x, dphi_y
+
         
 """
 Collection classes for each class of detuner. These are the classes instantiated explicitly by the user.
@@ -232,39 +245,78 @@ class Sextupole(object):
 
 class RFQ(object):
     
-    def __init__(self, s, beta_x, beta_y, voltage_RF, omega_RF, detune_function_to_use):
+    def __init__(self, s, beta_x, beta_y, voltage_RF, omega_RF, **kwargs):
 
         self.s = s
-        self.omega_RF = omega_RF
+        self.omega_RF   = omega_RF
+        self.voltage_RF = voltage_RF
 
-        self.detune_function_to_use = detune_function_to_use
-        
-        # Calculate matrix elements following 'Radio frequency quadrupole for Landau damping in accelerators',
-        # A. Grudiev, 2014.
-        # k2  = 2. * voltage_RF * e / ((beam.dp * beam.p0 + beam.p0) * omega_RF)
-        # app_xz and app_yz are constant pre-factors valid for any parameterization of detuning function.
-        app = voltage_RF / omega_RF * e / (2. * np.pi)
-        app_xz = -beta_x * app
-        app_yz = beta_y * app
-        
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
+
         scale_to_segment = np.diff(s) / s[-1]
-        self.dapp_xz = app_xz * scale_to_segment
-        self.dapp_yz = app_yz * scale_to_segment
-        
-        self._generate_segment_detuners()
-        
-        
-    def _generate_segment_detuners(self):
+        app_xz = -beta_x * voltage_RF * e / (omega_RF * 2. * np.pi)
+        app_yz =  beta_y * voltage_RF * e / (omega_RF * 2. * np.pi)
+        self.dapp_xz = scale_to_segment * app_xz
+        self.dapp_yz = scale_to_segment * app_yz
+            
 
+    @classmethod
+    def as_general(cls, s, beta_x, beta_y, voltage_RF, omega_RF, phi_0_RF):
+
+        rfq_collection = cls(s, beta_x, beta_y, voltage_RF, omega_RF, phi_0_RF=phi_0_RF)
+            
         segment_detuners = []
-
-        n_segments = len(self.s) - 1
+        n_segments = len(s) - 1
         for seg in range(n_segments):
-            segment_detuner = RFQSegment(self.dapp_xz[seg], self.dapp_yz[seg], self.omega_RF, self.detune_function_to_use)
+            segment_detuner = RFQSegmentGeneral(rfq_collection.dapp_xz[seg], rfq_collection.dapp_yz[seg], omega_RF, phi_0_RF)
             segment_detuners.append(segment_detuner)
 
-        self.segment_detuners = segment_detuners
+        rfq_collection.segment_detuners = segment_detuners
+                        
+        return rfq_collection
 
+
+    @classmethod
+    def as_on_crest(cls, s, beta_x, beta_y, voltage_RF, omega_RF):
+
+        rfq_collection = cls(s, beta_x, beta_y, voltage_RF, omega_RF)
+
+        segment_detuners = []
+        n_segments = len(s) - 1
+        for seg in range(n_segments):
+            segment_detuner = RFQSegmentOnCrest(rfq_collection.dapp_xz[seg], rfq_collection.dapp_yz[seg], omega_RF)
+            segment_detuners.append(segment_detuner)
+
+        rfq_collection.segment_detuners = segment_detuners
+                        
+        return rfq_collection
+
+
+    @classmethod
+    def as_off_crest(cls, s, beta_x, beta_y, voltage_RF, omega_RF):
+
+        rfq_collection = cls(s, beta_x, beta_y, voltage_RF, omega_RF)
+
+        segment_detuners = []
+        n_segments = len(s) - 1
+        for seg in range(n_segments):
+            segment_detuner = RFQSegmentOffCrest(rfq_collection.dapp_xz[seg], rfq_collection.dapp_yz[seg], omega_RF)
+            segment_detuners.append(segment_detuner)
+
+        rfq_collection.segment_detuners = segment_detuners
+                        
+        return rfq_collection
+
+
+    ## def _generate_segment_detuners(self):
+    ##     segment_detuners = []
+    ##     n_segments = len(self.s) - 1
+    ##     for seg in range(n_segments):
+    ##         segment_detuner = RFQSegment(self.dapp_xz[seg], self.dapp_yz[seg], self.omega_RF)
+    ##         segment_detuners.append(segment_detuner)
+
+    ##     self.segment_detuners = segment_detuners
         
     def __len__(self):
 
