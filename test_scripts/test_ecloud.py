@@ -5,6 +5,7 @@ from __future__ import division
 import itertools, time
 
 from ecloud.ecloud import *
+import ecloud.ecloud as ec
 from particles.particles import *
 from particles.slicer import *
 from trackers.transverse_tracker import *
@@ -40,7 +41,7 @@ n_turns = 5
 bunch = Particles.as_gaussian(10000, e, gamma, 1.15e11, m_p, 0, beta_x, epsn_x, 0, beta_y, epsn_y, beta_z, epsn_z)
 
 # Betatron
-n_segments = 1
+n_segments = 2
 s = np.arange(n_segments + 1) * C / n_segments
 ltm = TransverseTracker.from_copy(s,
     np.zeros(n_segments), np.ones(n_segments) * beta_x, np.zeros(n_segments),
@@ -69,16 +70,23 @@ particles = Particles.as_uniformXY(n_macroparticles, -e, 1., N_electrons, m_e, x
 #~ plt.plot(particles.x, particles.y, '.')
 #~ plt.show()
 slicer = Slicer(64, nsigmaz=3)
-ecloud = Ecloud(particles, grid_extension_x, grid_extension_y, grid_nx, grid_ny, slicer)
+ecloud = ec.Ecloud(particles, grid_extension_x, grid_extension_y, grid_nx, grid_ny, slicer)
 
 
-map_ = list(itertools.chain.from_iterable([[l] + [ecloud] for l in ltm] + [[cavity]]))
+#~ map_ = list(itertools.chain.from_iterable([[l] + [ecloud] for l in ltm] + [[cavity]]))
 
-r = 10 * plt.log10(bunch.z ** 2 + (beta_z * bunch.dp) ** 2)
+elements=[]
+for l in ltm:
+	elements+=[l, ecloud]
+elements.append(cavity)
+	
+
+
+#~ r = 10 * plt.log10(bunch.z ** 2 + (beta_z * bunch.dp) ** 2)
 for i in range(n_turns):
     t0 = time.clock()
-    for m in map_:
-        m.track(bunch)
+    for ele in elements:
+        ele.track(bunch)
 
     #~ bunchmonitor.dump(bunch)
     print '--> Elapsed time:', time.clock() - t0

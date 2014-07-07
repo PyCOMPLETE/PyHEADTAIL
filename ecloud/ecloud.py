@@ -62,7 +62,7 @@ class Ecloud():
         
 
     # @profile
-    def track(self, beam):
+    def track(self, beam, save_ele_distributions = False):
 
         beam_ex = np.zeros(beam.n_macroparticles)
         beam_ey = np.zeros(beam.n_macroparticles)
@@ -96,7 +96,7 @@ class Ecloud():
 			self.particles.xp += cf1 * self.particles.ex
 			self.particles.yp += cf1 * self.particles.ey
 			self.particles.x += dt * self.particles.xp
-			self.particles.y += dt * self.particles.yp
+			self.particles.y += dt * self.particles.yp!git lo
 			#print self.particles.x, self.particles.y
 
 			# ecloud fields
