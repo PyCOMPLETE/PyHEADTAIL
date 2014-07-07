@@ -118,25 +118,25 @@ class Ecloud():
                 
                 
                 
-			# Visualisation for testing the electron cloud pinch
-			# ==================================================
-			if i == 0:
-				fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 12))
-			[ax.cla() for ax in (ax1, ax2, ax3, ax4)]
-			# [ax.set_aspect('equal') for ax in (ax1, ax2, ax3, ax4)]
-			ax1.contour(self.poisson.fgreen.T, 100)
-			ax2.plot(self.phi1[self.poisson.ny / 2,:], '-g')
-			# ax2.plot(phi1[bunch.poisson_other.ny / 2,:], '-r')
-			# ax2.plot(phi2[bunch.poisson_other.ny / 2,:], '-', c='orange')
-			# ax3.contourf(self.poisson_self.x, self.poisson_self.y, 10 * plt.log10(self.poisson_self.rho), 100)
-			# print self.phi1 # 10 * plt.log10(self.rho2)
-			ax3.imshow(10 * plt.log10(self.rho2), origin='lower', aspect='auto', vmin=50, vmax=1e2,
-					   extent=(self.poisson.x[0,0], self.poisson.x[0,-1], self.poisson.y[0,0], self.poisson.y[-1,0]))
-			# ax3.scatter(self.x[::20], self.y[::20], c='b', marker='.')
-			# ax3.quiver(self.x[::50], self.y[::50], self.kx[::50], self.ky[::50], color='g')
-			# ax3.contour(p.x, p.y, p.phi, 100, lw=2)
-			# ax3.scatter(bunch.x[ix], bunch.y[ix], c='y', marker='.', alpha=0.8)
-			ax4.imshow(plt.sqrt(self.ex1 ** 2 + self.ey1 ** 2), origin='lower', aspect='auto',
-					   extent=(self.poisson.x[0,0], self.poisson.x[0,-1], self.poisson.y[0,0], self.poisson.y[-1,0]))
+			## Visualisation for testing the electron cloud pinch
+			## ==================================================
+			#if i == 0:
+				#fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 12))
+			#[ax.cla() for ax in (ax1, ax2, ax3, ax4)]
+			## [ax.set_aspect('equal') for ax in (ax1, ax2, ax3, ax4)]
+			#ax1.contour(self.poisson.fgreen.T, 100)
+			#ax2.plot(self.phi1[self.poisson.ny / 2,:], '-g')
+			## ax2.plot(phi1[bunch.poisson_other.ny / 2,:], '-r')
+			## ax2.plot(phi2[bunch.poisson_other.ny / 2,:], '-', c='orange')
+			## ax3.contourf(self.poisson_self.x, self.poisson_self.y, 10 * plt.log10(self.poisson_self.rho), 100)
+			## print self.phi1 # 10 * plt.log10(self.rho2)
+			#ax3.imshow(10 * plt.log10(self.rho2), origin='lower', aspect='auto', vmin=50, vmax=1e2,
+					   #extent=(self.poisson.x[0,0], self.poisson.x[0,-1], self.poisson.y[0,0], self.poisson.y[-1,0]))
+			## ax3.scatter(self.x[::20], self.y[::20], c='b', marker='.')
+			## ax3.quiver(self.x[::50], self.y[::50], self.kx[::50], self.ky[::50], color='g')
+			## ax3.contour(p.x, p.y, p.phi, 100, lw=2)
+			## ax3.scatter(bunch.x[ix], bunch.y[ix], c='y', marker='.', alpha=0.8)
+			#ax4.imshow(plt.sqrt(self.ex1 ** 2 + self.ey1 ** 2), origin='lower', aspect='auto',
+					   #extent=(self.poisson.x[0,0], self.poisson.x[0,-1], self.poisson.y[0,0], self.poisson.y[-1,0]))
 
-			plt.draw()
+			#plt.draw()
