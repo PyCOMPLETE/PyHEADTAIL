@@ -153,8 +153,8 @@ class Ecloud():
                 self.y_MP_last_track.append(self.particles.y.copy())
                 
             if self.save_ele_MP_velocity:
-                self.vx_MP_last_track.append(self.particles.vx.copy())
-                self.vy_MP_last_track.append(self.particles.vy.copy())
+                self.vx_MP_last_track.append(self.particles.xp.copy())
+                self.vy_MP_last_track.append(self.particles.yp.copy())
                     
         
         

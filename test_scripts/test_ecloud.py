@@ -76,6 +76,7 @@ ecloud.save_ele_distributions_last_track = True
 ecloud.save_ele_potential_and_field = True
 ecloud.save_ele_MP_size = False
 ecloud.save_ele_MP_position = True
+ecloud.save_ele_MP_velocity = True
 #~ map_ = list(itertools.chain.from_iterable([[l] + [ecloud] for l in ltm] + [[cavity]]))
 
 elements=[]
@@ -104,7 +105,32 @@ import mystyle as ms
 
 dec_fact = 10
 
+x_obs = .001
+y_obs = -.001 
+
+
+i_obs = np.argmin((ecloud.x_MP_last_track[0]-x_obs)**2+(ecloud.y_MP_last_track[0]-y_obs)**2)
+
+
+x_arr = np.array(ecloud.x_MP_last_track) 
+y_arr = np.array(ecloud.y_MP_last_track)
+
+vx_arr = np.array(ecloud.vx_MP_last_track) 
+vy_arr = np.array(ecloud.vy_MP_last_track)
+
 pl.close('all')
+pl.figure(2)
+pl.subplot(2,1,1)
+pl.plot(ecloud.slicer.z_centers/3e8, x_arr[:, i_obs], '.-')
+pl.plot(ecloud.slicer.z_centers/3e8, y_arr[:, i_obs], '.-r')
+
+pl.subplot(2,1,2)
+pl.plot(ecloud.slicer.z_centers/3e8, vx_arr[:, i_obs], '.-')
+pl.plot(ecloud.slicer.z_centers/3e8, vy_arr[:, i_obs], '.-r')
+
+pl.show()
+
+
 pl.figure(1, figsize=(12, 12))
 for ii in xrange(ecloud.slicer.n_slices):
     pl.clf()
@@ -132,6 +158,8 @@ for ii in xrange(ecloud.slicer.n_slices):
     ms.sciy
     pl.draw()
     time.sleep(.01)
+    
+    
 
 
 
