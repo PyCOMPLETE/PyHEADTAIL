@@ -13,7 +13,8 @@ from trackers.longitudinal_tracker import *
 
 from scipy.constants import e, m_e
 
-import pylab as plt
+import pylab as pl
+import time 
 
 plt.ion()
 # Parameters
@@ -35,13 +36,13 @@ epsn_x = 2.5
 epsn_y = 2.5
 epsn_z = 0.5
 
-n_turns = 5
+n_turns = 1
 
 # Beam
-bunch = Particles.as_gaussian(10000, e, gamma, 1.15e11, m_p, 0, beta_x, epsn_x, 0, beta_y, epsn_y, beta_z, epsn_z)
+bunch = Particles.as_gaussian(100000, e, gamma, 1.15e11, m_p, 0, beta_x, epsn_x, 0, beta_y, epsn_y, beta_z, epsn_z)
 
 # Betatron
-n_segments = 2
+n_segments = 1
 s = np.arange(n_segments + 1) * C / n_segments
 ltm = TransverseTracker.from_copy(s,
     np.zeros(n_segments), np.ones(n_segments) * beta_x, np.zeros(n_segments),
@@ -71,15 +72,16 @@ particles = Particles.as_uniformXY(n_macroparticles, -e, 1., N_electrons, m_e, x
 #~ plt.show()
 slicer = Slicer(64, nsigmaz=3)
 ecloud = ec.Ecloud(particles, grid_extension_x, grid_extension_y, grid_nx, grid_ny, slicer)
-
-
+ecloud.save_ele_distributions_last_track = True 
+ecloud.save_ele_potential_and_field = True
+ecloud.save_ele_MP_size = False
+ecloud.save_ele_MP_position = True
 #~ map_ = list(itertools.chain.from_iterable([[l] + [ecloud] for l in ltm] + [[cavity]]))
 
 elements=[]
 for l in ltm:
-	elements+=[l, ecloud]
+    elements+=[l, ecloud]
 elements.append(cavity)
-	
 
 
 #~ r = 10 * plt.log10(bunch.z ** 2 + (beta_z * bunch.dp) ** 2)
@@ -95,6 +97,41 @@ for i in range(n_turns):
         # plt.gca().set_xlim(-1, 1)
         # plt.gca().set_ylim(-1e-2, 1e-2)
         # plt.draw()
+        
+# Try to plot the pinch
+from itertools import izip
+import mystyle as ms
+
+dec_fact = 10
+
+pl.close('all')
+pl.figure(1, figsize=(12, 12))
+for ii in xrange(ecloud.slicer.n_slices):
+    pl.clf()
+    pl.subplot(2,2,1)
+    pl.imshow(10. * plt.log10(ecloud.rho_ele_last_track[ii]), origin='lower', aspect='auto', vmin=50, vmax=1e2,
+              extent=(ecloud.poisson.x[0,0], ecloud.poisson.x[0,-1], ecloud.poisson.y[0,0], ecloud.poisson.y[-1,0]))
+    pl.colorbar()
+    
+#    pl.subplot(2,2,2)
+#    pl.imshow(10. * plt.log10( ecloud.phi_ele_last_track[ii]), origin='lower', aspect='auto',
+#              extent=(ecloud.poisson.x[0,0], ecloud.poisson.x[0,-1], ecloud.poisson.y[0,0], ecloud.poisson.y[-1,0]))
+
+    pl.subplot(2,2,2)
+    pl.plot(ecloud.x_MP_last_track[ii][::dec_fact],  ecloud.y_MP_last_track[ii][::dec_fact], '.')
+       
+    pl.subplot(2,2,3)
+    pl.imshow(ecloud.Ex_ele_last_track[ii], origin='lower', aspect='auto',
+              extent=(ecloud.poisson.x[0,0], ecloud.poisson.x[0,-1], ecloud.poisson.y[0,0], ecloud.poisson.y[-1,0]))
+    pl.colorbar()
+    
+    pl.subplot(2,2,4)
+    pl.imshow(ecloud.Ey_ele_last_track[ii], origin='lower', aspect='auto',
+              extent=(ecloud.poisson.x[0,0], ecloud.poisson.x[0,-1], ecloud.poisson.y[0,0], ecloud.poisson.y[-1,0]))
+    pl.colorbar()
+    ms.sciy
+    pl.draw()
+    time.sleep(.01)
 
 
 
