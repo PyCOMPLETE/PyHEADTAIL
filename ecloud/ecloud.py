@@ -109,29 +109,26 @@ class Ecloud():
 
             ix = np.s_[self.slicer.z_index[i]:self.slicer.z_index[i + 1]]
             
+            dz = (self.slicer.z_bins[i + 1] - self.slicer.z_bins[i])
+            dt = dz / (beam.beta * c)
+            
             # beam fields:
             self.poisson.gather_from(beam.x[ix], beam.y[ix], self.rho1)
             self.poisson.compute_potential(self.rho1, self.phi1)
             self.poisson.compute_fields(self.phi1, self.ex1, self.ey1)
-
+            #beam field in V/m:
+            self.ex1 = 1./(2. * pi * epsilon_0)*e*beam.n_particles_per_mp/dz * self.ex1
+            self.ey1 = 1./(2. * pi * epsilon_0)*e*beam.n_particles_per_mp/dz * self.ey1
+            
             # scatter to the cloud
             self.poisson.scatter_to(self.ex1, self.ey1, self.particles.x, self.particles.y, self.particles.ex, self.particles.ey)
             
-            
-            cf1 = -2 * c * re * 1 / beam.beta * beam.n_particles_per_mp
-            dt = (self.slicer.z_bins[i + 1] - self.slicer.z_bins[i]) / (beam.beta * c)
-            
-            #cf1 = -2 * c * re * 1 / beam.beta * beam.intensity / beam.n_macroparticles
-
-            #print i, (self.slicer.z_bins[i + 1] - self.slicer.z_bins[i])
-            
-            
             # Beam pushes e-cloud
-            self.particles.xp += cf1 * self.particles.ex
-            self.particles.yp += cf1 * self.particles.ey
+            self.particles.xp +=  -e/m_e*dt*self.particles.ex
+            self.particles.yp +=  -e/m_e*dt*self.particles.ey
             self.particles.x += dt * self.particles.xp
             self.particles.y += dt * self.particles.yp
-            #print self.particles.x, self.particles.y
+            
             
             # ecloud fields
             self.poisson.gather_from(self.particles.x, self.particles.y, self.rho2)
