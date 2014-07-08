@@ -77,11 +77,11 @@ class Ecloud():
         self.save_ele_MP_size = False
 
     def reinit(self):
-		self.particles.x[:]=self.particles.x_init #it is a mutation and not a binding (and we have tested it :-))
-		self.particles.xp[:]=self.particles.xp_init
-		
-		self.particles.y[:]=self.particles.y_init #it is a mutation and not a binding (and we have tested it :-))
-		self.particles.yp[:]=self.particles.yp_init
+        self.particles.x[:]=self.particles.x_init #it is a mutation and not a binding (and we have tested it :-))
+        self.particles.xp[:]=self.particles.xp_init
+        
+        self.particles.y[:]=self.particles.y_init #it is a mutation and not a binding (and we have tested it :-))
+        self.particles.yp[:]=self.particles.yp_init
         
 
     # @profile
