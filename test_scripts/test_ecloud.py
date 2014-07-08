@@ -67,11 +67,11 @@ grid_ny = 128
 
 N_electrons = e_density * (x_max - x_min) * (y_max - y_min) * C / n_segments
 
-particles = Particles.as_uniformXY(n_macroparticles, -e, 1., N_electrons, m_e, x_min, x_max, y_min, y_max)
+particles = Particles.as_uniformXYzeroZp(n_macroparticles, -e, 1., N_electrons, m_e, x_min, x_max, y_min, y_max)
 #~ plt.plot(particles.x, particles.y, '.')
 #~ plt.show()
-slicer = Slicer(64, nsigmaz=3)
-ecloud = ec.Ecloud(particles, grid_extension_x, grid_extension_y, grid_nx, grid_ny, slicer)
+beamslicer = Slicer(64, nsigmaz=3)
+ecloud = ec.Ecloud(particles, grid_extension_x, grid_extension_y, grid_nx, grid_ny, beamslicer)
 ecloud.save_ele_distributions_last_track = True 
 ecloud.save_ele_potential_and_field = True
 ecloud.save_ele_MP_size = False

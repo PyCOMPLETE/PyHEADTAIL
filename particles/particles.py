@@ -74,12 +74,7 @@ class Particles(object):
     @classmethod
     def as_uniformXY(cls, n_macroparticles, charge, gamma, intensity, mass,
 			x_min, x_max, y_min, y_max):
-        """Initialises a Gaussian bunch from the given optics functions.
-        For the argument is_accepted cf. generators.Gaussian_Z .
-        """
-        """Initialises a Gaussian bunch from the given optics functions.
-        For the argument is_accepted cf. generators.Gaussian_Z .
-        """
+
         
         n_particles_per_mp = intensity/n_macroparticles
         
@@ -90,6 +85,20 @@ class Particles(object):
 
         UniformX(x_min, x_max).generate(particles)
         UniformY(y_min, y_max).generate(particles)
+       
+        return particles
+    
+    @classmethod
+    def  as_uniformXYzeroZp(cls, n_macroparticles, charge, gamma, intensity, mass,
+            x_min, x_max, y_min, y_max):
+
+        particles = cls.as_uniformXY(n_macroparticles, charge, gamma, intensity, mass,
+            x_min, x_max, y_min, y_max)
+        
+        particles.zp = 0.*particles.x
+
+        
+        
        
         return particles
                    
