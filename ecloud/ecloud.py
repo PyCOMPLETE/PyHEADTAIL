@@ -19,7 +19,7 @@ from solvers.poissonfft import *
 # re = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_e
 rp = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_p
 
-class eletrack_forward_euler(object):
+class eletrack_forward_euler_drift(object):
     def __init__(self, charge, mass):
         self.q_over_m = charge/mass
         
@@ -49,6 +49,8 @@ class Ecloud():
         
         
         self.particles = particles
+        
+        self.eletracker = eletrack_forward_euler_drift(particles.charge, particles.mass)
         
         self.particles.x_init = self.particles.x.copy()
         self.particles.xp_init = self.particles.xp.copy()
@@ -133,10 +135,12 @@ class Ecloud():
             self.poisson.scatter_to(self.ex1, self.ey1, self.particles.x, self.particles.y, self.particles.ex, self.particles.ey)
             
             # Beam pushes e-cloud
-            self.particles.xp +=  -e/m_e*dt*self.particles.ex
-            self.particles.yp +=  -e/m_e*dt*self.particles.ey
-            self.particles.x += dt * self.particles.xp
-            self.particles.y += dt * self.particles.yp
+            self.eletracker.step(dt, self.particles.x, self.particles.y, self.particles.xp, self.particles.yp, self.particles.zp, 
+                                 self.particles.ex, self.particles.ey)
+#             self.particles.xp +=  -e/m_e*dt*self.particles.ex
+#             self.particles.yp +=  -e/m_e*dt*self.particles.ey
+#             self.particles.x += dt * self.particles.xp
+#             self.particles.y += dt * self.particles.yp
             
             
             # ecloud fields
