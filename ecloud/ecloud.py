@@ -19,6 +19,10 @@ from solvers.poissonfft import *
 re = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_e
 rp = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_p
 
+class eletrack_forward_euler(object):
+    def step(self):
+        pass
+
 
 class Ecloud():
     '''
@@ -71,6 +75,9 @@ class Ecloud():
 
     # @profile
     def track(self, beam):
+        
+        if not beam.same_size_for_all_MPs:
+            raise ValueError('ecloud module assumes same size for all beam MPs')
 
         beam_ex = np.zeros(beam.n_macroparticles)
         beam_ey = np.zeros(beam.n_macroparticles)
@@ -111,9 +118,10 @@ class Ecloud():
             self.poisson.scatter_to(self.ex1, self.ey1, self.particles.x, self.particles.y, self.particles.ex, self.particles.ey)
             
             
+            cf1 = -2 * c * re * 1 / beam.beta * beam.n_particles_per_mp
             dt = (self.slicer.z_bins[i + 1] - self.slicer.z_bins[i]) / (beam.beta * c)
             
-            cf1 = -2 * c * re * 1 / beam.beta * beam.intensity / beam.n_macroparticles
+            #cf1 = -2 * c * re * 1 / beam.beta * beam.intensity / beam.n_macroparticles
 
             #print i, (self.slicer.z_bins[i + 1] - self.slicer.z_bins[i])
             

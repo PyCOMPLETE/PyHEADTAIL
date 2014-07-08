@@ -46,6 +46,8 @@ class Particles(object):
             phase_space.generate(self)
 
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
+        
+        self.same_size_for_all_MPs = True
                    
     @classmethod
     def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
@@ -95,14 +97,11 @@ class Particles(object):
 
     @property
     def intensity(self):
-		try:
-			self.n_particles_per_mp[0] #check if iterable
-			return  np.sum(self.n_particles_per_mp)
-		except TypeError:
-			 return self.n_particles_per_mp*self.n_macroparticles
-		
-    
-    
+        if self.same_size_for_all_MPs:
+            return self.n_particles_per_mp*self.n_macroparticles
+        else:
+            return  np.sum(self.n_particles_per_mp)
+            
     @property
     def beta(self):
         return np.sqrt(1 - 1. / self.gamma ** 2)
