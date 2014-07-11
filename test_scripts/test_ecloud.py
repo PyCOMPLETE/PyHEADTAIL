@@ -109,7 +109,7 @@ x_obs = .001
 y_obs = -.001 
 
 
-i_obs = np.argmin((ecloud.x_MP_last_track[0]-x_obs)**2+(ecloud.y_MP_last_track[0]-y_obs)**2)
+i_obs = np.argmin((ecloud.x_MP_last_track[-1]-x_obs)**2+(ecloud.y_MP_last_track[-1]-y_obs)**2)
 
 
 x_arr = np.array(ecloud.x_MP_last_track) 

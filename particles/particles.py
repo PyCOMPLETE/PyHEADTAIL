@@ -108,7 +108,23 @@ class Particles(object):
 
 
         return particles
+    
+    @classmethod
+    def as_custom(cls, charge, gamma, mass, n_particles_per_mp, x, xp, y, yp, z, zp):
 
+		assert(len(x) == len(xp) == len(y) == len(yp) == len(z) == len(zp))
+
+		n_macroparticles = len(x) 
+		particles = cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp)
+
+		particles.x = x.copy()
+		particles.xp = xp.copy()
+		particles.y = y.copy()
+		particles.yp = yp.copy()
+		particles.z = z.copy()
+		particles.zp = zp.copy()
+
+		return particles
 
 
     @property

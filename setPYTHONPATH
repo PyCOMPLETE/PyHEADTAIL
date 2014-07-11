@@ -1,0 +1,3 @@
+PYTHONPATH=/home/giadarol/Desktop/PyHEADTAIL_with_kevin/PyHEADTAIL
+export PYTHONPATH
+echo $PYTHONPATH
