@@ -8,3 +8,5 @@ scripts/
 *~
 .#*
 #*
+.project
+.pydevproject

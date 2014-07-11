@@ -11,8 +11,10 @@ from __future__ import division
 import numpy as np
 
 
+from scipy.optimize import brentq
+from scipy.interpolate import interp2d
 from scipy.integrate import quad, dblquad
-from scipy.constants import c, e
+from scipy.constants import c, e, m_p
 
 
 import pylab as plt
@@ -27,38 +29,34 @@ class StationaryExponential(object):
     def function(self, phi, dp):
         return (np.exp(self.H(phi, dp) / self.H0) - 1) / (np.exp(self.H(0, 0) / self.H0) - 1)
 
-    # @property
-    # def H0(self):
-    #     return self.H0
-    # @H0.setter
-    # def H0(self, value):
-    #     self.H0 = value
-
-
-class Particles(object): pass
-
 
 class RFSystems(object):
 
-    def __init__(self, bunch):
-        alpha = 1 / 18 ** 2
+    def __init__(self, circumference, gamma, alpha, delta_p, V, h, dphi):
 
-        self.dp_absolute = 0.0
-        self.circumference = 6911
-        self.eta = alpha - 1 / bunch.gamma ** 2
+        self.circumference = circumference
+        self.gamma = gamma
+        self.eta = alpha - 1/gamma**2
+        self.delta_p = delta_p
+
+        self.V = V
+        self.h = h
+        self.dphi = dphi
+
+        self.zmax = self.circumference / (2*np.amin(h))
+        self.zmax += 0.01*self.zmax
+
         self.Qs = 0.017
 
-        self.h = 4620
-
-        self.bunch = bunch
+        self._get_bucket_boundaries()
 
     @property
     def beta(self):
-        return self.bunch.beta
+        return np.sqrt(1 - 1/self.gamma**2)
 
     @property
     def p0(self):
-        return self.bunch.p0
+        return m_p * c * np.sqrt(self.gamma**2 - 1)
 
     @property
     def R(self):
@@ -66,29 +64,122 @@ class RFSystems(object):
 
     @property
     def beta_z(self):
-        return self.eta * self.R / self.Qs
+        return np.abs(self.eta * self.R / self.Qs)
 
-    def potential(self, phi):
+    def field(self, V, h, dphi):
+        def v(z):
+            phi = h*z/self.R
+            return e*V/self.circumference * np.sin(phi + dphi)
+        return v
 
-        V1, h1 = 2e6, 4620
-        V2, h2 = -0.5 * V1, 2 * h1
-        V3, h3 = -0.25 * V1, 4 * h1
+    def Ef(self, z):
+        return self.field(self.V[0], self.h[0], self.dphi[0])(z) + self.field(self.V[1], self.h[1], self.dphi[1])(z)
+        # return sum([self.field(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
-        return (e * V1 / (2 * np.pi * self.p0 * h1) * np.cos(phi)
-              + e * V2 / (2 * np.pi * self.p0 * h2) * np.cos(h2 / h1 * phi)
-              + e * V3 / (2 * np.pi * self.p0 * h3) * np.cos(h3 / h1 * phi))
+    def E_acc(self, z):
+        return self.Ef(z) - e*self.delta_p/self.circumference
 
-    def hamiltonian(self, phi, dp):
+    def potential(self, V, h, dphi):
+        def v(z):
+            phi = h*z/self.R
+            return e*V/(2*np.pi*h) * np.cos(phi + dphi)
+        return v
 
-        return -1 / 2 * self.eta * self.beta * c * dp ** 2 + self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute
+    def Vf(self, z):
+        return self.potential(self.V[0], self.h[0], self.dphi[0])(z) + self.potential(self.V[1], self.h[1], self.dphi[1])(z)
+        # return sum([self.potential(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
-    def p_sep(self, phi):
+    def V_acc(self, z):
+        '''Sign makes sure we stay convex - just nicer'''
+        ze = self._get_zero_crossings(self.E_acc)
 
-        return np.sqrt(2 / (self.eta * self.beta * c) * (self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute))
+        if np.sign(self.eta) < 0:
+            zmax = ze[0]
+        else:
+            zmax = ze[-1]
 
-    def z(self, phi):
+        return -np.sign(self.eta) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
+        # return ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
 
-        return phi * self.R / self.h
+    def _get_phi_s(self):
+
+        V, self.accelerating_cavity = np.amax(self.V), np.argmax(self.V)
+        if self.eta<0:
+            return np.pi - np.arcsin(self.delta_p/V)
+        elif self.eta>0:
+            return np.arcsin(self.delta_p/V)
+        else:
+            return 0
+
+    def _phaselock(self):
+        phi_s = self._get_phi_s()
+        cavities = range(len(self.V))
+        del cavities[self.accelerating_cavity]
+
+        for i in cavities:
+            self.dphi[i] -= self.h[i]/self.h[self.accelerating_cavity] * self._get_phi_s()
+
+        # print self.dphi
+
+    def _get_zero_crossings(self, f):
+        zz = np.linspace(-self.zmax, self.zmax, 200)
+
+        a = np.sign(f(zz))
+        b = np.diff(a)
+        ix = np.where(b)[0]
+        s = []
+        for i in ix:
+            s.append(brentq(f, zz[i], zz[i + 1]))
+        s = np.array(s)
+
+        return s
+
+    def _get_bucket_boundaries(self):
+        '''
+        Treat all crazy situations here
+        '''
+        self.z_extrema = self._get_zero_crossings(self.E_acc)
+        self.z_zeros = self._get_zero_crossings(self.V_acc)
+        self.p_sep = np.amax(self.separatrix(self.z_extrema))
+
+        try:
+            if np.sign(self.eta) < 0:
+                self.z_sep = [self.z_extrema[0], self.z_zeros[0]]
+            else:
+                self.z_sep = [self.z_zeros[0], self.z_extrema[-1]]
+        except IndexError:
+            self.z_sep = [self.z_extrema[0], self.z_extrema[-1]]
+
+    def separatrix(self, z):
+        return np.sqrt(-np.sign(self.eta)*2/(self.eta*self.beta*c*self.p0) * self.V_acc(z))
+        # return np.sqrt(2/(self.eta*self.beta*c*self.p0) * self.V_acc(z))
+
+    def hamiltonian(self, z, dp):
+        '''Sign makes sure we stay convex - can then always use H<0'''
+        return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
+        # return -(-1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
+
+    def H0(self, z0):
+        return self.eta * self.beta * c * (z0 / self.beta_z) ** 2
+
+
+    # def potential(self, phi):
+
+    #     V1, h1 = 2e6, 4620
+    #     V2, h2 = -0. * V1, 2 * h1
+    #     V3, h3 = -0. * V1, 4 * h1
+
+    #     return (e * V1 / (2 * np.pi * self.p0 * h1) * np.cos(phi)
+    #           + e * V2 / (2 * np.pi * self.p0 * h2) * np.cos(h2 / h1 * phi)
+    #           + e * V3 / (2 * np.pi * self.p0 * h3) * np.cos(h3 / h1 * phi))
+
+    # def hamiltonian(self, phi, dp):
+
+    #     return -1 / 2 * self.eta * self.beta * c * dp ** 2 + self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute
+
+    # def p_sep(self, phi):
+
+    #     return np.sqrt(2 / (self.eta * self.beta * c) * (self.potential(phi) - self.potential(np.pi) + phi * self.dp_absolute))
 
 
 class PhaseSpace(object):
@@ -101,40 +192,32 @@ class PhaseSpace(object):
 
     def __init__(self, bunch, rfsystem):
 
-        self.rf = RFSystems(bunch)
+        self.rf = rfsystem
 
-    def _std_targeted(self, psi, sigma):
+    def _set_target_std(self, psi, sigma):
         print 'Iterative evaluation of bunch length...'
 
         counter = 0
+        z0 = sigma
         eps = 1
 
         # Test for maximum bunch length
-        z0 = self.rf.circumference
-        H0 = self.rf.eta * self.rf.beta * c * (z0 / self.rf.beta_z) ** 2
-        psi.H0 = H0
-        s = self._std_computed(psi.function, self.rf.p_sep, -np.pi, np.pi)
-        zS = self.rf.z(np.sqrt(s))
+        psi.H0 = self.rf.H0(self.rf.circumference)
+        zS = self._compute_std(psi.function, self.rf.separatrix, self.rf.z_sep[0], self.rf.z_sep[1])
         print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         if sigma > zS * 0.95:
             print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
 
-        # Initial values
-        z0 = sigma
-        H0 = self.rf.eta * self.rf.beta * c * (z0 / self.rf.beta_z) ** 2
-        psi.H0 = H0
-
         # Iteratively obtain true H0 to make target sigma
         zH = z0
+        psi.H0 = self.rf.H0(zH)
         while abs(eps)>1e-6:
-            s = self._std_computed(psi.function, self.rf.p_sep, -np.pi, np.pi)
+            zS = self._compute_std(psi.function, self.rf.separatrix, self.rf.z_sep[0], self.rf.z_sep[1])
 
-            zS = self.rf.z(np.sqrt(s))
             eps = zS - z0
             print counter, zH, zS, eps
             zH -= 0.5 * eps
-            H0 = self.rf.eta * self.rf.beta * c * (zH / self.rf.beta_z) ** 2
-            psi.H0 = H0
+            psi.H0 = self.rf.H0(zH)
 
             counter += 1
             if counter > 100:
@@ -148,13 +231,15 @@ class PhaseSpace(object):
 
         return psi.function
 
-    def _std_computed(self, psi, p_sep, xmin, xmax):
+    def _compute_std(self, psi, p_sep, xmin, xmax):
         '''
         Compute the variance of the distribution function psi from xmin to xmax
         along the contours p_sep using numerical integration methods.
         '''
-        # xx, yy = np.linspace(xmin, xmax), np.linspace(ymin, ymax)
-        # XX, YY = np.meshgrid(xx, yy)
+        # xx = np.linspace(xmin, xmax, 1000)
+        # plt.plot(xx, p_sep(xx))
+        # plt.plot(xx, -p_sep(xx))
+        # plt.show()
         # PP = psi(XX, YY)
         # VV = var(XX, YY)
 
@@ -166,25 +251,26 @@ class PhaseSpace(object):
         V, error = dblquad(lambda y, x: x ** 2 * psi(x, y), xmin, xmax,
                     lambda x: 0, lambda x: p_sep(x))
 
-        return V / Q
+        return np.sqrt(V/Q)
 
-    def generate(self, n_particles, sigma):
+    @profile
+    def slow_generate(self, n_particles, sigma):
         '''
         Generate a 2d phase space of n_particles particles randomly distributed
         according to the particle distribution function psi within the region
         [xmin, xmax, ymin, ymax].
         '''
+        psi = self._set_target_std(StationaryExponential(self.rf.hamiltonian), sigma)
+
         x = np.zeros(n_particles)
         y = np.zeros(n_particles)
 
         i, j = 0, 0
-        xmin, xmax = -np.pi, np.pi
-        ymin, ymax = -3e-3, 3e-3
+        xmin, xmax = self.rf.z_sep[0], self.rf.z_sep[1]
+        ymin, ymax = -self.rf.p_sep, self.rf.p_sep
 
         dx = xmax - xmin
         dy = ymax - ymin
-
-        psi = self._std_targeted(StationaryExponential(self.rf.hamiltonian), sigma)
 
         while j < n_particles:
             u = xmin + dx * np.random.random()
@@ -192,6 +278,57 @@ class PhaseSpace(object):
             s = np.random.random()
             i += 1
             if s < psi(u, v):
+                x[j] = u
+                y[j] = v
+                j += 1
+
+        return x, y, j / i * dx * dy, psi
+
+    @profile
+    def generate(self, n_particles, sigma):
+        '''
+        Generate a 2d phase space of n_particles particles randomly distributed
+        according to the particle distribution function psi within the region
+        [xmin, xmax, ymin, ymax].
+        '''
+        psi = self._set_target_std(StationaryExponential(self.rf.hamiltonian), sigma)
+
+        x = np.zeros(n_particles)
+        y = np.zeros(n_particles)
+
+        # Bin
+        i, j = 0, 0
+        nx, ny = 128, 128
+        xmin, xmax = self.rf.z_sep[0], self.rf.z_sep[1]
+        ymin, ymax = -self.rf.p_sep, self.rf.p_sep
+        lx = (xmax - xmin)
+        ly = (ymax - ymin)
+        dx = lx / (nx+1)
+        dy = ly / (ny+1)
+
+        xx = np.linspace(xmin, xmax, nx + 1)
+        yy = np.linspace(ymin, ymax, ny + 1)
+        XX, YY = np.meshgrid(xx, yy)
+        HH = psi(XX, YY)
+        psi_interp = interp2d(xx, yy, HH)
+        # HH = np.zeros((nx, ny))
+        # for i in range(nx):
+        #     for j in range(ny):
+        #         x0, x1 = xx[i], xx[i+1]
+        #         y0, y1 = yy[j], yy[j+1]
+        #         HH[i, j] = np.max([psi(x0, y0),
+        #                            psi(x1, y0),
+        #                            psi(x0, y1),
+        #                            psi(x1, y1)])
+
+        while j < n_particles:
+            u = xmin + lx * np.random.random()
+            v = ymin + ly * np.random.random()
+
+            s = np.random.random()
+
+            i += 1
+            if s < psi_interp(u, v):
                 x[j] = u
                 y[j] = v
                 j += 1

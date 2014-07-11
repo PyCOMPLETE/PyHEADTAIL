@@ -15,7 +15,7 @@ import cobra_functions.stats as cp
 
 class Slices(object):
     '''
-    Slices class that controls longitudinal discretization of a beam.
+    Slices class that controlls longitudinal discretization of a beam.
     '''
 
     def __init__(self, n_slices, nsigmaz=None, mode='const_space', z_cuts=None):
@@ -77,6 +77,7 @@ class Slices(object):
             self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1) # more robust than arange, to reach z_cut_head exactly
             self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
+<<<<<<< HEAD
         n_macroparticles_alive = bunch.n_macroparticles - bunch.n_macroparticles_lost
         self.n_cut_tail = +np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_tail)
         self.n_cut_head = -np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_head) + n_macroparticles_alive
@@ -118,7 +119,7 @@ class Slices(object):
         q0 = n_macroparticles_alive - self.n_cut_tail - self.n_cut_head
         ix = sample(range(self.n_slices), q0 % self.n_slices)
 
-        self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices, dtype=int)
+        self.n_macroparticles = (q0 // self.n_slices)*np.ones(self.n_slices)
         self.n_macroparticles[ix] += 1
 
         # 2. z-bins
@@ -190,3 +191,5 @@ class Slices(object):
             self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma * bunch.beta * 1e6
             self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma * bunch.beta * 1e6
             self.epsn_z[i] = 4 * np.pi * self.sigma_z[i] * self.sigma_dp[i] * bunch.p0 / bunch.charge
+=======
+>>>>>>> 695f2c9aa88e0b3e8ea01bfe9040ed107b6421f3

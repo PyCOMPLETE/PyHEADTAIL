@@ -9,7 +9,11 @@ from __future__ import division
 
 
 import numpy as np
+<<<<<<< HEAD
 from numpy.random import RandomState
+=======
+
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
 
 from abc import ABCMeta, abstractmethod
 
@@ -35,6 +39,7 @@ class PhaseSpace(object):
 class GaussianX(PhaseSpace):
     """Horizontal Gaussian particle phase space distribution."""
 
+<<<<<<< HEAD
     def __init__(self, n_macroparticles, sigma_x, sigma_xp, generator_seed=None):
         """Initiates the horizontal beam coordinates
         to the given Gaussian shape.
@@ -48,21 +53,42 @@ class GaussianX(PhaseSpace):
 
     @classmethod
     def from_optics(cls, n_macroparticles, alpha_x, beta_x, epsn_x, betagamma, generator_seed=None):
+=======
+    def __init__(self, sigma_x, sigma_xp):
+        """Initiates the horizontal beam coordinates
+        to the given Gaussian shape.
+        """
+        
+        self.sigma_x  = sigma_x
+        self.sigma_xp = sigma_xp
+
+    @classmethod
+    def from_optics(cls,  alpha_x, beta_x, epsn_x, betagamma):
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
         """Initialise GaussianX from the given optics functions.
         beta_x is given in meters and epsn_x in micrometers.
         """
         sigma_x  = np.sqrt(beta_x * epsn_x * 1e-6 / betagamma)
         sigma_xp = sigma_x / beta_x
+<<<<<<< HEAD
         return cls(n_macroparticles, sigma_x, sigma_xp, generator_seed)
 
     def generate(self, beam):
         beam.x = self.sigma_x * self.random_state.randn(self.n_macroparticles)
         beam.xp = self.sigma_xp * self.random_state.randn(self.n_macroparticles)
+=======
+        return cls( sigma_x, sigma_xp)
+
+    def generate(self, beam):
+        beam.x = self.sigma_x * np.random.randn(beam.n_macroparticles)
+        beam.xp = self.sigma_xp * np.random.randn(beam.n_macroparticles)
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
 
 
 class GaussianY(PhaseSpace):
     """Vertical Gaussian particle phase space distribution."""
 
+<<<<<<< HEAD
     def __init__(self, n_macroparticles, sigma_y, sigma_yp, generator_seed=None):
         """Initiates the vertical beam coordinates
         to the given Gaussian shape.
@@ -76,53 +102,98 @@ class GaussianY(PhaseSpace):
         
     @classmethod
     def from_optics(cls, n_macroparticles, alpha_y, beta_y, epsn_y, betagamma, generator_seed=None):
+=======
+    def __init__(self, sigma_y, sigma_yp):
+        """Initiates the vertical beam coordinates
+        to the given Gaussian shape.
+        """
+        
+        self.sigma_y  = sigma_y
+        self.sigma_yp = sigma_yp
+
+    @classmethod
+    def from_optics(cls,  alpha_y, beta_y, epsn_y, betagamma):
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
         """Initialise GaussianY from the given optics functions.
         beta_y is given in meters and epsn_y in micrometers.
         """
         sigma_y  = np.sqrt(beta_y * epsn_y * 1e-6 / betagamma)
         sigma_yp = sigma_y / beta_y
+<<<<<<< HEAD
         return cls(n_macroparticles, sigma_y, sigma_yp, generator_seed)
 
     def generate(self, beam):
         beam.y = self.sigma_y * self.random_state.randn(self.n_macroparticles)
         beam.yp = self.sigma_yp * self.random_state.randn(self.n_macroparticles)
+=======
+        return cls( sigma_y, sigma_yp)
+
+    def generate(self, beam):
+        beam.y = self.sigma_y * np.random.randn(beam.n_macroparticles)
+        beam.yp = self.sigma_yp * np.random.randn(beam.n_macroparticles)
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
 
 
 class GaussianZ(PhaseSpace):
     """Longitudinal Gaussian particle phase space distribution."""
 
+<<<<<<< HEAD
     def __init__(self, n_macroparticles, sigma_z, sigma_dp, is_accepted = None, generator_seed=None):
+=======
+    def __init__(self, sigma_z, sigma_dp, is_accepted = None):
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
         """Initiates the longitudinal beam coordinates to a given
         Gaussian shape. If the argument is_accepted is set to
         the is_in_separatrix(z, dp, beam) method of a RFSystems
         object (or similar), macroparticles will be initialised
         until is_accepted returns True.
         """
+<<<<<<< HEAD
         self.n_macroparticles = n_macroparticles
+=======
+        
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
         self.sigma_z = sigma_z
         self.sigma_dp = sigma_dp
         self.is_accepted = is_accepted
 
+<<<<<<< HEAD
         self.random_state = RandomState()
         self.random_state.seed(generator_seed)
         
     @classmethod
     def from_optics(cls, n_macroparticles, beta_z, epsn_z, p0, is_accepted = None,
                     generator_seed=None):
+=======
+    @classmethod
+    def from_optics(cls,  beta_z, epsn_z, p0,
+            is_accepted = None):
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
         """Initialise GaussianZ from the given optics functions.
         For the argument is_accepted see __init__.
         """
-        sigma_z = np.sqrt(beta_z * epsn_z * p0 / (4 * np.pi) * e)
+        sigma_z = np.sqrt(beta_z*epsn_z/(4*np.pi) * e/p0)
+        # print sigma_z
+        # exit(-1)
         sigma_dp = sigma_z / beta_z
+<<<<<<< HEAD
         return cls(n_macroparticles, sigma_z, sigma_dp, is_accepted, generator_seed)
 
     def generate(self, beam):
         beam.z = self.sigma_z * self.random_state.randn(self.n_macroparticles)
         beam.dp = self.sigma_dp * self.random_state.randn(self.n_macroparticles)
+=======
+        return cls( sigma_z, sigma_dp, is_accepted)
+
+    def generate(self, beam):
+        beam.z = self.sigma_z * np.random.randn(beam.n_macroparticles)
+        beam.dp = self.sigma_dp * np.random.randn(beam.n_macroparticles)
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6
         if self.is_accepted:
             self._redistribute(beam)
 
     def _redistribute(self, beam):
+<<<<<<< HEAD
         n = self.n_macroparticles
         for i in xrange(n):
             while not self.is_accepted(beam.z[i], beam.dp[i], beam):
@@ -305,3 +376,47 @@ def bunchlength(bunch, cavity, sigma_dz):
             sys.exit(-1)
 
     return z1
+=======
+        n = beam.n_macroparticles
+        for i in xrange(n):
+            while not self.is_accepted(beam.z[i], beam.dp[i], beam):
+                beam.z[i]  = self.sigma_z * np.random.randn(n)
+                beam.dp[i] = self.sigma_dp * np.random.randn(n)
+                
+                
+               
+                
+class UniformX(PhaseSpace):
+    """Horizontal Uniform particle phase space distribution."""
+
+    def __init__(self, x_min, x_max):
+        """Initiates the horizontal beam coordinates
+        to the given Uniform shape.
+        """
+        
+        self.x_max = x_max
+        self.x_min = x_min
+
+    def generate(self, particles):
+        particles.x = (self.x_max-self.x_min)*np.random.rand(particles.n_macroparticles)+self.x_min
+        particles.xp = 0.*particles.x
+        
+        
+class UniformY(PhaseSpace):
+    """Horizontal Uniform particle phase space distribution."""
+
+    def __init__(self, y_min, y_max):
+        """Initiates the horizontal beam coordinates
+        to the given Uniform shape.
+        """
+        
+        self.y_max = y_max
+        self.y_min = y_min
+
+    def generate(self, particles):
+        particles.y = (self.y_max-self.y_min)*np.random.rand(particles.n_macroparticles)+self.y_min
+        particles.yp = 0.*particles.y
+        
+
+
+>>>>>>> afd74e7781912d87b782d360a4109173104812e6

@@ -213,6 +213,7 @@ class LongitudinalOneTurnMap(LongitudinalMap):
         of the beam over a full turn / circumference."""
         pass
 
+
 class RFSystems(LongitudinalOneTurnMap):
     """
         With one RFSystems object in the ring layout (with all Kick
@@ -340,18 +341,21 @@ class RFSystems(LongitudinalOneTurnMap):
         strictly inside the separatrix."""
         return hamiltonian(z, dp, beam) < 0
 
+
 class LinearMap(LongitudinalOneTurnMap):
     '''
     Linear Map represented by a Courant-Snyder transportation matrix.
     self.alpha is the linear momentum compaction factor.
     '''
 
-    def __init__(self, circumference, alpha, Qs):
+    def __init__(self, circumference, alpha, Qs, *slices):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         self.circumference = circumference
         self.alpha = alpha
         self.Qs = Qs
+
+        self.slices = slices
 
     def track(self, beam):
 
@@ -369,3 +373,6 @@ class LinearMap(LongitudinalOneTurnMap):
 
         beam.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
         beam.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
+
+        for slices in self.slices:
+            slices.update_slices(beam)
