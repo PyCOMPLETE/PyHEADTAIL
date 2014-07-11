@@ -76,9 +76,7 @@ class TransverseTracker(object):
     '''
     def __init__(self, s, alpha_x, beta_x, D_x, Q_x, Qp_x, app_x, app_xy,
                           alpha_y, beta_y, D_y, Q_y, Qp_y, app_y, app_yx):
-        '''
-        Most minimalistic constructor. Pure python name binding.
-        '''
+
         assert((len(s)-1) == len(alpha_x) == len(beta_x) == len(D_x)
                           == len(alpha_y) == len(beta_y) == len(D_y))
 
