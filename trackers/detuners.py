@@ -14,7 +14,7 @@ cos = np.cos
 
 class Detuner(object):
     """
-    
+
     """
     __metaclass__ = ABCMeta
 
@@ -44,8 +44,8 @@ class SextupoleSegment(Detuner):
         dphi_y = self.dQp_y * beam.dp
 
         return dphi_x, dphi_y
-    
-            
+
+
 class OctupoleSegment(Detuner):
 
     def __init__(self, beta_x, beta_y, dapp_x, dapp_y, dapp_xy):
@@ -57,7 +57,7 @@ class OctupoleSegment(Detuner):
         self.dapp_y  = dapp_y
         self.dapp_xy = dapp_xy
 
-        
+
     def detune(self, beam):
 
         Jx = (beam.x ** 2 + (self.beta_x * beam.xp) ** 2) / (2. * self.beta_x)
@@ -83,18 +83,18 @@ class RFQSegmentGeneral(Detuner):
         self.phi_0_RF = phi_0_RF
         self.dapp_xz  = dapp_xz
         self.dapp_yz  = dapp_yz
-        
+
 
     def detune(self, beam):
         """
         Warning: relativistic beta is assumed to be exactly the same for all particles.
         """
         cos_dependence = cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF) / ((1 + beam.dp) * beam.p0)
-        dphi_x = self.dapp_xz * cos_dependence 
+        dphi_x = self.dapp_xz * cos_dependence
         dphi_y = self.dapp_yz * cos_dependence
 
         return dphi_x, dphi_y
-        
+
 
 class RFQSegmentOnCrest(Detuner):
     """
@@ -105,14 +105,14 @@ class RFQSegmentOnCrest(Detuner):
         self.omega_RF = omega_RF
         self.dapp_xz  = dapp_xz
         self.dapp_yz  = dapp_yz
-        
+
 
     def detune(self, beam):
         """
         Warning: relativistic beta is assumed to be exactly the same for all particles.
         """
         approximate_cos_dependence = (1. - 0.5 * (beam.z * self.omega_RF / (beam.beta * c))**2) /  ((1 + beam.dp) * beam.p0)
-        dphi_x = self.dapp_xz * approximate_cos_dependence 
+        dphi_x = self.dapp_xz * approximate_cos_dependence
         dphi_y = self.dapp_yz * approximate_cos_dependence
 
         return dphi_x, dphi_y
@@ -127,19 +127,19 @@ class RFQSegmentOffCrest(Detuner):
         self.omega_RF = omega_RF
         self.dapp_xz  = dapp_xz
         self.dapp_yz  = dapp_yz
-        
+
 
     def detune(self, beam):
         """
         Warning: relativistic beta is assumed to be exactly the same for all particles.
         """
         approximate_sin_dependence = (beam.z * self.omega_RF / (beam.beta * c)) /  ((1 + beam.dp) * beam.p0)
-        dphi_x = self.dapp_xz * approximate_sin_dependence 
+        dphi_x = self.dapp_xz * approximate_sin_dependence
         dphi_y = self.dapp_yz * approximate_sin_dependence
-        
+
         return dphi_x, dphi_y
 
-        
+
 """
 Collection classes for each class of detuner. These are the classes instantiated explicitly by the user.
 They use 1-turn integrated values as input and instantiate detuners for each segment in 's' with a
@@ -159,8 +159,8 @@ class Octupole(object):
         self.dapp_xy = app_xy * scale_to_segment          # For octupole magnets, app_xy == app_yx.
 
         self._generate_segment_detuners()
-        
-        
+
+
     @classmethod
     def from_currents_LHC(cls, s, beta_x, beta_y, i_focusing, i_defocusing):
         """
@@ -172,7 +172,7 @@ class Octupole(object):
         """
         i_max = 550.  # [A]
         E_max = 7000. # [GeV]
-        
+
         app_x  = E_max * (267065. * i_focusing / i_max - 7856. * i_defocusing / i_max)
         app_y  = E_max * (9789. * i_focusing / i_max - 277203. * i_defocusing / i_max)
         app_xy = E_max * (-102261. * i_focusing / i_max + 93331. * i_defocusing / i_max)
@@ -181,10 +181,10 @@ class Octupole(object):
         app_x  *= convert_to_SI_units
         app_y  *= convert_to_SI_units
         app_xy *= convert_to_SI_units
-    
+
         return cls(s, beta_x, beta_y, app_x, app_y, app_xy)
 
-                
+
     def _generate_segment_detuners(self):
 
         segment_detuners = []
@@ -197,17 +197,17 @@ class Octupole(object):
 
         self.segment_detuners = segment_detuners
 
-        
+
     def __len__(self):
 
         return len(self.segment_detuners)
 
-    
+
     def __getitem__(self, key):
 
         return self.segment_detuners[key]
 
-    
+
 class Sextupole(object):
 
     def __init__(self, s, Qp_x, Qp_y):
@@ -219,8 +219,8 @@ class Sextupole(object):
         self.dQp_y = Qp_y * scale_to_segment
 
         self._generate_segment_detuners()
-        
-        
+
+
     def _generate_segment_detuners(self):
 
         segment_detuners = []
@@ -232,19 +232,19 @@ class Sextupole(object):
 
         self.segment_detuners = segment_detuners
 
-        
+
     def __len__(self):
 
         return len(self.segment_detuners)
 
-    
+
     def __getitem__(self, key):
 
         return self.segment_detuners[key]
 
 
 class RFQ(object):
-    
+
     def __init__(self, s, beta_x, beta_y, voltage_RF, omega_RF, **kwargs):
 
         self.s = s
@@ -259,13 +259,13 @@ class RFQ(object):
         app_yz =  beta_y * voltage_RF * e / (omega_RF * 2. * np.pi)
         self.dapp_xz = scale_to_segment * app_xz
         self.dapp_yz = scale_to_segment * app_yz
-            
+
 
     @classmethod
     def as_general(cls, s, beta_x, beta_y, voltage_RF, omega_RF, phi_0_RF):
 
         rfq_collection = cls(s, beta_x, beta_y, voltage_RF, omega_RF, phi_0_RF=phi_0_RF)
-            
+
         segment_detuners = []
         n_segments = len(s) - 1
         for seg in range(n_segments):
@@ -273,7 +273,7 @@ class RFQ(object):
             segment_detuners.append(segment_detuner)
 
         rfq_collection.segment_detuners = segment_detuners
-                        
+
         return rfq_collection
 
 
@@ -289,7 +289,7 @@ class RFQ(object):
             segment_detuners.append(segment_detuner)
 
         rfq_collection.segment_detuners = segment_detuners
-                        
+
         return rfq_collection
 
 
@@ -305,7 +305,7 @@ class RFQ(object):
             segment_detuners.append(segment_detuner)
 
         rfq_collection.segment_detuners = segment_detuners
-                        
+
         return rfq_collection
 
 
@@ -317,13 +317,12 @@ class RFQ(object):
     ##         segment_detuners.append(segment_detuner)
 
     ##     self.segment_detuners = segment_detuners
-        
+
     def __len__(self):
 
         return len(self.segment_detuners)
 
-    
+
     def __getitem__(self, key):
 
         return self.segment_detuners[key]
-

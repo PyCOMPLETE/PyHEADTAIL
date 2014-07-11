@@ -56,7 +56,7 @@ class TransverseSegmentMap(object):
 
         self.I = I
         self.J = J
-        
+
 
     def track(self, beam):
 
@@ -71,7 +71,7 @@ class TransverseSegmentMap(object):
 
         dphi_x *= 2. * np.pi
         dphi_y *= 2. * np.pi
-                    
+
         cos_dphi_x = cos(dphi_x)
         cos_dphi_y = cos(dphi_y)
         sin_dphi_x = sin(dphi_x)
@@ -97,8 +97,8 @@ class TransverseMap(object):
     user. It generates a TransverseSegmentMap for each segment in 's'.
     """
     def __init__(self, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, *detuner_collections):
-    
-        self.s       = s        
+
+        self.s       = s
         self.alpha_x = alpha_x
         self.beta_x  = beta_x
         self.D_x     = D_x
@@ -114,11 +114,11 @@ class TransverseMap(object):
 
         self._generate_segment_maps()
 
-        
+
     def _generate_segment_maps(self):
 
         segment_maps = []
-            
+
         n_segments = len(self.s) - 1
         for seg in range(n_segments):
             s0 = seg % n_segments
@@ -131,15 +131,15 @@ class TransverseMap(object):
                                                           self.dQ_x[seg], self.dQ_y[seg],
                                                           *[i[seg] for i in self.detuner_collections])
             segment_maps.append(transverse_segment_map)
-                
+
         self.segment_maps = segment_maps
 
-        
+
     def __len__(self):
 
         return len(self.segment_maps)
 
-    
+
     def __getitem__(self, key):
 
         return self.segment_maps[key]
