@@ -72,7 +72,7 @@ class Particles(object):
         gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
                                           generator_seed=random_state.randint(sys.maxint))
         gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
-                              generator_seed=random_state.randint(sys.maxint))
+                                          generator_seed=random_state.randint(sys.maxint))
 
         return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
                    gaussianx, gaussiany, gaussianz)
