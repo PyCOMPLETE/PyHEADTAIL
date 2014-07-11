@@ -14,22 +14,22 @@ cos = np.cos
 
 class Detuner(object):
     """
-
+    ABC for detuners.
     """
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def detune(self, beam):
         """
-        Calculates the detune caused by the corresponding detuner element.
+        Calculates the detune caused by the corresponding detuner.
         """
         pass
 
 
 """
-Some commonly used detuner elements. To be extended.
+Some commonly used detuners. To be extended.
 """
-class SextupoleSegment(Detuner):
+class ChromaticitySegment(Detuner):
 
     def __init__(self, dQp_x, dQp_y):
 
@@ -46,7 +46,7 @@ class SextupoleSegment(Detuner):
         return dphi_x, dphi_y
 
 
-class OctupoleSegment(Detuner):
+class AmplitudeDetuningSegment(Detuner):
 
     def __init__(self, beta_x, beta_y, dapp_x, dapp_y, dapp_xy):
 
@@ -75,7 +75,7 @@ Collection classes for each class of detuner. These are the classes instantiated
 They use 1-turn integrated values as input and instantiate detuners for each segment in 's' with a
 detuning proportional to the segment length.
 """
-class Octupole(object):
+class AmplitudeDetuning(object):
 
     def __init__(self, s, beta_x, beta_y, app_x, app_y, app_xy):
 
@@ -92,7 +92,7 @@ class Octupole(object):
 
 
     @classmethod
-    def from_currents_LHC(cls, s, beta_x, beta_y, i_focusing, i_defocusing):
+    def from_octupole_currents_LHC(cls, s, beta_x, beta_y, i_focusing, i_defocusing):
         """
         Calculate app_x, app_y, app_xy == app_yx on the basis of formulae (3.6) in
         'THE LHC TRANSVERSE COUPLED-BUNCH INSTABILITY' (EPFL PhD Thesis), N. Mounet, 2012
@@ -121,8 +121,8 @@ class Octupole(object):
 
         n_segments = len(self.s) - 1
         for seg in range(n_segments):
-            segment_detuner = OctupoleSegment(self.beta_x[seg], self.beta_y[seg],
-                                              self.dapp_x[seg], self.dapp_y[seg], self.dapp_xy[seg])
+            segment_detuner = AmplitudeDetuningSegment(self.beta_x[seg], self.beta_y[seg],
+                                                       self.dapp_x[seg], self.dapp_y[seg], self.dapp_xy[seg])
             segment_detuners.append(segment_detuner)
 
         self.segment_detuners = segment_detuners
@@ -138,7 +138,7 @@ class Octupole(object):
         return self.segment_detuners[key]
 
 
-class Sextupole(object):
+class Chromaticity(object):
 
     def __init__(self, s, Qp_x, Qp_y):
 
@@ -157,7 +157,7 @@ class Sextupole(object):
 
         n_segments = len(self.s) - 1
         for seg in range(n_segments):
-            segment_detuner = SextupoleSegment(self.dQp_x[seg], self.dQp_y[seg])
+            segment_detuner = ChromaticitySegment(self.dQp_x[seg], self.dQp_y[seg])
             segment_detuners.append(segment_detuner)
 
         self.segment_detuners = segment_detuners
