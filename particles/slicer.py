@@ -157,7 +157,11 @@ class Slicer(object):
             self._slice_constant_charge(bunch)
         elif self.mode == 'const_space':
             self._slice_constant_space(bunch)
-
+        
+        if  bunch.same_size_for_all_MPs: 
+            self.n_particles = self.n_macroparticles*bunch.n_particles_per_mp
+        else:
+            self.n_particles = 'Not yet implemented for non uniform set'
 
     # @profile
     def compute_statistics(self, bunch):
@@ -193,3 +197,5 @@ class Slicer(object):
             self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma * bunch.beta * 1e6
             self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma * bunch.beta * 1e6
             self.epsn_z[i] = 4 * np.pi * self.sigma_z[i] * self.sigma_dp[i] * bunch.p0 / bunch.charge
+            
+            

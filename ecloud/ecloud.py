@@ -122,6 +122,7 @@ class Ecloud():
             
             dz = (self.slicer.z_bins[i + 1] - self.slicer.z_bins[i])
             dt = dz / (beam.beta * c)
+            #print  'z_bins[i]', self.slicer.z_bins[i], 'dz', dz, 'dt', dt 
             
             # beam fields:
             self.poisson.gather_from(beam.x[ix], beam.y[ix], self.rho1)
