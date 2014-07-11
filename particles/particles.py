@@ -8,10 +8,10 @@ Created on 06.01.2014
 import numpy as np
 
 
+import sys
 from cobra_functions import stats
-from numpy.random import RandomState
 from scipy.constants import c, e, m_e, m_p
-from generators import GaussianX, GaussianY, GaussianZ
+from generators import *
 
 
 # re = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_e
@@ -30,20 +30,25 @@ class Particles(object):
     self.delta_p
     """
 
-    def __init__(self, charge, gamma, intensity, mass, *phase_space_generators):
+    def __init__(self, n_macroparticles, charge, gamma, mass, n_particles_per_mp, *phase_space_generators):
         """Initialises the bunch and distributes its particles via the
         given PhaseSpace generator instances (minimum 1) for both the
         transverse and longitudinal plane.
         """
+
         self.charge = charge
         self.gamma = gamma
-        self.intensity = intensity
         self.mass = mass
+        self.n_macroparticles = n_macroparticles
+
+        self.n_particles_per_mp = n_particles_per_mp
 
         for phase_space in phase_space_generators:
             phase_space.generate(self)
 
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
+
+        self.same_size_for_all_MPs = True
 
     @classmethod
     def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
@@ -52,26 +57,66 @@ class Particles(object):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
+
+        n_particles_per_mp = intensity/n_macroparticles
+
         betagamma = np.sqrt(gamma ** 2 - 1)
         p0 = betagamma * mass * c
 
         # Generate seeds for GaussianX,Y and Z.
         random_state = RandomState()
         random_state.seed(generator_seed)
-        
-        gaussianx = GaussianX.from_optics(n_macroparticles, alpha_x, beta_x, epsn_x, betagamma,
+
+        gaussianx = GaussianX.from_optics(alpha_x, beta_x, epsn_x, betagamma,
                                           generator_seed=random_state.randint(sys.maxint))
-        gaussiany = GaussianY.from_optics(n_macroparticles, alpha_y, beta_y, epsn_y, betagamma,
+        gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
                                           generator_seed=random_state.randint(sys.maxint))
-        gaussianz = GaussianZ(n_macroparticles, beta_z, epsn_z, p0, is_accepted,
+        gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
                               generator_seed=random_state.randint(sys.maxint))
 
-        return cls(charge, gamma, intensity, mass,
+        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
                    gaussianx, gaussiany, gaussianz)
 
+
+    @classmethod
+    def as_uniformXY(cls, n_macroparticles, charge, gamma, intensity, mass,
+            x_min, x_max, y_min, y_max):
+
+
+        n_particles_per_mp = intensity/n_macroparticles
+
+        betagamma = np.sqrt(gamma ** 2 - 1)
+        p0 = betagamma * mass * c
+
+        particles = cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp)
+
+        UniformX(x_min, x_max).generate(particles)
+        UniformY(y_min, y_max).generate(particles)
+
+        return particles
+
+    @classmethod
+    def  as_uniformXYzeroZp(cls, n_macroparticles, charge, gamma, intensity, mass,
+            x_min, x_max, y_min, y_max):
+
+        particles = cls.as_uniformXY(n_macroparticles, charge, gamma, intensity, mass,
+            x_min, x_max, y_min, y_max)
+
+        particles.zp = 0.*particles.x
+
+
+
+
+        return particles
+
+
+
     @property
-    def n_macroparticles(self):
-        return len(self.z)
+    def intensity(self):
+        if self.same_size_for_all_MPs:
+            return self.n_particles_per_mp*self.n_macroparticles
+        else:
+            return  np.sum(self.n_particles_per_mp)
 
     @property
     def beta(self):

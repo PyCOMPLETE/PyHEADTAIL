@@ -1,0 +1,38 @@
+
+git clone https://github.com/like2000/PyHEADTAIL
+
+sudo pip install cythongsl
+
+
+./cythonize
+
+
+PYTHONPATH=/home/giadarol/Desktop/PyHEADTAIL_with_kevin/PyHEADTAIL
+export PYTHONPATH
+echo $PYTHONPATH
+
+
+
+sudo apt-get install python-h5py
+sudo apt-get install python-fftw
+
+
+sudo apt-get install libfftw3-dev
+sudo pip install pyfftw
+
+
+git branch giadarol
+
+git branch (just to see where I am)
+
+git checkout giadarol (to change)
+
+git diff
+
+git commit -am "added files"
+
+git status
+
+git push
+
+
