@@ -5,17 +5,12 @@ Created on 06.01.2014
 '''
 
 
-import numpy as np
-
-
 import sys
-from cobra_functions import stats
+import numpy as np
 from scipy.constants import c, e, m_e, m_p
+
+from cobra_functions import stats
 from generators import *
-
-
-# re = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_e
-# rp = 1 / (4 * pi * epsilon_0) * e ** 2 / c ** 2 / m_p
 
 
 class Particles(object):
@@ -30,25 +25,24 @@ class Particles(object):
     self.delta_p
     """
 
-    def __init__(self, n_macroparticles, charge, gamma, mass, n_particles_per_mp, *phase_space_generators):
-        """Initialises the bunch and distributes its particles via the
-        given PhaseSpace generator instances (minimum 1) for both the
-        transverse and longitudinal plane.
+    def __init__(self, n_macroparticles, charge, gamma, mass, n_particles_per_mp, phase_space_generators):
+        """
+        Initialises the bunch and distributes its particles via the
+        given PhaseSpace generator instances for all planes.
         """
 
         self.charge = charge
         self.gamma = gamma
         self.mass = mass
-        self.n_macroparticles = n_macroparticles
 
+        self.n_macroparticles = n_macroparticles
         self.n_particles_per_mp = n_particles_per_mp
 
         for phase_space in phase_space_generators:
             phase_space.generate(self)
 
-        self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
-
         self.same_size_for_all_MPs = True
+        self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
     @classmethod
     def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
@@ -75,41 +69,57 @@ class Particles(object):
                                           generator_seed=random_state.randint(sys.maxint))
 
         return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
-                   gaussianx, gaussiany, gaussianz)
-
+                   [gaussianx, gaussiany, gaussianz])
 
     @classmethod
-    def as_uniformXY(cls, n_macroparticles, charge, gamma, intensity, mass,
-            x_min, x_max, y_min, y_max):
-
+    def as_gaussian_in_bucket(cls, n_macroparticles, charge, gamma, intensity, mass,
+                              alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
+                              sigma_z, rfsystem, generator_seed=None):
 
         n_particles_per_mp = intensity/n_macroparticles
 
         betagamma = np.sqrt(gamma ** 2 - 1)
         p0 = betagamma * mass * c
 
-        particles = cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp)
+        # Generate seeds for GaussianX,Y and Z.
+        random_state = RandomState()
+        random_state.seed(generator_seed)
 
-        UniformX(x_min, x_max).generate(particles)
-        UniformY(y_min, y_max).generate(particles)
+        gaussianx = GaussianX.from_optics(alpha_x, beta_x, epsn_x, betagamma,
+                                          generator_seed=random_state.randint(sys.maxint))
+        gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
+                                          generator_seed=random_state.randint(sys.maxint))
+        rfbucket = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
+                                          generator_seed=random_state.randint(sys.maxint))
 
-        return particles
+        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
+                   [gaussianx, gaussiany, rfbucket])
 
     @classmethod
-    def  as_uniformXYzeroZp(cls, n_macroparticles, charge, gamma, intensity, mass,
-            x_min, x_max, y_min, y_max):
+    def as_uniformXY(cls, n_macroparticles, charge, gamma, intensity, mass,
+                     xmin, xmax, ymin, ymax, zmin=0, zmax=0):
+
+        n_particles_per_mp = intensity/n_macroparticles
+
+        betagamma = np.sqrt(gamma ** 2 - 1)
+        p0 = betagamma * mass * c
+
+        uniformx = UniformX(xmin, xmax)
+        uniformy = UniformY(xmin, xmax)
+        uniformz = UniformZ(zmin, zmax)
+
+        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
+                   [uniformx, uniformy, uniformz])
+
+    @classmethod
+    def as_uniformXYzeroZp(cls, n_macroparticles, charge, gamma, intensity, mass,
+                            x_min, x_max, y_min, y_max):
 
         particles = cls.as_uniformXY(n_macroparticles, charge, gamma, intensity, mass,
-            x_min, x_max, y_min, y_max)
-
+                                     x_min, x_max, y_min, y_max)
         particles.zp = 0.*particles.x
 
-
-
-
         return particles
-
-
 
     @property
     def intensity(self):
