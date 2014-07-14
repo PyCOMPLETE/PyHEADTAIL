@@ -17,7 +17,7 @@ class TransverseSegmentMap(object):
     """
     def __init__(self, alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
                        alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s1,
-                       dQ_x, dQ_y, *detuner_elements):
+                       dQ_x, dQ_y, detuner_elements):
 
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
@@ -106,9 +106,8 @@ class TransverseMap(object):
         self.beta_y  = beta_y
         self.D_y     = D_y
 
-        scale_to_segment = np.diff(s) / s[-1]
-        self.dQ_x = Q_x * scale_to_segment
-        self.dQ_y = Q_y * scale_to_segment
+        self.Q_x = Q_x
+        self.Q_y = Q_y
 
         self.detuner_collections = detuner_collections
 
@@ -119,17 +118,26 @@ class TransverseMap(object):
 
         segment_maps = []
 
-        n_segments = len(self.s) - 1
+        relative_segment_length = np.diff(self.s) / self.s[-1]
+        dQ_x = self.Q_x * relative_segment_length
+        dQ_y = self.Q_y * relative_segment_length
+        
+        n_segments     = len(self.s) - 1
         for seg in range(n_segments):
             s0 = seg % n_segments
             s1 = (seg + 1) % n_segments
 
+            for detuner in self.detuner_collections:
+                detuner.generate_segment_detuner(relative_segment_length[s0],
+                                                 (self.beta_x[s0] + self.beta_x[s1]) / 2.,
+                                                 (self.beta_y[s0] + self.beta_y[s1]) / 2.)
+                                
             transverse_segment_map = TransverseSegmentMap(self.alpha_x[s0], self.beta_x[s0], self.D_x[s0],
                                                           self.alpha_x[s1], self.beta_x[s1], self.D_x[s1],
                                                           self.alpha_y[s0], self.beta_y[s0], self.D_y[s0],
                                                           self.alpha_y[s1], self.beta_y[s1], self.D_y[s1],
-                                                          self.dQ_x[seg], self.dQ_y[seg],
-                                                          *[i[seg] for i in self.detuner_collections])
+                                                          dQ_x[seg], dQ_y[seg],
+                                                          [detuner[seg] for detuner in self.detuner_collections])
             segment_maps.append(transverse_segment_map)
 
         self.segment_maps = segment_maps
@@ -139,7 +147,12 @@ class TransverseMap(object):
 
         return len(self.segment_maps)
 
-
+    
     def __getitem__(self, key):
 
         return self.segment_maps[key]
+
+    
+    def __add__(self, other):
+        
+        return [self.segment_maps[i] for i in range(len(self.s) - 1)] + other
