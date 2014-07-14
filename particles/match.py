@@ -25,9 +25,10 @@ class StationaryExponential(object):
     def __init__(self, H):
         self.H = H
         self.H0 = 1
+        self.Hmax = H(0, 0)
 
-    def function(self, phi, dp):
-        return (np.exp(self.H(phi, dp) / self.H0) - 1) / (np.exp(self.H(0, 0) / self.H0) - 1)
+    def function(self, z, dp):
+        return (np.exp(self.H(z, dp)/self.H0) - 1) / (np.exp(self.Hmax/self.H0) - 1)
 
 
 class RFSystems(object):
@@ -160,7 +161,7 @@ class RFSystems(object):
         # return -(-1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
 
     def H0(self, z0):
-        return self.eta * self.beta * c * (z0 / self.beta_z) ** 2
+        return np.sign(self.eta) * self.eta * self.beta * c * (z0 / self.beta_z) ** 2
 
 
     # def potential(self, phi):
@@ -206,6 +207,7 @@ class PhaseSpace(object):
     def _set_target_std(self, psi, sigma):
 
         self._test_maximum_std(psi, sigma)
+        psi.Hmax = np.amax(self.rf.hamiltonian(self.rf.z_extrema, 0))
 
         print 'Iterative evaluation of bunch length...'
         counter = 0
@@ -215,7 +217,7 @@ class PhaseSpace(object):
         # Iteratively obtain true H0 to make target sigma
         zH = z0
         psi.H0 = self.rf.H0(zH)
-        while abs(eps)>1e-1:
+        while abs(eps)>1e-6:
             zS = self._compute_std(psi.function, self.rf.separatrix, self.rf.z_sep[0], self.rf.z_sep[1])
 
             eps = zS - z0
@@ -233,6 +235,8 @@ class PhaseSpace(object):
                 print "Aborting..."
                 sys.exit(-1)
 
+        print "*** Converged!\n"
+
         return psi.function
 
     def _compute_std(self, psi, p_sep, xmin, xmax):
@@ -240,12 +244,13 @@ class PhaseSpace(object):
         Compute the variance of the distribution function psi from xmin to xmax
         along the contours p_sep using numerical integration methods.
         '''
+        # plt.ion()
+        # ax1, ax2 = plt.subplot(211), plt.subplot(212)
         # xx = np.linspace(xmin, xmax, 1000)
-        # plt.plot(xx, p_sep(xx))
-        # plt.plot(xx, -p_sep(xx))
-        # plt.show()
-        # PP = psi(XX, YY)
-        # VV = var(XX, YY)
+        # ax1.plot(xx, p_sep(xx))
+        # ax1.plot(xx, -p_sep(xx))
+        # ax2.plot(xx, psi(xx, 0))
+        # plt.draw()
 
         Q, error = dblquad(lambda y, x: psi(x, y), xmin, xmax,
                     lambda x: 0, lambda x: p_sep(x))
