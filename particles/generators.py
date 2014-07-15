@@ -14,7 +14,7 @@ from numpy.random import RandomState
 
 from scipy.constants import c, e
 from scipy.interpolate import interp2d
-from scipy.integrate import quad, dblquad
+from scipy.integrate import quad, dblquad, cumtrapz, romb
 
 import pylab as plt
 
@@ -148,11 +148,22 @@ class RFBucket(PhaseSpace):
         self.z_sep, self.p_sep = rfsystem.z_sep, rfsystem.p_sep
         self.H0 = rfsystem.H0
 
+    @profile
     def _test_maximum_std(self, psi, sigma):
 
         # Test for maximum bunch length
         psi.H0 = self.H0(self.circumference)
         zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+        print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
+        if sigma > zS * 0.95:
+            print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+        zS = self._compute_std_cumtrapz(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+        print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
+        if sigma > zS * 0.95:
+            print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+        zS = self._compute_std_romberg(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
         print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         if sigma > zS * 0.95:
             print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
@@ -170,7 +181,7 @@ class RFBucket(PhaseSpace):
         # Iteratively obtain true H0 to make target sigma
         zH = z0
         psi.H0 = self.H0(zH)
-        while abs(eps)>1e-6:
+        while abs(eps)>1e-4:
             zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
 
             eps = zS - z0
@@ -198,12 +209,19 @@ class RFBucket(PhaseSpace):
         along the contours p_sep using numerical integration methods.
         '''
         # plt.ion()
-        # ax1, ax2 = plt.subplot(211), plt.subplot(212)
+        # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14, 8))
+        # ax3 = fig.add_subplot(133, projection='3d')
         # xx = np.linspace(xmin, xmax, 1000)
+        # yy = np.linspace(-self.p_sep, self.p_sep, 1000)
+        # XX, YY = np.meshgrid(xx, yy)
+        # PP = psi(XX, YY)
         # ax1.plot(xx, p_sep(xx))
         # ax1.plot(xx, -p_sep(xx))
         # ax2.plot(xx, psi(xx, 0))
-        # plt.draw()
+        # ax3.cla()
+        # ax3.plot_surface(XX, YY, PP, cstride=100, rstride=100, cmap=plt.cm.jet)
+        # # plt.draw()
+        # plt.show()
 
         Q, error = dblquad(lambda y, x: psi(x, y), xmin, xmax,
                     lambda x: 0, lambda x: p_sep(x))
@@ -212,7 +230,49 @@ class RFBucket(PhaseSpace):
 
         return np.sqrt(V/Q)
 
-    @profile
+    def _compute_std_cumtrapz(self, psi, p_sep, xmin, xmax):
+        '''
+        Compute the variance of the distribution function psi from xmin to xmax
+        along the contours p_sep using numerical integration methods.
+        '''
+
+        x_arr = np.linspace(xmin, xmax, 257)
+        dx = x_arr[1] - x_arr[0]
+
+        Q, V = 0, 0
+        for x in x_arr:
+            y = np.linspace(0, p_sep(x), 257)
+            z = psi(x, y)
+            Q += cumtrapz(z, y)[-1]
+            z = x**2 * psi(x, y)
+            V += cumtrapz(z, y)[-1]
+        Q *= dx
+        V *= dx
+
+        return np.sqrt(V/Q)
+
+    def _compute_std_romberg(self, psi, p_sep, xmin, xmax):
+        '''
+        Compute the variance of the distribution function psi from xmin to xmax
+        along the contours p_sep using numerical integration methods.
+        '''
+
+        x_arr = np.linspace(xmin, xmax, 257)
+        dx = x_arr[1] - x_arr[0]
+
+        Q, V = 0, 0
+        for x in x_arr:
+            y = np.linspace(0, p_sep(x), 257)
+            dy = y[1] - y[0]
+            z = psi(x, y)
+            Q += romb(z, dy)
+            z = x**2 * psi(x, y)
+            V += romb(z, dy)
+        Q *= dx
+        V *= dx
+
+        return np.sqrt(V/Q)
+
     def generate(self, particles):
         '''
         Generate a 2d phase space of n_particles particles randomly distributed
@@ -248,8 +308,13 @@ class RFBucket(PhaseSpace):
             if s < psi_interp(u, v):
                 x[j] = u
                 y[j] = v
+                # TODO: check if this does not cause problems! Setter for item does not work - not implemented!
+                # particles.dp[j] = v
                 j += 1
 
+        particles.z = x
+        particles.dp = y
+        particles.psi = psi
         # return x, y, j / i * dx * dy, psi
 
 
