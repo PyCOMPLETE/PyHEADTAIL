@@ -30,15 +30,13 @@ class Wakefields(object):
         self.slices = slices
         # pass
 
-
     def wake_factor(self, bunch):
         particles_per_macroparticle = bunch.intensity / bunch.n_macroparticles
         return -(bunch.charge) ** 2 / (bunch.mass * bunch.gamma * (bunch.beta * c) ** 2) * particles_per_macroparticle
 
-
     def transverse_wakefield_kicks(self, plane):
         assert(plane in ('x', 'y'))
-        #~ @profile
+        @profile
         def compute_apply_kicks(bunch):
             if plane == 'x':
                 slice_position = self.slices.mean_x
@@ -68,7 +66,6 @@ class Wakefields(object):
             position_prime += self.dipole_kick[self.slices.slice_index_of_particle] + self.quadrupolar_wake_sum[self.slices.slice_index_of_particle] * particle_position
 
         return compute_apply_kicks
-
 
     #~ @profile
     def longitudinal_wakefield_kicks(self, bunch):
@@ -134,7 +131,6 @@ class BB_Resonator_transverse(Wakefields):
                     np.sinh(omegabar * z.clip(max=0) / c / beta_r)
         return wake
 
-
     def dipole_wake_x(self, bunch, z):
         return self.Yokoya_X1 * self.wake_transverse(bunch, z)
 
@@ -150,11 +146,8 @@ class BB_Resonator_transverse(Wakefields):
         return 0
 
     def track(self, bunch):
-        if not self.slices:
-            self.slices = bunch.slices
-
-	# bunch.compute_statistics()
-        self.slices.update_slices(bunch)
+        # if not self.slices:
+            # self.slices = bunch.slices
         self.slices.compute_statistics(bunch)
 
         wakefield_kicks_x = self.transverse_wakefield_kicks('x')
@@ -211,13 +204,10 @@ class Resistive_wall_transverse(Wakefields):
         return 0
 
     def track(self, bunch):
-        if not self.slices:
-            self.slices = bunch.slices
-        
-        # bunch.compute_statistics()
-        self.slices.update_slices(bunch)
+        # if not self.slices:
+            # self.slices = bunch.slices
         self.slices.compute_statistics(bunch)
- 
+
         wakefield_kicks_x = self.transverse_wakefield_kicks('x')
         wakefield_kicks_x(bunch)
         wakefield_kicks_y = self.transverse_wakefield_kicks('y')
@@ -360,11 +350,8 @@ class BB_Resonator_longitudinal(Wakefields):
 
 
     def track(self, bunch):
-        if not self.slices:
-            self.slices = bunch.slices
-        
-        # bunch.compute_statistics()
-        self.slices.update_slices(bunch)
+        # if not self.slices:
+            # self.slices = bunch.slices
         self.slices.compute_statistics(bunch)
 
         self.longitudinal_wakefield_kicks(bunch)

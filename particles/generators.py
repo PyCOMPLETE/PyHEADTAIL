@@ -148,7 +148,7 @@ class RFBucket(PhaseSpace):
         self.z_sep, self.p_sep = rfsystem.z_sep, rfsystem.p_sep
         self.H0 = rfsystem.H0
 
-    @profile
+    # @profile
     def _test_maximum_std(self, psi, sigma):
 
         # Test for maximum bunch length

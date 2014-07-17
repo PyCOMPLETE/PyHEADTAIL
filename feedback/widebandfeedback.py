@@ -30,11 +30,22 @@ class TransferFunction(object):
     def convert_as_table(self): pass
 
 
-def one_pole_roll_off(frequency):
+def one_pole(fr, xmax=0):
+    def y(x):
+        ix = np.where(x > xmax)
+        y = 0.113458834 * np.exp(2*np.pi*x*fr)
+        y[ix] = 0
+        return y
+    return y
 
-    def f(z):
-        return np.exp(-2*np.pi*frequency * z/c)
-    return f
+
+def one_pole_symmetric(fr, xmax=0):
+    def y(x):
+        ix = np.where(x > xmax)
+        y = 0.113458834 * np.exp(2*np.pi*x*fr)
+        y[ix] = 0.113458834 * np.exp(-2*np.pi*x[ix]*fr)
+        return y
+    return y
 
 
 class Pickup(object):
@@ -48,9 +59,9 @@ class Pickup(object):
 
     def track(self, beam):
 
-        slices = self.slices
-        slices.update_slices(beam)
-        slices.compute_statistics(beam)
+        # slices = self.slices
+        # slices.update_slices(beam)
+        self.slices.compute_statistics(beam)
 
         if self.plane == 'x':
             self.y = np.copy(self.slices.mean_x)
@@ -139,15 +150,6 @@ class Kicker(object):
         #             vout[i] = saturation_out_max;
         #     }
         # }
-
-        dz_to_target_slice = [self.slices.z_centers] - np.transpose([self.pickup.slices.z_centers])
-        tf = one_pole_roll_off(200e6)
-        t = tf(-dz_to_target_slice)
-        fig, (ax1, ax2) = plt.subplots(2)
-        ax1.plot(dz_to_target_slice)
-        ax2.plot(t)
-        plt.show()
-        exit(-1)
 
         self.vout = self.gain * self.yout
         # Convolution here
