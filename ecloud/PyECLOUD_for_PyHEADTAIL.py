@@ -4,7 +4,7 @@
 # 3 - different input files
 # 4 - define substeps consistently (done!)
 # 5 - push the beam
-# 6 - implement pinch saving
+# 6 - implement pinch saving (done!)
 
 
 
