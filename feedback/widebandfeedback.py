@@ -7,8 +7,7 @@ from __future__ import division
 
 
 import numpy as np
-
-
+from scipy.special import k0
 from scipy.constants import c, e
 import pylab as plt
 
@@ -33,7 +32,8 @@ class TransferFunction(object):
 def one_pole(fr, xmax=0):
     def y(x):
         ix = np.where(x > xmax)
-        y = 0.113458834 * np.exp(2*np.pi*x*fr)
+        # y = 0.113458834 * np.exp(2*np.pi*x*fr)
+        y = np.exp(2*np.pi*x*fr)
         y[ix] = 0
         return y
     return y
@@ -44,6 +44,15 @@ def one_pole_symmetric(fr, xmax=0):
         ix = np.where(x > xmax)
         y = 0.113458834 * np.exp(2*np.pi*x*fr)
         y[ix] = 0.113458834 * np.exp(-2*np.pi*x[ix]*fr)
+        return y
+    return y
+
+
+def one_pole_symmetric_gerd(fr, xmax=0):
+    def y(x):
+        ix = np.where(x > xmax)
+        y = k0(-2*np.pi*x*fr) #/ np.sum(k0(2*np.pi*x*fr))
+        y[ix] = k0(2*np.pi*x[ix]*fr) #/ np.sum(k0(-2*np.pi*x*fr))
         return y
     return y
 
