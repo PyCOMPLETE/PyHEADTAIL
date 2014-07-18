@@ -15,7 +15,7 @@ import numpy as np
 dec_fact_out = int(np.round(5 * 25e-12/Dt))
 
 lam_th=1.e2        #e-/m
-Dx_hist=1.e-3      #m
+Dx_hist=.5e-3      #m
 r_center=1.e-3     #m
 
 
@@ -35,7 +35,7 @@ N_mp_after_regen=10000;
 t_ON_regen_low=10.
 fact_split=1.5;
 fact_clean=1e-6;
-nel_mp_ref_0= 1e6/70000   #e-/m
+nel_mp_ref_0= 1e9/70000   #e-/m
 regen_hist_cut = 1.e-4
 
 N_mp_soft_regen = 100000
@@ -52,7 +52,7 @@ Nvz_regen=51;#it must be odd!
 
 #Sp_ch params
 Dt_sc = 0.2e-9
-Dh_sc = 0.6e-3
+Dh_sc = 0.5e-3
 t_sc_ON=0e-9;		#s
 
 flag_movie = 0             #1/0

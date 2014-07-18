@@ -23,11 +23,13 @@ epsn_z = 0.5
 n_turns = 1
 beamslicer = Slicer(64, nsigmaz=4)
 
+L_ecloud = C
+
 # Beam
 bunch = Particles.as_gaussian(100000, e, gamma, 1.15e11, m_p, 0, beta_x, epsn_x, 0, beta_y, epsn_y, beta_z, epsn_z)
 
 
-ecloud = pyecl.Ecloud(beamslicer, Dt_ref = 25e-12)
+ecloud = pyecl.Ecloud(L_ecloud, beamslicer, Dt_ref = 25e-12)
 ecloud.save_ele_distributions_last_track = True 
 ecloud.save_ele_potential_and_field = True
 ecloud.save_ele_MP_size = True
@@ -76,7 +78,7 @@ pl.figure(1, figsize=(12, 12))
 for ii in xrange(ecloud.slicer.n_slices-1, -1, -4):
     pl.clf()
     pl.subplot(2,2,1)
-    pl.imshow(10. * np.log10(-ecloud.rho_ele_last_track[ii]/e).T, origin='lower', aspect='auto', vmin=50, vmax=1e2,
+    pl.imshow(10. * np.log10(-ecloud.rho_ele_last_track[ii]/e).T, origin='lower', aspect='auto', vmin=50e2, vmax=1e2,
               extent=(ecloud.spacech_ele.xg[0], ecloud.spacech_ele.xg[-1], ecloud.spacech_ele.yg[0], ecloud.spacech_ele.yg[-1]))
     #~ pl.colorbar()
     pl.axis('equal')

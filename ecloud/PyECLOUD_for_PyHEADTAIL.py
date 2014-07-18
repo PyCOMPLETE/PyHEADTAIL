@@ -44,10 +44,11 @@ class MP_light(object):
 
 
 class Ecloud(object):
-	def __init__(self, slicer, Dt_ref):
+	def __init__(self, L_ecloud, slicer, Dt_ref):
 		
 		self.slicer = slicer
-		self.Dt_ref = Dt_ref		
+		self.Dt_ref = Dt_ref
+		self.L_ecloud = L_ecloud	
 		
 		b_par, x_aper, y_aper, B,\
 		gas_ion_flag, P_nTorr, sigma_ion_MBarn, Temp_K, unif_frac, E_init_ion,\
@@ -225,23 +226,32 @@ class Ecloud(object):
 			Ey_n_beam = -Ey_n_beam * beam.charge/e
 			
 			
-			# compute electron field
+			## compute electron field map
 			spacech_ele.recompute_spchg_efield(MP_e)
+			
+			## compute electron field on electrons
 			Ex_sc_n, Ey_sc_n = spacech_ele.get_sc_eletric_field(MP_e)
 			
-			## Total electric field
+			## compute electron field on beam particles
+			Ex_sc_p, Ey_sc_p = spacech_ele.get_sc_eletric_field(MP_p)
+			
+			## Total electric field on electrons
 			Ex_n=Ex_sc_n+Ex_n_beam;
 			Ey_n=Ey_sc_n+Ey_n_beam;
 				
 			## save position before motion step
 			old_pos=MP_e.get_positions()
 			
-			## motion
-			MP_e = dynamics.stepcustomDt( MP_e, Ex_n,Ey_n, Dt_substep=Dt_substep, N_sub_steps=N_sub_steps)
+			## motion electrons
+			MP_e = dynamics.stepcustomDt(MP_e, Ex_n,Ey_n, Dt_substep=Dt_substep, N_sub_steps=N_sub_steps)
 			
 			## impacts: backtracking and secondary emission
 			MP_e = impact_man.backtrack_and_second_emiss(old_pos, MP_e)
 			
+			## kick beam particles
+			fact_kick = beam.charge/(beam.mass*beam.beta*beam.beta*beam.gamma*c*c)*self.L_ecloud
+			beam.xp[ix]+=fact_kick*Ex_sc_p
+			beam.yp[ix]+=fact_kick*Ey_sc_p
 			
 			if self.save_ele_distributions_last_track:
 				self.rho_ele_last_track.append(spacech_ele.rho.copy())
