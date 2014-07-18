@@ -1,3 +1,3 @@
-PYTHONPATH=/home/gianni/Desktop/PyHEADTAIL_with_kevin/PyHEADTAIL:/home/gianni/Desktop/PyHEADTAIL_with_kevin/pyecloud
+PYTHONPATH=/home/gianni/Desktop/PyHEADTAILdevel/PyHEADTAIL:/home/gianni/Desktop/PyHEADTAILdevel/pyecloud
 export PYTHONPATH
 echo $PYTHONPATH

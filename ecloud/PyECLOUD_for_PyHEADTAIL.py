@@ -185,7 +185,11 @@ class Ecloud(object):
 			self.vy_MP_last_track = []
 
 		if self.save_ele_MP_size:
-			raise ValueError('Not implemented yet!')
+			self.nel_MP_last_track = []
+			
+		if self.save_ele_MP_position or save_ele_MP_velocity or self.save_ele_MP_size:
+			self.N_MP_last_track = []
+			
 		
 		if not beam.same_size_for_all_MPs:
 			raise ValueError('ecloud module assumes same size for all beam MPs')
@@ -256,6 +260,12 @@ class Ecloud(object):
 				self.vx_MP_last_track.append(MP_e.vx_mp.copy())
 				self.vy_MP_last_track.append(MP_e.vy_mp.copy())
 				
+			if self.save_ele_MP_size:
+				self.nel_MP_last_track.append(MP_e.nel_mp.copy())
+				
+			if self.save_ele_MP_position or save_ele_MP_velocity or self.save_ele_MP_size:
+				self.N_MP_last_track.append(MP_e.N_mp)
+				
 		if self.save_ele_distributions_last_track:
 			self.rho_ele_last_track = self.rho_ele_last_track[::-1]
 
@@ -273,7 +283,12 @@ class Ecloud(object):
 			self.vy_MP_last_track = self.vy_MP_last_track[::-1]
 
 		if self.save_ele_MP_size:
-			raise ValueError('Not implemented yet!')   
+			self.nel_MP_last_track = self.nel_MP_last_track[::-1]
+			
+		if self.save_ele_MP_position or save_ele_MP_velocity or self.save_ele_MP_size:
+				self.N_MP_last_track = self.N_MP_last_track[::-1]
+			
+			
 		 
 			
 			
