@@ -22,6 +22,7 @@ class Slicer(object):
         '''
         Constructor
         '''
+        self.n_slices = n_slices
         self.nsigmaz = nsigmaz
         self.mode = mode
 
@@ -44,11 +45,44 @@ class Slicer(object):
             self.z_bins = np.linspace(self.z_cut_tail, self.z_cut_head, self.n_slices + 1)
             self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
+    def mean_x(self, bunch):
+        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
+        stats = np.zeros(self.n_particles)
+        for i in xrange(self.n_slices):
+            x  = bunch.x[index[i]:index[i + 1]]
+            stats[i] = cp.mean(x)
 
-    @property
-    def n_slices(self):
-        return len(self.mean_x)
+        return stats
 
+    def mean_y(self, bunch):
+        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
+        stats = np.zeros(self.n_particles)
+        for i in xrange(self.n_slices):
+            k  = bunch.y[index[i]:index[i + 1]]
+            stats[i] = cp.mean(k)
+
+        return stats
+
+    def sigma_x(self, bunch):
+        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
+        stats = np.zeros(self.n_particles)
+        for i in xrange(self.n_slices):
+            k  = bunch.x[index[i]:index[i + 1]]
+            stats[i] = cp.std(k)
+
+        return stats
+
+    def epsn_x(self, bunch):
+        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
+        stats = np.aeros(self.n_slices)
+        for i in xrange(self.n_slices):
+            k  = bunch.x[index[i]:index[i + 1]]
+            kp  = bunch.xp[index[i]:index[i + 1]]
+            stats[i] = cp.emittance(k, kp) * bunch.gamma * bunch.beta * 1e6
+
+        return stats
+
+    def _stats_helper(self): pass
 
     def _set_longitudinal_cuts(self, bunch):
 
@@ -62,7 +96,6 @@ class Slicer(object):
             z_cut_head = mean_z + self.nsigmaz * sigma_z
 
         return z_cut_tail, z_cut_head
-
 
     # @profile
     def _slice_constant_space(self, bunch):
@@ -98,7 +131,6 @@ class Slicer(object):
         # .in_slice indicates in which slice the particle is (needed for wakefields)
         self._set_slice_index_of_particle(bunch)
         # bunch.set_in_slice(index_after_bin_edges)
-
 
     def _slice_constant_charge(self, bunch):
         # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
@@ -137,7 +169,6 @@ class Slicer(object):
 
         # # self.z_centers = map((lambda i: cp.mean(bunch.z[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices)
 
-
     def _set_slice_index_of_particle(self, bunch):
 
         try:
@@ -157,8 +188,8 @@ class Slicer(object):
             self._slice_constant_charge(bunch)
         elif self.mode == 'const_space':
             self._slice_constant_space(bunch)
-        
-        if  bunch.same_size_for_all_MPs: 
+
+        if  bunch.same_size_for_all_MPs:
             self.n_particles = self.n_macroparticles*bunch.n_particles_per_mp
         else:
             self.n_particles = 'Not yet implemented for non uniform set'
@@ -197,5 +228,3 @@ class Slicer(object):
             self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma * bunch.beta * 1e6
             self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma * bunch.beta * 1e6
             self.epsn_z[i] = 4 * np.pi * self.sigma_z[i] * self.sigma_dp[i] * bunch.p0 / bunch.charge
-            
-            
