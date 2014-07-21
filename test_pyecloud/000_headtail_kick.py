@@ -73,7 +73,7 @@ bunch.yp[:n_part_per_turn] = yp[0,:]
 bunch.z[:n_part_per_turn] = z[0,:]
 bunch.dp[:n_part_per_turn] =zp[0,:]
 
-ecloud = pyecl.Ecloud(L_ecloud, beamslicer, Dt_ref = 25e-12)
+ecloud = pyecl.Ecloud(L_ecloud, beamslicer, Dt_ref = 25e-12, pyecl_input_folder='drift_for_benchmark')
 ecloud.save_ele_distributions_last_track = True 
 ecloud.save_ele_potential_and_field = True
 ecloud.save_ele_MP_size = True

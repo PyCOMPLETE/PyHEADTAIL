@@ -1,14 +1,14 @@
 # To do:
-# 1 - now the pinch is not reinitialized
-# 2 - introduce length of the interaction
-# 3 - different input files
+# 1 - now the pinch is not reinitialized (done!)
+# 2 - introduce length of the interaction (done!)
+# 3 - different input files (done!)
 # 4 - define substeps consistently (done!)
-# 5 - push the beam
+# 5 - push the beam (done!)
 # 6 - implement pinch saving (done!)
 
 
 
-import init as init 
+#import init as init 
 
 
 #import beam_and_timing as beatim
@@ -32,7 +32,7 @@ import impact_management_class as imc
 import gas_ionization_class as gic
 import gen_photoemission_class as gpc
 
-import parse_beam_file as pbf
+#import parse_beam_file as pbf
 
 import numpy as np
 from scipy.constants import c, e
@@ -44,8 +44,10 @@ class MP_light(object):
 
 
 class Ecloud(object):
-	def __init__(self, L_ecloud, slicer, Dt_ref):
+	def __init__(self, L_ecloud, slicer, Dt_ref, pyecl_input_folder='./'):
 		
+		print 'PyECLOUD for PyHEADTAIL'
+		print 'Initializing ecloud from folder: '+pyecl_input_folder
 		self.slicer = slicer
 		self.Dt_ref = Dt_ref
 		self.L_ecloud = L_ecloud	
@@ -70,7 +72,7 @@ class Ecloud(object):
 		flag_verbose_file, flag_verbose_stdout,\
 		flag_presence_sec_beams, sec_b_par_list, phem_resc_fac, dec_fac_secbeam_prof, el_density_probes, save_simulation_state_time_file,\
 		x_min_hist_det, x_max_hist_det, y_min_hist_det, y_max_hist_det, Dx_hist_det, dec_fact_out, stopfile= \
-		init.read_parameter_files()
+		read_parameter_files_pyhdtl(pyecl_input_folder)
 		
 		#pyeclsaver=pysav.pyecloud_saver(logfile_path)
        
@@ -97,18 +99,18 @@ class Ecloud(object):
 		
 		spacech_ele = scc.space_charge(chamb, Dh_sc, Dt_sc=Dt_sc)
 		
-		sec_beams_list=[]
-		if flag_presence_sec_beams:
-			N_sec_beams = len(sec_b_par_list)
-			for ii in xrange(N_sec_beams):
-				print 'Initialize secondary beam %d/%d'%(ii+1, N_sec_beams)
-				sb_par = sec_b_par_list[ii]
-				sec_beams_list.append(beatim.beam_and_timing(sb_par.flag_bunched_beam, sb_par.fact_beam, sb_par.coast_dens, sb_par.beam_field_file,lam_th,
-					 b_spac=sb_par.b_spac, sigmaz=sb_par.sigmaz,t_offs=sb_par.t_offs, filling_pattern_file=sb_par.filling_pattern_file, Dt=Dt, t_end=t_end,
-					 beam_long_prof_file=sb_par.beam_long_prof_file, Dh_beam_field=sb_par.Dh_beam_field, chamb=chamb,  sigmax=sb_par.sigmax, sigmay=sb_par.sigmay,
-					 x_beam_pos = sb_par.x_beam_pos, y_beam_pos = sb_par.y_beam_pos, save_beam_field_file_as=sb_par.save_beam_field_file_as,
-					 flag_secodary_beam = True, t_primary_beam = beamtim.t,
-					 Nx=sb_par.Nx, Ny=sb_par.Ny, nimag=sb_par.nimag, progress_mapgen_file = (progress_path+('_mapgen_sec_%d'%ii))))
+		#~ sec_beams_list=[]
+		#~ if flag_presence_sec_beams:
+			#~ N_sec_beams = len(sec_b_par_list)
+			#~ for ii in xrange(N_sec_beams):
+				#~ print 'Initialize secondary beam %d/%d'%(ii+1, N_sec_beams)
+				#~ sb_par = sec_b_par_list[ii]
+				#~ sec_beams_list.append(beatim.beam_and_timing(sb_par.flag_bunched_beam, sb_par.fact_beam, sb_par.coast_dens, sb_par.beam_field_file,lam_th,
+					 #~ b_spac=sb_par.b_spac, sigmaz=sb_par.sigmaz,t_offs=sb_par.t_offs, filling_pattern_file=sb_par.filling_pattern_file, Dt=Dt, t_end=t_end,
+					 #~ beam_long_prof_file=sb_par.beam_long_prof_file, Dh_beam_field=sb_par.Dh_beam_field, chamb=chamb,  sigmax=sb_par.sigmax, sigmay=sb_par.sigmay,
+					 #~ x_beam_pos = sb_par.x_beam_pos, y_beam_pos = sb_par.y_beam_pos, save_beam_field_file_as=sb_par.save_beam_field_file_as,
+					 #~ flag_secodary_beam = True, t_primary_beam = beamtim.t,
+					 #~ Nx=sb_par.Nx, Ny=sb_par.Ny, nimag=sb_par.nimag, progress_mapgen_file = (progress_path+('_mapgen_sec_%d'%ii))))
 		
 		
 		
@@ -158,11 +160,27 @@ class Ecloud(object):
 		self.save_ele_MP_position = False
 		self.save_ele_MP_velocity = False
 		self.save_ele_MP_size = False
-
-
+		
+		self.init_x = self.MP_e.x_mp.copy()
+		self.init_y = self.MP_e.y_mp.copy()
+		self.init_z = self.MP_e.z_mp.copy()
+		self.init_vx = self.MP_e.vx_mp.copy()
+		self.init_vy = self.MP_e.vy_mp.copy()
+		self.init_vz = self.MP_e.vz_mp.copy()
+		self.init_nel = self.MP_e.nel_mp.copy()
+		self.init_N_mp = self.MP_e.N_mp
 		
 	def track(self, beam):
 		
+		#reinitialize
+		self.MP_e.x_mp[:] = self.init_x #it is a mutation and not a binding (and we have tested it :-))
+		self.MP_e.y_mp[:] = self.init_y
+		self.MP_e.z_mp[:] = self.init_z
+		self.MP_e.vx_mp[:] = self.init_vx
+		self.MP_e.vy_mp[:] = self.init_vy
+		self.MP_e.vz_mp[:] = self.init_vz
+		self.MP_e.nel_mp[:] = self.init_nel
+		self.MP_e.N_mp = self.init_N_mp
 		
 		MP_e = self.MP_e
 		dynamics = self.dynamics
@@ -302,7 +320,146 @@ class Ecloud(object):
 		 
 			
 			
-			
+def read_parameter_files_pyhdtl(pyecl_input_folder):
+    switch_model=0
+    simulation_param_file=pyecl_input_folder+'/simulation_parameters.input'
+    
+    save_mp_state_time_file = -1
+    
+    stopfile = 'stop'
+    
+    dec_fact_out = 1
+    
+    init_unif_flag = 0
+    Nel_init_unif = None
+    E_init_unif = None
+    x_max_init_unif = None
+    x_min_init_unif = None
+    y_max_init_unif = None
+    y_min_init_unif = None
+    
+    chamb_type = 'ellip'
+    filename_chm = None
+    
+    x_aper = None
+    y_aper = None
+    flag_detailed_MP_info=0
+    flag_hist_impact_seg = 0
+    
+    track_method= 'StrongBdip'
+    
+    B = 0.   #Tesla (if B=-1 computed from energy and bending radius)
+    bm_totlen= -1 #m
+ 
+   
+    B0x = 0.
+    B0y = 0.
+    B0z = 0.
+    B_map_file = None
+    Bz_map_file = None
+    N_sub_steps = 1
+    fact_Bmap = 1.
+    B_zero_thrhld = None
+    
+    
+    # photoemission parameters
+    photoem_flag = 0
+    inv_CDF_refl_photoem_file = -1
+    k_pe_st = -1
+    refl_frac = -1
+    alimit= -1
+    e_pe_sigma = -1
+    e_pe_max = -1
+    x0_refl = -1
+    y0_refl = -1
+    out_radius = -1
+    
+    # gas ionization parameters
+    gas_ion_flag = 0
+    P_nTorr=-1
+    sigma_ion_MBarn=-1
+    Temp_K=-1
+    unif_frac=-1
+    E_init_ion=-1
+    
+    N_mp_soft_regen = None
+    N_mp_after_soft_regen = None
+    Dx = 0.
+    Dy = 0.
+    betafx = None
+    betafy = None
+
+    
+    flag_verbose_file=False
+    flag_verbose_stdout=False
+    
+    secondary_beams_file_list = []
+    
+    phem_resc_fac = 0.9999 
+    
+    dec_fac_secbeam_prof=1
+    
+    el_density_probes=[]
+    
+    save_simulation_state_time_file = -1
+    
+    # detailed histogram
+    x_min_hist_det=None
+    x_max_hist_det=None
+    y_min_hist_det=None
+    y_max_hist_det=None
+    Dx_hist_det=None
+    
+    
+    f=open(simulation_param_file)
+    exec(f.read())
+    f.close()  
+    
+    
+    f=open(pyecl_input_folder+'/'+machine_param_file)
+    exec(f.read())
+    f.close() 
+    
+    f=open(pyecl_input_folder+'/'+secondary_emission_parameters_file)
+    exec(f.read())
+    f.close()  
+    
+    b_par = None# = pbf.beam_descr_from_fil(beam_parameters_file, betafx, Dx, betafy, Dy)
+    
+    flag_presence_sec_beams = False
+    #~ if len(secondary_beams_file_list)>0:
+        #~ flag_presence_sec_beams = True
+    
+    sec_b_par_list=[]
+    #~ if flag_presence_sec_beams:
+        #~ for sec_b_file in secondary_beams_file_list:
+            #~ sec_b_par_list.append(pbf.beam_descr_from_fil(sec_b_file, betafx, Dx, betafy, Dy))
+        
+    if B==-1:
+        B   = 2*pi*b_par.beta_rel*b_par.energy_J/(c*qe*bm_totlen) 
+        
+    
+    
+    return b_par, x_aper, y_aper, B,\
+    gas_ion_flag, P_nTorr, sigma_ion_MBarn, Temp_K, unif_frac, E_init_ion,\
+    Emax, del_max, R0, E_th, sigmafit, mufit,\
+    Dt, t_end, lam_th, t_ion, N_mp_max,\
+    N_mp_regen, N_mp_after_regen, fact_split, fact_clean, nel_mp_ref_0,\
+    Nx_regen, Ny_regen, Nvx_regen, Nvy_regen, Nvz_regen,regen_hist_cut,\
+    N_mp_regen_low,\
+    Dt_sc, Dh_sc, t_sc_ON,Dx_hist,r_center, scrub_en_th,\
+    progress_path,  logfile_path, flag_movie, flag_sc_movie,\
+    Dt_En_hist, Nbin_En_hist,En_hist_max, \
+    photoem_flag, inv_CDF_refl_photoem_file, k_pe_st, refl_frac, alimit, e_pe_sigma,\
+    e_pe_max,x0_refl, y0_refl, out_radius, \
+    switch_model, switch_no_increase_energy, thresh_low_energy, save_mp_state_time_file, \
+    init_unif_flag, Nel_init_unif, E_init_unif, x_max_init_unif, x_min_init_unif, y_max_init_unif, y_min_init_unif,\
+    chamb_type, filename_chm, flag_detailed_MP_info, flag_hist_impact_seg,\
+    track_method, B0x, B0y, B0z, B_map_file,  Bz_map_file, N_sub_steps, fact_Bmap, B_zero_thrhld,\
+    N_mp_soft_regen, N_mp_after_soft_regen,\
+    flag_verbose_file, flag_verbose_stdout,\
+    flag_presence_sec_beams, sec_b_par_list, phem_resc_fac, dec_fac_secbeam_prof, el_density_probes, save_simulation_state_time_file,\
+    x_min_hist_det, x_max_hist_det, y_min_hist_det, y_max_hist_det, Dx_hist_det, dec_fact_out, stopfile			
 			
     
 		
