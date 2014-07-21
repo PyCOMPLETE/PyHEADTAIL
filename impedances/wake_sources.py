@@ -7,8 +7,7 @@
 '''
 from __future__ import division
 
-
-from functools import partial
+from abc import ABCMeta, abstractmethod
 import numpy as np
 from scipy.constants import c, e
 from scipy.constants import physical_constants
@@ -20,25 +19,28 @@ cos = np.cos
 
 class WakeSources(object):
 
+    __metaclass__ = ABCMeta
+
     @abstractmethod
-    def wake_functions(self): pass
+    def wake_functions(self):
+        pass
 
 
 def BB_Resonator_Circular(R_shunt, frequency, Q, slices):
     return BB_Resonator_transverse(R_shunt, frequency, Q,
-                                   Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0, slices)
+                                   Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0)
 
 
 def BB_Resonator_ParallelPlates(R_shunt, frequency, Q, slices):
     return BB_Resonator_transverse(R_shunt, frequency, Q,
                                    Yokoya_X1=np.pi**2/24, Yokoya_Y1=np.pi**2/12,
-                                   Yokoya_X2=-np.pi**2/24, Yokoya_Y2=np.pi**2/24, Yokoya_ZZ=0, slices)
+                                   Yokoya_X2=-np.pi**2/24, Yokoya_Y2=np.pi**2/24, Yokoya_ZZ=0)
 
 
 class Resonator(WakeSources):
 
     def __init__(self, R_shunt, frequency, Q,
-                 Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0, slices):
+                 Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0):
 
         assert(len(R_shunt) == len(frequency) == len(Q))
 
@@ -60,19 +62,19 @@ class Resonator(WakeSources):
         wake_dict = {}
 
         if self.Yokoya_X1:
-            wake_dict['dipole_x'] = self.Yokoya_X1 * self.wake_general
-        if self.Yokoya_X1:
-            wake_dict['dipole_y'] = self.Yokoya_Y1 * self.wake_general
-        if self.Yokoya_X1:
-            wake_dict['quadrupole_x'] = self.Yokoya_X2 * self.wake_general
-        if self.Yokoya_X1:
-            wake_dict['quadrupole_y'] = self.Yokoya_Y2 * self.wake_general
-        if self.Yokoya_X1:
-            wake_dict['longitudinal'] = self.Yokoya_ZZ * self.wake_general
+            wake_dict['dipole_xx'] = self.Yokoya_X1 * self.function_total(self.function_transverse)
+        if self.Yokoya_Y1:
+            wake_dict['dipole_yy'] = self.Yokoya_Y1 * self.function_total(self.function_transverse)
+        if self.Yokoya_X2:
+            wake_dict['quadrupole_x'] = self.Yokoya_X2 * self.function_total(self.function_transverse)
+        if self.Yokoya_Y2:
+            wake_dict['quadrupole_y'] = self.Yokoya_Y2 * self.function_total(self.function_transverse)
+        if self.Yokoya_ZZ:
+            wake_dict['longitudinal'] = self.Yokoya_ZZ * self.function_total(self.function_longitudinal)
 
         return wake_dict
 
-    def function_transverse(self, R_shunt, frequency, Q, beta, z):
+    def function_transverse(self, R_shunt, frequency, Q):
 
         # Taken from Alex Chao's resonator model (2.82)
         omega = 2 * np.pi * self.frequency
@@ -80,13 +82,16 @@ class Resonator(WakeSources):
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         # Taken from definition in HEADTAIL
-        t = z.clip(max=0) / (beta*c)
-        if self.Q > 0.5:
-            wake =  self.R_shunt * omega**2 / (self.Q*omegabar) * np.exp(alpha*t) * sin(omegabar*t)
-        elif self.Q == 0.5:
-            wake =  self.R_shunt * omega**2 / self.Q * np.exp(alpha*t) * t
-        else:
-            wake =  self.R_shunt * omega**2 / (self.Q*omegabar) * np.exp(alpha*t) * np.sinh(omegabar*t)
+        def wake(beta, z):
+
+            t = z.clip(max=0) / (beta*c)
+            if self.Q > 0.5:
+                y =  self.R_shunt * omega**2 / (self.Q*omegabar) * np.exp(alpha*t) * sin(omegabar*t)
+            elif self.Q == 0.5:
+                y =  self.R_shunt * omega**2 / self.Q * np.exp(alpha*t) * t
+            else:
+                y =  self.R_shunt * omega**2 / (self.Q*omegabar) * np.exp(alpha*t) * np.sinh(omegabar*t)
+            return y
 
         return wake
 
@@ -134,103 +139,21 @@ class Resonator(WakeSources):
         return self.Yokoya_X1 * W#wake_transverse(bunch, z)
 
 
-def Resistive_wall_Circular(pipe_radius, length_resistive_wall, conductivity=5.4e17, dz_min=1e-4, slices):
+def Resistive_wall_Circular(pipe_radius, length_resistive_wall, conductivity=5.4e17, dz_min=1e-4):
     return Resistive_wall_transverse(pipe_radius, length_resistive_wall, conductivity, dz_min,
-                                     Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0, slices)
+                                     Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0)
 
 
-def Resistive_wall_ParallelPlates(pipe_radius, length_resistive_wall, conductivity=5.4e17, dz_min=1e-4, slices):
+def Resistive_wall_ParallelPlates(pipe_radius, length_resistive_wall, conductivity=5.4e17, dz_min=1e-4):
     return BB_Resonator_transverse(pipe_radius, length_resistive_wall, conductivity, dz_min,
                                    Yokoya_X1=np.pi**2/24, Yokoya_Y1=np.pi**2/12,
-                                   Yokoya_X2=-np.pi**2/24, Yokoya_Y2=np.pi**2/24, Yokoya_ZZ=0, slices)
-
-
-class Resonator(WakeSources):
-
-    def __init__(self, R_shunt, frequency, Q,
-                 Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0, slices):
-
-        assert(len(R_shunt) == len(frequency) == len(Q))
-
-        self.R_shunt = R_shunt
-        self.frequency = frequency
-        self.Q = Q
-        # self.R_shunt = np.array([R_shunt]).flatten()
-        # self.frequency = np.array([frequency]).flatten()
-        # self.Q = np.array([Q]).flatten()
-
-        self.Yokoya_X1 = Yokoya_X1
-        self.Yokoya_Y1 = Yokoya_Y1
-        self.Yokoya_X2 = Yokoya_X2
-        self.Yokoya_Y2 = Yokoya_Y2
-        self.Yokoya_ZZ = Yokoya_ZZ
-
-    def wake_functions(self):
-
-        wake_dict = {}
-
-        if self.Yokoya_X1:
-            wake_dict['dipole_x'] = self.Yokoya_X1 * self.wake_general
-        if self.Yokoya_X1:
-            wake_dict['dipole_y'] = self.Yokoya_Y1 * self.wake_general
-        if self.Yokoya_X1:
-            wake_dict['quadrupole_x'] = self.Yokoya_X2 * self.wake_general
-        if self.Yokoya_X1:
-            wake_dict['quadrupole_y'] = self.Yokoya_Y2 * self.wake_general
-        if self.Yokoya_X1:
-            wake_dict['longitudinal'] = self.Yokoya_ZZ * self.wake_general
-
-        return wake_dict
-
-    def function_transverse(self, R_shunt, frequency, Q, beta, z):
-
-        # Taken from Alex Chao's resonator model (2.82)
-        omega = 2 * np.pi * self.frequency
-        alpha = omega / (2 * self.Q)
-        omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
-
-        # Taken from definition in HEADTAIL
-        t = z.clip(max=0) / (beta*c)
-        if self.Q > 0.5:
-            wake =  self.R_shunt * omega**2 / (self.Q*omegabar) * np.exp(alpha*t) * sin(omegabar*t)
-        elif self.Q == 0.5:
-            wake =  self.R_shunt * omega**2 / self.Q * np.exp(alpha*t) * t
-        else:
-            wake =  self.R_shunt * omega**2 / (self.Q*omegabar) * np.exp(alpha*t) * np.sinh(omegabar*t)
-
-        return wake
-
-    def function_longitudinal(self, R_shunt, frequency, Q):
-
-        # Taken from Alex Chao's resonator model (2.82)
-        omega = 2 * np.pi * frequency
-        alpha = omega / (2 * Q)
-        omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
-
-        def wake(beta, z):
-
-            t = z.clip(max=0) / (beta*c)
-            if Q > 0.5:
-                y =  - (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (cos(omegabar*t)
-                                                                            + alpha/omegabar * sin(omegabar*t))
-            elif Q == 0.5:
-                y =  - (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (1. + alpha*t)
-            elif Q < 0.5:
-                y =  - (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (np.cosh(omegabar*t)
-                                                                            + alpha/omegabar * np.sinh(omegabar*t))
-            return y
-
-        return wake
-
-    def function_total(self, function_single):
-        return reduce(lambda x, y: x + y,
-                      [self.function_single(self.R_shunt[i], self.frequency[i], self.Q[i]) for i in np.arange(len(self.Q))])
+                                   Yokoya_X2=-np.pi**2/24, Yokoya_Y2=np.pi**2/24, Yokoya_ZZ=0)
 
 
 class ResistiveWall(WakeSources):
 
     def __init__(self, pipe_radius, resistive_wall_length, conductivity=5.4e17, dz_min= 1e-4,
-                 Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, slices):
+                 Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0):
 
         self.pipe_radius = np.array([pipe_radius]).flatten()
         self.resistive_wall_length = resistive_wall_length
@@ -242,31 +165,38 @@ class ResistiveWall(WakeSources):
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y2 = Yokoya_Y2
 
-    def wake_transverse(self, bunch, z):
+    def wake_functions(self):
+
+        wake_dict = {}
+
+        if self.Yokoya_X1:
+            wake_dict['dipole_x'] = self.Yokoya_X1 * self.function_transverse
+        if self.Yokoya_Y1:
+            wake_dict['dipole_y'] = self.Yokoya_Y1 * self.function_transverse
+        if self.Yokoya_X2:
+            wake_dict['quadrupole_x'] = self.Yokoya_X2 * self.function_transverse
+        if self.Yokoya_Y2:
+            wake_dict['quadrupole_y'] = self.Yokoya_Y2 * self.function_transverse
+
+        return wake_dict
+
+    def function_transverse(self, bunch, z):
+
         Z0 = physical_constants['characteristic impedance of vacuum'][0]
-        lambda_s = 1. / (Z0 * self.conductivity)
+        lambda_s = 1. / (Z0*self.conductivity)
         mu_r = 1
-        wake = (np.sign(z + np.abs(self.dz_min)) - 1) / 2 * bunch.beta * c * Z0 * self.length_resistive_wall / np.pi / self.pipe_radius ** 3 * np.sqrt(-lambda_s * mu_r / np.pi / z.clip(max=-abs(self.dz_min)))
+
+        wake = (np.sign(z + np.abs(self.dz_min)) - 1) / 2 * bunch.beta * c
+             * Z0 * self.length_resistive_wall / np.pi / self.pipe_radius ** 3
+             * np.sqrt(-lambda_s * mu_r / np.pi / z.clip(max=-abs(self.dz_min)))
+
         return wake
-
-    def dipole_wake_x(self, bunch, z):
-        return self.Yokoya_X1 * self.wake_transverse(bunch, z)
-
-    def dipole_wake_y(self, bunch, z):
-        return self.Yokoya_Y1 * self.wake_transverse(bunch, z)
-
-    def quadrupole_wake_x(self, bunch, z):
-        if self.Yokoya_X2: return self.Yokoya_X2 * self.wake_transverse(bunch, z)
-        return 0
-
-    def quadrupole_wake_y(self, bunch, z):
-        if self.Yokoya_Y2: return self.Yokoya_Y2 * self.wake_transverse(bunch, z)
-        return 0
 
 
 class Wake_table(Wakefields):
 
-    def __init__(self, wake_file, keys, slices):
+    def __init__(self, wake_file, keys):
+
         Wakefields.__init__(self, slices)
         table = np.loadtxt(wake_file, delimiter="\t")
         self.wake_table = dict(zip(keys, np.array(zip(*table))))

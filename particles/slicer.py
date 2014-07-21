@@ -47,7 +47,7 @@ class Slicer(object):
 
     def mean_x(self, bunch):
         index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-        stats = np.zeros(self.n_particles)
+        stats = np.zeros(self.n_slices)
         for i in xrange(self.n_slices):
             x  = bunch.x[index[i]:index[i + 1]]
             stats[i] = cp.mean(x)
@@ -56,7 +56,7 @@ class Slicer(object):
 
     def mean_y(self, bunch):
         index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-        stats = np.zeros(self.n_particles)
+        stats = np.zeros(self.n_slices)
         for i in xrange(self.n_slices):
             k  = bunch.y[index[i]:index[i + 1]]
             stats[i] = cp.mean(k)
@@ -65,7 +65,7 @@ class Slicer(object):
 
     def sigma_x(self, bunch):
         index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-        stats = np.zeros(self.n_particles)
+        stats = np.zeros(self.n_slices)
         for i in xrange(self.n_slices):
             k  = bunch.x[index[i]:index[i + 1]]
             stats[i] = cp.std(k)
@@ -74,7 +74,7 @@ class Slicer(object):
 
     def epsn_x(self, bunch):
         index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-        stats = np.aeros(self.n_slices)
+        stats = np.zeros(self.n_slices)
         for i in xrange(self.n_slices):
             k  = bunch.x[index[i]:index[i + 1]]
             kp  = bunch.xp[index[i]:index[i + 1]]
