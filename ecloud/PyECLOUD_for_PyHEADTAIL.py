@@ -206,7 +206,7 @@ class Ecloud(object):
 		if self.save_ele_MP_size:
 			self.nel_MP_last_track = []
 			
-		if self.save_ele_MP_position or save_ele_MP_velocity or self.save_ele_MP_size:
+		if self.save_ele_MP_position or self.save_ele_MP_velocity or self.save_ele_MP_size:
 			self.N_MP_last_track = []
 			
 		
@@ -291,7 +291,7 @@ class Ecloud(object):
 			if self.save_ele_MP_size:
 				self.nel_MP_last_track.append(MP_e.nel_mp.copy())
 				
-			if self.save_ele_MP_position or save_ele_MP_velocity or self.save_ele_MP_size:
+			if self.save_ele_MP_position or self.save_ele_MP_velocity or self.save_ele_MP_size:
 				self.N_MP_last_track.append(MP_e.N_mp)
 				
 		if self.save_ele_distributions_last_track:
@@ -313,7 +313,7 @@ class Ecloud(object):
 		if self.save_ele_MP_size:
 			self.nel_MP_last_track = self.nel_MP_last_track[::-1]
 			
-		if self.save_ele_MP_position or save_ele_MP_velocity or self.save_ele_MP_size:
+		if self.save_ele_MP_position or self.save_ele_MP_velocity or self.save_ele_MP_size:
 				self.N_MP_last_track = self.N_MP_last_track[::-1]
 			
 			
