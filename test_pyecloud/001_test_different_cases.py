@@ -15,7 +15,7 @@ import mystyle as ms
 n_part_per_turn=5000
 
 device = 'drift_for_benchmark'
-#~ device = 'MBB'
+device = 'MBB'
 
 C = 6911.
 R = C / (2 * np.pi)
