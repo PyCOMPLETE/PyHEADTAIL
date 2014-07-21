@@ -31,11 +31,14 @@ class Particles(object):
         given PhaseSpace generator instances for all planes.
         """
 
+        assert(len(phase_space_generators) < 4)
+
+        self.n_macroparticles = n_macroparticles
+
         self.charge = charge
         self.gamma = gamma
         self.mass = mass
 
-        self.n_macroparticles = n_macroparticles
         self.n_particles_per_mp = n_particles_per_mp
 
         for phase_space in phase_space_generators:
@@ -43,6 +46,7 @@ class Particles(object):
 
         self.same_size_for_all_MPs = True
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
+        # self._set_energies()
 
     @classmethod
     def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
@@ -69,7 +73,7 @@ class Particles(object):
                                           generator_seed=random_state.randint(sys.maxint))
 
         return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
-                   [gaussianx, gaussiany, gaussianz])
+                   (gaussianx, gaussiany, gaussianz))
 
     @classmethod
     def as_gaussian_in_bucket(cls, n_macroparticles, charge, gamma, intensity, mass,
@@ -89,11 +93,10 @@ class Particles(object):
                                           generator_seed=random_state.randint(sys.maxint))
         gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
                                           generator_seed=random_state.randint(sys.maxint))
-        rfbucket = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
-                                          generator_seed=random_state.randint(sys.maxint))
+        rfbucket = RFBucket(sigma_z, rfsystem, )
 
         return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
-                   [gaussianx, gaussiany, rfbucket])
+                   (gaussianx, gaussiany, rfbucket))
 
     @classmethod
     def as_uniformXY(cls, n_macroparticles, charge, gamma, intensity, mass,

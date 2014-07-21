@@ -14,7 +14,9 @@ from numpy.random import RandomState
 
 from scipy.constants import c, e
 from scipy.interpolate import interp2d
-from scipy.integrate import quad, dblquad
+from scipy.integrate import quad, dblquad, cumtrapz, romb
+
+import pylab as plt
 
 
 class PhaseSpace(object):
@@ -135,37 +137,57 @@ class GaussianZ(PhaseSpace):
 
 class RFBucket(PhaseSpace):
 
-    def __init__(self, sigma_z, rfsystem, psi):
+    def __init__(self, sigma_z, rfsystem):
 
         self.sigma_z = sigma_z
-        self.rf_bucket = rfsystem
-        self.psi = psi
 
-    def _set_target_std(self, psi, sigma):
-        psi.Hmax = np.amax(self.rf.hamiltonian(self.rf.z_extrema, 0))
-        print 'Iterative evaluation of bunch length...'
+        self.circumference = rfsystem.circumference
+        self.hamiltonian = rfsystem.hamiltonian
+        self.separatrix = rfsystem.separatrix
+        self.z_extrema = rfsystem.z_extrema
+        self.z_sep, self.p_sep = rfsystem.z_sep, rfsystem.p_sep
+        self.H0 = rfsystem.H0
 
-        counter = 0
-        z0 = sigma
-        eps = 1
+    # @profile
+    def _test_maximum_std(self, psi, sigma):
 
         # Test for maximum bunch length
-        psi.H0 = self.rf.H0(self.rf.circumference)
-        zS = self._compute_std(psi.function, self.rf.separatrix, self.rf.z_sep[0], self.rf.z_sep[1])
+        psi.H0 = self.H0(self.circumference)
+        zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
         print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         if sigma > zS * 0.95:
             print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
 
+        zS = self._compute_std_cumtrapz(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+        print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
+        if sigma > zS * 0.95:
+            print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+        zS = self._compute_std_romberg(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+        print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
+        if sigma > zS * 0.95:
+            print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+    def _set_target_std(self, psi, sigma):
+
+        self._test_maximum_std(psi, sigma)
+        psi.Hmax = np.amax(self.hamiltonian(self.z_extrema, 0))
+
+        print 'Iterative evaluation of bunch length...'
+        counter = 0
+        z0 = sigma
+        eps = 1
+
         # Iteratively obtain true H0 to make target sigma
         zH = z0
-        psi.H0 = self.rf.H0(zH)
-        while abs(eps)>1e-6:
-            zS = self._compute_std(psi.function, self.rf.separatrix, self.rf.z_sep[0], self.rf.z_sep[1])
+        psi.H0 = self.H0(zH)
+        while abs(eps)>1e-4:
+            zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
 
             eps = zS - z0
             print counter, zH, zS, eps
             zH -= 0.5 * eps
-            psi.H0 = self.rf.H0(zH)
+            psi.H0 = self.H0(zH)
 
             counter += 1
             if counter > 100:
@@ -187,17 +209,67 @@ class RFBucket(PhaseSpace):
         along the contours p_sep using numerical integration methods.
         '''
         # plt.ion()
-        # ax1, ax2 = plt.subplot(211), plt.subplot(212)
+        # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14, 8))
+        # ax3 = fig.add_subplot(133, projection='3d')
         # xx = np.linspace(xmin, xmax, 1000)
+        # yy = np.linspace(-self.p_sep, self.p_sep, 1000)
+        # XX, YY = np.meshgrid(xx, yy)
+        # PP = psi(XX, YY)
         # ax1.plot(xx, p_sep(xx))
         # ax1.plot(xx, -p_sep(xx))
         # ax2.plot(xx, psi(xx, 0))
-        # plt.draw()
+        # ax3.cla()
+        # ax3.plot_surface(XX, YY, PP, cstride=100, rstride=100, cmap=plt.cm.jet)
+        # # plt.draw()
+        # plt.show()
 
         Q, error = dblquad(lambda y, x: psi(x, y), xmin, xmax,
                     lambda x: 0, lambda x: p_sep(x))
         V, error = dblquad(lambda y, x: x ** 2 * psi(x, y), xmin, xmax,
                     lambda x: 0, lambda x: p_sep(x))
+
+        return np.sqrt(V/Q)
+
+    def _compute_std_cumtrapz(self, psi, p_sep, xmin, xmax):
+        '''
+        Compute the variance of the distribution function psi from xmin to xmax
+        along the contours p_sep using numerical integration methods.
+        '''
+
+        x_arr = np.linspace(xmin, xmax, 257)
+        dx = x_arr[1] - x_arr[0]
+
+        Q, V = 0, 0
+        for x in x_arr:
+            y = np.linspace(0, p_sep(x), 257)
+            z = psi(x, y)
+            Q += cumtrapz(z, y)[-1]
+            z = x**2 * psi(x, y)
+            V += cumtrapz(z, y)[-1]
+        Q *= dx
+        V *= dx
+
+        return np.sqrt(V/Q)
+
+    def _compute_std_romberg(self, psi, p_sep, xmin, xmax):
+        '''
+        Compute the variance of the distribution function psi from xmin to xmax
+        along the contours p_sep using numerical integration methods.
+        '''
+
+        x_arr = np.linspace(xmin, xmax, 257)
+        dx = x_arr[1] - x_arr[0]
+
+        Q, V = 0, 0
+        for x in x_arr:
+            y = np.linspace(0, p_sep(x), 257)
+            dy = y[1] - y[0]
+            z = psi(x, y)
+            Q += romb(z, dy)
+            z = x**2 * psi(x, y)
+            V += romb(z, dy)
+        Q *= dx
+        V *= dx
 
         return np.sqrt(V/Q)
 
@@ -207,16 +279,16 @@ class RFBucket(PhaseSpace):
         according to the particle distribution function psi within the region
         [xmin, xmax, ymin, ymax].
         '''
-        psi = self._set_target_std(StationaryExponential(self.rf.hamiltonian), sigma)
+        psi = self._set_target_std(StationaryExponential(self.hamiltonian), self.sigma_z)
 
-        x = np.zeros(n_particles)
-        y = np.zeros(n_particles)
+        x = np.zeros(particles.n_macroparticles)
+        y = np.zeros(particles.n_macroparticles)
 
         # Bin
         i, j = 0, 0
         nx, ny = 128, 128
-        xmin, xmax = self.rf.z_sep[0], self.rf.z_sep[1]
-        ymin, ymax = -self.rf.p_sep, self.rf.p_sep
+        xmin, xmax = self.z_sep[0], self.z_sep[1]
+        ymin, ymax = -self.p_sep, self.p_sep
         lx = (xmax - xmin)
         ly = (ymax - ymin)
 
@@ -226,7 +298,7 @@ class RFBucket(PhaseSpace):
         HH = psi(XX, YY)
         psi_interp = interp2d(xx, yy, HH)
 
-        while j < n_particles:
+        while j < particles.n_macroparticles:
             u = xmin + lx * np.random.random()
             v = ymin + ly * np.random.random()
 
@@ -236,8 +308,13 @@ class RFBucket(PhaseSpace):
             if s < psi_interp(u, v):
                 x[j] = u
                 y[j] = v
+                # TODO: check if this does not cause problems! Setter for item does not work - not implemented!
+                # particles.dp[j] = v
                 j += 1
 
+        particles.z = x
+        particles.dp = y
+        particles.psi = psi
         # return x, y, j / i * dx * dy, psi
 
 
@@ -326,3 +403,14 @@ class ImportZ(PhaseSpace):
         assert(particles.n_particles == len(self.z) == len(self.dp))
         particles.z = self.z.copy()
         particles.dp = self.dp.copy()
+
+
+class StationaryExponential(object):
+
+    def __init__(self, H):
+        self.H = H
+        self.H0 = 1
+        self.Hmax = H(0, 0)
+
+    def function(self, z, dp):
+        return (np.exp(self.H(z, dp)/self.H0) - 1) / (np.exp(self.Hmax/self.H0) - 1)

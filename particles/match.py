@@ -195,13 +195,7 @@ class PhaseSpace(object):
 
         self.rf = rfsystem
 
-    def _set_target_std(self, psi, sigma):
-        psi.Hmax = np.amax(self.rf.hamiltonian(self.rf.z_extrema, 0))
-        print 'Iterative evaluation of bunch length...'
-
-        counter = 0
-        z0 = sigma
-        eps = 1
+    def _test_maximum_std(self, psi, sigma):
 
         # Test for maximum bunch length
         psi.H0 = self.rf.H0(self.rf.circumference)
@@ -209,6 +203,16 @@ class PhaseSpace(object):
         print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         if sigma > zS * 0.95:
             print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+    def _set_target_std(self, psi, sigma):
+
+        self._test_maximum_std(psi, sigma)
+        psi.Hmax = np.amax(self.rf.hamiltonian(self.rf.z_extrema, 0))
+
+        print 'Iterative evaluation of bunch length...'
+        counter = 0
+        z0 = sigma
+        eps = 1
 
         # Iteratively obtain true H0 to make target sigma
         zH = z0
@@ -313,15 +317,6 @@ class PhaseSpace(object):
         XX, YY = np.meshgrid(xx, yy)
         HH = psi(XX, YY)
         psi_interp = interp2d(xx, yy, HH)
-        # HH = np.zeros((nx, ny))
-        # for i in range(nx):
-        #     for j in range(ny):
-        #         x0, x1 = xx[i], xx[i+1]
-        #         y0, y1 = yy[j], yy[j+1]
-        #         HH[i, j] = np.max([psi(x0, y0),
-        #                            psi(x1, y0),
-        #                            psi(x0, y1),
-        #                            psi(x1, y1)])
 
         while j < n_particles:
             u = xmin + lx * np.random.random()

@@ -8,9 +8,8 @@
 from __future__ import division
 
 
+from functools import partial
 import numpy as np
-
-
 from scipy.constants import c, e
 from scipy.constants import physical_constants
 
@@ -23,22 +22,23 @@ class Wakefields(object):
     '''
     classdocs
     '''
-    def __init__(self, slices=None):
+    def __init__(self, slices, function=None):
         '''
         Constructor
         '''
         self.slices = slices
-        # pass
-
 
     def wake_factor(self, bunch):
         particles_per_macroparticle = bunch.intensity / bunch.n_macroparticles
         return -(bunch.charge) ** 2 / (bunch.mass * bunch.gamma * (bunch.beta * c) ** 2) * particles_per_macroparticle
 
+    def wakefield_kicks_x(self): pass
+    def wakefield_kicks_y(self): pass
+    def wakefield_kicks_z(self): pass
 
     def transverse_wakefield_kicks(self, plane):
         assert(plane in ('x', 'y'))
-        #~ @profile
+        @profile
         def compute_apply_kicks(bunch):
             if plane == 'x':
                 slice_position = self.slices.mean_x
@@ -53,15 +53,16 @@ class Wakefields(object):
                 particle_position = bunch.y
                 position_prime = bunch.yp
 
-            # matrix with distances to target slice
-            dz_to_target_slice = [self.slices.z_centers] - np.transpose([self.slices.z_centers])
+            if self.slices.mode == 'const_charge':
+                beam_profile = self.slices.n_macroparticles * slice_position
+                self.dipole_kick = self._convolution_dot_product(bunch, dipole_wake, beam_profile)
+            else:
+                beam_profile = self.slices.n_macroparticles * slice_position
+                self.dipole_kick = self._convolution_numpy(bunch, dipole_wake, beam_profile)
 
-            # dipole kicks
-            self.dipole_kick = np.zeros(self.slices.n_slices)
-            self.dipole_kick = np.dot(self.slices.n_macroparticles * slice_position, dipole_wake(bunch, dz_to_target_slice)) * self.wake_factor(bunch)
-
+            #####################
             # quadrupole kicks
-            self.quadrupolar_wake_sum = np.zeros(self.slices.n_slices)
+            dz_to_target_slice = [self.slices.z_centers] - np.transpose([self.slices.z_centers])
             self.quadrupolar_wake_sum = np.dot(self.slices.n_macroparticles, quadrupole_wake(bunch, dz_to_target_slice)) * self.wake_factor(bunch)
 
             # apply kicks
@@ -69,6 +70,24 @@ class Wakefields(object):
 
         return compute_apply_kicks
 
+    def _convolution_dot_product(self, bunch, f, g):
+
+        dz_to_target_slice = [self.slices.z_centers] - np.transpose([self.slices.z_centers])
+        wake = f(bunch, dz_to_target_slice)
+        beam_profile = g
+        kick = self.wake_factor(bunch) * np.dot(beam_profile, wake)
+
+        return kick
+
+    def _convolution_numpy(self, bunch, f, g):
+
+        dz_to_target_slice = np.concatenate((self.slices.z_centers - self.slices.z_centers[-1],
+                                            (self.slices.z_centers - self.slices.z_centers[0])[1:]))
+        wake = f(bunch, dz_to_target_slice)
+        beam_profile = g
+        kick = self.wake_factor(bunch) * np.convolve(beam_profile, wake, 'valid')
+
+        return kick
 
     #~ @profile
     def longitudinal_wakefield_kicks(self, bunch):
@@ -110,7 +129,16 @@ class BB_Resonator_transverse(Wakefields):
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y2 = Yokoya_Y2
 
-    #~ @profile
+    def memo(self, fn):
+        cache = {}
+        def call(*args):
+            if args not in cache:
+                cache[args] = fn(*args)
+
+            return cache[args]
+
+        return call
+
     def wake_transverse(self, bunch, z):
         Rs = self.R_shunt
         frequency = self.frequency
@@ -134,9 +162,15 @@ class BB_Resonator_transverse(Wakefields):
                     np.sinh(omegabar * z.clip(max=0) / c / beta_r)
         return wake
 
-
     def dipole_wake_x(self, bunch, z):
         return self.Yokoya_X1 * self.wake_transverse(bunch, z)
+
+    def dipole_wake_x_memo(self, bunch, z):
+        wake_partial = partial(self.wake_transverse, bunch)
+        wake_transverse = self.memo(wake_partial)
+        z_shape = z.shape
+        W = np.array(map(wake_transverse, z.flatten())).reshape(z_shape)
+        return self.Yokoya_X1 * W#wake_transverse(bunch, z)
 
     def dipole_wake_y(self, bunch, z):
         return self.Yokoya_Y1 * self.wake_transverse(bunch, z)
@@ -150,11 +184,8 @@ class BB_Resonator_transverse(Wakefields):
         return 0
 
     def track(self, bunch):
-        if not self.slices:
-            self.slices = bunch.slices
-
-	# bunch.compute_statistics()
-        self.slices.update_slices(bunch)
+        # if not self.slices:
+            # self.slices = bunch.slices
         self.slices.compute_statistics(bunch)
 
         wakefield_kicks_x = self.transverse_wakefield_kicks('x')
@@ -211,13 +242,10 @@ class Resistive_wall_transverse(Wakefields):
         return 0
 
     def track(self, bunch):
-        if not self.slices:
-            self.slices = bunch.slices
-        
-        # bunch.compute_statistics()
-        self.slices.update_slices(bunch)
+        # if not self.slices:
+            # self.slices = bunch.slices
         self.slices.compute_statistics(bunch)
- 
+
         wakefield_kicks_x = self.transverse_wakefield_kicks('x')
         wakefield_kicks_x(bunch)
         wakefield_kicks_y = self.transverse_wakefield_kicks('y')
@@ -360,11 +388,8 @@ class BB_Resonator_longitudinal(Wakefields):
 
 
     def track(self, bunch):
-        if not self.slices:
-            self.slices = bunch.slices
-        
-        # bunch.compute_statistics()
-        self.slices.update_slices(bunch)
+        # if not self.slices:
+            # self.slices = bunch.slices
         self.slices.compute_statistics(bunch)
 
         self.longitudinal_wakefield_kicks(bunch)
