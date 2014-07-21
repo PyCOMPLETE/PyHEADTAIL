@@ -65,7 +65,7 @@ class AmplitudeDetuningSegment(Detuner):
         # W/o factor 2 np.pi. See TransverseSegmentMap.track().
         dphi_x = self.dapp_x/beam.p0 * Jx + self.dapp_xy/beam.p0 * Jy
         dphi_y = self.dapp_y/beam.p0 * Jy + self.dapp_xy/beam.p0 * Jx
-        
+                
         return dphi_x, dphi_y
 
 

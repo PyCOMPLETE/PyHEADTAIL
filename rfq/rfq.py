@@ -39,9 +39,22 @@ class RFQTransverseSegmentGeneral(object):
         Warning: relativistic beta is assumed to be exactly the same for all particles.
         """
         cos_dependence = cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF) / ((1 + beam.dp) * beam.p0)
+
+        # print 'omega_RF * beam.z:', self.omega_RF * beam.z
+        # print 'dapp_xz:', self.dapp_xz
+
+        print 'beam.beta:', beam.beta
+        print 'beam.z:', beam.z
+        print 'arg:', (self.omega_RF * beam.z) / (beam.beta * c)
+
+        print 'cos_dep:', cos_dependence*((1+beam.dp)*beam.p0)
+        print 'approx:', (1. - 0.5 * (self.omega_RF * beam.z / (beam.beta * c))**2 )
+
         dphi_x = self.dapp_xz * cos_dependence 
         dphi_y = self.dapp_yz * cos_dependence
 
+        # print 'RFQ detune:', dphi_x
+        
         return dphi_x, dphi_y
         
 
@@ -64,6 +77,11 @@ class RFQTransverseSegmentOnCrest(object):
         dphi_x = self.dapp_xz * approximate_cos_dependence 
         dphi_y = self.dapp_yz * approximate_cos_dependence
 
+        # print 'omega_RF * beam.z:', self.omega_RF * beam.z
+        # print 'dapp_xz:', self.dapp_xz
+
+        # print 'RFQ detune, on crest:', dphi_x
+        
         return dphi_x, dphi_y
 
 
@@ -116,7 +134,7 @@ class RFQTransverse(object):
 
     
     def generate_segment_detuner_general(self, relative_segment_length, beta_x, beta_y):
-
+        
         dapp_xz = -beta_x * self.voltage_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
         dapp_yz =  beta_y * self.voltage_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
                 
@@ -182,7 +200,14 @@ class RFQLongitudinal(object):
         
     def track(self, beam):
 
+        # print 'k2:', 2 * e * self.voltage_RF / ( beam.p0 * self.omega_RF )
+        
         delta_p = - e * self.voltage_RF / (beam.beta * c) * (beam.x ** 2 - beam.y ** 2) * \
                     sin(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
 
+        # print 'beam.dp before kick:', beam.dp
+
+        # print 'delta_p/p0:', delta_p / beam.p0
         beam.dp = beam.dp + delta_p / beam.p0
+
+        # print 'beam.dp after kick:', beam.dp
