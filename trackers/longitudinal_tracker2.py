@@ -131,7 +131,8 @@ class RFSystems(object):
             self.z_sep = [self.z_extrema[0], self.z_extrema[-1]]
 
     def separatrix(self, z):
-        return np.sqrt(-np.sign(self.eta)*2/(self.eta*self.beta*c*self.p0) * self.V_acc(z))
+        r = -np.sign(self.eta)*2/(self.eta*self.beta*c*self.p0) * self.V_acc(z)
+        return np.sqrt(r.clip(min=0))
         # return np.sqrt(2/(self.eta*self.beta*c*self.p0) * self.V_acc(z))
 
     def hamiltonian(self, z, dp):

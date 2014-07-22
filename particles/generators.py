@@ -148,12 +148,15 @@ class RFBucket(PhaseSpace):
         self.z_sep, self.p_sep = rfsystem.z_sep, rfsystem.p_sep
         self.H0 = rfsystem.H0
 
-    # @profile
+        self._compute_std = self._compute_std_cumtrapz
+
+    @profile
     def _test_maximum_std(self, psi, sigma):
 
         # Test for maximum bunch length
         psi.H0 = self.H0(self.circumference)
-        zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+
+        zS = self._compute_std_quad(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
         print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         if sigma > zS * 0.95:
             print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
@@ -203,7 +206,7 @@ class RFBucket(PhaseSpace):
 
         return psi.function
 
-    def _compute_std(self, psi, p_sep, xmin, xmax):
+    def _compute_std_quad(self, psi, p_sep, xmin, xmax):
         '''
         Compute the variance of the distribution function psi from xmin to xmax
         along the contours p_sep using numerical integration methods.
