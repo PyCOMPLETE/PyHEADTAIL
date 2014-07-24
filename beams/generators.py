@@ -10,7 +10,7 @@ from __future__ import division
 
 import numpy as np
 
-from abc import ABCMeta, abstractmethod 
+from abc import ABCMeta, abstractmethod
 
 from scipy.integrate import quad, dblquad
 from scipy.constants import c, e
@@ -20,12 +20,12 @@ class PhaseSpace(object):
     """Knows how to distribute particle coordinates for a beam
     according to certain distribution functions.
     """
-    
+
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def generate(self, beam):
-        """Creates the beam macroparticles according to a 
+        """Creates the beam macroparticles according to a
         distribution function (depends on the implementing class).
         """
         pass
@@ -34,7 +34,7 @@ class GaussianX(PhaseSpace):
     """Horizontal Gaussian particle phase space distribution."""
 
     def __init__(self, n_macroparticles, sigma_x, sigma_xp):
-        """Initiates the horizontal beam coordinates 
+        """Initiates the horizontal beam coordinates
         to the given Gaussian shape.
         """
         self.n_macroparticles = n_macroparticles
@@ -58,7 +58,7 @@ class GaussianY(PhaseSpace):
     """Vertical Gaussian particle phase space distribution."""
 
     def __init__(self, n_macroparticles, sigma_y, sigma_yp):
-        """Initiates the vertical beam coordinates 
+        """Initiates the vertical beam coordinates
         to the given Gaussian shape.
         """
         self.n_macroparticles = n_macroparticles
@@ -82,9 +82,9 @@ class GaussianZ(PhaseSpace):
     """Longitudinal Gaussian particle phase space distribution."""
 
     def __init__(self, n_macroparticles, sigma_z, sigma_dp, is_accepted = None):
-        """Initiates the longitudinal beam coordinates to a given 
+        """Initiates the longitudinal beam coordinates to a given
         Gaussian shape. If the argument is_accepted is set to
-        the is_in_separatrix(z, dp, beam) method of a RFSystems 
+        the is_in_separatrix(z, dp, beam) method of a RFSystems
         object (or similar), macroparticles will be initialised
         until is_accepted returns True.
         """
@@ -94,9 +94,9 @@ class GaussianZ(PhaseSpace):
         self.is_accepted = is_accepted
 
     @classmethod
-    def from_optics(cls, n_macroparticles, beta_z, epsn_z, p0, 
+    def from_optics(cls, n_macroparticles, beta_z, epsn_z, p0,
             is_accepted = None):
-        """Initialise GaussianZ from the given optics functions. 
+        """Initialise GaussianZ from the given optics functions.
         For the argument is_accepted see __init__.
         """
         sigma_z = np.sqrt(beta_z * epsn_z * p0 / (4 * np.pi) * e)
