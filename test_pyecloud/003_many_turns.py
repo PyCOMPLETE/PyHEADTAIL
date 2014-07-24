@@ -63,7 +63,7 @@ initial_kick_y = 0.                         # Initial vertical kick of beam.
 n_macroparticles = 200000                    # Number of macroparticles per bunch (go to 1e6).
 n_turns          = 512                       # Number of turn (set to 2e5 later)
 
-n_segments = 5#57
+n_segments = 29
 
 
 simulation_parameters_dict = {'comment': 'test instab ecloud',\
