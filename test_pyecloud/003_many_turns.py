@@ -156,7 +156,7 @@ for i in range(n_turns):
         for ind, m in enumerate(elements):
 			m.track(bunch)
 			print ind, m
-			m.track(bunch)
+			
 
         # slice_monitor.dump(bunch)
         bunch_monitor.dump(bunch)
