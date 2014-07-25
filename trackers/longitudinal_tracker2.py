@@ -53,8 +53,9 @@ class RFSystems(object):
         return v
 
     def Ef(self, z):
-        return self.field(self.V[0], self.h[0], self.dphi[0])(z) + self.field(self.V[1], self.h[1], self.dphi[1])(z)
-        # return sum([self.field(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
+        # return self.field(self.V[0], self.h[0], self.dphi[0])(z) + self.field(self.V[1], self.h[1], self.dphi[1])(z)
+        return reduce(lambda x, y: x + y,
+                      [self.field(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
     def E_acc(self, z):
         return self.Ef(z) - e*self.delta_p/self.circumference
@@ -66,8 +67,9 @@ class RFSystems(object):
         return v
 
     def Vf(self, z):
-        return self.potential(self.V[0], self.h[0], self.dphi[0])(z) + self.potential(self.V[1], self.h[1], self.dphi[1])(z)
-        # return sum([self.potential(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
+        # return self.potential(self.V[0], self.h[0], self.dphi[0])(z) + self.potential(self.V[1], self.h[1], self.dphi[1])(z)
+        return reduce(lambda x, y: x + y,
+                      [self.potential(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
     def V_acc(self, z):
         '''Sign makes sure we stay convex - just nicer'''
@@ -79,7 +81,7 @@ class RFSystems(object):
             zmax = ze[-1]
 
         return -np.sign(self.eta) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
-        # return ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
+        # return -np.sign(self.eta) * ((self.Vf(z) - 0*self.Vf(zmax)) + (z - 0*zmax) * e*self.delta_p/self.circumference)
 
     def _get_phi_s(self):
 
@@ -131,14 +133,14 @@ class RFSystems(object):
             self.z_sep = [self.z_extrema[0], self.z_extrema[-1]]
 
     def separatrix(self, z):
-        r = -np.sign(self.eta)*2/(self.eta*self.beta*c*self.p0) * self.V_acc(z)
+        r = -np.sign(self.eta)*2 / (self.eta*self.beta*c*self.p0) * self.V_acc(z)
         return np.sqrt(r.clip(min=0))
-        # return np.sqrt(2/(self.eta*self.beta*c*self.p0) * self.V_acc(z))
 
     def hamiltonian(self, z, dp):
         '''Sign makes sure we stay convex - can then always use H<0'''
         return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
-        # return -(-1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
-
+        # Hmax = np.amax(np.abs(1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0))
+        # print Hmax
+        # return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0 + Hmax) * self.p0/e*self.circumference/c
     def H0(self, z0):
         return np.sign(self.eta) * self.eta * self.beta * c * (z0 / self.beta_z) ** 2

@@ -16,7 +16,7 @@ from scipy.constants import c, e
 from scipy.interpolate import interp2d
 from scipy.integrate import quad, dblquad, cumtrapz, romb
 
-import pylab as plt
+# import pylab as plt
 
 
 class PhaseSpace(object):
@@ -147,6 +147,7 @@ class RFBucket(PhaseSpace):
         self.z_extrema = rfsystem.z_extrema
         self.z_sep, self.p_sep = rfsystem.z_sep, rfsystem.p_sep
         self.H0 = rfsystem.H0
+        self.p0 = rfsystem.p0
 
         self._compute_std = self._compute_std_cumtrapz
 
@@ -156,20 +157,30 @@ class RFBucket(PhaseSpace):
         # Test for maximum bunch length
         psi.H0 = self.H0(self.circumference)
 
-        zS = self._compute_std_quad(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+        zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
         print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         if sigma > zS * 0.95:
             print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
 
-        zS = self._compute_std_cumtrapz(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
-        print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
-        if sigma > zS * 0.95:
-            print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+        # A = self._compute_mean_quad(lambda x, y: 1, self.separatrix, self.z_sep[0], self.z_sep[1])
+        A = self._compute_mean_quad(lambda x, y: 1, self.separatrix, -zS, zS)
+        print "\n--> Bucket area:", 2 * A * self.p0/e, " eV s.\n"
+        exit(-1)
 
-        zS = self._compute_std_romberg(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
-        print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
-        if sigma > zS * 0.95:
-            print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+        # zS = self._compute_std_quad(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+        # print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
+        # if sigma > zS * 0.95:
+        #     print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+        # zS = self._compute_std_cumtrapz(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+        # print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
+        # if sigma > zS * 0.95:
+        #     print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+        # zS = self._compute_std_romberg(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+        # print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
+        # if sigma > zS * 0.95:
+        #     print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
 
     def _set_target_std(self, psi, sigma):
 
@@ -184,12 +195,14 @@ class RFBucket(PhaseSpace):
         # Iteratively obtain true H0 to make target sigma
         zH = z0
         psi.H0 = self.H0(zH)
+        a = 1
         while abs(eps)>1e-4:
             zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
 
+            # TODO: optimize convergence algorithm: particle swarm optimization
             eps = zS - z0
             print counter, zH, zS, eps
-            zH -= 0.5 * eps
+            zH -= a * eps
             psi.H0 = self.H0(zH)
 
             counter += 1
@@ -201,10 +214,41 @@ class RFBucket(PhaseSpace):
                 print "4. Is this algorithm not qualified?"
                 print "Aborting..."
                 sys.exit(-1)
+            elif counter > 90:
+                a = 0.1
+            elif counter > 60:
+                a = 0.25
+            elif counter > 30:
+                a = 0.5
 
         print "*** Converged!\n"
 
         return psi.function
+
+    def _compute_mean_quad(self, psi, p_sep, xmin, xmax):
+        '''
+        Compute the variance of the distribution function psi from xmin to xmax
+        along the contours p_sep using numerical integration methods.
+        '''
+        # plt.ion()
+        # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14, 8))
+        # ax3 = fig.add_subplot(133, projection='3d')
+        # xx = np.linspace(xmin, xmax, 1000)
+        # yy = np.linspace(-self.p_sep, self.p_sep, 1000)
+        # XX, YY = np.meshgrid(xx, yy)
+        # PP = psi(XX, YY)
+        # ax1.plot(xx, p_sep(xx))
+        # ax1.plot(xx, -p_sep(xx))
+        # ax2.plot(xx, psi(xx, 0))
+        # ax3.cla()
+        # ax3.plot_surface(XX, YY, PP, cstride=100, rstride=100, cmap=plt.cm.jet)
+        # # plt.draw()
+        # plt.show()
+
+        Q, error = dblquad(lambda y, x: psi(x, y), xmin, xmax,
+                    lambda x: 0, lambda x: p_sep(x))
+
+        return Q
 
     def _compute_std_quad(self, psi, p_sep, xmin, xmax):
         '''
