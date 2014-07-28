@@ -24,7 +24,7 @@ class Wakes(object):
 
 
     @classmethod
-    def wake_table(cls, wake_file, wake_components, slices):
+    def table(cls, wake_file, wake_components, slices):
 
         self = WakeSources.WakeTable(wake_file, wake_components, slices)
         return cls((self,), slices)
