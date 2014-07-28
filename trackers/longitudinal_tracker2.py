@@ -23,8 +23,8 @@ class RFSystems(object):
         self.h = h
         self.dphi = dphi
 
-        self.zmax = self.circumference / (2*np.amin(h))
-        self.zmax += 0.01*self.zmax
+        zmax = self.circumference / (2*np.amin(h))
+        self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
 
         self.Qs = 0.017
 
@@ -73,12 +73,12 @@ class RFSystems(object):
 
     def V_acc(self, z):
         '''Sign makes sure we stay convex - just nicer'''
-        ze = self._get_zero_crossings(self.E_acc)
+        z_extrema = self._get_zero_crossings(self.E_acc)
 
         if np.sign(self.eta) < 0:
-            zmax = ze[0]
+            zc, zmax = z_extrema[-1], z_extrema[0]
         else:
-            zmax = ze[-1]
+            zmax, zc = z_extrema[-1], z_extrema[0]
 
         return -np.sign(self.eta) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
         # return -np.sign(self.eta) * ((self.Vf(z) - 0*self.Vf(zmax)) + (z - 0*zmax) * e*self.delta_p/self.circumference)
@@ -104,7 +104,7 @@ class RFSystems(object):
         # print self.dphi
 
     def _get_zero_crossings(self, f):
-        zz = np.linspace(-self.zmax, self.zmax, 200)
+        zz = np.linspace(self.zmin, self.zmax, 200)
 
         a = np.sign(f(zz))
         b = np.diff(a)
@@ -120,21 +120,33 @@ class RFSystems(object):
         '''
         Treat all crazy situations here
         '''
-        self.z_extrema = self._get_zero_crossings(self.E_acc)
-        self.z_zeros = self._get_zero_crossings(self.V_acc)
-        self.p_sep = np.amax(self.separatrix(self.z_extrema))
+        z_extrema = self._get_zero_crossings(self.E_acc)
+        z_cut = self._get_zero_crossings(self.V_acc)
 
         try:
             if np.sign(self.eta) < 0:
-                self.z_sep = [self.z_extrema[0], self.z_zeros[0]]
+                self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[-1], z_cut[0]
+                self.zcut = z_cut[0]
             else:
-                self.z_sep = [self.z_zeros[0], self.z_extrema[-1]]
+                self.zleft, self.zs, self.zright = z_cut[0], z_extrema[0], z_extrema[-1]
+                self.zcut = z_cut[0]
         except IndexError:
-            self.z_sep = [self.z_extrema[0], self.z_extrema[-1]]
+            self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_extrema[-1]
+
+    def equihamiltonian(self, zc):
+        Hc = self.hamiltonian(zc, 0)
+        def s(z):
+            r = np.sign(self.eta) * 2/(self.eta*self.beta*c) * (-Hc - self.V_acc(z)/self.p0)
+            return np.sqrt(r.clip(min=0))
+        return s
 
     def separatrix(self, z):
-        r = -np.sign(self.eta)*2 / (self.eta*self.beta*c*self.p0) * self.V_acc(z)
-        return np.sqrt(r.clip(min=0))
+        f = self.equihamiltonian(self.zs)
+        return f(z)
+
+    def p_max(self, zc):
+        f = self.equihamiltonian(zc)
+        return np.amax(f(self.zs))
 
     def hamiltonian(self, z, dp):
         '''Sign makes sure we stay convex - can then always use H<0'''
@@ -142,5 +154,6 @@ class RFSystems(object):
         # Hmax = np.amax(np.abs(1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0))
         # print Hmax
         # return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0 + Hmax) * self.p0/e*self.circumference/c
-    def H0(self, z0):
-        return np.sign(self.eta) * self.eta * self.beta * c * (z0 / self.beta_z) ** 2
+
+    # def H0(self, z0):
+        # return np.sign(self.eta) * self.eta * self.beta * c * (z0 / self.beta_z) ** 2

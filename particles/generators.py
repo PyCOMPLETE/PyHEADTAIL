@@ -16,7 +16,7 @@ from scipy.constants import c, e
 from scipy.interpolate import interp2d
 from scipy.integrate import quad, dblquad, cumtrapz, romb
 
-# import pylab as plt
+import pylab as plt
 
 
 class PhaseSpace(object):
@@ -142,30 +142,43 @@ class RFBucket(PhaseSpace):
         self.sigma_z = sigma_z
 
         self.circumference = rfsystem.circumference
+        self.equihamiltonian = rfsystem.equihamiltonian
         self.hamiltonian = rfsystem.hamiltonian
         self.separatrix = rfsystem.separatrix
-        self.z_extrema = rfsystem.z_extrema
-        self.z_sep, self.p_sep = rfsystem.z_sep, rfsystem.p_sep
-        self.H0 = rfsystem.H0
+        # self.z_extrema = rfsystem.z_extrema
+        # self.z_sep, self.p_sep = rfsystem.z_sep, rfsystem.p_sep
+        self.H0 = 1
         self.p0 = rfsystem.p0
 
         self._compute_std = self._compute_std_cumtrapz
+        self.generate = self.dontgenerate
 
     @profile
     def _test_maximum_std(self, psi, sigma):
 
         # Test for maximum bunch length
         psi.H0 = self.H0(self.circumference)
+        print psi.H0
 
         zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
         print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         if sigma > zS * 0.95:
             print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
 
-        # A = self._compute_mean_quad(lambda x, y: 1, self.separatrix, self.z_sep[0], self.z_sep[1])
-        A = self._compute_mean_quad(lambda x, y: 1, self.separatrix, -zS, zS)
-        print "\n--> Bucket area:", 2 * A * self.p0/e, " eV s.\n"
-        exit(-1)
+
+        # # A = self._compute_mean_quad(lambda x, y: 1, self.separatrix, self.z_sep[0], self.z_sep[1])
+        # zc = self.z_sep[1]
+        # zc = zS
+        # zz = plt.linspace(0, self.z_sep[1], 40)
+        # A = np.array([self._compute_mean_quad(lambda x, y: 1, self.equihamiltonian(zc), -zc, zc) for zc in zz])
+        # print "\n--> Bucket area:", 2 * A * self.p0/e, " eV s.\n"
+        # fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(6, 10))
+        # ax1.plot(zz, 2*A*self.p0/e)
+        # ax2.plot(zz, self.hamiltonian(zz, 0))
+        # ax3.plot(self.hamiltonian(zz, 0), 2*A*self.p0/e)
+        # plt.show()
+        # exit(-1)
+
 
         # zS = self._compute_std_quad(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
         # print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
@@ -181,6 +194,49 @@ class RFBucket(PhaseSpace):
         # print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
         # if sigma > zS * 0.95:
         #     print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
+
+    def _set_target_mean(self, psi, sigma):
+
+        self._test_maximum_std(psi, sigma)
+        psi.Hmax = np.amax(self.hamiltonian(self.z_extrema, 0))
+
+        print 'Iterative evaluation of bunch length...'
+        counter = 0
+        z0 = sigma
+        eps = 1
+
+        # Iteratively obtain true H0 to make target sigma
+        zH = z0
+        psi.H0 = self.H0(zH)
+        a = 1
+        while abs(eps)>1e-4:
+            zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+
+            # TODO: optimize convergence algorithm: particle swarm optimization
+            eps = zS - z0
+            print counter, zH, zS, eps
+            zH -= a * eps
+            psi.H0 = self.H0(zH)
+
+            counter += 1
+            if counter > 100:
+                print "\n*** WARNING: too many interation steps! There are several possible reasons for that:"
+                print "1. Is the Hamiltonian correct?"
+                print "2. Is the stationary distribution function convex around zero?"
+                print "3. Is the bunch too long to fit into the bucket?"
+                print "4. Is this algorithm not qualified?"
+                print "Aborting..."
+                sys.exit(-1)
+            elif counter > 90:
+                a = 0.1
+            elif counter > 60:
+                a = 0.25
+            elif counter > 30:
+                a = 0.5
+
+        print "*** Converged!\n"
+
+        return psi.function
 
     def _set_target_std(self, psi, sigma):
 
@@ -320,6 +376,12 @@ class RFBucket(PhaseSpace):
 
         return np.sqrt(V/Q)
 
+    def dontgenerate(self, particles):
+
+        particles.z = np.zeros(particles.n_macroparticles)
+        particles.dp = np.zeros(particles.n_macroparticles)
+        particles.generator = self
+
     def generate(self, particles):
         '''
         Generate a 2d phase space of n_particles particles randomly distributed
@@ -454,10 +516,21 @@ class ImportZ(PhaseSpace):
 
 class StationaryExponential(object):
 
-    def __init__(self, H):
+    def __init__(self, H, Hmax=None, Hcut=0):
         self.H = H
-        self.H0 = 1
-        self.Hmax = H(0, 0)
+        if not Hmax:
+            self.Hmax = H(0, 0)
+        else:
+            self.Hmax = Hmax
+        self.Hcut = Hcut
+        self.width = 1000
 
     def function(self, z, dp):
-        return (np.exp(self.H(z, dp)/self.H0) - 1) / (np.exp(self.Hmax/self.H0) - 1)
+        # psi = np.exp((self.H(z, dp)) / (self.width*self.Hmax)) - 1
+        # psi_offset = np.exp(self.Hcut / (self.width*self.Hmax)) - 1
+        # psi_norm = (np.exp(1/self.width) - 1) - psi_offset
+        # return ( (psi-psi_offset) / psi_norm ).clip(min=0)
+
+        psi = np.exp( (self.H(z, dp)-self.Hcut).clip(min=0) / (self.width*self.Hmax)) - 1
+        psi_norm = np.exp( (self.Hmax-0*self.Hcut) / (self.width*self.Hmax) ) - 1
+        return psi/psi_norm
