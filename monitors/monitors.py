@@ -21,32 +21,39 @@ class Monitor(object):
 class BunchMonitor(Monitor):
 
     def __init__(self, filename, n_steps, dictionary=None):
-        self.h5file  = hp.File(filename + '.h5', 'w')
-        self.n_steps = n_steps
-        self.i_steps = 0
 
+        self.filename = filename
+        self.n_steps  = n_steps
+        self.i_steps  = 0
+
+        h5file = hp.File(filename + '.h5', 'w')
         if dictionary:
             for key in dictionary:
-                self.h5file.attrs[key] = dictionary[key]
+                h5file.attrs[key] = dictionary[key]
 
-        self.h5file.create_group('Bunch')
+        h5file.create_group('Bunch')
+        h5file.close()
 
 
     def dump(self, bunch):
 
+        h5file = hp.File(self.filename + '.h5', 'a')
+
         if not self.i_steps:
             n_steps = self.n_steps
-            self._create_data((n_steps,))
-            self._write_data(bunch)
+            self._create_data(h5file, (n_steps,))
+            self._write_data(h5file, bunch)
         else:
-            self._write_data(bunch)
-
+            self._write_data(h5file, bunch)
+            
         self.i_steps += 1
 
+        h5file.close()
+        
+        
+    def _create_data(self, h5file, dims):
 
-    def _create_data(self, dims):
-
-        h5group = self.h5file['Bunch']
+        h5group = h5file['Bunch']
 
         h5group.create_dataset("mean_x",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_xp",  dims, compression="gzip", compression_opts=9)
@@ -64,9 +71,9 @@ class BunchMonitor(Monitor):
         h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
 
 
-    def _write_data(self, bunch):
+    def _write_data(self, h5file, bunch):
 
-        h5group = self.h5file['Bunch']
+        h5group = h5file['Bunch']
 
         h5group["mean_x"][self.i_steps]   = bunch.mean_x()
         h5group["mean_xp"][self.i_steps]  = bunch.mean_xp()
@@ -84,27 +91,29 @@ class BunchMonitor(Monitor):
         h5group["n_macroparticles"][self.i_steps] = bunch.n_macroparticles
 
 
-    def close(self):
-        self.h5file.close()
-
-
 class SliceMonitor(Monitor):
 
     def __init__(self, filename, n_steps, dictionary=None, slices=None):
-        self.h5file  = hp.File(filename + '.h5', 'w')
+
+        self.filename  = filename
         self.n_steps = n_steps
         self.slices  = slices
         self.i_steps = 0
 
+        h5file = hp.File(filename + '.h5', 'w')
         if dictionary:
             for key in dictionary:
-                self.h5file.attrs[key] = dictionary[key]
+                h5file.attrs[key] = dictionary[key]
 
-        self.h5file.create_group('Bunch')
-        self.h5file.create_group('Slices')
+        h5file.create_group('Bunch')
+        h5file.create_group('Slices')
+        h5file.close()
 
 
     def dump(self, bunch):
+
+        h5file = hp.File(self.filename + '.h5', 'a')
+        
         if not self.slices:
             self.slices = bunch.slices
 
@@ -112,19 +121,22 @@ class SliceMonitor(Monitor):
             n_steps = self.n_steps
             n_slices = self.slices.n_slices
 
-            self._create_data(self.h5file['Bunch'],  (n_steps,))
-            self._create_data(self.h5file['Slices'], (n_slices, n_steps))
+            self._create_data(h5file['Bunch'],  (n_steps,))
+            self._create_data(h5file['Slices'], (n_slices, n_steps))
 
-            self._write_bunch_data(bunch)
-            self._write_slice_data(bunch)
+            self._write_bunch_data(h5file, bunch)
+            self._write_slice_data(h5file, bunch)
         else:
-            self._write_bunch_data(bunch)
-            self._write_slice_data(bunch)
+            self._write_bunch_data(h5file, bunch)
+            self._write_slice_data(h5file, bunch)
 
         self.i_steps += 1
 
+        h5file.close()
+
 
     def _create_data(self, h5group, dims):
+        
         h5group.create_dataset("mean_x",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_xp",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_y",   dims, compression="gzip", compression_opts=9)
@@ -141,9 +153,9 @@ class SliceMonitor(Monitor):
         h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
 
 
-    def _write_bunch_data(self, bunch):
+    def _write_bunch_data(self, h5file, bunch):
 
-        h5group = self.h5file['Bunch']
+        h5group = h5file['Bunch']
         
         h5group["mean_x"][self.i_steps]   = bunch.mean_x()
         h5group["mean_xp"][self.i_steps]  = bunch.mean_xp()
@@ -161,9 +173,9 @@ class SliceMonitor(Monitor):
         h5group["n_macroparticles"][self.i_steps] = bunch.n_macroparticles
 
 
-    def _write_slice_data(self, bunch):
+    def _write_slice_data(self, h5file, bunch):
 
-        h5group = self.h5file['Slices']
+        h5group = h5file['Slices']
 
         h5group["mean_x"][:,self.i_steps]   = self.slices.mean_x(bunch)
         h5group["mean_xp"][:,self.i_steps]  = self.slices.mean_xp(bunch)
@@ -181,25 +193,27 @@ class SliceMonitor(Monitor):
         h5group["n_macroparticles"][:,self.i_steps] = self.slices.n_macroparticles
 
 
-    def close(self):
-        self.h5file.close()
-
-
 class ParticleMonitor(Monitor):
 
     def __init__(self, filename, stride=1, dictionary=None, slices=None):
 
-        self.h5file = hp.File(filename + '.h5part', 'w')
-        if dictionary:
-            for key in dictionary:
-                self.h5file.attrs[key] = dictionary[key]
-
+        self.filename = filename
         self.slices = slices
         self.stride = stride
         self.i_steps = 0
 
+        h5file = hp.File(filename + '.h5part', 'w')
+        if dictionary:
+            for key in dictionary:
+                h5file.attrs[key] = dictionary[key]
+
+        h5file.close()
+
 
     def dump(self, bunch):
+
+        h5file = hp.File(self.filename + '.h5part', 'a')
+        
         if not self.slices:
             self.slices = bunch.slices
 
@@ -207,15 +221,17 @@ class ParticleMonitor(Monitor):
             resorting_indices = np.argsort(bunch.id)[::self.stride]
             self.z0 = np.copy(bunch.z[resorting_indices])
 
-        h5group = self.h5file.create_group("Step#" + str(self.i_steps))
+        h5group = h5file.create_group("Step#" + str(self.i_steps))
         self._create_data(h5group, (bunch.n_macroparticles // self.stride,))
-        self._write_data(bunch, h5group)
+        self._write_data(h5group, bunch)
 
         self.i_steps += 1
 
+        h5file.close()
+
 
     def _create_data(self, h5group, dims):
-
+        
         h5group.create_dataset("x",           dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("xp",          dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("y",           dims, compression="gzip", compression_opts=9)
@@ -229,7 +245,7 @@ class ParticleMonitor(Monitor):
         h5group.create_dataset("c",  dims)
 
 
-    def _write_data(self, bunch, h5group):
+    def _write_data(self, h5group, bunch):
 
         resorting_indices = np.argsort(bunch.id)[::self.stride]
 
