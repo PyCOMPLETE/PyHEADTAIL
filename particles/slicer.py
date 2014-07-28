@@ -63,7 +63,7 @@ class Slicer(object):
         z_bins_all = np.hstack((bunch.z[0], self.z_bins, bunch.z[n_macroparticles_alive - 1]))
         first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], z_bins_all)
         if (self.z_bins[-1] in bunch.z[:n_macroparticles_alive]): first_index_in_bin[-1] += 1
-        self.z_index = first_index_in_bin[1:-1]
+        self.first_particle_index_in_slice = first_index_in_bin[1:-1]
 
         # first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], self.z_bins)
         # self.z_index = first_index_in_bin
@@ -102,11 +102,11 @@ class Slicer(object):
         # Get indices of the particles defining the bin edges
         n_macroparticles_all = np.hstack((self.n_cut_tail, self.n_macroparticles, self.n_cut_head))
         first_index_in_bin = np.cumsum(n_macroparticles_all)
-        self.z_index = first_index_in_bin[:-1]
-        self.z_index = (self.z_index).astype(int)
+        self.first_particle_index_in_slice = first_index_in_bin[:-1]
+        self.first_particle_index_in_slice = (self.first_particle_index_in_slice).astype(int)
 
         # print(self.z_index.shape)
-        self.z_bins = (bunch.z[self.z_index - 1] + bunch.z[self.z_index]) / 2.
+        self.z_bins = (bunch.z[self.first_particle_index_in_slice - 1] + bunch.z[self.first_particle_index_in_slice]) / 2.
         self.z_bins[0], self.z_bins[-1] = z_cut_tail, z_cut_head
         self.z_centers = (self.z_bins[:-1] + self.z_bins[1:]) / 2.
 
@@ -122,7 +122,7 @@ class Slicer(object):
             self.slice_index_of_particle = np.zeros(bunch.n_macroparticles, dtype=np.int)
 
         for i in range(self.n_slices):
-            self.slice_index_of_particle[self.z_index[i]:self.z_index[i+1]] = i
+            self.slice_index_of_particle[self.first_particle_index_in_slice[i]:self.first_particle_index_in_slice[i+1]] = i
 
 
     def update_slices(self, bunch):
@@ -135,9 +135,6 @@ class Slicer(object):
             self.n_particles = self.n_macroparticles*bunch.n_particles_per_mp
         else:
             self.n_particles = 'Not yet implemented for non uniform set'
-
-        self.first_particle_index_in_slice = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-
         
     '''
     Stats.
@@ -173,12 +170,15 @@ class Slicer(object):
         return self._sigma(bunch.dp)
     
     def epsn_x(self, bunch):
-        return self._epsn_xy(bunch.x, bunch.xp, bunch.beta, bunch.gamma)
+        return self._epsn(bunch.x, bunch.xp, bunch.beta, bunch.gamma)
 
     def epsn_y(self, bunch):
-        return self._epsn_xy(bunch.y, bunch.yp, bunch.beta, bunch.gamma)
+        return self._epsn(bunch.y, bunch.yp, bunch.beta, bunch.gamma)
     
     def epsn_z(self, bunch):
+        '''
+        Approximate epsn_z. Correct for Gaussian bunch.
+        '''
         return (4. * np.pi * self.sigma_z(bunch) * self.sigma_dp(bunch) * bunch.p0 / bunch.charge)
 
     
@@ -205,7 +205,7 @@ class Slicer(object):
 
         return stats
 
-    def _epsn_xy(self, u, up, beta, gamma):
+    def _epsn(self, u, up, beta, gamma):
 
         index = self.first_particle_index_in_slice
         stats = np.zeros(self.n_slices)
