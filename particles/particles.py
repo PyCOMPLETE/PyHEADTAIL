@@ -9,7 +9,7 @@ import sys
 import numpy as np
 from scipy.constants import c, e, m_e, m_p
 
-from cobra_functions import stats
+import cobra_functions.stats as cp
 from generators import *
 
 
@@ -36,8 +36,8 @@ class Particles(object):
         self.n_macroparticles = n_macroparticles
 
         self.charge = charge
-        self.gamma = gamma
         self.mass = mass
+        self.gamma = gamma
 
         self.n_particles_per_mp = n_particles_per_mp
 
@@ -184,19 +184,45 @@ class Particles(object):
         self.dp = self.dp.take(z_argsorted)
         self.id = self.id.take(z_argsorted)
 
-    def compute_statistics(self):
-        self.mean_x  = stats.mean(self.x)
-        self.mean_xp = stats.mean(self.xp)
-        self.mean_y  = stats.mean(self.y)
-        self.mean_yp = stats.mean(self.yp)
-        self.mean_z  = stats.mean(self.z)
-        self.mean_dp = stats.mean(self.dp)
 
-        self.sigma_x  = stats.std(self.x)
-        self.sigma_y  = stats.std(self.y)
-        self.sigma_z  = stats.std(self.z)
-        self.sigma_dp = stats.std(self.dp)
+    '''
+    Stats.
+    '''
+    def mean_x(self):
+        return cp.mean(self.x)
 
-        self.epsn_x = stats.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
-        self.epsn_y = stats.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
-        self.epsn_z = 4 * np.pi * self.sigma_z * self.sigma_dp * self.p0 / self.charge
+    def mean_xp(self):
+        return cp.mean(self.xp)
+    
+    def mean_y(self):
+        return cp.mean(self.y)
+
+    def mean_yp(self):
+        return cp.mean(self.yp)
+    
+    def mean_z(self):
+        return cp.mean(self.z)
+
+    def mean_dp(self):
+        return cp.mean(self.dp)
+
+    def sigma_x(self):
+        return cp.std(self.x)
+
+    def sigma_y(self):
+        return cp.std(self.y)
+
+    def sigma_z(self):
+        return cp.std(self.z)
+
+    def sigma_dp(self):
+        return cp.std(self.dp)
+
+    def epsn_x(self):
+        return cp.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
+
+    def epsn_y(self):
+        return cp.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
+
+    def epsn_z(self):
+        return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
