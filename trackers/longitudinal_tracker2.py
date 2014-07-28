@@ -133,10 +133,15 @@ class RFSystems(object):
         except IndexError:
             self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_extrema[-1]
 
+    def Hmax(self):
+        return self.hamiltonian(self.zs, 0)
+
+    def Hcut(self, zc):
+        return self.hamiltonian(zc, 0)
+
     def equihamiltonian(self, zc):
-        Hc = self.hamiltonian(zc, 0)
         def s(z):
-            r = np.sign(self.eta) * 2/(self.eta*self.beta*c) * (-Hc - self.V_acc(z)/self.p0)
+            r = np.sign(self.eta) * 2/(self.eta*self.beta*c) * (-self.Hcut(zc) - self.V_acc(z)/self.p0)
             return np.sqrt(r.clip(min=0))
         return s
 
