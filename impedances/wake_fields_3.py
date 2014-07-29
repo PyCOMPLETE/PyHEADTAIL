@@ -65,12 +65,9 @@ class Wakes(object):
 
 
     @classmethod
-    def resistive_wall(cls, pipe_radius, resistive_wall_length, conductivity, dz_min, slices):
-
-        Yokoya_X1 = 1
-        Yokoya_Y1 = 1
-        Yokoya_X2 = 0
-        Yokoya_Y2 = 0
+    def resistive_wall(cls, pipe_radius, resistive_wall_length, conductivity, dz_min, Yokoya_X1, Yokoya_Y1,
+                       Yokoya_X2, Yokoya_Y2, slices):
+        
         self = WakeSources.ResistiveWall(pipe_radius, resistive_wall_length, conductivity, dz_min,
                                          Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, slices)
         return cls((self,), slices)
