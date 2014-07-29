@@ -117,7 +117,7 @@ def main():
     # SET UP ACCELERATOR MAP AND START TRACKING
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     # Accelerator map.
-    map_ = transverse_map + [cavity]
+    map_ = [transverse_map[0]] + [cavity]
     wakes = [wakes]
     
     f, (ax1, ax2, ax3, ax4) = plt.subplots(4, sharex=True)
@@ -190,7 +190,7 @@ def main():
         else:
             wakes[0].track(bunch)
             
-        print i
+        print 'turn', i
 
     plt.show()
     
