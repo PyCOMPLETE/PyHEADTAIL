@@ -15,75 +15,20 @@ import cobra_functions.stats as cp
 
 class Slicer(object):
     '''
-    Slices class that controls longitudinal discretization of a beam.
+    Slicer class that controls longitudinal discretization of a beam.
     '''
-
     def __init__(self, n_slices, nsigmaz=None, mode='const_space', z_cuts=None):
-        '''
-        Constructor
-        '''
+
         self.n_slices = n_slices
         self.nsigmaz = nsigmaz
         self.mode = mode
-
-        self.mean_x = np.zeros(n_slices)
-        self.mean_xp = np.zeros(n_slices)
-        self.mean_y = np.zeros(n_slices)
-        self.mean_yp = np.zeros(n_slices)
-        self.mean_z = np.zeros(n_slices)
-        self.mean_dp = np.zeros(n_slices)
-        self.sigma_x = np.zeros(n_slices)
-        self.sigma_y = np.zeros(n_slices)
-        self.sigma_z = np.zeros(n_slices)
-        self.sigma_dp = np.zeros(n_slices)
-        self.epsn_x = np.zeros(n_slices)
-        self.epsn_y = np.zeros(n_slices)
-        self.epsn_z = np.zeros(n_slices)
 
         if z_cuts:
             self.z_cut_tail, self.z_cut_head = z_cuts
             self.z_bins = np.linspace(self.z_cut_tail, self.z_cut_head, self.n_slices + 1)
             self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
-    def mean_x(self, bunch):
-        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-        stats = np.zeros(self.n_slices)
-        for i in xrange(self.n_slices):
-            x  = bunch.x[index[i]:index[i + 1]]
-            stats[i] = cp.mean(x)
-
-        return stats
-
-    def mean_y(self, bunch):
-        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-        stats = np.zeros(self.n_slices)
-        for i in xrange(self.n_slices):
-            k  = bunch.y[index[i]:index[i + 1]]
-            stats[i] = cp.mean(k)
-
-        return stats
-
-    def sigma_x(self, bunch):
-        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-        stats = np.zeros(self.n_slices)
-        for i in xrange(self.n_slices):
-            k  = bunch.x[index[i]:index[i + 1]]
-            stats[i] = cp.std(k)
-
-        return stats
-
-    def epsn_x(self, bunch):
-        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
-        stats = np.zeros(self.n_slices)
-        for i in xrange(self.n_slices):
-            k  = bunch.x[index[i]:index[i + 1]]
-            kp  = bunch.xp[index[i]:index[i + 1]]
-            stats[i] = cp.emittance(k, kp) * bunch.gamma * bunch.beta * 1e6
-
-        return stats
-
-    def _stats_helper(self): pass
-
+    
     def _set_longitudinal_cuts(self, bunch):
 
         if self.nsigmaz == None:
@@ -118,7 +63,7 @@ class Slicer(object):
         z_bins_all = np.hstack((bunch.z[0], self.z_bins, bunch.z[n_macroparticles_alive - 1]))
         first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], z_bins_all)
         if (self.z_bins[-1] in bunch.z[:n_macroparticles_alive]): first_index_in_bin[-1] += 1
-        self.z_index = first_index_in_bin[1:-1]
+        self.first_particle_index_in_slice = first_index_in_bin[1:-1]
 
         # first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], self.z_bins)
         # self.z_index = first_index_in_bin
@@ -157,11 +102,11 @@ class Slicer(object):
         # Get indices of the particles defining the bin edges
         n_macroparticles_all = np.hstack((self.n_cut_tail, self.n_macroparticles, self.n_cut_head))
         first_index_in_bin = np.cumsum(n_macroparticles_all)
-        self.z_index = first_index_in_bin[:-1]
-        self.z_index = (self.z_index).astype(int)
+        self.first_particle_index_in_slice = first_index_in_bin[:-1]
+        self.first_particle_index_in_slice = (self.first_particle_index_in_slice).astype(int)
 
         # print(self.z_index.shape)
-        self.z_bins = (bunch.z[self.z_index - 1] + bunch.z[self.z_index]) / 2.
+        self.z_bins = (bunch.z[self.first_particle_index_in_slice - 1] + bunch.z[self.first_particle_index_in_slice]) / 2.
         self.z_bins[0], self.z_bins[-1] = z_cut_tail, z_cut_head
         self.z_centers = (self.z_bins[:-1] + self.z_bins[1:]) / 2.
 
@@ -177,11 +122,8 @@ class Slicer(object):
             self.slice_index_of_particle = np.zeros(bunch.n_macroparticles, dtype=np.int)
 
         for i in range(self.n_slices):
-            self.slice_index_of_particle[self.z_index[i]:self.z_index[i+1]] = i
+            self.slice_index_of_particle[self.first_particle_index_in_slice[i]:self.first_particle_index_in_slice[i+1]] = i
 
-    # def slice_index_of_particles(self):
-
-        # return slice_index
 
     def update_slices(self, bunch):
         if self.mode == 'const_charge':
@@ -193,38 +135,83 @@ class Slicer(object):
             self.n_particles = self.n_macroparticles*bunch.n_particles_per_mp
         else:
             self.n_particles = 'Not yet implemented for non uniform set'
+        
+    '''
+    Stats.
+    '''
+    def mean_x(self, bunch):
+        return self._mean(bunch.x)
 
-    # @profile
-    def compute_statistics(self, bunch):
+    def mean_xp(self, bunch):
+        return self._mean(bunch.xp)
+    
+    def mean_y(self, bunch):
+        return self._mean(bunch.y)
 
-        index = self.n_cut_tail + np.cumsum(np.append(0, self.n_macroparticles))
+    def mean_yp(self, bunch):
+        return self._mean(bunch.yp)
 
-        # # determine the start and end indices of each slices
-        # i1 = np.append(np.cumsum(self.slices.n_macroparticles[:-2]), np.cumsum(self.slices.n_macroparticles[-2:]))
-        # i0 = np.zeros(len(i1), dtype=np.int)
-        # i0[1:] = i1[:-1]
-        # i0[-2] = 0
+    def mean_z(self, bunch):
+        return self._mean(bunch.z)
 
+    def mean_dp(self, bunch):
+        return self._mean(bunch.dp)
+
+    def sigma_x(self, bunch):
+        return self._sigma(bunch.x)
+
+    def sigma_y(self, bunch):
+        return self._sigma(bunch.y)
+
+    def sigma_z(self, bunch):
+        return self._sigma(bunch.z)
+
+    def sigma_dp(self, bunch):
+        return self._sigma(bunch.dp)
+    
+    def epsn_x(self, bunch):
+        return self._epsn(bunch.x, bunch.xp, bunch.beta, bunch.gamma)
+
+    def epsn_y(self, bunch):
+        return self._epsn(bunch.y, bunch.yp, bunch.beta, bunch.gamma)
+    
+    def epsn_z(self, bunch):
+        '''
+        Approximate epsn_z. Correct for Gaussian bunch.
+        '''
+        return (4. * np.pi * self.sigma_z(bunch) * self.sigma_dp(bunch) * bunch.p0 / bunch.charge)
+
+    
+    '''
+    Stats helper functions.
+    '''
+    def _mean(self, u):
+
+        index = self.first_particle_index_in_slice
+        stats = np.zeros(self.n_slices)
         for i in xrange(self.n_slices):
-            x  = bunch.x[index[i]:index[i + 1]]
-            xp = bunch.xp[index[i]:index[i + 1]]
-            y  = bunch.y[index[i]:index[i + 1]]
-            yp = bunch.yp[index[i]:index[i + 1]]
-            z  = bunch.z[index[i]:index[i + 1]]
-            dp = bunch.dp[index[i]:index[i + 1]]
+            k = u[index[i]:index[i + 1]]
+            stats[i] = cp.mean(k)
 
-            self.mean_x[i] = cp.mean(x)
-            self.mean_xp[i] = cp.mean(xp)
-            self.mean_y[i] = cp.mean(y)
-            self.mean_yp[i] = cp.mean(yp)
-            self.mean_z[i] = cp.mean(z)
-            self.mean_dp[i] = cp.mean(dp)
+        return stats
+    
+    def _sigma(self, u):
+        
+        index = self.first_particle_index_in_slice
+        stats = np.zeros(self.n_slices)
+        for i in xrange(self.n_slices):
+            k  = u[index[i]:index[i + 1]]
+            stats[i] = cp.std(k)
 
-            self.sigma_x[i] = cp.std(x)
-            self.sigma_y[i] = cp.std(y)
-            self.sigma_z[i] = cp.std(z)
-            self.sigma_dp[i] = cp.std(dp)
+        return stats
 
-            self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma * bunch.beta * 1e6
-            self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma * bunch.beta * 1e6
-            self.epsn_z[i] = 4 * np.pi * self.sigma_z[i] * self.sigma_dp[i] * bunch.p0 / bunch.charge
+    def _epsn(self, u, up, beta, gamma):
+
+        index = self.first_particle_index_in_slice
+        stats = np.zeros(self.n_slices)
+        for i in xrange(self.n_slices):
+            k  = u[index[i]:index[i + 1]]
+            kp = up[index[i]:index[i + 1]]
+            stats[i] = cp.emittance(k, kp) * gamma * beta * 1e6
+
+        return stats

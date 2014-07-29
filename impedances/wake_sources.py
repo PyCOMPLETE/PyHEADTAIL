@@ -1,101 +1,231 @@
 '''
-@class Wakefields
+@class WakeSources
 @author Hannes Bartosik & Kevin Li & Giovanni Rumolo & Michael Schenk
-@date March 2014
-@Class for creation and management of wakefields from impedance sources
+@date July 2014
+@Class for creation and management of impedance sources
 @copyright CERN
 '''
 from __future__ import division
 
-from abc import ABCMeta, abstractmethod
-import numpy as np
-from scipy.constants import c, e
-from scipy.constants import physical_constants
+from wake_kicks import *
 
+import numpy as np
+from scipy.constants import c
+from scipy.constants import physical_constants
 
 sin = np.sin
 cos = np.cos
 
 
-class WakeSources(object):
+class WakeTable(object):
 
-    __metaclass__ = ABCMeta
+    def __init__(self, wake_file, wake_file_columns, slices):
 
-    @abstractmethod
-    def wake_functions(self):
-        pass
+        table = np.loadtxt(wake_file, delimiter="\t")
+        self.wake_table = dict(zip(wake_file_columns, np.array(zip(*table))))
+        self._unit_conversion()
+
+        # Generate wake kicks and append to list of kicks.                       
+        self.kicks = []
+        self._generate_wake_kicks(slices)
+
+                
+    def _unit_conversion(self):
+
+        print 'Converting wake table to correct units ... '
+        
+        allowed_transverse_wakefield_keys   = ['constant_x', 'constant_y',
+                                               'dipole_x',   'dipole_y',   'quadrupole_x',  'quadrupole_y',
+                                               'dipole_xy',  'dipole_yx',  'quadrupole_xy', 'quadrupole_yx']
+        allowed_longitudinal_wakefield_keys = ['longitudinal']
+
+        self.wakefield_keys   = []
+        self.wake_table['time'] *= 1e-9 # unit convention [ns]
+        print '\t converted time from [ns] to [s]'
+
+        for wake_component in allowed_transverse_wakefield_keys:
+            try:
+                self.wake_table[wake_component] *= - 1.e15 # unit convention [V/pC/mm] and sign convention !!
+                print '\t converted "' + wake_component + '" wake from [V/pC/mm] to [V/C/m] and inverted sign'
+                self.wakefield_keys += [wake_component]
+            except:
+                print '\t "' + wake_component + '" wake not provided'
+
+        for wake_component in allowed_longitudinal_wakefield_keys:
+            try:
+                self.wake_table[wake_component] *= - 1.e12 # unit convention [V/pC] and sign convention !!
+                print '\t converted "' + wake_component + '" wake from [V/pC] to [V/C]'
+                self.wakefield_keys += [wake_component]
+            except:
+                print '\t "' + wake_component + '" wake not provided'
+
+                
+    def _generate_wake_kicks(self, slices):
+        
+        # X wakes.
+        if 'constant_x' in self.wakefield_keys:
+            wake_function = self._function_transverse('constant_x')
+            self.kicks.append(ConstantWakeKickX(wake_function, slices))
+                    
+        if 'dipole_x' in self.wakefield_keys:
+            wake_function = self._function_transverse('dipole_x')
+            self.kicks.append(DipoleWakeKickX(wake_function, slices))
+
+        if 'quadrupole_x' in self.wakefield_keys:
+            wake_function = self._function_transverse('quadrupole_x')
+            self.kicks.append(QuadrupoleWakeKickX(wake_function, slices))
+            
+        if 'dipole_xy' in self.wakefield_keys:
+            wake_function = self._function_transverse('dipole_xy')
+            self.kicks.append(DipoleWakeKickXY(wake_function, slices))
+
+        if 'quadrupole_xy' in self.wakefield_keys:
+            wake_function = self._function_transverse('quadrupole_xy')
+            self.kicks.append(QuadrupoleWakeKickXY(wake_function, slices))
+
+        # Y wakes.
+        if 'constant_y' in self.wakefield_keys:
+            wake_function = self._function_transverse('constant_y')
+            self.kicks.append(ConstantWakeKickY(wake_function, slices))
+                    
+        if 'dipole_y' in self.wakefield_keys:
+            wake_function = self._function_transverse('dipole_y')
+            self.kicks.append(DipoleWakeKickY(wake_function, slices))
+
+        if 'quadrupole_y' in self.wakefield_keys:
+            wake_function = self._function_transverse('quadrupole_y')
+            self.kicks.append(QuadrupoleWakeKickY(wake_function, slices))
+            
+        if 'dipole_yx' in self.wakefield_keys:
+            wake_function = self._function_transverse('dipole_yx')
+            self.kicks.append(DipoleWakeKickYX(wake_function, slices))
+
+        if 'quadrupole_yx' in self.wakefield_keys:
+            wake_function = self._function_transverse('quadrupole_yx')
+            self.kicks.append(QuadrupoleWakeKickYX(wake_function, slices))
+
+        # Z wakes.
+        if 'longitudinal' in self.wakefield_keys:
+            wake_function = self._function_longitudinal('longitudinal')
+            self.kicks.append(ConstantWakeKickZ(wake_function, slices))
+            
+
+    def _function_transverse(self, key):
+        time          = np.array(self.wake_table['time'])
+        wake_strength = np.array(self.wake_table[key])
+        # insert zeros at origin if wake functions at (or below) zero not provided
+        if time[0] > 0:
+            time          = np.append(0, time)
+            wake_strength = np.append(0, wake_strength)
+        # insert zero value of wake field if provided wake begins with a finite value
+        if wake_strength[0] != 0:
+            time          = np.append(time[0] - np.diff(time[1], time[0]), time)
+            wake_strength = np.append(0, wake_strength)
+
+        def wake(beta, z): 
+            return np.interp(- z / (beta * c), time, wake_strength, left=0, right=0)
+
+        return wake
 
 
-def BB_Resonator_Circular(R_shunt, frequency, Q, slices):
-    return BB_Resonator_transverse(R_shunt, frequency, Q,
-                                   Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0)
+    def _function_longitudinal(self, key):
+        time          = np.array(self.wake_table['time'])
+        wake_strength = np.array(self.wake_table[key])
+
+        def wake(beta, z):
+            wake_interpolated = np.interp(- z / (beta * c), time, wake_strength, left=0, right=0)
+            if time[0] < 0:
+                return wake_interpolated
+            elif time[0] == 0:
+                # beam loading theorem: half value of wake at z=0;
+                return (np.sign(-z) + 1) / 2 * wake_interpolated
+
+        return wake
 
 
-def BB_Resonator_ParallelPlates(R_shunt, frequency, Q, slices):
-    return BB_Resonator_transverse(R_shunt, frequency, Q,
-                                   Yokoya_X1=np.pi**2/24, Yokoya_Y1=np.pi**2/12,
-                                   Yokoya_X2=-np.pi**2/24, Yokoya_Y2=np.pi**2/24, Yokoya_ZZ=0)
-
-
-class Resonator(WakeSources):
+class Resonator(object):
 
     def __init__(self, R_shunt, frequency, Q,
-                 Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0):
+                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, Yokoya_Z, slices):
 
-        assert(len(R_shunt) == len(frequency) == len(Q))
+        # Handle single-element inputs. Is there a better option?
+        if not isinstance(R_shunt, list):   R_shunt   = [R_shunt]
+        if not isinstance(frequency, list): frequency = [frequency]
+        if not isinstance(Q, list):         Q         = [Q]
+        if not isinstance(Yokoya_X1, list): Yokoya_X1 = [Yokoya_X1]
+        if not isinstance(Yokoya_X2, list): Yokoya_X2 = [Yokoya_X2]
+        if not isinstance(Yokoya_Y1, list): Yokoya_Y1 = [Yokoya_Y1]
+        if not isinstance(Yokoya_Y2, list): Yokoya_Y2 = [Yokoya_Y2]
+        if not isinstance(Yokoya_Z, list):  Yokoya_Z  = [Yokoya_Z]
 
-        self.R_shunt = R_shunt
+        assert(len(R_shunt)   == len(frequency) == len(Q) == len(Yokoya_X1) == len(Yokoya_X2) == \
+               len(Yokoya_Y1) == len(Yokoya_Y2) == len(Yokoya_Z))
+
+        self.R_shunt   = R_shunt
         self.frequency = frequency
-        self.Q = Q
-        # self.R_shunt = np.array([R_shunt]).flatten()
-        # self.frequency = np.array([frequency]).flatten()
-        # self.Q = np.array([Q]).flatten()
-
+        self.Q         = Q
         self.Yokoya_X1 = Yokoya_X1
-        self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_X2 = Yokoya_X2
+        self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_Y2 = Yokoya_Y2
-        self.Yokoya_ZZ = Yokoya_ZZ
+        self.Yokoya_Z  = Yokoya_Z 
 
-    def wake_functions(self):
+        # Generate wake kicks and append to list of kicks.                       
+        self.kicks = []
+        self._generate_wake_kicks(slices)
 
-        wake_dict = {}
+        
+    def _generate_wake_kicks(self, slices):
 
-        if self.Yokoya_X1:
-            wake_dict['dipole_xx'] = self.Yokoya_X1 * self.function_total(self.function_transverse)
-        if self.Yokoya_Y1:
-            wake_dict['dipole_yy'] = self.Yokoya_Y1 * self.function_total(self.function_transverse)
-        if self.Yokoya_X2:
-            wake_dict['quadrupole_x'] = self.Yokoya_X2 * self.function_total(self.function_transverse)
-        if self.Yokoya_Y2:
-            wake_dict['quadrupole_y'] = self.Yokoya_Y2 * self.function_total(self.function_transverse)
-        if self.Yokoya_ZZ:
-            wake_dict['longitudinal'] = self.Yokoya_ZZ * self.function_total(self.function_longitudinal)
+        # Dipole wake kick x.
+        if any(self.Yokoya_X1):
+            wake_function = self._function_total(self._function_transverse, self.Yokoya_X1)
+            self.kicks.append(DipoleWakeKickX(wake_function, slices))
 
-        return wake_dict
+        # Quadrupole wake kick x.
+        if any(self.Yokoya_X2):
+            wake_function = self._function_total(self._function_transverse, self.Yokoya_X2)
+            self.kicks.append(QuadrupoleWakeKickX(wake_function, slices))
 
-    def function_transverse(self, R_shunt, frequency, Q):
+        # Dipole wake kick y.
+        if any(self.Yokoya_Y1):
+            wake_function = self._function_total(self._function_transverse, self.Yokoya_Y1)
+            self.kicks.append(DipoleWakeKickY(wake_function, slices))
+
+        # Quadrupole wake kick y.
+        if any(self.Yokoya_Y2):
+            wake_function = self._function_total(self._function_transverse, self.Yokoya_Y2)
+            self.kicks.append(QuadrupoleWakeKickY(wake_function, slices))
+
+        # Constant wake kick z.
+        if any(self.Yokoya_Z):
+            wake_function = self._function_total(self._function_longitudinal, self.Yokoya_Z)
+            self.kicks.append(ConstantWakeKickZ(wake_function, slices))
+
+
+    def _function_transverse(self, R_shunt, frequency, Q, Yokoya_factor):
 
         # Taken from Alex Chao's resonator model (2.82)
-        omega = 2 * np.pi * self.frequency
-        alpha = omega / (2 * self.Q)
+        omega = 2 * np.pi * frequency
+        alpha = omega / (2 * Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         # Taken from definition in HEADTAIL
         def wake(beta, z):
 
             t = z.clip(max=0) / (beta*c)
-            if self.Q > 0.5:
-                y =  self.R_shunt * omega**2 / (self.Q*omegabar) * np.exp(alpha*t) * sin(omegabar*t)
-            elif self.Q == 0.5:
-                y =  self.R_shunt * omega**2 / self.Q * np.exp(alpha*t) * t
+            if Q > 0.5:
+                y =  Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) * np.exp(alpha*t) * sin(omegabar*t)
+            elif Q == 0.5:
+                y =  Yokoya_factor * R_shunt * omega**2 / Q * np.exp(alpha*t) * t
             else:
-                y =  self.R_shunt * omega**2 / (self.Q*omegabar) * np.exp(alpha*t) * np.sinh(omegabar*t)
+                y =  Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) * np.exp(alpha*t) * np.sinh(omegabar*t)
             return y
 
         return wake
+    
 
-    def function_longitudinal(self, R_shunt, frequency, Q):
+    def _function_longitudinal(self, R_shunt, frequency, Q, Yokoya_factor):
 
         # Taken from Alex Chao's resonator model (2.82)
         omega = 2 * np.pi * frequency
@@ -106,54 +236,28 @@ class Resonator(WakeSources):
 
             t = z.clip(max=0) / (beta*c)
             if Q > 0.5:
-                y =  - (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (cos(omegabar*t)
+                y =  - Yokoya_factor * (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (cos(omegabar*t) \
                                                                             + alpha/omegabar * sin(omegabar*t))
             elif Q == 0.5:
-                y =  - (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (1. + alpha*t)
+                y =  - Yokoya_factor * (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (1. + alpha*t)
             elif Q < 0.5:
-                y =  - (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (np.cosh(omegabar*t)
+                y =  - Yokoya_factor * (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (np.cosh(omegabar*t) \
                                                                             + alpha/omegabar * np.sinh(omegabar*t))
             return y
 
         return wake
 
-    def function_total(self, function_single):
+
+    def _function_total(self, function_single, Yokoya_factor):
         return reduce(lambda x, y: x + y,
-                      [self.function_single(self.R_shunt[i], self.frequency[i], self.Q[i]) for i in np.arange(len(self.Q))])
+                      [function_single(self.R_shunt[i], self.frequency[i], self.Q[i], Yokoya_factor[i])
+                       for i in np.arange(len(self.Q)) if Yokoya_factor[i]!=0])
 
-    def memo(self, fn):
-        cache = {}
-        def call(*args):
-            if args not in cache:
-                cache[args] = fn(*args)
+    
+class ResistiveWall(object):
 
-            return cache[args]
-
-        return call
-
-    def dipole_wake_x_memo(self, bunch, z):
-        wake_partial = partial(self.wake_transverse, bunch)
-        wake_transverse = self.memo(wake_partial)
-        z_shape = z.shape
-        W = np.array(map(wake_transverse, z.flatten())).reshape(z_shape)
-        return self.Yokoya_X1 * W#wake_transverse(bunch, z)
-
-
-def Resistive_wall_Circular(pipe_radius, length_resistive_wall, conductivity=5.4e17, dz_min=1e-4):
-    return Resistive_wall_transverse(pipe_radius, length_resistive_wall, conductivity, dz_min,
-                                     Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0, Yokoya_ZZ=0)
-
-
-def Resistive_wall_ParallelPlates(pipe_radius, length_resistive_wall, conductivity=5.4e17, dz_min=1e-4):
-    return BB_Resonator_transverse(pipe_radius, length_resistive_wall, conductivity, dz_min,
-                                   Yokoya_X1=np.pi**2/24, Yokoya_Y1=np.pi**2/12,
-                                   Yokoya_X2=-np.pi**2/24, Yokoya_Y2=np.pi**2/24, Yokoya_ZZ=0)
-
-
-class ResistiveWall(WakeSources):
-
-    def __init__(self, pipe_radius, resistive_wall_length, conductivity=5.4e17, dz_min= 1e-4,
-                 Yokoya_X1=1, Yokoya_Y1=1, Yokoya_X2=0, Yokoya_Y2=0):
+    def __init__(self, pipe_radius, resistive_wall_length, conductivity, dz_min,
+                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, slices):
 
         self.pipe_radius = np.array([pipe_radius]).flatten()
         self.resistive_wall_length = resistive_wall_length
@@ -165,119 +269,41 @@ class ResistiveWall(WakeSources):
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y2 = Yokoya_Y2
 
-    def wake_functions(self):
+        # Generate wake kicks and append to list of kicks.                       
+        self.kicks = []
+        self._generate_wake_kicks(slices)
 
-        wake_dict = {}
+
+    def _generate_wake_kicks(self, slices):
 
         if self.Yokoya_X1:
-            wake_dict['dipole_x'] = self.Yokoya_X1 * self.function_transverse
-        if self.Yokoya_Y1:
-            wake_dict['dipole_y'] = self.Yokoya_Y1 * self.function_transverse
+            wake_function = self._function_transverse(self.Yokoya_X1)
+            self.kicks.append(DipoleWakeKickX(wake_function, slices))
+
         if self.Yokoya_X2:
-            wake_dict['quadrupole_x'] = self.Yokoya_X2 * self.function_transverse
+            wake_function = self._function_transverse(self.Yokoya_X2)
+            self.kicks.append(QuadrupoleWakeKickX(wake_function, slices))
+
+        if self.Yokoya_Y1:
+            wake_function = self._function_transverse(self.Yokoya_Y1)
+            self.kicks.append(DipoleWakeKickY(wake_function, slices))
+
         if self.Yokoya_Y2:
-            wake_dict['quadrupole_y'] = self.Yokoya_Y2 * self.function_transverse
+            wake_function = self._function_transverse(self.Yokoya_Y2)
+            self.kicks.append(QuadrupoleWakeKickY(wake_function, slices))
 
-        return wake_dict
 
-    def function_transverse(self, bunch, z):
+    def _function_transverse(self, Yokoya_factor):
 
         Z0 = physical_constants['characteristic impedance of vacuum'][0]
         lambda_s = 1. / (Z0*self.conductivity)
         mu_r = 1
 
-        wake = (np.sign(z + np.abs(self.dz_min)) - 1) / 2 * bunch.beta * c
-             * Z0 * self.length_resistive_wall / np.pi / self.pipe_radius ** 3
-             * np.sqrt(-lambda_s * mu_r / np.pi / z.clip(max=-abs(self.dz_min)))
+        def wake(beta, z):
+            y = Yokoya_factor * (np.sign(z + np.abs(self.dz_min)) - 1) / 2 * beta * c \
+                * Z0 * self.resistive_wall_length / np.pi / self.pipe_radius ** 3 \
+                * np.sqrt(-lambda_s * mu_r / np.pi / z.clip(max=-abs(self.dz_min)))
+            
+            return y
 
         return wake
-
-
-class Wake_table(Wakefields):
-
-    def __init__(self, wake_file, keys):
-
-        Wakefields.__init__(self, slices)
-        table = np.loadtxt(wake_file, delimiter="\t")
-        self.wake_table = dict(zip(keys, np.array(zip(*table))))
-        self.unit_conversion()
-
-    def unit_conversion(self):
-        transverse_wakefield_keys   = ['dipolar_x', 'dipolar_y', 'quadrupolar_x', 'quadrupolar_y']
-        longitudinal_wakefield_keys = ['longitudinal']
-        self.wake_field_keys = []
-        print 'Converting wake table to correct units ... '
-        self.wake_table['time'] *= 1e-9 # unit convention [ns]
-        print '\t converted time from [ns] to [s]'
-        for wake in transverse_wakefield_keys:
-            try:
-                self.wake_table[wake] *= - 1.e15 # unit convention [V/pC/mm] and sign convention !!
-                print '\t converted "' + wake + '" wake from [V/pC/mm] to [V/C/m] and inverted sign'
-                self.wake_field_keys += [wake]
-            except:
-                print '\t "' + wake + '" wake not provided'
-        for wake in longitudinal_wakefield_keys:
-            try:
-                self.wake_table[wake] *= - 1.e12 # unit convention [V/pC] and sign convention !!
-                print '\t converted "' + wake + '" wake from [V/pC] to [V/C]'
-                self.wake_field_keys += [wake]
-            except:
-                print '\t "' + wake + '" wake not provided'
-
-    #~ @profile
-    def wake_transverse(self, key, bunch, z):
-        time = np.array(self.wake_table['time'])
-        wake = np.array(self.wake_table[key])
-        # insert zeros at origin if wake functions at (or below) zero not provided
-        if time[0] > 0:
-            time = np.append(0, time)
-            wake = np.append(0, wake)
-        # insert zero value of wake field if provided wake begins with a finite value
-        if wake[0] != 0:
-            wake = np.append(0, wake)
-            time = np.append(time[0] - np.diff(time[1], time[0]), time)
-        return np.interp(- z / c / bunch.beta, time, wake, left=0, right=0)
-
-
-    def dipole_wake_x(self, bunch, z):
-        if 'dipolar_x' in self.wake_field_keys: return self.wake_transverse('dipolar_x', bunch, z)
-        return 0
-
-    def dipole_wake_y(self, bunch, z):
-        if 'dipolar_y' in self.wake_field_keys: return self.wake_transverse('dipolar_y', bunch, z)
-        return 0
-
-    def quadrupole_wake_x(self, bunch, z):
-        if 'quadrupolar_x' in self.wake_field_keys: return self.wake_transverse('quadrupolar_x', bunch, z)
-        return 0
-
-    def quadrupole_wake_y(self, bunch, z):
-        if 'quadrupolar_y' in self.wake_field_keys: return self.wake_transverse('quadrupolar_y', bunch, z)
-        return 0
-
-    def wake_longitudinal(self, bunch, z):
-        time = np.array(self.wake_table['time'])
-        wake = np.array(self.wake_table['longitudinal'])
-        wake_interpolated = np.interp(- z / c / bunch.beta, time, wake, left=0, right=0)
-        if time[0] < 0:
-            return wake_interpolated
-        elif time[0] == 0:
-            # beam loading theorem: half value of wake at z=0;
-            return (np.sign(-z) + 1) / 2 * wake_interpolated
-
-    def track(self, bunch):
-        if not self.slices:
-            self.slices = bunch.slices
-
-        # bunch.compute_statistics()
-        self.slices.update_slices(bunch)
-        self.slices.compute_statistics(bunch)
-
-        if ('dipolar_x' or 'quadrupolar_x') in self.wake_field_keys:
-            wakefield_kicks_x = self.transverse_wakefield_kicks('x')
-            wakefield_kicks_x(bunch)
-        if ('dipolar_y' or 'quadrupolar_y') in self.wake_field_keys:
-            wakefield_kicks_y = self.transverse_wakefield_kicks('y')
-            wakefield_kicks_y(bunch)
-        if 'longitudinal' in self.wake_field_keys:
-            self.longitudinal_wakefield_kicks(bunch)

@@ -9,7 +9,7 @@ import sys
 import numpy as np
 from scipy.constants import c, e, m_e, m_p
 
-from cobra_functions import stats
+import cobra_functions.stats as cp
 from generators import *
 
 
@@ -130,33 +130,37 @@ class Particles(object):
             return  np.sum(self.n_particles_per_mp)
 
     @property
+    def gamma(self):
+        return self._gamma
+    @gamma.setter
+    def gamma(self, value):
+        self._gamma = value
+        self._beta = np.sqrt(1 - self._gamma**-2)
+        self._betagamma = np.sqrt(self._gamma**2 - 1)
+        self._p0 = self._betagamma * self.mass * c
+
+    @property
     def beta(self):
-        return np.sqrt(1 - 1. / self.gamma ** 2)
+        return self._beta
     @beta.setter
     def beta(self, value):
         self.gamma = 1. / np.sqrt(1 - value ** 2)
 
     @property
     def betagamma(self):
-        return np.sqrt(self.gamma ** 2 - 1)
+        return self._betagamma
     @betagamma.setter
     def betagamma(self, value):
         self.gamma = np.sqrt(value ** 2 + 1)
 
     @property
     def p0(self):
-        return self.mass * self.gamma * self.beta * c
+        return self._p0
     @p0.setter
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
 
-    @property
-    def dp(self):
-        return self.delta_p / self.p0
-    @dp.setter
-    def dp(self, value):
-        self.delta_p = value * self.p0
-
+        
     def sort_particles(self):
         # update the number of lost particles
         self.n_macroparticles_lost = (self.n_macroparticles -
@@ -178,19 +182,45 @@ class Particles(object):
         self.dp = self.dp.take(z_argsorted)
         self.id = self.id.take(z_argsorted)
 
-    def compute_statistics(self):
-        self.mean_x  = stats.mean(self.x)
-        self.mean_xp = stats.mean(self.xp)
-        self.mean_y  = stats.mean(self.y)
-        self.mean_yp = stats.mean(self.yp)
-        self.mean_z  = stats.mean(self.z)
-        self.mean_dp = stats.mean(self.dp)
 
-        self.sigma_x  = stats.std(self.x)
-        self.sigma_y  = stats.std(self.y)
-        self.sigma_z  = stats.std(self.z)
-        self.sigma_dp = stats.std(self.dp)
+    '''
+    Stats.
+    '''
+    def mean_x(self):
+        return cp.mean(self.x)
 
-        self.epsn_x = stats.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
-        self.epsn_y = stats.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
-        self.epsn_z = 4 * np.pi * self.sigma_z * self.sigma_dp * self.p0 / self.charge
+    def mean_xp(self):
+        return cp.mean(self.xp)
+    
+    def mean_y(self):
+        return cp.mean(self.y)
+
+    def mean_yp(self):
+        return cp.mean(self.yp)
+    
+    def mean_z(self):
+        return cp.mean(self.z)
+
+    def mean_dp(self):
+        return cp.mean(self.dp)
+
+    def sigma_x(self):
+        return cp.std(self.x)
+
+    def sigma_y(self):
+        return cp.std(self.y)
+
+    def sigma_z(self):
+        return cp.std(self.z)
+
+    def sigma_dp(self):
+        return cp.std(self.dp)
+
+    def epsn_x(self):
+        return cp.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
+
+    def epsn_y(self):
+        return cp.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
+
+    def epsn_z(self):
+        return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
