@@ -280,13 +280,13 @@ class ResistiveWall(object):
             wake_function = self._function_transverse(self.Yokoya_X1)
             self.kicks.append(DipoleWakeKickX(wake_function, slices))
 
-        if self.Yokoya_Y1:
-            wake_function = self._function_transverse(self.Yokoya_Y1)
-            self.kicks.append(DipoleWakeKickY(wake_function, slices))
-        
         if self.Yokoya_X2:
             wake_function = self._function_transverse(self.Yokoya_X2)
             self.kicks.append(QuadrupoleWakeKickX(wake_function, slices))
+
+        if self.Yokoya_Y1:
+            wake_function = self._function_transverse(self.Yokoya_Y1)
+            self.kicks.append(DipoleWakeKickY(wake_function, slices))
 
         if self.Yokoya_Y2:
             wake_function = self._function_transverse(self.Yokoya_Y2)
@@ -301,7 +301,7 @@ class ResistiveWall(object):
 
         def wake(beta, z):
             y = Yokoya_factor * (np.sign(z + np.abs(self.dz_min)) - 1) / 2 * beta * c \
-                * Z0 * self.length_resistive_wall / np.pi / self.pipe_radius ** 3 \
+                * Z0 * self.resistive_wall_length / np.pi / self.pipe_radius ** 3 \
                 * np.sqrt(-lambda_s * mu_r / np.pi / z.clip(max=-abs(self.dz_min)))
             
             return y
