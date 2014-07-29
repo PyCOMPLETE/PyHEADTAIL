@@ -26,8 +26,6 @@ class RFSystems(object):
         zmax = self.circumference / (2*np.amin(h))
         self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
 
-        self.Qs = 0.017
-
         self._get_bucket_boundaries()
 
     @property
@@ -44,7 +42,8 @@ class RFSystems(object):
 
     @property
     def beta_z(self):
-        return np.abs(self.eta * self.R / self.Qs)
+        Qs = 0.01
+        return np.abs(self.eta * self.R / Qs)
 
     def field(self, V, h, dphi):
         def v(z):
@@ -104,7 +103,7 @@ class RFSystems(object):
         # print self.dphi
 
     def _get_zero_crossings(self, f):
-        zz = np.linspace(self.zmin, self.zmax, 200)
+        zz = np.linspace(self.zmin, self.zmax, 1000)
 
         a = np.sign(f(zz))
         b = np.diff(a)
@@ -133,6 +132,18 @@ class RFSystems(object):
         except IndexError:
             self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_extrema[-1]
 
+    def get_z_left_right(self, zc):
+        # zz = np.linspace(self.zmin, self.zmax, 1000)
+        # plt.figure(12)
+        # plt.plot(zz, self.V_acc(zz)-self.V_acc(zc))
+        # plt.axhline(0, c='r', lw=2)
+        # plt.show()
+        z_cut = self._get_zero_crossings(lambda x: self.V_acc(x) - self.V_acc(zc))
+        zleft, zright = z_cut[0], z_cut[-1]
+
+        return zleft, zright
+
+    @property
     def Hmax(self):
         return self.hamiltonian(self.zs, 0)
 
@@ -146,7 +157,7 @@ class RFSystems(object):
         return s
 
     def separatrix(self, z):
-        f = self.equihamiltonian(self.zs)
+        f = self.equihamiltonian(self.zright)
         return f(z)
 
     def p_max(self, zc):
@@ -160,5 +171,5 @@ class RFSystems(object):
         # print Hmax
         # return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0 + Hmax) * self.p0/e*self.circumference/c
 
-    # def H0(self, z0):
-        # return np.sign(self.eta) * self.eta * self.beta * c * (z0 / self.beta_z) ** 2
+    def H0(self, z0):
+        return np.abs(self.eta)*self.beta*c * (z0 / self.beta_z) ** 2
