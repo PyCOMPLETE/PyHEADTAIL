@@ -151,8 +151,3 @@ class TransverseMap(object):
     def __getitem__(self, key):
 
         return self.segment_maps[key]
-
-    
-    def __add__(self, other):
-        
-        return [self.segment_maps[i] for i in range(len(self.s) - 1)] + other
