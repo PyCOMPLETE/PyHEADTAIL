@@ -21,7 +21,8 @@ sin = np.sin
 cos = np.cos
 
 class LongitudinalMap(object):
-    """A longitudinal map represents a longitudinal dynamical element
+    """
+    A longitudinal map represents a longitudinal dynamical element
     (e.g. a kick or a drift...), i.e. an abstraction of a cavity
     of an RF system etc.
     LongitudinalMap objects can compose a longitudinal one turn map!
@@ -194,12 +195,14 @@ class Kick(LongitudinalMap):
 
 
 class LongitudinalOneTurnMap(LongitudinalMap):
-    """A longitudinal one turn map tracks over a complete turn.
+    """
+    A longitudinal one turn map tracks over a complete turn.
     Any inheriting classes guarantee to provide a self.track(beam) method that
     tracks around the whole ring!
 
     LongitudinalOneTurnMap classes possibly comprise several
-    LongitudinalMap objects."""
+    LongitudinalMap objects.
+    """
 
     __metaclass__ = ABCMeta
 
@@ -211,8 +214,10 @@ class LongitudinalOneTurnMap(LongitudinalMap):
 
     @abstractmethod
     def track(self, beam):
-        """Contract: advances the longitudinal coordinates
-        of the beam over a full turn / circumference."""
+        """
+        Contract: advances the longitudinal coordinates
+        of the beam over a full turn / circumference.
+        """
         pass
 
 class RFSystems(LongitudinalOneTurnMap):
@@ -225,7 +230,8 @@ class RFSystems(LongitudinalOneTurnMap):
 
     def __init__(self, circumference, harmonic_list, voltage_list,
                  phi_offset_list, alpha_array, p_increment=0, shrinking=False):
-        """The first entry in harmonic_list, voltage_list and
+        """
+        The first entry in harmonic_list, voltage_list and
         phi_offset_list defines the parameters for the one
         accelerating Kick object (i.e. the accelerating RF system).
         For several accelerating Kick objects one would have to

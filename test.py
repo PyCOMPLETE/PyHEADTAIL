@@ -1,7 +1,9 @@
+#!/usr/bin/python
+
 n_turns = 10001
-from trackers.longitudinal_tracker import * 
+from trackers.longitudinal_tracker import *
 from beams.beams import *
-a = RFSystems(np.pi * 50, [1, 2], [8000,0*6000], [0, np.pi], [4.05**-2], m_p * 0.84 * 2 * c * 5e-6)
+a = RFSystems(np.pi * 50, [1, 2], [8000, 0*6000], [0, 0*np.pi], [4.05**-2], m_p * 0.84 * 2 * c * 5e-6)
 beam = Particles.as_gaussian(1000, e, 2, 1.e11, m_p, 0, 54.6408, 2, 0, 54.5054, 2, 15, 0.001)
 import matplotlib as mpl
 n = 1
