@@ -168,7 +168,7 @@ class RFBucket(PhaseSpace):
         if sigma > zS * 0.95:
             print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
 
-
+        return zS
         # # A = self._compute_mean_quad(lambda x, y: 1, self.separatrix, self.z_sep[0], self.z_sep[1])
         # zc = self.z_sep[1]
         # zc = zS
@@ -200,8 +200,17 @@ class RFBucket(PhaseSpace):
 
     def psi_for_emittance(self, epsn_z):
 
-        zz = np.linspace(self.H.zs + np.abs(self.H.zs)*0.01, self.H.zright - np.abs(self.H.zright)*0.01, 10)
+        H = self.H
+        psi_c =  self.psi(H.hamiltonian, H.Hmax)
+        psi = psi_c.function
 
+        # Maximum emittance
+        epsn_max = self._compute_mean_quad(lambda y, x: 1, H.separatrix, H.zleft, H.zright) * 2*self.p0/e
+        if epsn_z > epsn_max:
+            print 'Emittance larger than bucket; using full bucket...'
+            epsn_z = epsn_max*0.96
+
+        zz = np.linspace(H.zs + np.abs(H.zs)*0.01, H.zright - np.abs(H.zright)*0.01, 10)
         A = []
         for zc in zz:
             zleft, zright = self.H.get_z_left_right(zc)
@@ -212,15 +221,62 @@ class RFBucket(PhaseSpace):
         ix = np.where(np.diff(np.sign(A-a)))[0]
         m = (A[ix+1] - A[ix])/(zz[ix+1] - zz[ix])
         dy = a - A[ix]
-        b = zz[ix] + dy/m
-        # print b
-        # plt.figure(12)
-        # plt.plot(zz, A)
-        # plt.plot(b, a, '+', ms=12, mew=4)
-        # plt.grid()
-        # plt.show()
+        zc_emittance = zz[ix] + dy/m
 
-        return b
+        fw = self.H.zright-self.H.zs
+        vv = np.linspace(fw*0.05, fw*0.95, 10)
+        L = []
+        for vc in vv:
+            psi_c.H0 = H.H0(vc)
+            L.append( H._get_zero_crossings(lambda x: psi(x, 0)-0.01)[-1] )
+        L = np.array(L)
+
+        ix = np.where(np.diff(np.sign(L-zc_emittance)))[0]
+        m = (L[ix+1] - L[ix])/(vv[ix+1] - vv[ix])
+        dy = zc_emittance - L[ix]
+        zc_bunchlength = vv[ix] + dy/m
+
+        psi_c.H0 = H.H0(zc_bunchlength)
+        sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
+        print sigma, zc_bunchlength
+
+        # # This part is not quite correct - map bunch length to emittance
+        # nsigma = 3
+
+        # try:
+        #     b[0]
+        # except IndexError:
+        #     b = zS*nsigma*0.95 + H.zs
+
+        # if (b-H.zs)/nsigma > zS:
+        #     sigma = zS * 0.95
+        #     print 'Too big.'
+        # else:
+        #     sigma = (b-H.zs)/nsigma
+        #     print 'Found sigma.'
+        # print 'Bunch length:', sigma
+
+        # psi, ww, l, k, L = self.psi_for_bunchlength(sigma)
+
+        xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
+        XX, PP = np.meshgrid(xx, pp)
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 12))
+        ax4 = fig.add_subplot(224, projection='3d')
+        ax1.plot(zz, A)
+        ax1.axhline(a, c='r', lw=2)
+        ax1.plot(zc_emittance, a, '+', ms=12, mew=4)
+        ax1.grid()
+        ax2.plot(vv, L)
+        ax2.axhline(zc_emittance, c='r', lw=2)
+        ax2.plot(zc_bunchlength, zc_emittance, '+', ms=12, mew=4)
+        ax2.grid()
+        ax3.plot(xx, psi(xx, 0))
+        ax3.axvline(sigma, c='y', lw=2)
+        ax3.axvline(zc_emittance, c='r', lw=2)
+        ax4.plot_surface(XX, PP, psi(XX, PP), cmap=plt.cm.jet)
+        plt.show()
+
+        return psi
 
     def psi_for_bunchlength(self, sigma):
 
@@ -228,7 +284,7 @@ class RFBucket(PhaseSpace):
         psi_c =  self.psi(H.hamiltonian, H.Hmax)
         psi = psi_c.function
 
-        self._test_maximum_std(psi_c, sigma)
+        zS = self._test_maximum_std(psi_c, sigma)
 
         fw = self.H.zright-self.H.zs
         zz = np.linspace(fw*0.05, fw*0.95, 10)
@@ -247,62 +303,62 @@ class RFBucket(PhaseSpace):
         k = zz[ix] + dy/m
         psi_c.H0 = self.H.H0(k)
 
-        xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
-        XX, PP = np.meshgrid(xx, pp)
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 6))
-        ax3 = fig.add_subplot(133, projection='3d')
-        ax1.plot(zz, L)
-        ax1.axhline(l, c='r', lw=2)
-        ax1.plot(k, l, '+', ms=12, mew=4)
-        ax1.grid()
-        ax2.plot(xx, psi(xx, 0))
-        ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.cm.jet)
-        plt.show()
+        # xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
+        # XX, PP = np.meshgrid(xx, pp)
+        # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 6))
+        # ax3 = fig.add_subplot(133, projection='3d')
+        # ax1.plot(zz, L)
+        # ax1.axhline(l, c='r', lw=2)
+        # ax1.plot(k, l, '+', ms=12, mew=4)
+        # ax1.grid()
+        # ax2.plot(xx, psi(xx, 0))
+        # ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.cm.jet)
+        # plt.show()
 
-        return psi
+        return psi, zz, l, k, L
 
-    def _set_target_std(self, psi, sigma):
+    # def _set_target_std(self, psi, sigma):
 
-        self._test_maximum_std(psi, sigma)
-        psi.Hmax = np.amax(self.hamiltonian(self.z_extrema, 0))
+    #     self._test_maximum_std(psi, sigma)
+    #     psi.Hmax = np.amax(self.hamiltonian(self.z_extrema, 0))
 
-        print 'Iterative evaluation of bunch length...'
-        counter = 0
-        z0 = sigma
-        eps = 1
+    #     print 'Iterative evaluation of bunch length...'
+    #     counter = 0
+    #     z0 = sigma
+    #     eps = 1
 
-        # Iteratively obtain true H0 to make target sigma
-        zH = z0
-        psi.H0 = self.H0(zH)
-        a = 1
-        while abs(eps)>1e-4:
-            zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
+    #     # Iteratively obtain true H0 to make target sigma
+    #     zH = z0
+    #     psi.H0 = self.H0(zH)
+    #     a = 1
+    #     while abs(eps)>1e-4:
+    #         zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
 
-            # TODO: optimize convergence algorithm: particle swarm optimization
-            eps = zS - z0
-            print counter, zH, zS, eps
-            zH -= a * eps
-            psi.H0 = self.H0(zH)
+    #         # TODO: optimize convergence algorithm: particle swarm optimization
+    #         eps = zS - z0
+    #         print counter, zH, zS, eps
+    #         zH -= a * eps
+    #         psi.H0 = self.H0(zH)
 
-            counter += 1
-            if counter > 100:
-                print "\n*** WARNING: too many interation steps! There are several possible reasons for that:"
-                print "1. Is the Hamiltonian correct?"
-                print "2. Is the stationary distribution function convex around zero?"
-                print "3. Is the bunch too long to fit into the bucket?"
-                print "4. Is this algorithm not qualified?"
-                print "Aborting..."
-                sys.exit(-1)
-            elif counter > 90:
-                a = 0.1
-            elif counter > 60:
-                a = 0.25
-            elif counter > 30:
-                a = 0.5
+    #         counter += 1
+    #         if counter > 100:
+    #             print "\n*** WARNING: too many interation steps! There are several possible reasons for that:"
+    #             print "1. Is the Hamiltonian correct?"
+    #             print "2. Is the stationary distribution function convex around zero?"
+    #             print "3. Is the bunch too long to fit into the bucket?"
+    #             print "4. Is this algorithm not qualified?"
+    #             print "Aborting..."
+    #             sys.exit(-1)
+    #         elif counter > 90:
+    #             a = 0.1
+    #         elif counter > 60:
+    #             a = 0.25
+    #         elif counter > 30:
+    #             a = 0.5
 
-        print "*** Converged!\n"
+    #     print "*** Converged!\n"
 
-        return psi.function
+    #     return psi.function
 
     def _compute_mean_quad(self, psi, p_sep, xmin, xmax):
         '''
