@@ -154,7 +154,15 @@ class RFBucket(PhaseSpace):
         self.p0 = rfsystem.p0
 
         self._compute_std = self._compute_std_cumtrapz
-        self.generate = self.dontgenerate
+
+        if sigma_z and not epsn_z:
+            self.variable = sigma_z
+            self.psi_for_variable = self.psi_for_bunchlength
+        elif not sigma_z and epsn_z:
+            self.variable = epsn_z
+            self.psi_for_variable = self.psi_for_emittance
+
+        # self.generate = self.dontgenerate
 
     # @profile
     # def _test_maximum_std(self, psi_c, sigma):
@@ -273,7 +281,7 @@ class RFBucket(PhaseSpace):
         # ax4.plot_surface(XX, PP, psi(XX, PP), cmap=plt.cm.jet)
         # plt.show()
 
-        return psi, epsn_z, sigma
+        return psi#, epsn_z, sigma
 
     def psi_for_bunchlength(self, sigma):
 
@@ -290,7 +298,7 @@ class RFBucket(PhaseSpace):
 
         # Width for bunch length
         fw = self.H.zright-self.H.zs
-        zz = np.linspace(fw*0.05, fw*0.95, 10)
+        zz = np.linspace(fw*0.05, fw*0.95, 20)
         L = []
         for i, zc in enumerate(zz):
             psi_c.H0 = self.H.H0(zc)
@@ -298,24 +306,30 @@ class RFBucket(PhaseSpace):
             L.append( self._compute_std(psi, H.separatrix, H.zleft, H.zright) )
         L = np.array(L)
 
-        l = sigma
-        ix = np.where(np.diff(np.sign(L-l)))[0]
+        ix = np.where(np.diff(np.sign(L-sigma)))[0]
         m = (L[ix+1] - L[ix])/(zz[ix+1] - zz[ix])
-        dy = l - L[ix]
+        dy = sigma - L[ix]
         k = zz[ix] + dy/m
         psi_c.H0 = self.H.H0(k)
 
-        # xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
-        # XX, PP = np.meshgrid(xx, pp)
-        # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 6))
-        # ax3 = fig.add_subplot(133, projection='3d')
-        # ax1.plot(zz, L)
-        # ax1.axhline(l, c='r', lw=2)
-        # ax1.plot(k, l, '+', ms=12, mew=4)
-        # ax1.grid()
-        # ax2.plot(xx, psi(xx, 0))
-        # ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.cm.jet)
-        # plt.show()
+        for zc in [zz[ix], k, zz[ix+1]]:
+            psi_c.H0 = self.H.H0(zc)
+            print zc, self._compute_std(psi, H.separatrix, H.zleft, H.zright)
+
+        xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
+        XX, PP = np.meshgrid(xx, pp)
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 6))
+        ax3 = fig.add_subplot(133, projection='3d')
+        ax1.plot(zz, L, '-*')
+        ax1.axhline(sigma, c='r', lw=2)
+        ax1.plot(k, sigma, '+', ms=12, mew=4)
+        ax1.grid()
+        ax2.plot(xx, psi(xx, 0))
+        ax2.axvline(sigma, c='y', lw=2)
+        ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.cm.jet)
+        plt.show()
+
+        exit(-1)
 
         return psi
 
@@ -331,7 +345,9 @@ class RFBucket(PhaseSpace):
         according to the particle distribution function psi within the region
         [xmin, xmax, ymin, ymax].
         '''
-        psi = self._set_target_std(StationaryExponential(self.hamiltonian), self.sigma_z)
+        psi = self.psi_for_variable(self.variable)
+        print self.variable
+        print self._compute_std(psi, self.H.separatrix, self.H.zleft, self.H.zright)
 
         x = np.zeros(particles.n_macroparticles)
         y = np.zeros(particles.n_macroparticles)
@@ -339,8 +355,8 @@ class RFBucket(PhaseSpace):
         # Bin
         i, j = 0, 0
         nx, ny = 128, 128
-        xmin, xmax = self.z_sep[0], self.z_sep[1]
-        ymin, ymax = -self.p_sep, self.p_sep
+        xmin, xmax = self.H.zleft, self.H.zright
+        ymin, ymax = -self.H.p_max(self.H.zright), self.H.p_max(self.H.zright)
         lx = (xmax - xmin)
         ly = (ymax - ymin)
 
