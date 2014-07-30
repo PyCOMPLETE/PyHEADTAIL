@@ -45,28 +45,37 @@ class RFSystems(object):
         Qs = 0.01
         return np.abs(self.eta * self.R / Qs)
 
+    @property
+    def Hmax(self):
+        return self.hamiltonian(self.zs, 0)
+
     def field(self, V, h, dphi):
+
         def v(z):
             phi = h*z/self.R
             return e*V/self.circumference * np.sin(phi + dphi)
+
         return v
 
     def Ef(self, z):
-        # return self.field(self.V[0], self.h[0], self.dphi[0])(z) + self.field(self.V[1], self.h[1], self.dphi[1])(z)
+
         return reduce(lambda x, y: x + y,
                       [self.field(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
     def E_acc(self, z):
+
         return self.Ef(z) - e*self.delta_p/self.circumference
 
     def potential(self, V, h, dphi):
+
         def v(z):
             phi = h*z/self.R
             return e*V/(2*np.pi*h) * np.cos(phi + dphi)
+
         return v
 
     def Vf(self, z):
-        # return self.potential(self.V[0], self.h[0], self.dphi[0])(z) + self.potential(self.V[1], self.h[1], self.dphi[1])(z)
+
         return reduce(lambda x, y: x + y,
                       [self.potential(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
@@ -80,7 +89,44 @@ class RFSystems(object):
             zmax, zc = z_extrema[-1], z_extrema[0]
 
         return -np.sign(self.eta) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
-        # return -np.sign(self.eta) * ((self.Vf(z) - 0*self.Vf(zmax)) + (z - 0*zmax) * e*self.delta_p/self.circumference)
+
+    def get_z_left_right(self, zc):
+        # zz = np.linspace(self.zmin, self.zmax, 1000)
+        # plt.figure(12)
+        # plt.plot(zz, self.V_acc(zz)-self.V_acc(zc))
+        # plt.axhline(0, c='r', lw=2)
+        # plt.show()
+        z_cut = self._get_zero_crossings(lambda x: self.V_acc(x) - self.V_acc(zc))
+        zleft, zright = z_cut[0], z_cut[-1]
+
+        return zleft, zright
+
+    def Hcut(self, zc):
+        return self.hamiltonian(zc, 0)
+
+    def equihamiltonian(self, zc):
+        def s(z):
+            r = np.sign(self.eta) * 2/(self.eta*self.beta*c) * (-self.Hcut(zc) - self.V_acc(z)/self.p0)
+            return np.sqrt(r.clip(min=0))
+        return s
+
+    def separatrix(self, z):
+        f = self.equihamiltonian(self.zright)
+        return f(z)
+
+    def p_max(self, zc):
+        f = self.equihamiltonian(zc)
+        return np.amax(f(self.zs))
+
+    def hamiltonian(self, z, dp):
+        '''Sign makes sure we stay convex - can then always use H<0'''
+        return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
+        # Hmax = np.amax(np.abs(1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0))
+        # print Hmax
+        # return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0 + Hmax) * self.p0/e*self.circumference/c
+
+    def H0(self, z0):
+        return np.abs(self.eta)*self.beta*c * (z0 / self.beta_z) ** 2
 
     def _get_phi_s(self):
 
@@ -124,52 +170,20 @@ class RFSystems(object):
 
         try:
             if np.sign(self.eta) < 0:
-                self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[-1], z_cut[0]
+                if len(z_extrema)==2:
+                    self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[-1], z_cut[0]
+                elif len(z_extrema)==3:
+                    self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_cut[0]
+                else:
+                    raise ValueError("\n*** This length of z_extrema is not known how to be treated. Aborting.\n")
                 self.zcut = z_cut[0]
             else:
-                self.zleft, self.zs, self.zright = z_cut[0], z_extrema[0], z_extrema[-1]
+                if len(z_extrema)==2:
+                    self.zleft, self.zs, self.zright = z_cut[0], z_extrema[0], z_extrema[-1]
+                elif len(z_extrema)==3:
+                    self.zleft, self.zs, self.zright = z_cut[0], z_extrema[1], z_extrema[-1]
+                else:
+                    raise ValueError("\n*** This length of z_extrema is not known how to be treated. Aborting.\n")
                 self.zcut = z_cut[0]
         except IndexError:
             self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_extrema[-1]
-
-    def get_z_left_right(self, zc):
-        # zz = np.linspace(self.zmin, self.zmax, 1000)
-        # plt.figure(12)
-        # plt.plot(zz, self.V_acc(zz)-self.V_acc(zc))
-        # plt.axhline(0, c='r', lw=2)
-        # plt.show()
-        z_cut = self._get_zero_crossings(lambda x: self.V_acc(x) - self.V_acc(zc))
-        zleft, zright = z_cut[0], z_cut[-1]
-
-        return zleft, zright
-
-    @property
-    def Hmax(self):
-        return self.hamiltonian(self.zs, 0)
-
-    def Hcut(self, zc):
-        return self.hamiltonian(zc, 0)
-
-    def equihamiltonian(self, zc):
-        def s(z):
-            r = np.sign(self.eta) * 2/(self.eta*self.beta*c) * (-self.Hcut(zc) - self.V_acc(z)/self.p0)
-            return np.sqrt(r.clip(min=0))
-        return s
-
-    def separatrix(self, z):
-        f = self.equihamiltonian(self.zright)
-        return f(z)
-
-    def p_max(self, zc):
-        f = self.equihamiltonian(zc)
-        return np.amax(f(self.zs))
-
-    def hamiltonian(self, z, dp):
-        '''Sign makes sure we stay convex - can then always use H<0'''
-        return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
-        # Hmax = np.amax(np.abs(1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0))
-        # print Hmax
-        # return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0 + Hmax) * self.p0/e*self.circumference/c
-
-    def H0(self, z0):
-        return np.abs(self.eta)*self.beta*c * (z0 / self.beta_z) ** 2
