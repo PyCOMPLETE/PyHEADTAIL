@@ -5,10 +5,19 @@ from beams.beams import *
 import matplotlib as mpl
 
 n_turns = 10001
+above_transition = False
 
-a = RFSystems(np.pi * 50, [1, 2], [8000, 0*6000], [np.pi, np.pi],
-              [4.05**-2])#, m_p * 0.84 * 2 * c * 5e-6)
-beam = Particles.as_gaussian(1000, e, 2.49, 1.e11, m_p, 0, 54.6408, 2, 0,
+if above_transition:
+	phi1 = 0
+	gamma = 4 + 2.49
+else:
+	phi1 = np.pi
+	gamma = 2.49
+
+beta = np.sqrt(1 - gamma**-2)
+a = RFSystems(np.pi * 50, [1, 2], [8000, 0*6000], [phi1, np.pi],
+              [4.05**-2], m_p * beta * gamma * c * 5e-6)
+beam = Particles.as_gaussian(1000, e, gamma, 1.e11, m_p, 0, 54.6408, 2, 0,
                              54.5054, 2, 15, 0.001)
 n = 1
 x = np.arange(n * -100, n * 100, n * 0.1)

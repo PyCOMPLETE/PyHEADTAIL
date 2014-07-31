@@ -137,7 +137,7 @@ class Kick(LongitudinalMap):
         phi = self._phi(beam.z)
 
         delta_p = beam.dp * beam.p0
-        delta_p += amplitude * sin(phi) - self.p_increment
+        delta_p += amplitude * (sin(phi) - sin(self.calc_phi_0(beam))) #- self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
 
@@ -151,7 +151,7 @@ class Kick(LongitudinalMap):
         return amplitude * modulation
 
     def _phi(self, z):
-        theta = -(2 * np.pi / self.circumference) * z
+        theta = (2 * np.pi / self.circumference) * z
         return self.harmonic * theta + self.phi_offset + self._phi_acceleration
 
     def Qs(self, beam):
@@ -188,9 +188,9 @@ class Kick(LongitudinalMap):
 
         if self.eta(0, beam.gamma) < 0:
             # return np.sign(deltaE) * np.pi - phi_rel
-            return phi_rel
-        else:
             return np.pi - phi_rel
+        else:
+            return phi_rel
 
         # sgn_eta = np.sign(self.eta(0, beam.gamma))
         # return np.arccos(
