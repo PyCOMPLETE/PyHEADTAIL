@@ -110,7 +110,9 @@ class Kick(LongitudinalMap):
 
     self.phi_offset reflects an offset of the cavity's reference system,
     this can be tweaked externally by the user for simulating RF system
-    ripple and the like.
+    ripple and the like. Include the pi offset for the right RF voltage
+    gradient here.
+
     (self._phi_acceleration adds to the offset as well but should
     be used internally in the module (e.g. by RFSystems) for
     acceleration purposes. It may be used for synchronisation with the
@@ -131,27 +133,26 @@ class Kick(LongitudinalMap):
         self._phi_acceleration = 0
 
     def track(self, beam):
-        sgn_eta = np.sign(self.eta(0, beam.gamma))
-        amplitude = sgn_eta * e * self.voltage / (beam.beta * c)
-        theta = (2 * np.pi / self.circumference) * beam.z
-        phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
+        amplitude = e * self.voltage / (beam.beta * c)
+        phi = self._phi(beam.z)
 
         delta_p = beam.dp * beam.p0
-        delta_p += amplitude * (sin(phi) - sin(self.calc_phi_0(beam))) #self.p_increment
+        delta_p += amplitude * sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
 
     def potential(self, z, beam, phi_0=None):
         """The contribution of this kick to the overall potential V(z)."""
-        sgn_eta = np.sign(self.eta(0, beam.gamma))
-        amplitude = (sgn_eta * e * self.voltage /
-                     (beam.p0 * 2 * np.pi * self.harmonic))
+        amplitude = e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
         if phi_0 is None:
             phi_0 = self.calc_phi_0(beam)
-        theta = (2 * np.pi / self.circumference) * z
-        phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
+        phi = self._phi(z)
         modulation = cos(phi) - cos(phi_0) + (phi - phi_0) * sin(phi_0)
         return amplitude * modulation
+
+    def _phi(self, z):
+        theta = -(2 * np.pi / self.circumference) * z
+        return self.harmonic * theta + self.phi_offset + self._phi_acceleration
 
     def Qs(self, beam):
         '''
@@ -184,11 +185,13 @@ class Kick(LongitudinalMap):
             return 0
         deltaE  = self.p_increment * c * beam.beta / beam.gamma
         phi_rel = np.arcsin(deltaE / (e * self.voltage))
+
         if self.eta(0, beam.gamma) < 0:
             # return np.sign(deltaE) * np.pi - phi_rel
-            return np.pi - phi_rel
-        else:
             return phi_rel
+        else:
+            return np.pi - phi_rel
+
         # sgn_eta = np.sign(self.eta(0, beam.gamma))
         # return np.arccos(
         #     sgn_eta * np.sqrt(1 - (deltaE / (e * self.voltage)) ** 2))
