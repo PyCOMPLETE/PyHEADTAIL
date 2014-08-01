@@ -5,7 +5,6 @@ from __future__ import division
 @copyright CERN
 '''
 
-
 # @TODO
 # think about flexible design to separate numerical methods
 # and physical parameters (as before for the libintegrators.py)
@@ -15,23 +14,21 @@ from __future__ import division
 
 import numpy as np
 
-
 from abc import ABCMeta, abstractmethod
 from scipy.constants import c, e
-
 
 sin = np.sin
 cos = np.cos
 
-
 class LongitudinalMap(object):
-    """A longitudinal map represents a longitudinal dynamical element
+    """
+    A longitudinal map represents a longitudinal dynamical element
     (e.g. a kick or a drift...), i.e. an abstraction of a cavity
     of an RF system etc.
     LongitudinalMap objects can compose a longitudinal one turn map!
     Definitions of various orders of the slippage factor eta(delta)
-    for delta = (Delta p / p0) should be implemented in this class.
-    Any derived objects will access self.eta(beam).
+    for delta = (p - p0) / p0 should be implemented in this class.
+    Any derived objects will access self.eta(delta, gamma).
 
     Note: the momentum compaction factors are defined by the change of radius
         \Delta R / R0 = \sum_i \\alpha_i * \delta^(i + 1)
@@ -42,16 +39,19 @@ class LongitudinalMap(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, alpha_array):
-        """The length of the momentum compaction factor array /alpha_array/
-        defines the order of the slippage factor expansion. """
+        """
+        The length of the momentum compaction factor array /alpha_array/
+        defines the order of the slippage factor expansion.
+        """
         self.alpha_array = alpha_array
 
     @abstractmethod
     def track(self, beam):
         pass
 
-    def eta(self, delta, beam):
-        """Depending on the number of entries in self.alpha_array the
+    def eta(self, delta, gamma):
+        """
+        Depending on the number of entries in self.alpha_array the
         according order of \eta = \sum_i \eta_i * \delta^i where
         \delta = \Delta p / p0 will be included in this gathering function.
 
@@ -61,29 +61,30 @@ class LongitudinalMap(object):
         """
         eta = 0
         for i in xrange( len(self.alpha_array) ):   # order = len - 1
-            eta_i = getattr(self, '_eta' + str(i))(self.alpha_array, beam)
+            eta_func = getattr(self, '_eta' + str(i))
+            eta_i = eta_func(self.alpha_array, gamma)
             eta  += eta_i * (delta ** i)
         return eta
 
     @staticmethod
-    def _eta0(alpha_array, beam):
-        return alpha_array[0] - beam.gamma ** -2
-
+    def _eta0(alpha_array, gamma):
+        return alpha_array[0] - gamma ** -2
 
 class Drift(LongitudinalMap):
-    """the drift (i.e. Delta z) of the particle's z coordinate is given by
+    r"""
+    The drift (i.e. Delta z) of the particle's z coordinate is given by
     the (separable) Hamiltonian derived by dp (defined by (p - p0) / p0).
 
     self.length is the drift length,
     self.shrinkage_p_increment being non-zero includes the shrinking
-    ratio \\beta_{n+1} / \\beta_n (see MacLachlan 1989 in FN-529),
+    ratio \beta_{n+1} / \beta_n (see MacLachlan 1989 in FN-529),
     it is usually neglected. [Otherwise it may continuously be
     adapted by the user according to the total momentum increment.]
     If it is not neglected, the beta factor ratio would yield
-    (\\beta + \\Delta \\beta) / \\beta =
-                        = 1 - \\Delta \\gamma / (\\beta^2 * \\gamma^2)
-    resp.               = 1 - p_increment / (\\gamma^3 * p0)
-    since p_increment = \\gamma * m * c / \\beta * \\Delta gamma .
+    (\beta + \Delta \beta) / \beta =
+                        = 1 - \Delta \gamma / (\beta^2 * \gamma^2)
+    resp.               = 1 - p_increment / (\gamma^3 * p0)
+    since p_increment = \gamma * m * c / \beta * \Delta gamma .
     """
 
     def __init__(self, alpha_array, length, shrinkage_p_increment=0):
@@ -94,11 +95,11 @@ class Drift(LongitudinalMap):
     def track(self, beam):
         beta_ratio = 1 - self.shrinkage_p_increment / (beam.gamma**3 * beam.p0)
         beam.z = (beta_ratio * beam.z -
-                  self.eta(beam.dp, beam) * beam.dp * self.length)
-
+                  self.eta(beam.dp, beam.gamma) * beam.dp * self.length)
 
 class Kick(LongitudinalMap):
-    """The Kick class represents the kick by a single RF element
+    """
+    The Kick class represents the kick by a single RF element
     in a ring! The kick (i.e. Delta dp) of the particle's dp
     coordinate is given by the (separable) Hamiltonian derived
     by z, i.e. the force.
@@ -109,7 +110,9 @@ class Kick(LongitudinalMap):
 
     self.phi_offset reflects an offset of the cavity's reference system,
     this can be tweaked externally by the user for simulating RF system
-    ripple and the like.
+    ripple and the like. Include the pi offset for the right RF voltage
+    gradient here.
+
     (self._phi_acceleration adds to the offset as well but should
     be used internally in the module (e.g. by RFSystems) for
     acceleration purposes. It may be used for synchronisation with the
@@ -130,25 +133,26 @@ class Kick(LongitudinalMap):
         self._phi_acceleration = 0
 
     def track(self, beam):
-        sgn_eta = np.sign(self.eta(0, beam))
-        amplitude = sgn_eta * e * self.voltage / (beam.beta * c)
-        theta = (2 * np.pi / self.circumference) * beam.z
-        phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
+        amplitude = e * self.voltage / (beam.beta * c)
+        phi = self._phi(beam.z)
 
-        beam.delta_p += amplitude * (sin(phi) - sin(self.calc_phi_0(beam))) #self.p_increment
+        delta_p = beam.dp * beam.p0
+        delta_p += amplitude * (sin(phi) - sin(self.calc_phi_0(beam))) #- self.p_increment
         beam.p0 += self.p_increment
+        beam.dp = delta_p / beam.p0
 
     def potential(self, z, beam, phi_0=None):
         """The contribution of this kick to the overall potential V(z)."""
-        sgn_eta = np.sign(self.eta(0, beam))
-        amplitude = (sgn_eta * e * self.voltage /
-                     (beam.p0 * 2 * np.pi * self.harmonic))
+        amplitude = e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
         if phi_0 is None:
             phi_0 = self.calc_phi_0(beam)
-        theta = (2 * np.pi / self.circumference) * z
-        phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
+        phi = self._phi(z)
         modulation = cos(phi) - cos(phi_0) + (phi - phi_0) * sin(phi_0)
         return amplitude * modulation
+
+    def _phi(self, z):
+        theta = (2 * np.pi / self.circumference) * z
+        return self.harmonic * theta + self.phi_offset + self._phi_acceleration
 
     def Qs(self, beam):
         '''
@@ -163,7 +167,7 @@ class Kick(LongitudinalMap):
         objects is not taken into account! (I.e. in general, this
         calculated value is wrong for multi-harmonic RF systems.)
         '''
-        Qs = np.sqrt(e * self.voltage * np.abs(self.eta(0, beam)) *
+        Qs = np.sqrt(e * self.voltage * np.abs(self.eta(0, beam.gamma)) *
                     self.harmonic / (2 * np.pi * beam.p0 * beam.beta * c))
         return Qs
 
@@ -181,23 +185,27 @@ class Kick(LongitudinalMap):
             return 0
         deltaE  = self.p_increment * c * beam.beta / beam.gamma
         phi_rel = np.arcsin(deltaE / (e * self.voltage))
-        if self.eta(0, beam) < 0:
+
+        if self.eta(0, beam.gamma) < 0:
             # return np.sign(deltaE) * np.pi - phi_rel
             return np.pi - phi_rel
         else:
             return phi_rel
-        # sgn_eta = np.sign(self.eta(0, beam))
+
+        # sgn_eta = np.sign(self.eta(0, beam.gamma))
         # return np.arccos(
         #     sgn_eta * np.sqrt(1 - (deltaE / (e * self.voltage)) ** 2))
 
 
 class LongitudinalOneTurnMap(LongitudinalMap):
-    """A longitudinal one turn map tracks over a complete turn.
+    """
+    A longitudinal one turn map tracks over a complete turn.
     Any inheriting classes guarantee to provide a self.track(beam) method that
     tracks around the whole ring!
 
     LongitudinalOneTurnMap classes possibly comprise several
-    LongitudinalMap objects."""
+    LongitudinalMap objects.
+    """
 
     __metaclass__ = ABCMeta
 
@@ -209,10 +217,11 @@ class LongitudinalOneTurnMap(LongitudinalMap):
 
     @abstractmethod
     def track(self, beam):
-        """Contract: advances the longitudinal coordinates
-        of the beam over a full turn / circumference."""
+        """
+        Contract: advances the longitudinal coordinates
+        of the beam over a full turn / circumference.
+        """
         pass
-
 
 class RFSystems(LongitudinalOneTurnMap):
     """
@@ -224,7 +233,8 @@ class RFSystems(LongitudinalOneTurnMap):
 
     def __init__(self, circumference, harmonic_list, voltage_list,
                  phi_offset_list, alpha_array, p_increment=0, shrinking=False):
-        """The first entry in harmonic_list, voltage_list and
+        """
+        The first entry in harmonic_list, voltage_list and
         phi_offset_list defines the parameters for the one
         accelerating Kick object (i.e. the accelerating RF system).
         For several accelerating Kick objects one would have to
@@ -311,8 +321,11 @@ class RFSystems(LongitudinalOneTurnMap):
         if self._shrinking:
             self.elements[-1].shrinkage_p_increment = value
 
+
     def potential(self, z, beam):
-        """the potential well of the rf system"""
+        """
+        The potential well of the RF system.
+        """
         phi_0 = self.accelerating_kick.calc_phi_0(beam)
         h1 = self.accelerating_kick.harmonic
         def fetch_potential(kick):
@@ -324,23 +337,30 @@ class RFSystems(LongitudinalOneTurnMap):
         return sum(potential_list)
 
     def hamiltonian(self, z, dp, beam):
-        """the full separable Hamiltonian of the RF system.
+        """
+        The full separable Hamiltonian of the RF system.
         Its zero value is located at the fundamental separatrix
-        (between bound and unbound motion)."""
-        kinetic = -0.5 * self.eta(dp, beam) * beam.beta * c * dp ** 2
+        (between bound and unbound motion).
+        """
+        kinetic = -0.5 * self.eta(dp, beam.gamma) * beam.beta * c * dp ** 2
         return kinetic + self.potential(z, beam)
 
     def separatrix(self, z, beam):
-        """Returns the separatrix delta_sep = (p - p0) / p0 for the synchronous
-        particle (since eta depends on delta, inverting the separatrix equation
-        0 = H(z_sep, dp_sep) becomes inexplicit in general)."""
-        return np.sqrt(2 / (beam.beta * c * self.eta(0, beam)) * self.potential(z, beam))
+        """
+        Returns the separatrix delta_sep = (p - p0) / p0 for the
+        synchronous particle (since eta depends on delta, inverting
+        the separatrix equation 0 = H(z_sep, dp_sep)
+        becomes inexplicit in general).
+        """
+        return np.sqrt(2 / (beam.beta * c * self.eta(0, beam.gamma))
+                       * self.potential(z, beam))
 
     def is_in_separatrix(self, z, dp, beam):
-        """Returns boolean whether this coordinate is located
-        strictly inside the separatrix."""
+        """
+        Returns boolean whether this coordinate is located
+        strictly inside the separatrix.
+        """
         return hamiltonian(z, dp, beam) < 0
-
 
 class LinearMap(LongitudinalOneTurnMap):
     '''
@@ -348,14 +368,12 @@ class LinearMap(LongitudinalOneTurnMap):
     self.alpha is the linear momentum compaction factor.
     '''
 
-    def __init__(self, circumference, alpha, Qs, slices):
+    def __init__(self, circumference, alpha, Qs):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         self.circumference = circumference
         self.alpha = alpha
         self.Qs = Qs
-
-        self.slices = slices
 
     def track(self, beam):
 
@@ -374,5 +392,3 @@ class LinearMap(LongitudinalOneTurnMap):
         beam.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
         beam.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
 
-        for slices in self.slices:
-            slices.update_slices(beam)
