@@ -365,42 +365,42 @@ class UniformZ(PhaseSpace):
 
 class ImportX(PhaseSpace):
 
-    def __init__(x, xp):
+    def __init__(self, x, xp):
 
         self.x = x
         self.xp = xp
 
     def generate(self, particles):
 
-        assert(particles.n_particles == len(self.x) == len(self.xp))
+        assert(particles.n_macroparticles == len(self.x) == len(self.xp))
         particles.x = self.x.copy()
         particles.xp = self.xp.copy()
 
 
 class ImportY(PhaseSpace):
 
-    def __init__(y, yp):
+    def __init__(self, y, yp):
 
         self.y = y
         self.yp = yp
 
     def generate(self, particles):
 
-        assert(particles.n_particles == len(self.y) == len(self.yp))
+        assert(particles.n_macroparticles == len(self.y) == len(self.yp))
         particles.y = self.y.copy()
         particles.yp = self.yp.copy()
 
 
 class ImportZ(PhaseSpace):
 
-    def __init__(z, dp):
+    def __init__(self, z, dp):
 
         self.z = z
         self.dp = dp
 
     def generate(self, particles):
 
-        assert(particles.n_particles == len(self.z) == len(self.dp))
+        assert(particles.n_macroparticles == len(self.z) == len(self.dp))
         particles.z = self.z.copy()
         particles.dp = self.dp.copy()
 

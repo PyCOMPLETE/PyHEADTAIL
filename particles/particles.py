@@ -124,6 +124,26 @@ class Particles(object):
 
         return particles
 
+
+    @classmethod
+    def from_ASCII_file(cls, filename, n_macroparticles, charge, gamma, intensity, mass):
+        """
+        Load initial distribution from text file with 6 columns in order
+        x, xp, y, yp, z, dp.
+        """        
+        data = np.loadtxt(filename)
+        assert(n_macroparticles == data.shape[0])
+
+        n_particles_per_mp = intensity/n_macroparticles
+
+        from_file_x = ImportX(data[:,0], data[:,1])
+        from_file_y = ImportY(data[:,2], data[:,3])
+        from_file_z = ImportZ(data[:,4], data[:,5])
+
+        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
+                   (from_file_x, from_file_y, from_file_z))        
+
+
     @property
     def intensity(self):
         if self.same_size_for_all_MPs:
