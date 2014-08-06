@@ -49,17 +49,17 @@ class Particles(object):
     @classmethod
     def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
                     alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                    beta_z, epsn_z, is_accepted = None, generator_seed=None):
+                    beta_z, epsn_z, is_accepted=None, generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
 
         n_particles_per_mp = intensity/n_macroparticles
 
-        betagamma = np.sqrt(gamma ** 2 - 1)
+        betagamma = np.sqrt(gamma**2 - 1)
         p0 = betagamma * mass * c
 
-        # Generate seeds for GaussianX,Y and Z.
+        # Generate seeds for GaussianX, Y and Z.
         random_state = RandomState()
         random_state.seed(generator_seed)
 

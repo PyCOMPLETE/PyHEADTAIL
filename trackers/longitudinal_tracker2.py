@@ -14,183 +14,183 @@ sin = np.sin
 cos = np.cos
 
 
-class RFSystems2(object):
+# class RFSystems2(object):
 
-    def __init__(self, circumference, gamma, alpha, delta_p, V, h, dphi):
+#     def __init__(self, circumference, gamma, alpha, delta_p, V, h, dphi):
 
-        self.circumference = circumference
-        self.gamma = gamma
-        self.eta = alpha - 1/gamma**2
-        self.delta_p = delta_p
+#         self.circumference = circumference
+#         self.gamma = gamma
+#         self.eta = alpha - 1/gamma**2
+#         self.delta_p = delta_p
 
-        self.V = V
-        self.h = h
-        self.dphi = dphi
+#         self.V = V
+#         self.h = h
+#         self.dphi = dphi
 
-        zmax = self.circumference / (2*np.amin(h))
-        self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
+#         zmax = self.circumference / (2*np.amin(h))
+#         self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
 
-        self._get_bucket_boundaries()
+#         self._get_bucket_boundaries()
 
-    @property
-    def beta(self):
-        return np.sqrt(1 - 1/self.gamma**2)
+#     @property
+#     def beta(self):
+#         return np.sqrt(1 - 1/self.gamma**2)
 
-    @property
-    def p0(self):
-        return m_p * c * np.sqrt(self.gamma**2 - 1)
+#     @property
+#     def p0(self):
+#         return m_p * c * np.sqrt(self.gamma**2 - 1)
 
-    @property
-    def R(self):
-        return self.circumference / (2 * np.pi)
+#     @property
+#     def R(self):
+#         return self.circumference / (2 * np.pi)
 
-    @property
-    def beta_z(self):
-        Qs = 0.01
-        return np.abs(self.eta * self.R / Qs)
+#     @property
+#     def beta_z(self):
+#         Qs = 0.01
+#         return np.abs(self.eta * self.R / Qs)
 
-    @property
-    def Hmax(self):
-        return self.hamiltonian(self.zs, 0)
+#     @property
+#     def Hmax(self):
+#         return self.hamiltonian(self.zs, 0)
 
-    def field(self, V, h, dphi):
+#     def field(self, V, h, dphi):
 
-        def v(z):
-            phi = h*z/self.R
-            return e*V/self.circumference * np.sin(phi + dphi)
+#         def v(z):
+#             phi = h*z/self.R
+#             return e*V/self.circumference * np.sin(phi + dphi)
 
-        return v
+#         return v
 
-    def Ef(self, z):
+#     def Ef(self, z):
 
-        return reduce(lambda x, y: x + y,
-                      [self.field(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
+#         return reduce(lambda x, y: x + y,
+#                       [self.field(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
-    def E_acc(self, z):
+#     def E_acc(self, z):
 
-        return self.Ef(z) - e*self.delta_p/self.circumference
+#         return self.Ef(z) - e*self.delta_p/self.circumference
 
-    def potential(self, V, h, dphi):
+#     def potential(self, V, h, dphi):
 
-        def v(z):
-            phi = h*z/self.R
-            return e*V/(2*np.pi*h) * np.cos(phi + dphi)
+#         def v(z):
+#             phi = h*z/self.R
+#             return e*V/(2*np.pi*h) * np.cos(phi + dphi)
 
-        return v
+#         return v
 
-    def Vf(self, z):
+#     def Vf(self, z):
 
-        return reduce(lambda x, y: x + y,
-                      [self.potential(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
+#         return reduce(lambda x, y: x + y,
+#                       [self.potential(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
 
-    def V_acc(self, z):
-        '''Sign makes sure we stay convex - just nicer'''
-        z_extrema = self._get_zero_crossings(self.E_acc)
+#     def V_acc(self, z):
+#         '''Sign makes sure we stay convex - just nicer'''
+#         z_extrema = self._get_zero_crossings(self.E_acc)
 
-        if np.sign(self.eta) < 0:
-            zc, zmax = z_extrema[-1], z_extrema[0]
-        else:
-            zmax, zc = z_extrema[-1], z_extrema[0]
+#         if np.sign(self.eta) < 0:
+#             zc, zmax = z_extrema[-1], z_extrema[0]
+#         else:
+#             zmax, zc = z_extrema[-1], z_extrema[0]
 
-        return -np.sign(self.eta) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
+#         return -np.sign(self.eta) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.delta_p/self.circumference)
 
-    def get_z_left_right(self, zc):
-        # zz = np.linspace(self.zmin, self.zmax, 1000)
-        # plt.figure(12)
-        # plt.plot(zz, self.V_acc(zz)-self.V_acc(zc))
-        # plt.axhline(0, c='r', lw=2)
-        # plt.show()
-        z_cut = self._get_zero_crossings(lambda x: self.V_acc(x) - self.V_acc(zc))
-        zleft, zright = z_cut[0], z_cut[-1]
+#     def get_z_left_right(self, zc):
+#         # zz = np.linspace(self.zmin, self.zmax, 1000)
+#         # plt.figure(12)
+#         # plt.plot(zz, self.V_acc(zz)-self.V_acc(zc))
+#         # plt.axhline(0, c='r', lw=2)
+#         # plt.show()
+#         z_cut = self._get_zero_crossings(lambda x: self.V_acc(x) - self.V_acc(zc))
+#         zleft, zright = z_cut[0], z_cut[-1]
 
-        return zleft, zright
+#         return zleft, zright
 
-    def Hcut(self, zc):
-        return self.hamiltonian(zc, 0)
+#     def Hcut(self, zc):
+#         return self.hamiltonian(zc, 0)
 
-    def equihamiltonian(self, zc):
-        def s(z):
-            r = np.sign(self.eta) * 2/(self.eta*self.beta*c) * (-self.Hcut(zc) - self.V_acc(z)/self.p0)
-            return np.sqrt(r.clip(min=0))
-        return s
+#     def equihamiltonian(self, zc):
+#         def s(z):
+#             r = np.sign(self.eta) * 2/(self.eta*self.beta*c) * (-self.Hcut(zc) - self.V_acc(z)/self.p0)
+#             return np.sqrt(r.clip(min=0))
+#         return s
 
-    def separatrix(self, z):
-        f = self.equihamiltonian(self.zright)
-        return f(z)
+#     def separatrix(self, z):
+#         f = self.equihamiltonian(self.zright)
+#         return f(z)
 
-    def p_max(self, zc):
-        f = self.equihamiltonian(zc)
-        return np.amax(f(self.zs))
+#     def p_max(self, zc):
+#         f = self.equihamiltonian(zc)
+#         return np.amax(f(self.zs))
 
-    def hamiltonian(self, z, dp):
-        '''Sign makes sure we stay convex - can then always use H<0'''
-        return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
-        # Hmax = np.amax(np.abs(1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0))
-        # print Hmax
-        # return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0 + Hmax) * self.p0/e*self.circumference/c
+#     def hamiltonian(self, z, dp):
+#         '''Sign makes sure we stay convex - can then always use H<0'''
+#         return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 * self.p0 + self.V_acc(z)) / self.p0
+#         # Hmax = np.amax(np.abs(1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0))
+#         # print Hmax
+#         # return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0 + Hmax) * self.p0/e*self.circumference/c
 
-    def H0(self, z0):
-        return np.abs(self.eta)*self.beta*c * (z0 / self.beta_z) ** 2
+#     def H0(self, z0):
+#         return np.abs(self.eta)*self.beta*c * (z0 / self.beta_z) ** 2
 
-    def _get_phi_s(self):
+#     def _get_phi_s(self):
 
-        V, self.accelerating_cavity = np.amax(self.V), np.argmax(self.V)
-        if self.eta<0:
-            return np.pi - np.arcsin(self.delta_p/V)
-        elif self.eta>0:
-            return np.arcsin(self.delta_p/V)
-        else:
-            return 0
+#         V, self.accelerating_cavity = np.amax(self.V), np.argmax(self.V)
+#         if self.eta<0:
+#             return np.pi - np.arcsin(self.delta_p/V)
+#         elif self.eta>0:
+#             return np.arcsin(self.delta_p/V)
+#         else:
+#             return 0
 
-    def _phaselock(self):
-        phi_s = self._get_phi_s()
-        cavities = range(len(self.V))
-        del cavities[self.accelerating_cavity]
+#     def _phaselock(self):
+#         phi_s = self._get_phi_s()
+#         cavities = range(len(self.V))
+#         del cavities[self.accelerating_cavity]
 
-        for i in cavities:
-            self.dphi[i] -= self.h[i]/self.h[self.accelerating_cavity] * self._get_phi_s()
+#         for i in cavities:
+#             self.dphi[i] -= self.h[i]/self.h[self.accelerating_cavity] * self._get_phi_s()
 
-        # print self.dphi
+#         # print self.dphi
 
-    def _get_zero_crossings(self, f):
-        zz = np.linspace(self.zmin, self.zmax, 1000)
+#     def _get_zero_crossings(self, f):
+#         zz = np.linspace(self.zmin, self.zmax, 1000)
 
-        a = np.sign(f(zz))
-        b = np.diff(a)
-        ix = np.where(b)[0]
-        s = []
-        for i in ix:
-            s.append(brentq(f, zz[i], zz[i + 1]))
-        s = np.array(s)
+#         a = np.sign(f(zz))
+#         b = np.diff(a)
+#         ix = np.where(b)[0]
+#         s = []
+#         for i in ix:
+#             s.append(brentq(f, zz[i], zz[i + 1]))
+#         s = np.array(s)
 
-        return s
+#         return s
 
-    def _get_bucket_boundaries(self):
-        '''
-        Treat all crazy situations here
-        '''
-        z_extrema = self._get_zero_crossings(self.E_acc)
-        z_cut = self._get_zero_crossings(self.V_acc)
+#     def _get_bucket_boundaries(self):
+#         '''
+#         Treat all crazy situations here
+#         '''
+#         z_extrema = self._get_zero_crossings(self.E_acc)
+#         z_cut = self._get_zero_crossings(self.V_acc)
 
-        try:
-            if np.sign(self.eta) < 0:
-                if len(z_extrema)==2:
-                    self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[-1], z_cut[0]
-                elif len(z_extrema)==3:
-                    self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_cut[0]
-                else:
-                    raise ValueError("\n*** This length of z_extrema is not known how to be treated. Aborting.\n")
-                self.zcut = z_cut[0]
-            else:
-                if len(z_extrema)==2:
-                    self.zleft, self.zs, self.zright = z_cut[0], z_extrema[0], z_extrema[-1]
-                elif len(z_extrema)==3:
-                    self.zleft, self.zs, self.zright = z_cut[0], z_extrema[1], z_extrema[-1]
-                else:
-                    raise ValueError("\n*** This length of z_extrema is not known how to be treated. Aborting.\n")
-                self.zcut = z_cut[0]
-        except IndexError:
-            self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_extrema[-1]
+#         try:
+#             if np.sign(self.eta) < 0:
+#                 if len(z_extrema)==2:
+#                     self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[-1], z_cut[0]
+#                 elif len(z_extrema)==3:
+#                     self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_cut[0]
+#                 else:
+#                     raise ValueError("\n*** This length of z_extrema is not known how to be treated. Aborting.\n")
+#                 self.zcut = z_cut[0]
+#             else:
+#                 if len(z_extrema)==2:
+#                     self.zleft, self.zs, self.zright = z_cut[0], z_extrema[0], z_extrema[-1]
+#                 elif len(z_extrema)==3:
+#                     self.zleft, self.zs, self.zright = z_cut[0], z_extrema[1], z_extrema[-1]
+#                 else:
+#                     raise ValueError("\n*** This length of z_extrema is not known how to be treated. Aborting.\n")
+#                 self.zcut = z_cut[0]
+#         except IndexError:
+#             self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_extrema[-1]
 
 
 '''
@@ -332,8 +332,8 @@ class Kick(LongitudinalMap):
         phi = self._phi(beam.z)
 
         delta_p = beam.dp * beam.p0
-        delta_p += amplitude * (sin(phi)) - e*self.p_increment / (beam.beta*c) #sin(self.phi_s(beam))) #- self.p_increment
-        beam.p0 += e*self.p_increment / (beam.beta*c)
+        delta_p += amplitude * sin(phi) - self.p_increment #sin(self.phi_s(beam))) #- self.p_increment
+        beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
 
     def field(self, z):
@@ -341,7 +341,8 @@ class Kick(LongitudinalMap):
         return e*self.voltage/self.circumference * sin(phi)
 
     def E_acc(self, z):
-        return self.field(z) - e*self.p_increment/self.circumference
+        deltaE  = self.p_increment*self.beta_reference*c
+        return self.field(z) - deltaE/self.circumference
 
     def potential(self, z):
         phi = self._phi(z)
@@ -350,13 +351,18 @@ class Kick(LongitudinalMap):
     def V_acc(self, z):
         '''Sign makes sure we stay convex - just nicer'''
         z_extrema = self._get_zero_crossings(self.E_acc)
+        deltaE  = self.p_increment*self.beta_reference*c
 
-        if np.sign(self.eta0) < 0:
-            zc, zmax = z_extrema[-1], z_extrema[0]
+        if deltaE < 0:
+            print '*** WARNING! Deceleration not gonna work. Please implement it correctly here in line ~355.'
+            exit(-1)
         else:
-            zmax, zc = z_extrema[-1], z_extrema[0]
+            if np.sign(self.eta0) < 0:
+                zc, zmax = z_extrema[-1], z_extrema[0]
+            else:
+                zmax, zc = z_extrema[-1], z_extrema[0]
 
-        return -np.sign(self.eta) * ((self.potential(z) - self.potential(zmax)) + (z - zmax) * e*self.p_increment/self.circumference)
+        return -np.sign(self.eta) * ((self.potential(z) - self.potential(zmax)) + (z - zmax) * deltaE/self.circumference)
 
     # def potential(self, z, beam, phi_0=None):
     #     """The contribution of this kick to the overall potential V(z)."""
@@ -367,7 +373,7 @@ class Kick(LongitudinalMap):
     #     modulation = cos(phi) - cos(phi_0) + (phi - phi_0) * sin(phi_0)
     #     return amplitude * modulation
 
-    def Qs(self, beam):
+    def Qs(self):
         '''
         Synchrotron tune derived from the linearized Hamiltonian
 
@@ -380,11 +386,10 @@ class Kick(LongitudinalMap):
         objects is not taken into account! (I.e. in general, this
         calculated value is wrong for multi-harmonic RF systems.)
         '''
-        Qs = np.sqrt(e * self.voltage * np.abs(self.eta(0, beam.gamma)) *
-                    self.harmonic / (2 * np.pi * beam.p0 * beam.beta * c))
-        return Qs
+        return np.sqrt( e*self.voltage*np.abs(self.eta0)*self.harmonic
+                     / (2*np.pi*self.p0_reference*self.beta_reference*c) )
 
-    def phi_s(self, beam):
+    def phi_s(self):
         """The phase deviation from the unaccelerated case
         calculated via the momentum step self.p_increment
         per turn. It includes the jump in the e.o.m.
@@ -396,10 +401,10 @@ class Kick(LongitudinalMap):
         """
         if self.p_increment == 0 and self.voltage == 0:
             return 0
-        deltaE  = self.p_increment * e#* c * beam.beta / beam.gamma
-        phi_rel = np.arcsin(deltaE / (e * self.voltage))
+        deltaE  = self.p_increment*self.beta_reference*c
+        phi_rel = np.arcsin(deltaE / (e*self.voltage))
 
-        if self.eta(0, beam.gamma) < 0:
+        if self.eta0<0:
             # return np.sign(deltaE) * np.pi - phi_rel
             return np.pi - phi_rel
         else:
@@ -578,7 +583,6 @@ class RFSystems(LongitudinalOneTurnMap):
             self._shrink_transverse_emittance(
                 beam, np.sqrt(betagamma_old / beam.betagamma))
             self.gamma_reference = beam.gamma
-        print self.gamma_reference
 
     @staticmethod
     def _shrink_transverse_emittance(beam, geo_emittance_factor):
@@ -601,7 +605,8 @@ class RFSystems(LongitudinalOneTurnMap):
         return reduce(lambda x, y: x + y, [kick.field(z) for kick in self.kicks])
 
     def E_acc(self, z):
-        return self.Ef(z) - e*self.p_increment/self.circumference
+        deltaE  = self.p_increment*self.beta_reference*c
+        return self.Ef(z) - deltaE/self.circumference
 
     def Vf(self, z):
         return reduce(lambda x, y: x + y, [kick.potential(z) for kick in self.kicks])
@@ -609,13 +614,14 @@ class RFSystems(LongitudinalOneTurnMap):
     def V_acc(self, z):
         '''Sign makes sure we stay convex - just nicer'''
         z_extrema = self._get_zero_crossings(self.E_acc)
+        deltaE  = self.p_increment*self.beta_reference*c
 
         if np.sign(self.eta0) < 0:
             zc, zmax = z_extrema[-1], z_extrema[0]
         else:
             zmax, zc = z_extrema[-1], z_extrema[0]
 
-        return -np.sign(self.eta0) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * e*self.p_increment/self.circumference)
+        return -np.sign(self.eta0) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * deltaE/self.circumference)
 
     def get_z_left_right(self, zc):
         # zz = np.linspace(self.zmin, self.zmax, 1000)
@@ -663,6 +669,13 @@ class RFSystems(LongitudinalOneTurnMap):
     def H0(self, z0):
         return np.abs(self.eta0)*self.beta_reference*c * (z0 / self.beta_z) ** 2
 
+    def is_in_separatrix(self, z, dp):
+        """
+        Returns boolean whether this coordinate is located
+        strictly inside the separatrix.
+        """
+        return self.zleft < z < self.zright and self.hamiltonian(z, dp) > 0
+
     # def potential(self, z, beam):
     #     """
     #     The potential well of the RF system.
@@ -696,15 +709,15 @@ class RFSystems(LongitudinalOneTurnMap):
     #     return np.sqrt(2 / (beam.beta * c * self.eta(0, beam.gamma))
     #                    * self.potential(z, beam))
 
-    def _get_phi_s(self):
+    # def _get_phi_s(self):
 
-        V, self.accelerating_cavity = np.amax(self.V), np.argmax(self.V)
-        if self.eta0<0:
-            return np.pi - np.arcsin(self.delta_p/V)
-        elif self.eta0>0:
-            return np.arcsin(self.delta_p/V)
-        else:
-            return 0
+    #     V, self.accelerating_cavity = np.amax(self.V), np.argmax(self.V)
+    #     if self.eta0<0:
+    #         return np.pi - np.arcsin(self.delta_p/V)
+    #     elif self.eta0>0:
+    #         return np.arcsin(self.delta_p/V)
+    #     else:
+    #         return 0
 
     def _phaselock(self):
         phi_s = self._get_phi_s()
@@ -755,13 +768,6 @@ class RFSystems(LongitudinalOneTurnMap):
                 self.zcut = z_cut[0]
         except IndexError:
             self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_extrema[-1]
-
-    def is_in_separatrix(self, z, dp):
-        """
-        Returns boolean whether this coordinate is located
-        strictly inside the separatrix.
-        """
-        return hamiltonian(z, dp) < 0
 
 
 class LinearMap(LongitudinalOneTurnMap):

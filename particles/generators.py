@@ -96,7 +96,7 @@ class GaussianY(PhaseSpace):
 class GaussianZ(PhaseSpace):
     """Longitudinal Gaussian particle phase space distribution."""
 
-    def __init__(self, sigma_z, sigma_dp, is_accepted = None, generator_seed=None):
+    def __init__(self, sigma_z, sigma_dp, is_accepted=None, generator_seed=None):
         """Initiates the longitudinal beam coordinates to a given
         Gaussian shape. If the argument is_accepted is set to
         the is_in_separatrix(z, dp, beam) method of a RFSystems
@@ -111,7 +111,7 @@ class GaussianZ(PhaseSpace):
         self.random_state.seed(generator_seed)
 
     @classmethod
-    def from_optics(cls, beta_z, epsn_z, p0, is_accepted = None,
+    def from_optics(cls, beta_z, epsn_z, p0, is_accepted=None,
                     generator_seed=None):
         """Initialise GaussianZ from the given optics functions.
         For the argument is_accepted see __init__.
@@ -130,10 +130,14 @@ class GaussianZ(PhaseSpace):
 
     def _redistribute(self, beam):
         n = beam.n_macroparticles
+        z = beam.z.copy()
+        dp = beam.dp.copy()
         for i in xrange(n):
-            while not self.is_accepted(beam.z[i], beam.dp[i], beam):
-                beam.z[i]  = self.sigma_z * self.random_state.randn(n)
-                beam.dp[i] = self.sigma_dp * self.random_state.randn(n)
+            while not self.is_accepted(z[i], dp[i]):
+                z[i]  = self.sigma_z * self.random_state.randn()
+                dp[i] = self.sigma_dp * self.random_state.randn()
+        beam.z = z
+        beam.dp = dp
 
 
 class RFBucket(PhaseSpace):
