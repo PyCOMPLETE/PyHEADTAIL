@@ -148,16 +148,6 @@ class RFBucket(PhaseSpace):
         self.H = rfsystem
         self.sigma_z = sigma_z
 
-        # self.circumference = rfsystem.circumference
-        # # self.equihamiltonian = rfsystem.equihamiltonian
-        # self.hamiltonian = rfsystem.hamiltonian
-        # self.separatrix = rfsystem.separatrix
-        # self.p_max = rfsystem.p_max
-        # self.z_extrema = rfsystem.z_extrema
-        # self.z_sep, self.p_sep = rfsystem.z_sep, rfsystem.p_sep
-        # self.H0 = 1
-        # self.p0 = rfsystem.p0
-
         self._compute_std = self._compute_std_cumtrapz
 
         if sigma_z and not epsn_z:
@@ -168,48 +158,6 @@ class RFBucket(PhaseSpace):
             self.psi_for_variable = self.psi_for_emittance
 
         # self.generate = self.dontgenerate
-
-    # @profile
-    # def _test_maximum_std(self, psi_c, sigma):
-
-    #     # Test for maximum bunch length
-    #     psi = psi_c.function
-    #     psi_c.H0 = self.H.H0(self.circumference)
-
-    #     zS = self._compute_std(psi, self.H.separatrix, self.H.zleft, self.H.zright)
-    #     print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
-    #     if sigma > zS * 0.95:
-    #         print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
-
-    #     return zS
-        # # A = self._compute_mean_quad(lambda x, y: 1, self.separatrix, self.z_sep[0], self.z_sep[1])
-        # zc = self.z_sep[1]
-        # zc = zS
-        # zz = plt.linspace(0, self.z_sep[1], 40)
-        # A = np.array([self._compute_mean_quad(lambda x, y: 1, self.equihamiltonian(zc), -zc, zc) for zc in zz])
-        # print "\n--> Bucket area:", 2 * A * self.p0/e, " eV s.\n"
-        # fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(6, 10))
-        # ax1.plot(zz, 2*A*self.p0/e)
-        # ax2.plot(zz, self.hamiltonian(zz, 0))
-        # ax3.plot(self.hamiltonian(zz, 0), 2*A*self.p0/e)
-        # plt.show()
-        # exit(-1)
-
-
-        # zS = self._compute_std_quad(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
-        # print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
-        # if sigma > zS * 0.95:
-        #     print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
-
-        # zS = self._compute_std_cumtrapz(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
-        # print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
-        # if sigma > zS * 0.95:
-        #     print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
-
-        # zS = self._compute_std_romberg(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
-        # print "\n--> Maximum rms bunch length in bucket:", zS, " m.\n"
-        # if sigma > zS * 0.95:
-        #     print "\n*** WARNING! Bunch appears to be too long for bucket!\n"
 
     def psi_for_emittance(self, epsn_z):
 
@@ -397,12 +345,6 @@ class RFBucket(PhaseSpace):
 
         return psi
 
-    def dontgenerate(self, particles):
-
-        particles.z = np.zeros(particles.n_macroparticles)
-        particles.dp = np.zeros(particles.n_macroparticles)
-        particles.generator = self
-
     def generate(self, particles):
         '''
         Generate a 2d phase space of n_particles particles randomly distributed
@@ -448,49 +390,6 @@ class RFBucket(PhaseSpace):
         particles.dp = y
         particles.psi = psi
         # return x, y, j / i * dx * dy, psi
-
-    # def _set_target_std(self, psi, sigma):
-
-    #     self._test_maximum_std(psi, sigma)
-    #     psi.Hmax = np.amax(self.hamiltonian(self.z_extrema, 0))
-
-    #     print 'Iterative evaluation of bunch length...'
-    #     counter = 0
-    #     z0 = sigma
-    #     eps = 1
-
-    #     # Iteratively obtain true H0 to make target sigma
-    #     zH = z0
-    #     psi.H0 = self.H0(zH)
-    #     a = 1
-    #     while abs(eps)>1e-4:
-    #         zS = self._compute_std(psi.function, self.separatrix, self.z_sep[0], self.z_sep[1])
-
-    #         # TODO: optimize convergence algorithm: particle swarm optimization
-    #         eps = zS - z0
-    #         print counter, zH, zS, eps
-    #         zH -= a * eps
-    #         psi.H0 = self.H0(zH)
-
-    #         counter += 1
-    #         if counter > 100:
-    #             print "\n*** WARNING: too many interation steps! There are several possible reasons for that:"
-    #             print "1. Is the Hamiltonian correct?"
-    #             print "2. Is the stationary distribution function convex around zero?"
-    #             print "3. Is the bunch too long to fit into the bucket?"
-    #             print "4. Is this algorithm not qualified?"
-    #             print "Aborting..."
-    #             sys.exit(-1)
-    #         elif counter > 90:
-    #             a = 0.1
-    #         elif counter > 60:
-    #             a = 0.25
-    #         elif counter > 30:
-    #             a = 0.5
-
-    #     print "*** Converged!\n"
-
-    #     return psi.function
 
     def _compute_mean_quad(self, psi, p_sep, xmin, xmax):
         '''

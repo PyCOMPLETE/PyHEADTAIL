@@ -97,6 +97,28 @@ class Particles(object):
                    (gaussianx, gaussiany, rfbucket))
 
     @classmethod
+    def as_gaussian_z(cls, n_macroparticles, charge, mass, gamma, intensity,
+                      beta_z, epsn_z, is_accepted=None, generator_seed=None):
+        """Initialises a Gaussian bunch from the given optics functions.
+        For the argument is_accepted cf. generators.Gaussian_Z .
+        """
+
+        n_particles_per_mp = intensity/n_macroparticles
+
+        betagamma = np.sqrt(gamma**2 - 1)
+        p0 = betagamma * mass * c
+
+        # Generate seeds for GaussianX, Y and Z.
+        random_state = RandomState()
+        random_state.seed(generator_seed)
+
+        gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
+                                          generator_seed=random_state.randint(sys.maxint))
+
+        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
+                   (gaussianz,))
+
+    @classmethod
     def as_uniformXY(cls, n_macroparticles, charge, gamma, intensity, mass,
                      xmin, xmax, ymin, ymax, zmin=0, zmax=0):
 

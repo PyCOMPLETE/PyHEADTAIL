@@ -8,6 +8,7 @@ import numpy as np
 import pylab as plt
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
+from scipy.integrate import dblquad
 
 
 sin = np.sin
@@ -332,7 +333,7 @@ class Kick(LongitudinalMap):
         phi = self._phi(beam.z)
 
         delta_p = beam.dp * beam.p0
-        delta_p += amplitude * sin(phi) - self.p_increment #sin(self.phi_s(beam))) #- self.p_increment
+        delta_p += amplitude * sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
 
@@ -364,23 +365,13 @@ class Kick(LongitudinalMap):
 
         return -np.sign(self.eta) * ((self.potential(z) - self.potential(zmax)) + (z - zmax) * deltaE/self.circumference)
 
-    # def potential(self, z, beam, phi_0=None):
-    #     """The contribution of this kick to the overall potential V(z)."""
-    #     amplitude = e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
-    #     if phi_0 is None:
-   #         phi_0 = self.phi_s(beam)
-    #     phi = self._phi(z)
-    #     modulation = cos(phi) - cos(phi_0) + (phi - phi_0) * sin(phi_0)
-    #     return amplitude * modulation
-
     def Qs(self):
         '''
         Synchrotron tune derived from the linearized Hamiltonian
 
         .. math::
-        H = -1 / 2 * eta * beta * c * delta ** 2
-            + e * V / (p0 * 2 * np.pi * h) *
-            * (np.cos(phi) - np.cos(dphi) + (phi - dphi) * np.sin(dphi))
+        H = -1/2*eta*beta*c * delta ** 2 + e*V /(p0*2*np.pi*h)
+          * ( np.cos(phi)-np.cos(dphi) + (phi-dphi) * np.sin(dphi) )
         NOTE: This function only returns the synchroton tune effectuated
         by this single Kick instance, any contribution from other Kick
         objects is not taken into account! (I.e. in general, this
@@ -457,8 +448,8 @@ class RFSystems(LongitudinalOneTurnMap):
         local statement about stability!
     """
 
-    def __init__(self, circumference, harmonic_list, voltage_list,
-                 phi_offset_list, alpha_array, p_increment=0, gamma_reference=1, shrinking=False):
+    def __init__(self, circumference, harmonic_list, voltage_list, phi_offset_list,
+                 alpha_array, gamma_reference, p_increment=0, shrinking=False, slices_tuple=None):
         """
         The first entry in harmonic_list, voltage_list and
         phi_offset_list defines the parameters for the one
@@ -504,31 +495,46 @@ class RFSystems(LongitudinalOneTurnMap):
 
         super(RFSystems, self).__init__(alpha_array, circumference)
 
+        self._shrinking = shrinking
         if not len(harmonic_list) == len(voltage_list) == len(phi_offset_list):
             print ("Warning: parameter lists for RFSystems " +
                                         "do not have the same length!")
 
-        self._shrinking = shrinking
-        self.kicks = []
-        for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list):
-            kick = Kick(alpha_array, self.circumference, h, V, dphi)
-            self.kicks.append(kick)
+        self.kicks = [Kick(alpha_array, self.circumference, h, V, dphi)
+                      for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list)]
         self.elements = ( [Drift(alpha_array, self.circumference / 2)]
                         + self.kicks
                         + [Drift(alpha_array, self.circumference / 2)]
                         )
-        self.accelerating_kick = self.kicks[0]
+        self.fundamental_cavity = min(self.kicks, key=lambda kick: kick.harmonic)
         self.p_increment = p_increment
-        self.fundamental_kick = min(self.kicks, key=lambda kick: kick.harmonic)
 
         # Reference energy and make eta0, resp. "machine gamma_tr" available for all routines
         self.gamma_reference = gamma_reference
         self.alpha0 = alpha_array[0]
-
         zmax = self.circumference / (2*np.amin(harmonic_list))
         self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
-
         self._get_bucket_boundaries()
+
+        self.slices_tuple = slices_tuple
+
+    @property
+    def p_increment(self):
+        return self.fundamental_cavity.p_increment
+    @p_increment.setter
+    def p_increment(self, value):
+        self.fundamental_cavity.p_increment = value
+        if self._shrinking:
+            self.elements[-1].shrinkage_p_increment = value
+
+    # @property
+    # def p_increment(self):
+    #     return self._p_increment
+    # @p_increment.setter
+    # def p_increment(self, value):
+    #     self._p_increment = value
+    #     if self._shrinking:
+    #         self.elements[-1].shrinkage_p_increment = value
 
     @property
     def gamma_reference(self):
@@ -552,7 +558,7 @@ class RFSystems(LongitudinalOneTurnMap):
         return self._betagamma_reference
     @betagamma_reference.setter
     def betagamma_reference(self, value):
-        self.gamma_reference = np.sqrt(value**2 + 1)
+        self.gamma_reference = np.sqrt(value ** 2 + 1)
 
     @property
     def p0_reference(self):
@@ -574,16 +580,6 @@ class RFSystems(LongitudinalOneTurnMap):
     def Hmax(self):
         return self.hamiltonian(self.zs, 0)
 
-    def track(self, beam):
-        if self.p_increment:
-            betagamma_old = beam.betagamma
-        for longMap in self.elements:
-            longMap.track(beam)
-        if self.p_increment:
-            self._shrink_transverse_emittance(
-                beam, np.sqrt(betagamma_old / beam.betagamma))
-            self.gamma_reference = beam.gamma
-
     @staticmethod
     def _shrink_transverse_emittance(beam, geo_emittance_factor):
         """accounts for the transverse geometrical emittance shrinking"""
@@ -592,14 +588,33 @@ class RFSystems(LongitudinalOneTurnMap):
         beam.y *= geo_emittance_factor
         beam.yp *= geo_emittance_factor
 
-    @property
-    def p_increment(self):
-        return self.accelerating_kick.p_increment
-    @p_increment.setter
-    def p_increment(self, value):
-        self.accelerating_kick.p_increment = value
-        if self._shrinking:
-            self.elements[-1].shrinkage_p_increment = value
+    def track(self, beam):
+        if self.p_increment:
+            betagamma_old = beam.betagamma
+        for longMap in self.elements:
+            longMap.track(beam)
+        if self.p_increment:
+            self.p0_reference += self.p_increment
+            if self._shrinking: # TODO: quick fix; need to think better how to treat purely long. tracking
+                self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
+        if self.slices_tuple:
+            for slices in self.slices_tuple:
+                slices.update_slices(beam)
+
+    def set_voltage_list(self, voltage_list):
+        for i, V in enumerate(voltage_list):
+            self.kicks[i].voltage = V
+        self._get_bucket_boundaries()
+
+    def set_harmonic_list(self, harmonic_list):
+        for i, h in enumerate(harmonic_list):
+            self.kicks[i].harmonic_list = h
+        self._get_bucket_boundaries()
+
+    def set_phi_offset_list(self, phi_offset_list):
+        for i, dphi in enumerate(phi_offset_list):
+            self.kicks[i].phi_offset = dphi
+        self._get_bucket_boundaries()
 
     def Ef(self, z):
         return reduce(lambda x, y: x + y, [kick.field(z) for kick in self.kicks])
@@ -624,11 +639,6 @@ class RFSystems(LongitudinalOneTurnMap):
         return -np.sign(self.eta0) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * deltaE/self.circumference)
 
     def get_z_left_right(self, zc):
-        # zz = np.linspace(self.zmin, self.zmax, 1000)
-        # plt.figure(12)
-        # plt.plot(zz, self.V_acc(zz)-self.V_acc(zc))
-        # plt.axhline(0, c='r', lw=2)
-        # plt.show()
         z_cut = self._get_zero_crossings(lambda x: self.V_acc(x) - self.V_acc(zc))
         zleft, zright = z_cut[0], z_cut[-1]
 
@@ -653,18 +663,7 @@ class RFSystems(LongitudinalOneTurnMap):
 
     def hamiltonian(self, z, dp):
         '''Sign makes sure we stay convex - can then always use H<0'''
-        # print self.E_acc
-        # zz = plt.linspace(self.zmin, self.zmax)
-        # plt.plot(zz, self.E_acc(zz))
-        # plt.axhline(0)
-        # plt.show()
-
-        # print self.V_acc(z)
-        # exit(-1)
         return -(np.sign(self.eta0) * 1/2 * self.eta0*self.beta_reference*c * dp**2 * self.p0_reference + self.V_acc(z)) / self.p0_reference
-        # Hmax = np.amax(np.abs(1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0))
-        # print Hmax
-        # return -(np.sign(self.eta) * 1/2 * self.eta*self.beta*c * dp**2 + self.V_acc(z)/self.p0 + Hmax) * self.p0/e*self.circumference/c
 
     def H0(self, z0):
         return np.abs(self.eta0)*self.beta_reference*c * (z0 / self.beta_z) ** 2
@@ -676,58 +675,33 @@ class RFSystems(LongitudinalOneTurnMap):
         """
         return self.zleft < z < self.zright and self.hamiltonian(z, dp) > 0
 
-    # def potential(self, z, beam):
-    #     """
-    #     The potential well of the RF system.
-    #     """
-    #     phi_0 = self.accelerating_kick.phi_s(beam)
-    #     h1 = self.accelerating_kick.harmonic
-    #     def fetch_potential(kick):
-    #         phi_acc_individual = -kick.harmonic / h1 * phi_0
-    #         if kick is not self.accelerating_kick:
-    #             kick._phi_lock = phi_acc_individual
-    #         return kick.potential(z, beam)
-    #     potential_list = map(fetch_potential, self.kicks)
-    #     return sum(potential_list)
+    def bucket_area(self):
+        xmin, xmax = self.zleft, self.zright
+        Q, error = dblquad(lambda y, x: 1, xmin, xmax, lambda x: 0, lambda x: self.separatrix(x))
 
-    # def hamiltonian(self, z, dp, beam):
-    #     """
-    #     The full separable Hamiltonian of the RF system.
-    #     Its zero value is located at the fundamental separatrix
-    #     (between bound and unbound motion).
-    #     """
-    #     kinetic = -0.5 * self.eta(dp, beam.gamma) * beam.beta * c * dp ** 2
-    #     return kinetic + self.potential(z, beam)
+        return Q * 2*self.p0_reference/e
 
-    # def separatrix(self, z, beam):
-    #     """
-    #     Returns the separatrix delta_sep = (p - p0) / p0 for the
-    #     synchronous particle (since eta depends on delta, inverting
-    #     the separatrix equation 0 = H(z_sep, dp_sep)
-    #     becomes inexplicit in general).
-    #     """
-    #     return np.sqrt(2 / (beam.beta * c * self.eta(0, beam.gamma))
-    #                    * self.potential(z, beam))
+    def phi_s(self):
+        voltage = self.fundamental_cavity.voltage
 
-    # def _get_phi_s(self):
+        if self.p_increment == 0 and voltage == 0:
+            return 0
 
-    #     V, self.accelerating_cavity = np.amax(self.V), np.argmax(self.V)
-    #     if self.eta0<0:
-    #         return np.pi - np.arcsin(self.delta_p/V)
-    #     elif self.eta0>0:
-    #         return np.arcsin(self.delta_p/V)
-    #     else:
-    #         return 0
+        deltaE  = self.p_increment*self.beta_reference*c
+        phi_rel = np.arcsin(deltaE / (e*voltage))
+
+        if self.eta0<0:
+            # return np.sign(deltaE) * np.pi - phi_rel
+            return np.pi - phi_rel
+        else:
+            return phi_rel
 
     def _phaselock(self):
-        phi_s = self._get_phi_s()
         cavities = range(len(self.V))
         del cavities[self.accelerating_cavity]
 
         for i in cavities:
-            self.dphi[i] -= self.h[i]/self.h[self.accelerating_cavity] * self._get_phi_s()
-
-        # print self.dphi
+            self._phi_lock[i] -= self.h[i]/self.h[self.accelerating_cavity] * self.phi_s()
 
     def _get_zero_crossings(self, f):
         zz = np.linspace(self.zmin, self.zmax, 1000)
@@ -776,12 +750,13 @@ class LinearMap(LongitudinalOneTurnMap):
     self.alpha is the linear momentum compaction factor.
     '''
 
-    def __init__(self, circumference, alpha, Qs):
+    def __init__(self, circumference, alpha, Qs, slices_tuple):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         self.circumference = circumference
         self.alpha = alpha
         self.Qs = Qs
+        self.slices_tuple = slices_tuple
 
     def track(self, beam):
 
@@ -799,3 +774,6 @@ class LinearMap(LongitudinalOneTurnMap):
 
         beam.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
         beam.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
+
+        for slices in self.slices_tuple:
+            slices.update_slices(beam)
