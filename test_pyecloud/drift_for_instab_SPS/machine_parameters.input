@@ -26,7 +26,7 @@ import numpy as np
 
 # uniform initial distrib
 init_unif_flag=1
-Nel_init_unif=2.5e11*np.pi*x_aper**2
+Nel_init_unif=2.2e11*np.pi*x_aper**2
 E_init_unif=0.01;   #in eV
 x_max_init_unif =x_aper
 x_min_init_unif =-x_aper

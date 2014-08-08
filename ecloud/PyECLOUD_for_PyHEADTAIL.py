@@ -216,6 +216,8 @@ class Ecloud(object):
 		self.slicer.update_slices(beam)
 		
 		
+                #print MP_e.N_mp, MP_e.x_mp[0], MP_e.vx_mp[0], MP_e.y_mp[0], MP_e.vy_mp[0], \
+				#MP_e.z_mp[0], MP_e.vz_mp[0]  
 		for i in xrange(self.slicer.n_slices-1, -1, -1):
 
 			# select particles in the slice
@@ -228,6 +230,7 @@ class Ecloud(object):
 			# define substep
 			N_sub_steps = int(np.round(dt/self.Dt_ref))
 			Dt_substep = dt/N_sub_steps
+			#print Dt_substep, N_sub_steps, dt
 
 			# beam field 
 			MP_p = MP_light()

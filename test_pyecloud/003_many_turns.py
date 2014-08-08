@@ -56,14 +56,14 @@ epsn_z    = 4.*np.pi*sigma_z**2 * p0 / (beta_z * e)
 #i_oct_f   = -i_oct_fd                       # Octupole current (focusing).
 #i_oct_d   = i_oct_fd                        # Octupole current (defocusing).
 
-initial_kick_x = 0.                         # Initial horizontal kick of beam.
-initial_kick_y = 0.                         # Initial vertical kick of beam.
+initial_kick_x = 0.003                       # Initial horizontal kick of beam.
+initial_kick_y = 0.003                       # Initial vertical kick of beam.
 
 # SIMULATION PARAMETERS.
 n_macroparticles = 200000                    # Number of macroparticles per bunch (go to 1e6).
 n_turns          = 512                       # Number of turn (set to 2e5 later)
 
-n_segments = 29
+n_segments = 57 
 
 
 simulation_parameters_dict = {'comment': 'test instab ecloud',\
@@ -116,6 +116,10 @@ L_ecloud = C/n_segments
 # Beam
 bunch = Particles.as_gaussian(n_macroparticles, e, gamma, intensity, m_p, alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, epsn_z)
 
+bunch.x += initial_kick_x
+bunch.y += initial_kick_y
+
+
 #ecloud
 beamslicer = Slicer(50, nsigmaz=2)
 ecloud = pyecl.Ecloud(L_ecloud, beamslicer, Dt_ref = 25e-12, pyecl_input_folder='drift_for_instab_SPS')
@@ -148,7 +152,7 @@ elements=[]
 for l in transverse_map:
     elements+=[l, ecloud]
 elements.append(cavity)
-bunch_monitor = BunchMonitor('bunch', n_turns, simulation_parameters_dict)
+bunch_monitor = BunchMonitor('bunch_debug', n_turns, simulation_parameters_dict)
 
 for i in range(n_turns):
         t0 = time.clock()
