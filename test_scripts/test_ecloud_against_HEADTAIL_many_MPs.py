@@ -18,16 +18,19 @@ from scipy.constants import e, m_e
 import pylab as pl
 import time
 
+print 'Ciao Kevin'
+
 
 pl.close('all')
 pl.ion()
-aaa = np.loadtxt('Benchmark_pyHEADTAIL/SPS_Q20_test_elec.dat');
-hdtl_1st_turn = np.loadtxt('Benchmark_pyHEADTAIL/SPS_Q20_test_hdtl_first_turn.dat');
+aaa = np.loadtxt('Benchmark_pyHEADTAIL/SPS_Q20_test_isyn1_6sigma_300slices_256gp_elec.dat');
+hdtl_1st_turn = np.loadtxt('Benchmark_pyHEADTAIL/SPS_Q20_test_isyn1_6sigma_300slices_256gp_hdtl.dat');
 
 z_hdtl = hdtl_1st_turn[:,0]
 pp_bin_hdtl = hdtl_1st_turn[:,1]
 
-
+#np.ascontiguousarray(
+                     
 sl_id = aaa[:,0]
 x = aaa[:,1]
 vx = aaa[:,2]
@@ -51,12 +54,13 @@ for ii in xrange(int(np.max(sl_id)), -1, -1):
 #     time.sleep(.01)
     
     
-
+x0 = x_hdtl[0]
+y0 = y_hdtl[0]
 
 
 # Parameters
 # ==========
-n_macroparticles = 1000000
+n_macroparticles = 10000#00
 
 C = 6911.
 R = C / (2 * np.pi)
@@ -79,7 +83,7 @@ ppb = 1.15e11
 n_turns = 1
 
 # Beam
-bunch = Particles.as_gaussian(100000, e, gamma, ppb, m_p, 0, beta_x, epsn_x, 0, beta_y, epsn_y, beta_z, epsn_z)
+bunch = Particles.as_gaussian(1000000, e, gamma, ppb, m_p, 0, beta_x, epsn_x, 0, beta_y, epsn_y, beta_z, epsn_z)
 
 #bunchmonitor = BunchMonitor('bunch', n_turns)
 
@@ -97,22 +101,24 @@ cavity = LinearMap(C, alpha, Qs)
 
 # E-cloud
 e_density = 2e11 # electrons per m^3
-x_max = 20 * plt.std(bunch.x)
+x_max = 40 * plt.std(bunch.x)
 x_min = -x_max
-y_max = 20 * plt.std(bunch.y)
+y_max = 40 * plt.std(bunch.y)
 y_min = -y_max
 
 grid_extension_x = x_max
 grid_extension_y = y_max
-grid_nx = 128
-grid_ny = 128
+grid_nx = 256#128
+grid_ny = 256#128
 
 N_electrons = e_density * (x_max - x_min) * (y_max - y_min) * C / n_segments
 
-particles = Particles.as_uniformXYzeroZp(n_macroparticles, -e, 1., N_electrons, m_e, x_min, x_max, y_min, y_max)
+#particles = Particles.as_uniformXYzeroZp(n_macroparticles, -e, 1., N_electrons, m_e, x_min, x_max, y_min, y_max)
+particles = Particles.as_custom(-e, 1., m_e, N_electrons/len(x), x0, 0*x0, y0,0*x0, 0*x0, 0*x0)
+
 #~ plt.plot(particles.x, particles.y, '.')
 #~ plt.show()
-beamslicer = Slicer(100, nsigmaz=2)
+beamslicer = Slicer(300, nsigmaz=3)
 ecloud = ec.Ecloud(particles, grid_extension_x, grid_extension_y, grid_nx, grid_ny, beamslicer)
 ecloud.save_ele_distributions_last_track = True 
 ecloud.save_ele_potential_and_field = True
@@ -142,6 +148,8 @@ for i in range(n_turns):
         # plt.gca().set_xlim(-1, 1)
         # plt.gca().set_ylim(-1e-2, 1e-2)
         # plt.draw()
+
+
         
 pl.figure(100)
 pl.plot(ecloud.slicer.z_centers, ecloud.slicer.n_particles, '.-')
@@ -155,47 +163,49 @@ import mystyle as ms
  
 dec_fact = 10
  
-x_obs = .001
-y_obs = -.001 
- 
- 
-#i_obs = np.argmin((ecloud.x_MP_last_track[0]-x_obs)**2+(ecloud.y_MP_last_track[0]-y_obs)**2)
-#i_obs_hdtl = np.argmin((x_hdtl[0]-x_obs)**2+(y_hdtl[0]-y_obs)**2)
-
-i_obs_hdtl = np.argmin((x_hdtl[0]-x_obs)**2+(y_hdtl[0]-y_obs)**2)
-i_obs = np.argmin((ecloud.x_MP_last_track[0]-x_hdtl[0][i_obs_hdtl])**2+(ecloud.y_MP_last_track[0]-y_hdtl[0][i_obs_hdtl])**2)
 
  
- 
-#x_arr = np.array(ecloud.x_MP_last_track) 
-#y_arr = np.array(ecloud.y_MP_last_track)
- 
-#x_arr_hdtl = np.array(x_hdtl) 
-#y_arr_hdtl = np.array(y_hdtl)
- 
-#vx_arr = np.array(ecloud.vx_MP_last_track) 
-#vy_arr = np.array(ecloud.vy_MP_last_track)
-x_obs = map(lambda v:v[i_obs], ecloud.x_MP_last_track)
-y_obs = map(lambda v:v[i_obs], ecloud.y_MP_last_track)
+def plot_trajectory(x_obs = 0., y_obs = -.005 ): 
+	#i_obs = np.argmin((ecloud.x_MP_last_track[0]-x_obs)**2+(ecloud.y_MP_last_track[0]-y_obs)**2)
+	#i_obs_hdtl = np.argmin((x_hdtl[0]-x_obs)**2+(y_hdtl[0]-y_obs)**2)
 
-x_obs_hdtl = map(lambda v:v[i_obs_hdtl], x_hdtl)
-y_obs_hdtl = map(lambda v:v[i_obs_hdtl], y_hdtl)
+	i_obs_hdtl = np.argmin((x_hdtl[0]-x_obs)**2+(y_hdtl[0]-y_obs)**2)
+	i_obs = np.argmin((ecloud.x_MP_last_track[-1]-x_hdtl[0][i_obs_hdtl])**2+(ecloud.y_MP_last_track[-1]-y_hdtl[0][i_obs_hdtl])**2)
 
- 
- 
-pl.figure(2)
-pl.subplot(2,1,1)
-pl.plot(ecloud.slicer.z_centers/3e8, x_obs, '.-')
-pl.plot(ecloud.slicer.z_centers/3e8, x_obs_hdtl, 'o--')
-pl.plot(-z_hdtl/3e8, y_obs, '.-r')
-pl.plot(-z_hdtl/3e8, y_obs_hdtl, 'o--r')
- 
- 
-#pl.subplot(2,1,2)
-#pl.plot(ecloud.slicer.z_centers/3e8, vx_arr[:, i_obs], '.-')
-#pl.plot(ecloud.slicer.z_centers/3e8, vy_arr[:, i_obs], '.-r')
- 
-pl.show()
+	 
+	 
+	#x_arr = np.array(ecloud.x_MP_last_track) 
+	#y_arr = np.array(ecloud.y_MP_last_track)
+	 
+	#x_arr_hdtl = np.array(x_hdtl) 
+	#y_arr_hdtl = np.array(y_hdtl)
+	 
+	#vx_arr = np.array(ecloud.vx_MP_last_track) 
+	#vy_arr = np.array(ecloud.vy_MP_last_track)
+	x_obs = map(lambda v:v[i_obs], ecloud.x_MP_last_track)
+	y_obs = map(lambda v:v[i_obs], ecloud.y_MP_last_track)
+
+	x_obs_hdtl = map(lambda v:v[i_obs_hdtl], x_hdtl)
+	y_obs_hdtl = map(lambda v:v[i_obs_hdtl], y_hdtl)
+
+	 
+	 
+	pl.figure(2)
+	pl.clf()
+	pl.subplot(2,1,1)
+	pl.plot(-ecloud.slicer.z_centers/3e8, x_obs, '.-')
+	pl.plot(-z_hdtl/3e8, x_obs_hdtl, 'o--')
+	pl.plot(-ecloud.slicer.z_centers/3e8, y_obs, '.-r')
+	pl.plot(-z_hdtl/3e8, y_obs_hdtl, 'o--r')
+	 
+	 
+	#pl.subplot(2,1,2)
+	#pl.plot(ecloud.slicer.z_centers/3e8, vx_arr[:, i_obs], '.-')
+	#pl.plot(ecloud.slicer.z_centers/3e8, vy_arr[:, i_obs], '.-r')
+	 
+	pl.show()
+
+plot_trajectory(x_obs = 0., y_obs = -.005 ) 
 
 
 # pl.figure(1, figsize=(12, 12))

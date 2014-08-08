@@ -38,6 +38,7 @@ class Particles(object):
         self.gamma = gamma
 
         self.n_macroparticles = n_macroparticles
+
         self.n_particles_per_mp = n_particles_per_mp
 
         for phase_space in phase_space_generators:
