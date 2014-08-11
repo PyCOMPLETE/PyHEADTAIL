@@ -148,7 +148,7 @@ class RFBucket(PhaseSpace):
         self.H = rfsystem
         self.sigma_z = sigma_z
 
-        self._compute_std = self._compute_std_cumtrapz
+        self._compute_std = self._compute_std_quad
 
         if sigma_z and not epsn_z:
             self.variable = sigma_z
@@ -171,6 +171,7 @@ class RFBucket(PhaseSpace):
         if epsn_z > epsn_max:
             print '\n*** Emittance larger than bucket; using full bucket emittance', epsn_max*0.96, ' [eV s].\n'
             epsn_z = epsn_max*0.96
+        print '\n*** Maximum emittance', epsn_z, 'm.\n'
 
         # Cut on z-axis
         zz = np.linspace(H.zs + np.abs(H.zs)*0.01, H.zright - np.abs(H.zright)*0.01, 10)
@@ -298,24 +299,26 @@ class RFBucket(PhaseSpace):
         if sigma > sigma_max:
             print "\n*** RMS bunch larger than bucket; using full bucket rms length", sigma_max*0.96, " m.\n"
             sigma = sigma_max*0.96
+        print '\n*** Maximum RMS bunch length', sigma_max, 'm.\n'
 
         # Width for bunch length
         def sigma_for_zc(zc):
             psi_c.H0 = self.H.H0(zc)
-            return self._compute_std(psi, self.H.separatrix, self.H.zleft, self.H.zright)-sigma
+            length = self._compute_std(psi, self.H.separatrix, self.H.zleft, self.H.zright)
+            if np.isnan(length):
+                raise ValueError
+            return length-sigma
 
-        zc_bar = newton(sigma_for_zc, sigma/2)
+        zc_bar = newton(sigma_for_zc, sigma)
         psi_c.H0 = self.H.H0(zc_bar)
-        # print self._compute_std(psi, self.H.separatrix, self.H.zleft, self.H.zright)
-        # exit(-1)
 
         # fw = self.H.zright-self.H.zs
         # zz = np.linspace(fw*0.05, fw*0.95, 20)
         # L = []
         # for i, zc in enumerate(zz):
         #     psi_c.H0 = self.H.H0(zc)
-        #     print i+1, psi_c.H0
         #     L.append( self._compute_std(psi, H.separatrix, H.zleft, H.zright) )
+        #     print i+1, psi_c.H0, L[i]
         # L = np.array(L)
 
         # ix = np.where(np.diff(np.sign(L-sigma)))[0]
@@ -391,7 +394,7 @@ class RFBucket(PhaseSpace):
         particles.psi = psi
         # return x, y, j / i * dx * dy, psi
 
-    def _compute_mean_quad(self, psi, p_sep, xmin, xmax):
+    def _compute_zero_quad(self, psi, p_sep, xmin, xmax):
         '''
         Compute the variance of the distribution function psi from xmin to xmax
         along the contours p_sep using numerical integration methods.
@@ -402,18 +405,60 @@ class RFBucket(PhaseSpace):
 
         return Q
 
+    def _compute_mean_quad(self, psi, p_sep, xmin, xmax):
+        '''
+        Compute the variance of the distribution function psi from xmin to xmax
+        along the contours p_sep using numerical integration methods.
+        '''
+
+        Q = self._compute_zero_quad(psi, p_sep, xmin, xmax)
+        M, error = dblquad(lambda y, x: x * psi(x, y), xmin, xmax,
+                    lambda x: 0, lambda x: p_sep(x))
+
+        return M/Q
+
     def _compute_std_quad(self, psi, p_sep, xmin, xmax):
         '''
         Compute the variance of the distribution function psi from xmin to xmax
         along the contours p_sep using numerical integration methods.
         '''
 
-        Q, error = dblquad(lambda y, x: psi(x, y), xmin, xmax,
-                    lambda x: 0, lambda x: p_sep(x))
-        V, error = dblquad(lambda y, x: x ** 2 * psi(x, y), xmin, xmax,
+        Q = self._compute_zero_quad(psi, p_sep, xmin, xmax)
+        M = self._compute_mean_quad(psi, p_sep, xmin, xmax)
+        V, error = dblquad(lambda y, x: (x-M) ** 2 * psi(x, y), xmin, xmax,
                     lambda x: 0, lambda x: p_sep(x))
 
         return np.sqrt(V/Q)
+
+    def _compute_zero_cumtrapz(self, psi, p_sep, xmin, xmax):
+
+        x_arr = np.linspace(xmin, xmax, 257)
+        dx = x_arr[1] - x_arr[0]
+
+        Q = 0
+        for x in x_arr:
+            y = np.linspace(0, p_sep(x), 257)
+            z = psi(x, y)
+            Q += cumtrapz(z, y)[-1]
+        Q *= dx
+
+        return Q
+
+    def _compute_mean_cumtrapz(self, psi, p_sep, xmin, xmax):
+
+        Q = self._compute_zero_cumtrapz(psi, p_sep, xmin, xmax)
+
+        x_arr = np.linspace(xmin, xmax, 257)
+        dx = x_arr[1] - x_arr[0]
+
+        M = 0
+        for x in x_arr:
+            y = np.linspace(0, p_sep(x), 257)
+            z = x * psi(x, y)
+            M += cumtrapz(z, y)[-1]
+        M *= dx
+
+        return M/Q
 
     def _compute_std_cumtrapz(self, psi, p_sep, xmin, xmax):
         '''
@@ -421,17 +466,17 @@ class RFBucket(PhaseSpace):
         along the contours p_sep using numerical integration methods.
         '''
 
+        Q = self._compute_zero_cumtrapz(psi, p_sep, xmin, xmax)
+        M = self._compute_mean_cumtrapz(psi, p_sep, xmin, xmax)
+
         x_arr = np.linspace(xmin, xmax, 257)
         dx = x_arr[1] - x_arr[0]
 
-        Q, V = 0, 0
+        V = 0
         for x in x_arr:
             y = np.linspace(0, p_sep(x), 257)
-            z = psi(x, y)
-            Q += cumtrapz(z, y)[-1]
-            z = x**2 * psi(x, y)
+            z = (x-M)**2 * psi(x, y)
             V += cumtrapz(z, y)[-1]
-        Q *= dx
         V *= dx
 
         return np.sqrt(V/Q)

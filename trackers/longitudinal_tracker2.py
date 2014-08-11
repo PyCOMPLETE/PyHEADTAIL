@@ -573,8 +573,30 @@ class RFSystems(LongitudinalOneTurnMap):
 
     @property
     def beta_z(self):
-        Qs = 0.01
-        return np.abs(self.eta0 * self.R / Qs)
+        return np.abs(self.eta0 * self.R / self.Qs)
+
+    @property
+    def Qs(self):
+        fc = self.fundamental_cavity
+        V = fc.voltage
+        h = fc.harmonic
+        return np.sqrt( e*V*np.abs(self.eta0)*h / (2*np.pi*self.p0_reference*self.beta_reference*c) )
+
+    @property
+    def phi_s(self):
+        V = self.fundamental_cavity.voltage
+
+        if self.p_increment == 0 and voltage == 0:
+            return 0
+
+        deltaE  = self.p_increment*self.beta_reference*c
+        phi_rel = np.arcsin(deltaE / (e*V))
+
+        if self.eta0<0:
+            # return np.sign(deltaE) * np.pi - phi_rel
+            return np.pi - phi_rel
+        else:
+            return phi_rel
 
     @property
     def Hmax(self):
@@ -680,21 +702,6 @@ class RFSystems(LongitudinalOneTurnMap):
         Q, error = dblquad(lambda y, x: 1, xmin, xmax, lambda x: 0, lambda x: self.separatrix(x))
 
         return Q * 2*self.p0_reference/e
-
-    def phi_s(self):
-        voltage = self.fundamental_cavity.voltage
-
-        if self.p_increment == 0 and voltage == 0:
-            return 0
-
-        deltaE  = self.p_increment*self.beta_reference*c
-        phi_rel = np.arcsin(deltaE / (e*voltage))
-
-        if self.eta0<0:
-            # return np.sign(deltaE) * np.pi - phi_rel
-            return np.pi - phi_rel
-        else:
-            return phi_rel
 
     def _phaselock(self):
         cavities = range(len(self.V))
