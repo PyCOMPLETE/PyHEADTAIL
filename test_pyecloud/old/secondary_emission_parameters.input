@@ -1,0 +1,16 @@
+# secondary emission model
+Emax=332.;
+del_max = 1.600000
+R0 = 0.7
+switch_model=0
+
+# hilleret model for sec. emission
+E_th=35.;
+sigmafit =1.0828;
+mufit = 1.6636;
+
+switch_no_increase_energy=0
+thresh_low_energy=-1
+
+scrub_en_th=20.#eV
+
