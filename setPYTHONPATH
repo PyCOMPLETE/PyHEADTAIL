@@ -1,3 +1,0 @@
-PYTHONPATH=/home/giadarol/Desktop/PyHEADTAILdevel/PyHEADTAIL:/home/giadarol/Desktop/PyHEADTAILdevel/pyecloud
-export PYTHONPATH
-echo $PYTHONPATH

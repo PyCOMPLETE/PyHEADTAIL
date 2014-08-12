@@ -77,7 +77,7 @@ class Particles(object):
     @classmethod
     def as_gaussian_in_bucket(cls, n_macroparticles, charge, gamma, intensity, mass,
                               alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                              sigma_z, rfsystem, generator_seed=None):
+                              sigma_z=None, epsn_z=None, rfsystem=None, generator_seed=None):
 
         n_particles_per_mp = intensity/n_macroparticles
 
@@ -92,7 +92,7 @@ class Particles(object):
                                           generator_seed=random_state.randint(sys.maxint))
         gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
                                           generator_seed=random_state.randint(sys.maxint))
-        rfbucket = RFBucket(StationaryExponential, rfsystem, sigma_z, )
+        rfbucket = RFBucket(StationaryExponential, rfsystem, sigma_z, epsn_z)
 
         return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
                    (gaussianx, gaussiany, rfbucket))

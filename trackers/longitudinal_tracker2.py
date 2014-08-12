@@ -449,7 +449,8 @@ class RFSystems(LongitudinalOneTurnMap):
     """
 
     def __init__(self, circumference, harmonic_list, voltage_list, phi_offset_list,
-                 alpha_array, gamma_reference, p_increment=0, shrinking=False, slices_tuple=None):
+                 alpha_array, gamma_reference, p_increment=0,
+                 phase_lock=True, shrinking=False, slices_tuple=None):
         """
         The first entry in harmonic_list, voltage_list and
         phi_offset_list defines the parameters for the one
@@ -512,6 +513,9 @@ class RFSystems(LongitudinalOneTurnMap):
         # Reference energy and make eta0, resp. "machine gamma_tr" available for all routines
         self.gamma_reference = gamma_reference
         self.alpha0 = alpha_array[0]
+        if phase_lock:
+            self._phaselock()
+
         zmax = self.circumference / (2*np.amin(harmonic_list))
         self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
         self._get_bucket_boundaries()
@@ -586,7 +590,7 @@ class RFSystems(LongitudinalOneTurnMap):
     def phi_s(self):
         V = self.fundamental_cavity.voltage
 
-        if self.p_increment == 0 and voltage == 0:
+        if self.p_increment == 0 and V == 0:
             return 0
 
         deltaE  = self.p_increment*self.beta_reference*c
@@ -622,6 +626,10 @@ class RFSystems(LongitudinalOneTurnMap):
         if self.slices_tuple:
             for slices in self.slices_tuple:
                 slices.update_slices(beam)
+
+    def track_transverse_shrinking(self): pass
+    def track_longitudinal_shrinking(self): pass
+    def track_shrinking(self): pass
 
     def set_voltage_list(self, voltage_list):
         for i, V in enumerate(voltage_list):
@@ -704,14 +712,15 @@ class RFSystems(LongitudinalOneTurnMap):
         return Q * 2*self.p0_reference/e
 
     def _phaselock(self):
-        cavities = range(len(self.V))
-        del cavities[self.accelerating_cavity]
 
-        for i in cavities:
-            self._phi_lock[i] -= self.h[i]/self.h[self.accelerating_cavity] * self.phi_s()
+        fc = self.fundamental_cavity
+        cavities = [k for k in self.kicks if k is not fc]
+
+        for c in cavities:
+            c._phi_lock -= c.harmonic/fc.harmonic * self.phi_s
 
     def _get_zero_crossings(self, f):
-        zz = np.linspace(self.zmin, self.zmax, 1000)
+        zz = np.linspace(self.zmin*1.01, self.zmax*1.01, 1000)
 
         a = np.sign(f(zz))
         b = np.diff(a)
