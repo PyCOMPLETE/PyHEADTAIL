@@ -25,7 +25,7 @@ class Particles(object):
     self.delta_p
     """
 
-    def __init__(self, n_macroparticles, charge, gamma, mass, n_particles_per_mp, phase_space_generators):
+    def __init__(self, n_macroparticles, charge, mass, gamma, n_particles_per_mp, phase_space_generators):
         """
         Initialises the bunch and distributes its particles via the
         given PhaseSpace generator instances for all planes.
@@ -71,7 +71,7 @@ class Particles(object):
         gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
                                           generator_seed=random_state.randint(sys.maxint))
 
-        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
+        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
                    (gaussianx, gaussiany, gaussianz))
 
     @classmethod
@@ -94,7 +94,7 @@ class Particles(object):
                                           generator_seed=random_state.randint(sys.maxint))
         rfbucket = RFBucket(StationaryExponential, rfsystem, sigma_z, epsn_z)
 
-        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
+        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
                    (gaussianx, gaussiany, rfbucket))
 
     @classmethod
@@ -116,12 +116,36 @@ class Particles(object):
         gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
                                           generator_seed=random_state.randint(sys.maxint))
 
-        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
+        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
                    (gaussianz,))
 
+
     @classmethod
-    def as_uniformXY(cls, n_macroparticles, charge, gamma, intensity, mass,
-                     xmin, xmax, ymin, ymax, zmin=0, zmax=0):
+    def as_gaussian_theta(cls, n_macroparticles, charge, mass, gamma, intensity,
+                          sigma_theta, sigma_dE, is_accepted=None, generator_seed=None):
+        """Initialises a Gaussian bunch from the given optics functions.
+        For the argument is_accepted cf. generators.Gaussian_Z .
+        """
+
+        n_particles_per_mp = intensity/n_macroparticles
+
+        betagamma = np.sqrt(gamma**2 - 1)
+        p0 = betagamma * mass * c
+
+        # Generate seeds for GaussianX, Y and Z.
+        random_state = RandomState()
+        random_state.seed(generator_seed)
+
+        gaussiantheta = GaussianTheta(sigma_theta, sigma_dE, is_accepted,
+                                      generator_seed=random_state.randint(sys.maxint))
+
+        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
+                   (gaussiantheta,))
+
+
+    @classmethod
+    def as_uniform(cls, n_macroparticles, charge, gamma, intensity, mass,
+                   xmin, xmax, ymin, ymax, zmin=0, zmax=0):
 
         n_particles_per_mp = intensity/n_macroparticles
 
@@ -132,18 +156,21 @@ class Particles(object):
         uniformy = UniformY(xmin, xmax)
         uniformz = UniformZ(zmin, zmax)
 
-        return cls(n_macroparticles, charge, gamma, mass, n_particles_per_mp,
+        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
                    [uniformx, uniformy, uniformz])
 
     @classmethod
-    def as_uniformXYzeroZp(cls, n_macroparticles, charge, gamma, intensity, mass,
-                            x_min, x_max, y_min, y_max):
+    def as_import(cls, n_macroparticles, charge, mass, gamma, intensity,
+                  x, xp, y, yp, z, dp):
 
-        particles = cls.as_uniformXY(n_macroparticles, charge, gamma, intensity, mass,
-                                     x_min, x_max, y_min, y_max)
-        particles.zp = 0.*particles.x
+        n_particles_per_mp = intensity/n_macroparticles
 
-        return particles
+        importx = ImportX(x, xp)
+        importy = ImportY(y, yp)
+        importz = ImportZ(z, dp)
+
+        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
+                   [importx, importy, importz])
 
     @property
     def intensity(self):
@@ -183,7 +210,22 @@ class Particles(object):
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
 
-        
+
+    @property
+    def theta(self):
+        return self.z/self.ring_radius
+    @theta.setter
+    def theta(self, value):
+        self.z = value*self.ring_radius
+
+    @property
+    def delta_E(self):
+        return self.dp * self.beta*c*self.p0
+    @delta_E.setter
+    def delta_E(self, value):
+        self.dp = value / (self.beta*c*self.p0)
+
+
     def sort_particles(self):
         # update the number of lost particles
         self.n_macroparticles_lost = (self.n_macroparticles -

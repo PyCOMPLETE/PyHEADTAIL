@@ -140,6 +140,36 @@ class GaussianZ(PhaseSpace):
         beam.dp = dp
 
 
+class GaussianTheta(PhaseSpace):
+    """Longitudinal Gaussian particle phase space distribution."""
+
+    def __init__(self, sigma_theta, sigma_dE, is_accepted=None, generator_seed=None):
+
+        self.sigma_theta = sigma_theta
+        self.sigma_dE = sigma_dE
+        self.is_accepted = is_accepted
+
+        self.random_state = RandomState()
+        self.random_state.seed(generator_seed)
+
+    def generate(self, beam):
+        beam.theta = self.sigma_theta * self.random_state.randn(beam.n_macroparticles)
+        beam.delta_E = self.sigma_dE * self.random_state.randn(beam.n_macroparticles)
+        if self.is_accepted:
+            self._redistribute(beam)
+
+    def _redistribute(self, beam):
+        n = beam.n_macroparticles
+        theta = beam.theta.copy()
+        delta_E = beam.delta_E.copy()
+        for i in xrange(n):
+            while not self.is_accepted(theta[i], delta_E[i]):
+                theta[i]  = self.sigma_theta * self.random_state.randn()
+                delta_E[i] = self.sigma_dE * self.random_state.randn()
+        beam.theta = theta
+        beam.delta_E = delta_E
+
+
 class RFBucket(PhaseSpace):
 
     def __init__(self, psi, rfsystem, sigma_z=None, epsn_z=None):
@@ -307,6 +337,8 @@ class RFBucket(PhaseSpace):
         def get_zcut_for_epsn(zcut):
             if zcut > H.zright:
                 zcut = H.zright*0.95
+            if zcut < H.zleft:
+                zcut = H.zleft*0.95
 
             zleft, zright = H.get_z_left_right(zcut)
             eqh = H.equihamiltonian(zcut)
@@ -324,7 +356,10 @@ class RFBucket(PhaseSpace):
             if np.isnan(zright):
                 raise ValueError
 
-            return zright-zcut_bar
+            if zcut_bar > 0:
+                return zright-zcut_bar
+            else:
+                return zleft-zcut_bar
 
         zcut_bar = newton(get_zcut_for_epsn, sigma)
         zc_bar = newton(get_zc_for_zcut, sigma)
@@ -605,42 +640,47 @@ class UniformZ(PhaseSpace):
 
 class ImportX(PhaseSpace):
 
-    def __init__(x, xp):
+    def __init__(self, x, xp):
 
-        self.x = x
-        self.xp = xp
+        self.x = np.array(x)
+        self.xp = np.array(xp)
 
     def generate(self, particles):
 
-        assert(particles.n_particles == len(self.x) == len(self.xp))
+        # x = np.zeros(particles.n_macroparticles)
+        # xp = np.zeros(particles.n_macroparticles)
+        # particles.x = self.x[:particles.n_macroparticles]
+        # particles.xp = self.xp[:particles.n_macroparticles]
+
+        assert(particles.n_macroparticles == len(self.x) == len(self.xp))
         particles.x = self.x.copy()
         particles.xp = self.xp.copy()
 
 
 class ImportY(PhaseSpace):
 
-    def __init__(y, yp):
+    def __init__(self, y, yp):
 
-        self.y = y
-        self.yp = yp
+        self.y = np.array(y)
+        self.yp = np.array(yp)
 
     def generate(self, particles):
 
-        assert(particles.n_particles == len(self.y) == len(self.yp))
+        assert(particles.n_macroparticles == len(self.y) == len(self.yp))
         particles.y = self.y.copy()
         particles.yp = self.yp.copy()
 
 
 class ImportZ(PhaseSpace):
 
-    def __init__(z, dp):
+    def __init__(self, z, dp):
 
-        self.z = z
-        self.dp = dp
+        self.z = np.array(z)
+        self.dp = np.array(dp)
 
     def generate(self, particles):
 
-        assert(particles.n_particles == len(self.z) == len(self.dp))
+        assert(particles.n_macroparticles == len(self.z) == len(self.dp))
         particles.z = self.z.copy()
         particles.dp = self.dp.copy()
 
