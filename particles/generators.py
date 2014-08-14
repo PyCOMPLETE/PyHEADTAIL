@@ -132,10 +132,20 @@ class GaussianZ(PhaseSpace):
         n = beam.n_macroparticles
         z = beam.z.copy()
         dp = beam.dp.copy()
-        for i in xrange(n):
-            while not self.is_accepted(z[i], dp[i]):
-                z[i]  = self.sigma_z * self.random_state.randn()
-                dp[i] = self.sigma_dp * self.random_state.randn()
+
+        mask_out = ~self.is_accepted(z, dp)
+        while mask_out.any():
+            n_gen = np.sum(mask_out)
+            z[mask_out] = self.sigma_z * self.random_state.randn(n_gen)
+            dp[mask_out] = self.sigma_dp * self.random_state.randn(n_gen)
+            mask_out = ~self.is_accepted(z, dp)
+            print 'Reiterate on non-accepted particles'
+
+        # for i in xrange(n):
+        #     while not self.is_accepted(z[i], dp[i]):
+        #         z[i]  = self.sigma_z * self.random_state.randn()
+        #         dp[i] = self.sigma_dp * self.random_state.randn()
+
         beam.z = z
         beam.dp = dp
 
@@ -463,6 +473,21 @@ class RFBucket(PhaseSpace):
         XX, YY = np.meshgrid(xx, yy)
         HH = psi(XX, YY)
         psi_interp = interp2d(xx, yy, HH)
+
+        # ================================================================
+        # mask_out = ~self.is_accepted(z, dp)
+        # while mask_out.any():
+        #     n_gen = np.sum(mask_out)
+        #     z[mask_out] = self.sigma_z * self.random_state.randn(n_gen)
+        #     dp[mask_out] = self.sigma_dp * self.random_state.randn(n_gen)
+        #     mask_out = ~self.is_accepted(z, dp)
+        #     print 'Reiterate on non-accepted particles'
+
+        # for i in xrange(n):
+        #     while not self.is_accepted(z[i], dp[i]):
+        #         z[i]  = self.sigma_z * self.random_state.randn()
+        #         dp[i] = self.sigma_dp * self.random_state.randn()
+        # ================================================================
 
         while j < particles.n_macroparticles:
             u = xmin + lx * np.random.random()

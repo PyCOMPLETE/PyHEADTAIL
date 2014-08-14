@@ -48,7 +48,7 @@ class Particles(object):
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
     @classmethod
-    def as_gaussian(cls, n_macroparticles, charge, gamma, intensity, mass,
+    def as_gaussian(cls, n_macroparticles, charge, mass, gamma, intensity,
                     alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
                     beta_z, epsn_z, is_accepted=None, generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
