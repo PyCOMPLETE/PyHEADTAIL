@@ -35,12 +35,13 @@ class Particles(object):
 
         self.charge = charge
         self.mass = mass
-        self.gamma = gamma
+        self.gamma = gamma # gamma_reference
 
         self.n_macroparticles = n_macroparticles
 
         self.n_particles_per_mp = n_particles_per_mp
 
+        self.phase_space_coordinates_list = []
         for phase_space in phase_space_generators:
             phase_space.generate(self)
 

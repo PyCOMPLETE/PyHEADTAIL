@@ -229,17 +229,17 @@ class ParticleMonitor(Monitor):
 
     def _create_data(self, h5group, dims):
 
-        h5group.create_dataset("x",           dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("xp",          dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("y",           dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("yp",          dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("z",           dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("dp",          dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("slice_index", dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("x",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("xp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("y",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("yp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("z",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("dp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("slice_index", dims, compression="gzip", compression_opts=9, dtype=np.float64)
 
         # Do we need/want this here?
-        h5group.create_dataset("id", dims, dtype=np.int)
-        h5group.create_dataset("c",  dims)
+        h5group.create_dataset("id", dims, dtype=np.int64)
+        h5group.create_dataset("c",  dims, dtype=np.float64)
 
 
     def _write_data(self, h5group, bunch):

@@ -381,20 +381,20 @@ class RFBucket(PhaseSpace):
         sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
         print '--> Bunch length:', sigma
 
-        xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
-        XX, PP = np.meshgrid(xx, pp)
-        fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(10,12), sharex=True)
-        ax3 = fig.add_subplot(313, projection='3d')
-        ax1.contour(XX, PP, H.hamiltonian(XX, PP))
-        ax1.plot(xx, eqh(xx), lw=2, c='r')
-        ax1.plot(xx, -eqh(xx), lw=2, c='r')
-        ax1.axvspan(zleft, zright, color='orange', alpha=0.2)
-        ax1.axvline(zcut_bar, c='r', lw=2)
-        ax2.plot(xx, psi(xx, 0), '-')
-        ax2.plot(xx, psi(xx, 0), '-')
-        ax2.axvspan(zleft, zright, color='orange', alpha=0.2)
-        ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.get_cmap('jet'))
-        plt.show()
+#         xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
+#         XX, PP = np.meshgrid(xx, pp)
+#         fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(10,12), sharex=True)
+#         ax3 = fig.add_subplot(313, projection='3d')
+#         ax1.contour(XX, PP, H.hamiltonian(XX, PP))
+#         ax1.plot(xx, eqh(xx), lw=2, c='r')
+#         ax1.plot(xx, -eqh(xx), lw=2, c='r')
+#         ax1.axvspan(zleft, zright, color='orange', alpha=0.2)
+#         ax1.axvline(zcut_bar, c='r', lw=2)
+#         ax2.plot(xx, psi(xx, 0), '-')
+#         ax2.plot(xx, psi(xx, 0), '-')
+#         ax2.axvspan(zleft, zright, color='orange', alpha=0.2)
+#         ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.get_cmap('jet'))
+#         plt.show()
 
         return psi
 
@@ -430,20 +430,20 @@ class RFBucket(PhaseSpace):
         eqh = H.equihamiltonian(zcut_bar)
         print '--> Emittance:', self._compute_zero_quad(lambda y, x: 1, eqh, zleft, zright) * 2*H.p0_reference/e
 
-        xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
-        XX, PP = np.meshgrid(xx, pp)
-        fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(8,12), sharex=True)
-        ax3 = fig.add_subplot(133, projection='3d')
-        ax1.contour(XX, PP, H.hamiltonian(XX, PP))
-        ax1.plot(xx, eqh(xx), lw=2, c='r')
-        ax1.plot(xx, -eqh(xx), lw=2, c='r')
-        ax1.axvspan(zleft, zright, color='orange', alpha=0.2)
-        ax1.axvline(zcut_bar, c='r', lw=2)
-        ax2.plot(xx, psi(xx, 0), '-')
-        ax2.plot(xx, psi(xx, 0), '-')
-        ax2.axvspan(zleft, zright, color='orange', alpha=0.2)
-        ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.get_cmap('jet'))
-        plt.show()
+#         xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
+#         XX, PP = np.meshgrid(xx, pp)
+#         fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(8,12), sharex=True)
+#         ax3 = fig.add_subplot(133, projection='3d')
+#         ax1.contour(XX, PP, H.hamiltonian(XX, PP))
+#         ax1.plot(xx, eqh(xx), lw=2, c='r')
+#         ax1.plot(xx, -eqh(xx), lw=2, c='r')
+#         ax1.axvspan(zleft, zright, color='orange', alpha=0.2)
+#         ax1.axvline(zcut_bar, c='r', lw=2)
+#         ax2.plot(xx, psi(xx, 0), '-')
+#         ax2.plot(xx, psi(xx, 0), '-')
+#         ax2.axvspan(zleft, zright, color='orange', alpha=0.2)
+#         ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.get_cmap('jet'))
+#         plt.show()
 
         return psi
 
@@ -457,8 +457,8 @@ class RFBucket(PhaseSpace):
         # print self.variable
         # print self._compute_std(psi, self.H.separatrix, self.H.zleft, self.H.zright)
 
-        x = np.zeros(particles.n_macroparticles)
-        y = np.zeros(particles.n_macroparticles)
+        # x = np.zeros(particles.n_macroparticles)
+        # y = np.zeros(particles.n_macroparticles)
 
         # Bin
         i, j = 0, 0
@@ -489,23 +489,37 @@ class RFBucket(PhaseSpace):
         #         dp[i] = self.sigma_dp * self.random_state.randn()
         # ================================================================
 
-        while j < particles.n_macroparticles:
-            u = xmin + lx * np.random.random()
-            v = ymin + ly * np.random.random()
+        n_gen = particles.n_macroparticles
+        u = xmin + lx * np.random.random(n_gen)
+        v = ymin + ly * np.random.random(n_gen)
+        s = np.random.random(n_gen)
+        mask_out = ~(s<psi(u, v))
+        while mask_out.any():
+            n_gen = np.sum(mask_out)
+            u[mask_out] = xmin + lx * np.random.random(n_gen)
+            v[mask_out] = ymin + ly * np.random.random(n_gen)
+            s[mask_out] = np.random.random(n_gen)
+            mask_out = ~(s<psi(u, v))
+            # print 'Reiterate on non-accepted particles.'
+            # print n_gen, '\n'
 
-            s = np.random.random()
+        # while j < particles.n_macroparticles:
+        #     u = xmin + lx * np.random.random()
+        #     v = ymin + ly * np.random.random()
 
-            i += 1
-            if s < psi_interp(u, v):
-                x[j] = u
-                y[j] = v
-                # TODO: check if this does not cause problems! Setter for item does not work - not implemented!
-                # particles.dp[j] = v
-                j += 1
+        #     s = np.random.random()
 
-        particles.z = x
-        particles.dp = y
-        particles.psi = psi
+        #     i += 1
+        #     if s < psi_interp(u, v):
+        #         x[j] = u
+        #         y[j] = v
+        #         # TODO: check if this does not cause problems! Setter for item does not work - not implemented!
+        #         # particles.dp[j] = v
+        #         j += 1
+
+        particles.z = u
+        particles.dp = v
+        # particles.psi = psi
         # return x, y, j / i * dx * dy, psi
 
     def _compute_zero_quad(self, psi, p_sep, xmin, xmax):
