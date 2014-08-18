@@ -361,7 +361,14 @@ class RFBucket(PhaseSpace):
         # Width for emittance
         def get_zc_for_zcut(zc):
             psi_c.H0 = H.H0(zc)
-            zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+            try:
+                zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+            except ValueError:
+                print "*** WARNING: Too many zero crossings!"
+                try:
+                    zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)
+                except ValueError:
+                    raise ValueError("Wrong number of zero crossings:", len(H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)))
             eqh = H.equihamiltonian(zcut_bar)
             if np.isnan(zright):
                 raise ValueError
@@ -425,7 +432,14 @@ class RFBucket(PhaseSpace):
         psi_c.H0 = self.H.H0(zc_bar)
         sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
         print '\n--> Bunch length:', sigma
-        zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+        try:
+            zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+        except ValueError:
+            print "*** WARNING: Too many zero crossings!"
+            try:
+                zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)
+            except ValueError:
+                raise ValueError("Wrong number of zero crossings:", len(H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)))
         zcut_bar = zright
         eqh = H.equihamiltonian(zcut_bar)
         print '--> Emittance:', self._compute_zero_quad(lambda y, x: 1, eqh, zleft, zright) * 2*H.p0_reference/e

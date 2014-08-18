@@ -14,38 +14,27 @@ from generators import *
 
 
 class Particles(object):
-    """Single bunch with 6D coordinates
-    (x, x', y, y', z, \Delta p) where \Delta p = p - p0.
-    These translate to
-    self.x
-    self.xp
-    self.y
-    self.yp
-    self.z
-    self.delta_p
-    """
 
+    # (n_macroparticles, n_particles_per_mp, charge, mass, gamma_reference, ring_radius, phase_space_generators)
     def __init__(self, n_macroparticles, charge, mass, gamma, n_particles_per_mp, phase_space_generators):
         """
         Initialises the bunch and distributes its particles via the
         given PhaseSpace generator instances for all planes.
         """
 
-        assert(len(phase_space_generators) < 4)
+        self.n_macroparticles = n_macroparticles
+        self.n_particles_per_mp = n_particles_per_mp
+        self.same_size_for_all_MPs = True
 
         self.charge = charge
         self.mass = mass
+
         self.gamma = gamma # gamma_reference
-
-        self.n_macroparticles = n_macroparticles
-
-        self.n_particles_per_mp = n_particles_per_mp
+        self.ring_radius = 0
 
         self.phase_space_coordinates_list = []
         for phase_space in phase_space_generators:
             phase_space.generate(self)
-
-        self.same_size_for_all_MPs = True
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
     @classmethod
