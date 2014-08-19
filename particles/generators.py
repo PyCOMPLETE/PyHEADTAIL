@@ -361,14 +361,19 @@ class RFBucket(PhaseSpace):
         # Width for emittance
         def get_zc_for_zcut(zc):
             psi_c.H0 = H.H0(zc)
+
             try:
-                zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+                zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+                zleft, zright = zzeros
             except ValueError:
-                print "*** WARNING: Too many zero crossings!"
-                try:
-                    zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)
-                except ValueError:
-                    raise ValueError("Wrong number of zero crossings:", len(H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)))
+                print "*** WARNING: Bad number of zero crossings", len(zzeros)
+                zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075, (H.zleft, H.zright))
+                # zz = np.linspace(H.zleft, H.zright, 1000)
+                # plt.plot(zz, psi(zz, 0)-0.0044318484119380075)
+                # plt.axhline(0)
+                # plt.show()
+                zleft, zright = zzeros
+
             eqh = H.equihamiltonian(zcut_bar)
             if np.isnan(zright):
                 raise ValueError
@@ -432,14 +437,19 @@ class RFBucket(PhaseSpace):
         psi_c.H0 = self.H.H0(zc_bar)
         sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
         print '\n--> Bunch length:', sigma
+
         try:
-            zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+            zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+            zleft, zright = zzeros
         except ValueError:
-            print "*** WARNING: Too many zero crossings!"
-            try:
-                zleft, zright = H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)
-            except ValueError:
-                raise ValueError("Wrong number of zero crossings:", len(H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)))
+            print "*** WARNING: Bad number of zero crossings", len(zzeros)
+            zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075, (H.zleft, H.zright))
+            # zz = np.linspace(H.zleft, H.zright, 1000)
+            # plt.plot(zz, psi(zz, 0)-0.0044318484119380075)
+            # plt.axhline(0)
+            # plt.show()
+            zleft, zright = zzeros
+
         zcut_bar = zright
         eqh = H.equihamiltonian(zcut_bar)
         print '--> Emittance:', self._compute_zero_quad(lambda y, x: 1, eqh, zleft, zright) * 2*H.p0_reference/e

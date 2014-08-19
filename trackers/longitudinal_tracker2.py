@@ -719,8 +719,13 @@ class RFSystems(LongitudinalOneTurnMap):
         for c in cavities:
             c._phi_lock -= c.harmonic/fc.harmonic * self.phi_s
 
-    def _get_zero_crossings(self, f):
-        zz = np.linspace(self.zmin*1.01, self.zmax*1.01, 1000)
+    def _get_zero_crossings(self, f, zedges=None):
+        if zedges is None:
+            zmin, zmax = self.zmin*1.01, self.zmax*1.01
+        else:
+            zmin, zmax = zedges
+
+        zz = np.linspace(zmin, zmax, 1000)
 
         a = np.sign(f(zz))
         b = np.diff(a)
