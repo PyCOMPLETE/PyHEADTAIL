@@ -242,7 +242,7 @@ class RFBucket(PhaseSpace):
         L = []
         for vc in vv:
             psi_c.H0 = H.H0(vc)
-            L.append( H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)[-1] )
+            L.append( H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)[-1] )
         L = np.array(L)
 
         # TODO: catch if it is empty
@@ -361,20 +361,18 @@ class RFBucket(PhaseSpace):
         # Width for emittance
         def get_zc_for_zcut(zc):
             psi_c.H0 = H.H0(zc)
+            sigma = self._compute_mean_std(psi, H.separatrix, H.zleft, H.zright)
+            zcut = 1/np.sqrt(2*pi*sigma**2) * np.exp(-2**2/2.)
 
             try:
-                zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+                zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-zcut)
                 zleft, zright = zzeros
             except ValueError:
                 print "*** WARNING: Bad number of zero crossings", len(zzeros)
-                zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075, (H.zleft, H.zright))
-                # zz = np.linspace(H.zleft, H.zright, 1000)
-                # plt.plot(zz, psi(zz, 0)-0.0044318484119380075)
-                # plt.axhline(0)
-                # plt.show()
+                zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-zcut, (H.zleft, H.zright))
                 zleft, zright = zzeros
 
-            eqh = H.equihamiltonian(zcut_bar)
+            # eqh = H.equihamiltonian(zcut_bar)
             if np.isnan(zright):
                 raise ValueError
 
@@ -388,27 +386,14 @@ class RFBucket(PhaseSpace):
 
         zleft, zright = self.H.get_z_left_right(zcut_bar)
         eqh = H.equihamiltonian(zcut_bar)
-        print '\n--> Emittance:', self._compute_zero_quad(lambda y, x: 1, eqh, zleft, zright) * 2*H.p0_reference/e
+        emittance = self._compute_zero_quad(lambda y, x: 1, eqh, zleft, zright) * 2*H.p0_reference/e
+        print '\n--> Emittance:', emittance
         psi_c.H0 = H.H0(zc_bar)
         sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
         print '--> Bunch length:', sigma
 
-#         xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
-#         XX, PP = np.meshgrid(xx, pp)
-#         fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(10,12), sharex=True)
-#         ax3 = fig.add_subplot(313, projection='3d')
-#         ax1.contour(XX, PP, H.hamiltonian(XX, PP))
-#         ax1.plot(xx, eqh(xx), lw=2, c='r')
-#         ax1.plot(xx, -eqh(xx), lw=2, c='r')
-#         ax1.axvspan(zleft, zright, color='orange', alpha=0.2)
-#         ax1.axvline(zcut_bar, c='r', lw=2)
-#         ax2.plot(xx, psi(xx, 0), '-')
-#         ax2.plot(xx, psi(xx, 0), '-')
-#         ax2.axvspan(zleft, zright, color='orange', alpha=0.2)
-#         ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.get_cmap('jet'))
-#         plt.show()
-
-        return psi
+        H.zleft_for_eps, H.zright_for_eps = zleft, zright
+        return psi, sigma, emittance
 
     def psi_for_bunchlength_newton_method(self, sigma):
 
@@ -436,40 +421,25 @@ class RFBucket(PhaseSpace):
 
         psi_c.H0 = self.H.H0(zc_bar)
         sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
+        h_cut = 1 * np.exp(-2**2/2.) # 1/np.sqrt(2*np.pi*sigma**2) * np.exp(-2**2/2.)
         print '\n--> Bunch length:', sigma
+        print h_cut
 
         try:
-            zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075)
+            zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-h_cut)
             zleft, zright = zzeros
         except ValueError:
             print "*** WARNING: Bad number of zero crossings", len(zzeros)
-            zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-0.0044318484119380075, (H.zleft, H.zright))
-            # zz = np.linspace(H.zleft, H.zright, 1000)
-            # plt.plot(zz, psi(zz, 0)-0.0044318484119380075)
-            # plt.axhline(0)
-            # plt.show()
+            zzeros = H._get_zero_crossings(lambda x: psi(x, 0)-h_cut, (H.zleft, H.zright))
             zleft, zright = zzeros
 
         zcut_bar = zright
         eqh = H.equihamiltonian(zcut_bar)
-        print '--> Emittance:', self._compute_zero_quad(lambda y, x: 1, eqh, zleft, zright) * 2*H.p0_reference/e
+        emittance = self._compute_zero_quad(lambda y, x: 1, eqh, zleft, zright) * 2*H.p0_reference/e
+        print '--> Emittance:', emittance
 
-#         xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
-#         XX, PP = np.meshgrid(xx, pp)
-#         fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(8,12), sharex=True)
-#         ax3 = fig.add_subplot(133, projection='3d')
-#         ax1.contour(XX, PP, H.hamiltonian(XX, PP))
-#         ax1.plot(xx, eqh(xx), lw=2, c='r')
-#         ax1.plot(xx, -eqh(xx), lw=2, c='r')
-#         ax1.axvspan(zleft, zright, color='orange', alpha=0.2)
-#         ax1.axvline(zcut_bar, c='r', lw=2)
-#         ax2.plot(xx, psi(xx, 0), '-')
-#         ax2.plot(xx, psi(xx, 0), '-')
-#         ax2.axvspan(zleft, zright, color='orange', alpha=0.2)
-#         ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.get_cmap('jet'))
-#         plt.show()
-
-        return psi
+        H.zleft_for_eps, H.zright_for_eps = zleft, zright
+        return psi, sigma, emittance
 
     def generate(self, particles):
         '''
@@ -477,7 +447,7 @@ class RFBucket(PhaseSpace):
         according to the particle distribution function psi within the region
         [xmin, xmax, ymin, ymax].
         '''
-        psi = self.psi_for_variable(self.variable)
+        psi, sigma, emittance = self.psi_for_variable(self.variable)
         # print self.variable
         # print self._compute_std(psi, self.H.separatrix, self.H.zleft, self.H.zright)
 
@@ -543,8 +513,11 @@ class RFBucket(PhaseSpace):
 
         particles.z = u
         particles.dp = v
-        # particles.psi = psi
-        # return x, y, j / i * dx * dy, psi
+
+        # Stick auxiliary information to particles
+        particles.sigma_z_generated = sigma
+        particles.epsn_z_generated = emittance
+        particles.psi = psi
 
     def _compute_zero_quad(self, psi, p_sep, xmin, xmax):
         '''
