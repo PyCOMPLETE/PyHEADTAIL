@@ -1,0 +1,35 @@
+# MACHINE PARAMETERS
+
+chamb_type = 'ellip'
+
+x_aper = 4.5e-2 #6.500000e-02
+y_aper = 4.5e-2 #2.400000e-02
+
+filename_chm = None
+
+
+
+
+# Choose track_method= 'StrongBdip' / 'StrongBgen'/ 'Boris'
+track_method= 'Boris'
+B0y = 0.#1.213333e-01
+B_map_file = None
+fact_Bmap = 0.000000e+00
+N_sub_steps = 5
+
+
+
+#betafx = 45.50
+#betafy = 78.40
+
+import numpy as np
+
+# uniform initial distrib
+init_unif_flag=1
+Nel_init_unif=2.2e11*np.pi*x_aper**2
+E_init_unif=0.01;   #in eV
+x_max_init_unif =x_aper
+x_min_init_unif =-x_aper
+y_max_init_unif =y_aper
+y_min_init_unif =-y_aper
+ 

@@ -8,6 +8,7 @@ import numpy as np
 
 from abc import ABCMeta, abstractmethod
 
+
 class Monitor(object):
 
     @abstractmethod
@@ -44,8 +45,8 @@ class BunchMonitor(Monitor):
             self._write_data(h5file, bunch)
         
         h5file.close()
-        
-        
+
+
     def _create_data(self, h5file):
 
         h5group = h5file['Bunch']
@@ -108,7 +109,7 @@ class SliceMonitor(Monitor):
     def dump(self, bunch):
 
         h5file = hp.File(self.filename + '.h5', 'a')
-        
+
         if not self.slices:
             self.slices = bunch.slices
 
@@ -147,7 +148,7 @@ class SliceMonitor(Monitor):
     def _write_bunch_data(self, h5file, bunch):
 
         h5group = h5file['Bunch']
-        
+
         h5group["mean_x"][self.i_steps]   = bunch.mean_x()
         h5group["mean_xp"][self.i_steps]  = bunch.mean_xp()
         h5group["mean_y"][self.i_steps]   = bunch.mean_y()
@@ -204,9 +205,6 @@ class ParticleMonitor(Monitor):
     def dump(self, bunch):
 
         h5file = hp.File(self.filename + '.h5part', 'a')
-        
-        if not self.slices:
-            self.slices = bunch.slices
 
         if not self.i_steps:
             resorting_indices = np.argsort(bunch.id)[::self.stride]
@@ -222,15 +220,15 @@ class ParticleMonitor(Monitor):
 
 
     def _create_data(self, h5group, dims):
-        
-        h5group.create_dataset("x",           dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("xp",          dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("y",           dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("yp",          dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("z",           dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("dp",          dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("slice_index", dims, compression="gzip", compression_opts=9)
-        
+
+        h5group.create_dataset("x",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("xp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("y",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("yp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("z",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("dp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        h5group.create_dataset("slice_index", dims, compression="gzip", compression_opts=9, dtype=np.float64)
+
         # Do we need/want this here?
         h5group.create_dataset("id", dims, dtype=np.int)
         h5group.create_dataset("c",  dims)
@@ -248,8 +246,9 @@ class ParticleMonitor(Monitor):
         h5group["dp"][:]          = bunch.dp[resorting_indices]
 
         particle_id = bunch.id[resorting_indices]
-        h5group["slice_index"][:] = self.slices.slice_index_of_particle[particle_id]
-        
+        if self.slices:
+            h5group["slice_index"][:] = self.slices.slice_index_of_particle[particle_id]
+
         # Do we need/want this here?
         h5group["id"][:] = particle_id
         h5group["c"][:] = self.z0
