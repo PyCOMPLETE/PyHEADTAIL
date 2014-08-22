@@ -519,6 +519,7 @@ class RFSystems(LongitudinalOneTurnMap):
         zmax = self.circumference / (2*np.amin(harmonic_list))
         self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
         self._get_bucket_boundaries()
+        # self.H0_from_sigma = self.H0
 
         self.slices_tuple = slices_tuple
 
@@ -695,8 +696,12 @@ class RFSystems(LongitudinalOneTurnMap):
         '''Sign makes sure we stay convex - can then always use H<0'''
         return -(np.sign(self.eta0) * 1/2 * self.eta0*self.beta_reference*c * dp**2 * self.p0_reference + self.V_acc(z)) / self.p0_reference
 
-    def H0(self, z0):
-        return np.abs(self.eta0)*self.beta_reference*c * (z0 / self.beta_z) ** 2
+    def H0_from_sigma(self, z0):
+        return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2
+
+    def H0_from_epsn(self, epsn):
+        z0 = np.sqrt(epsn/(4*np.pi) * self.beta_z * e/self.p0_reference)
+        return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2
 
     def is_in_separatrix(self, z, dp):
         """

@@ -191,7 +191,6 @@ class RFBucket(PhaseSpace):
         self.psi_object = psi(rfsystem.hamiltonian, rfsystem.Hmax)
         self.psi = self.psi_object.function
         self.p_limits = rfsystem.separatrix
-        self._get_H0 = rfsystem.H0
 
         self._compute_std = self._compute_std_cumtrapz
 
@@ -204,143 +203,13 @@ class RFBucket(PhaseSpace):
         else:
             raise ValueError("Can not generate mismatched matched distribution!")
 
-        # self.generate = self.dontgenerate
-
-    # def psi_for_emittance(self, epsn_z):
-
-    #     H = self.H
-    #     psi_c =  self.psi(H.hamiltonian, H.Hmax)
-    #     psi = psi_c.function
-
-    #     # Maximum emittance
-    #     epsn_max = self._compute_mean_quad(lambda y, x: 1, H.separatrix, H.zleft, H.zright) * 2*self.p0/e
-    #     # print 'Maximum emittance', epsn_max
-    #     if epsn_z > epsn_max:
-    #         print '\n*** Emittance larger than bucket; using full bucket emittance', epsn_max, ' [eV s].\n'
-    #         epsn_z = epsn_max*0.99
-    #     print '\n*** Maximum emittance', epsn_z, 'm.\n'
-
-    #     # Cut on z-axis
-    #     zz = np.linspace(H.zs + np.abs(H.zs)*0.01, H.zright - np.abs(H.zright)*0.01, 10)
-    #     A = []
-    #     for i, zc in enumerate(zz):
-    #         try:
-    #             zleft, zright = self.H.get_z_left_right(zc)
-    #             A.append( self._compute_mean_quad(lambda y, x: 1, self.H.equihamiltonian(zc), zleft, zright) * 2*self.p0/e )
-    #         except IndexError:
-    #             print '\n*** z cut', zc, 'too tight; skipping value.\n'
-    #             zz = np.delete(zz, i)
-    #     A = np.array(A)
-
-    #     ix = np.where(np.diff(np.sign(A-epsn_z)))[0]
-    #     m = (A[ix+1] - A[ix])/(zz[ix+1] - zz[ix])
-    #     dy = epsn_z - A[ix]
-    #     zc_emittance = zz[ix] + dy/m
-    #     try:
-    #         zc_emittance[0]
-    #     except IndexError:
-    #         raise RuntimeError("\n*** Emittance", epsn_z, "not found in range. Increase range or resolution.")
-
-    #     # Width for cut on z-axis
-    #     fw = self.H.zright-self.H.zs
-    #     vv = np.linspace(fw*0.01, fw*0.99, 10)
-    #     L = []
-    #     for vc in vv:
-    #         psi_c.H0 = H.H0(vc)
-    #         L.append( H._get_zero_crossings(lambda x: psi(x, 0)-0.053990966513188063)[-1] )
-    #     L = np.array(L)
-
-    #     # TODO: catch if it is empty
-    #     ix = np.where(np.diff(np.sign(L-zc_emittance)))[0]
-    #     m = (L[ix+1] - L[ix])/(vv[ix+1] - vv[ix])
-    #     dy = zc_emittance - L[ix]
-    #     zc_bunchlength = vv[ix] + dy/m
-    #     try:
-    #         zc_bunchlength[0]
-    #     except IndexError:
-    #         raise RuntimeError("\n*** RMS length not found in range. Increase range or resolution.")
-
-    #     psi_c.H0 = H.H0(zc_bunchlength)
-    #     sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
-    #     # print epsn_z, sigma
-
-    #     # xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
-    #     # XX, PP = np.meshgrid(xx, pp)
-    #     # fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 12))
-    #     # ax4 = fig.add_subplot(224, projection='3d')
-    #     # ax1.plot(zz, A)
-    #     # ax1.axhline(a, c='r', lw=2)
-    #     # ax1.plot(zc_emittance, a, '+', ms=12, mew=4)
-    #     # ax1.grid()
-    #     # ax2.plot(vv, L)
-    #     # ax2.axhline(zc_emittance, c='r', lw=2)
-    #     # ax2.plot(zc_bunchlength, zc_emittance, '+', ms=12, mew=4)
-    #     # ax2.grid()
-    #     # ax3.plot(xx, psi(xx, 0))
-    #     # ax3.axvline(sigma, c='y', lw=2)
-    #     # ax3.axvline(zc_emittance, c='r', lw=2)
-    #     # ax4.plot_surface(XX, PP, psi(XX, PP), cmap=plt.cm.jet)
-    #     # plt.show()
-
-    #     return psi#, epsn_z, sigma
-
-    # def psi_for_bunchlength(self, sigma):
-
-    #     H = self.H
-    #     psi_c =  self.psi(H.hamiltonian, H.Hmax)
-    #     psi = psi_c.function
-
-    #     # Maximum bunch length
-    #     psi_c.H0 = self.H.H0(self.circumference)
-    #     sigma_max = self._compute_std(psi, self.H.separatrix, self.H.zleft, self.H.zright)
-    #     if sigma > sigma_max:
-    #         print "\n*** RMS bunch larger than bucket; using full bucket rms length", sigma_max, " m."
-    #         sigma = sigma_max*0.99
-
-    #     # Width for bunch length
-    #     fw = self.H.zright-self.H.zs
-    #     zz = np.linspace(fw*0.05, fw*0.95, 20)
-    #     L = []
-    #     for i, zc in enumerate(zz):
-    #         psi_c.H0 = self.H.H0(zc)
-    #         print i+1, psi_c.H0
-    #         L.append( self._compute_std(psi, H.separatrix, H.zleft, H.zright) )
-    #     L = np.array(L)
-
-    #     ix = np.where(np.diff(np.sign(L-sigma)))[0]
-    #     m = (L[ix+1] - L[ix])/(zz[ix+1] - zz[ix])
-    #     dy = sigma - L[ix]
-    #     k = zz[ix] + dy/m
-    #     psi_c.H0 = self.H.H0(k)
-
-    #     for zc in [zz[ix], k, zz[ix+1]]:
-    #         psi_c.H0 = self.H.H0(zc)
-    #         print zc, self._compute_std(psi, H.separatrix, H.zleft, H.zright)
-
-    #     xx, pp = np.linspace(H.zleft, H.zright, 200), np.linspace(-H.p_max(H.zright), H.p_max(H.zright), 200)
-    #     XX, PP = np.meshgrid(xx, pp)
-    #     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 6))
-    #     ax3 = fig.add_subplot(133, projection='3d')
-    #     ax1.plot(zz, L, '-*')
-    #     ax1.axhline(sigma, c='r', lw=2)
-    #     ax1.plot(k, sigma, '+', ms=12, mew=4)
-    #     ax1.grid()
-    #     ax2.plot(xx, psi(xx, 0))
-    #     ax2.axvline(sigma, c='y', lw=2)
-    #     ax3.plot_surface(XX, PP, psi(XX, PP), cmap=plt.cm.jet)
-    #     plt.show()
-
-    #     exit(-1)
-
-    #     return psi
-
     def psi_for_emittance_newton_method(self, epsn_z):
         H = self.H
 
         # Maximum emittance
         self._set_psi_sigma(H.circumference)
         zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        # sigma_max = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
+        # sigma_max = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
         # zc_left, zc_right = H.zs - 2*sigma_max, H.zs + 2*sigma_max
         # if zc_left > H.zleft:
         #     zc = zc_left
@@ -354,8 +223,8 @@ class RFBucket(PhaseSpace):
             epsn_z = epsn_max*0.99
         print '\n*** Maximum RMS emittance', epsn_max, 'eV s.'
 
-        def get_zc_for_epsn_z(zc):
-            self._set_psi_sigma(zc)
+        def get_zc_for_epsn_z(ec):
+            self._set_psi_epsn(ec)
             zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
             # sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
             # zc_left, zc_right = H.zs - 2*sigma, H.zs + 2*sigma
@@ -411,10 +280,10 @@ class RFBucket(PhaseSpace):
         # zcut_bar = newton(get_zcut_for_epsn, sigma)
         # zc_bar = newton(get_zc_for_zcut, sigma)
 
-        zc_bar = newton(get_zc_for_epsn_z, sigma_max)
-        self._set_psi_sigma(zc_bar)
+        ec_bar = newton(get_zc_for_epsn_z, epsn_z)
+        self._set_psi_epsn(ec_bar)
         zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        # sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
+        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
         # zc_left, zc_right = H.zs - 2*sigma, H.zs + 2*sigma
         # if zc_left > H.zleft:
         #     zc = zc_left
@@ -543,16 +412,16 @@ class RFBucket(PhaseSpace):
 
         L = []
         try:
-        #     L = np.array([quad_type(lambda y: psi(x, y), 0, p_limits(x))[0] for x in xx])
-            for x in xx:
-                y = np.linspace(0, self.p_limits(x), 100)
-                z = self.psi(x, y)
-                L.append(cumtrapz(z, y)[-1])
+            L = np.array([quad_type(lambda y: self.psi(x, y), 0, self.p_limits(x))[0] for x in xx])
+            # for x in xx:
+            #     y = np.linspace(0, self.p_limits(x), 129)
+            #     z = self.psi(x, y)
+            #     L.append(cumtrapz(z, y)[-1])
         except TypeError:
-        #     L = quad_type(lambda y: psi(xx, y), 0, p_limits(xx))[0]
-            y = np.linspace(0, self.p_limits(xx), 100)
-            z = self.psi(xx, y)
-            L.append(cumtrapz(z, y)[-1])
+            L = quad_type(lambda y: self.psi(xx, y), 0, self.p_limits(xx))[0]
+            # y = np.linspace(0, self.p_limits(xx), 129)
+            # z = self.psi(xx, y)
+            # L.append(cumtrapz(z, y)[-1])
         L = np.array(L)
 
         # # L = []
@@ -572,11 +441,14 @@ class RFBucket(PhaseSpace):
         return 2*L
 
     def _set_psi_sigma(self, sigma):
-        self.psi_object.H0 = self.H.H0(sigma)
+        self.psi_object.H0 = self.H.H0_from_sigma(sigma)
+
+    def _set_psi_epsn(self, epsn):
+        self.psi_object.H0 = self.H.H0_from_epsn(epsn)
 
     @profile
     def _get_edges_for_cut(self, h_cut):
-        zz = np.linspace(self.H.zmin, self.H.zmax, 32)
+        zz = np.linspace(self.H.zmin, self.H.zmax, 128)
         ll = self.linedensity(zz)
         lmax = np.amax(ll)
         # plt.plot(zz, linedensity(zz)/lmax, 'r', lw=2)
