@@ -61,19 +61,13 @@ class TransverseSegmentMap(object):
     def track(self, beam):
 
         # Phase advance (w/o. factor 2 np.pi, see below) and detuning.
-        try:
-            dphi_x = self.dphi_x
-        except AttributeError:
-            self.dphi_x = np.zeros(beam.n_macroparticles)
-            dphi_x = self.dphi_x
-
-        dphi_x[:] = self.dQ_x
-        dphi_y[:] = self.dQ_y
+        dphi_x = self.dQ_x
+        dphi_y = self.dQ_y
 
         for detuner in self.detuner_elements:
             detune_x, detune_y = detuner.detune(beam)
-            dphi_x[:] += detune_x
-            dphi_y[:] += detune_y
+            dphi_x += detune_x
+            dphi_y += detune_y
 
         dphi_x *= 2. * np.pi
         dphi_y *= 2. * np.pi
