@@ -3,13 +3,10 @@
 @date: 11.02.2014
 '''
 
-
 import h5py as hp
 import numpy as np
 
-
 from abc import ABCMeta, abstractmethod
-
 
 class Monitor(object):
 
@@ -24,7 +21,6 @@ class BunchMonitor(Monitor):
 
         self.filename = filename
         self.n_steps  = n_steps
-        self.i_steps  = 0
 
         h5file = hp.File(filename + '.h5', 'w')
         if dictionary:
@@ -39,22 +35,22 @@ class BunchMonitor(Monitor):
 
         h5file = hp.File(self.filename + '.h5', 'a')
 
-        if not self.i_steps:
-            n_steps = self.n_steps
-            self._create_data(h5file, (n_steps,))
+        try:
+            self.i_steps += 1
             self._write_data(h5file, bunch)
-        else:
+        except AttributeError:
+            self.i_steps = 0
+            self._create_data(h5file)
             self._write_data(h5file, bunch)
-            
-        self.i_steps += 1
-
+        
         h5file.close()
         
         
-    def _create_data(self, h5file, dims):
+    def _create_data(self, h5file):
 
         h5group = h5file['Bunch']
-
+        dims = (self.n_steps,)
+        
         h5group.create_dataset("mean_x",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_xp",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_y",   dims, compression="gzip", compression_opts=9)
@@ -98,7 +94,6 @@ class SliceMonitor(Monitor):
         self.filename  = filename
         self.n_steps = n_steps
         self.slices  = slices
-        self.i_steps = 0
 
         h5file = hp.File(filename + '.h5', 'w')
         if dictionary:
@@ -117,26 +112,22 @@ class SliceMonitor(Monitor):
         if not self.slices:
             self.slices = bunch.slices
 
-        if not self.i_steps:
-            n_steps = self.n_steps
-            n_slices = self.slices.n_slices
-
-            self._create_data(h5file['Bunch'],  (n_steps,))
-            self._create_data(h5file['Slices'], (n_slices, n_steps))
-
+        try:
+            self.i_steps += 1
             self._write_bunch_data(h5file, bunch)
             self._write_slice_data(h5file, bunch)
-        else:
+        except AttributeError:
+            self.i_steps = 0
+            self._create_data(h5file['Bunch'],  (self.n_steps,))
+            self._create_data(h5file['Slices'], (self.slices.n_slices, self.n_steps))
             self._write_bunch_data(h5file, bunch)
             self._write_slice_data(h5file, bunch)
-
-        self.i_steps += 1
 
         h5file.close()
 
 
     def _create_data(self, h5group, dims):
-        
+
         h5group.create_dataset("mean_x",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_xp",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_y",   dims, compression="gzip", compression_opts=9)
@@ -262,7 +253,3 @@ class ParticleMonitor(Monitor):
         # Do we need/want this here?
         h5group["id"][:] = particle_id
         h5group["c"][:] = self.z0
-
-
-    def close(self):
-        self.h5file.close()
