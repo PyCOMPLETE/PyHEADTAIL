@@ -13,7 +13,7 @@ import numpy as np
 from numpy.random import RandomState
 
 from scipy.constants import c, e
-from scipy.optimize import newton
+from scipy.optimize import brentq, brenth, bisect, newton
 from scipy.interpolate import interp2d
 from scipy.integrate import quad, fixed_quad, dblquad, cumtrapz, romb
 
@@ -235,7 +235,7 @@ class RFBucket(PhaseSpace):
             # else:
             #     raise ValueError
             emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-            print zc_left, zc_right, emittance-epsn_z
+            print '... distance to target emittance:', emittance-epsn_z
 
             return emittance-epsn_z
 
@@ -280,7 +280,11 @@ class RFBucket(PhaseSpace):
         # zcut_bar = newton(get_zcut_for_epsn, sigma)
         # zc_bar = newton(get_zc_for_zcut, sigma)
 
-        ec_bar = newton(get_zc_for_epsn_z, epsn_z)
+        try:
+            ec_bar = newton(get_zc_for_epsn_z, epsn_z*1.2, tol=5e-3, maxiter=30)
+        except RuntimeError:
+            print '*** WARNING: failed to converge using Newton-Raphson method. Trying classic Brent method...'
+            ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
         self._set_psi_epsn(ec_bar)
         zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
         sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
@@ -296,6 +300,7 @@ class RFBucket(PhaseSpace):
         print '\n--> Emittance:', emittance
         print '--> Bunch length:', sigma
         H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
+        H.emittance, H.sigma = emittance, sigma
 
     @profile
     def psi_for_bunchlength_newton_method(self, sigma):
@@ -315,6 +320,8 @@ class RFBucket(PhaseSpace):
             length = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
             if np.isnan(length):
                 raise ValueError
+            print '... distance to target bunchlength:', length-sigma
+
             return length-sigma
 
         zc_bar = newton(get_zc_for_sigma, sigma)
@@ -333,6 +340,7 @@ class RFBucket(PhaseSpace):
         print '\n--> Bunch length:', sigma
         print '--> Emittance:', emittance
         H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
+        H.emittance, H.sigma = emittance, sigma
 
     def generate(self, particles):
         '''

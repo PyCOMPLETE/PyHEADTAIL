@@ -442,10 +442,10 @@ class LongitudinalOneTurnMap(LongitudinalMap):
 
 class RFSystems(LongitudinalOneTurnMap):
     """
-        With one RFSystems object in the ring layout (with all Kick
-        objects located at the same longitudinal position), the
-        longitudinal separatrix function is exact and makes a valid
-        local statement about stability!
+    With one RFSystems object in the ring layout (with all Kick
+    objects located at the same longitudinal position), the
+    longitudinal separatrix function is exact and makes a valid
+    local statement about stability!
     """
 
     def __init__(self, circumference, harmonic_list, voltage_list, phi_offset_list,
