@@ -302,7 +302,7 @@ class RFBucket(PhaseSpace):
         H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
         H.emittance, H.sigma = emittance, sigma
 
-    @profile
+    # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
         H = self.H
 
@@ -454,7 +454,7 @@ class RFBucket(PhaseSpace):
     def _set_psi_epsn(self, epsn):
         self.psi_object.H0 = self.H.H0_from_epsn(epsn)
 
-    @profile
+    # @profile
     def _get_edges_for_cut(self, h_cut):
         zz = np.linspace(self.H.zmin, self.H.zmax, 128)
         ll = self.linedensity(zz)
