@@ -449,8 +449,8 @@ class RFSystems(LongitudinalOneTurnMap):
     """
 
     def __init__(self, circumference, harmonic_list, voltage_list, phi_offset_list,
-                 alpha_array, gamma_reference, p_increment=0,
-                 phase_lock=True, shrinking=False, slices_tuple=None):
+                 alpha_array, gamma_reference, p_increment=0, phase_lock=True,
+                 shrink_transverse=True, shrink_longitudinal=False, slices_tuple=None):
         """
         The first entry in harmonic_list, voltage_list and
         phi_offset_list defines the parameters for the one
@@ -496,7 +496,9 @@ class RFSystems(LongitudinalOneTurnMap):
 
         super(RFSystems, self).__init__(alpha_array, circumference)
 
-        self._shrinking = shrinking
+        self._shrinking = shrink_longitudinal
+        self._shrink_transverse = shrink_transverse
+
         if not len(harmonic_list) == len(voltage_list) == len(phi_offset_list):
             print ("Warning: parameter lists for RFSystems " +
                                         "do not have the same length!")
@@ -507,7 +509,7 @@ class RFSystems(LongitudinalOneTurnMap):
                         + self.kicks
                         + [Drift(alpha_array, self.circumference / 2)]
                         )
-        self.fundamental_cavity = min(self.kicks, key=lambda kick: kick.harmonic)
+        self.fundamental_kick = min(self.kicks, key=lambda kick: kick.harmonic)
         self.p_increment = p_increment
 
         # Reference energy and make eta0, resp. "machine gamma_tr" available for all routines
@@ -525,10 +527,10 @@ class RFSystems(LongitudinalOneTurnMap):
 
     @property
     def p_increment(self):
-        return self.fundamental_cavity.p_increment
+        return self.fundamental_kick.p_increment
     @p_increment.setter
     def p_increment(self, value):
-        self.fundamental_cavity.p_increment = value
+        self.fundamental_kick.p_increment = value
         if self._shrinking:
             self.elements[-1].shrinkage_p_increment = value
 
@@ -582,14 +584,14 @@ class RFSystems(LongitudinalOneTurnMap):
 
     @property
     def Qs(self):
-        fc = self.fundamental_cavity
+        fc = self.fundamental_kick
         V = fc.voltage
         h = fc.harmonic
         return np.sqrt( e*V*np.abs(self.eta0)*h / (2*np.pi*self.p0_reference*self.beta_reference*c) )
 
     @property
     def phi_s(self):
-        V = self.fundamental_cavity.voltage
+        V = self.fundamental_kick.voltage
 
         if self.p_increment == 0 and V == 0:
             return 0
@@ -621,16 +623,39 @@ class RFSystems(LongitudinalOneTurnMap):
         for longMap in self.elements:
             longMap.track(beam)
         if self.p_increment:
-            self.p0_reference += self.p_increment
-            if self._shrinking: # TODO: quick fix; need to think better how to treat purely long. tracking
+            try:
                 self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
+                self.track = self.track_transverse_shrinking
+            except AttributeError:
+                self.track = self.track_no_transverse_shrinking
+            self.p0_reference += self.p_increment
+
         if self.slices_tuple:
             for slices in self.slices_tuple:
                 slices.update_slices(beam)
 
-    def track_transverse_shrinking(self): pass
-    def track_longitudinal_shrinking(self): pass
-    def track_shrinking(self): pass
+    def track_transverse_shrinking(self, beam):
+        if self.p_increment:
+            betagamma_old = beam.betagamma
+        for longMap in self.elements:
+            longMap.track(beam)
+        if self.p_increment:
+            self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
+            self.p0_reference += self.p_increment
+
+        if self.slices_tuple:
+            for slices in self.slices_tuple:
+                slices.update_slices(beam)
+
+    def track_no_transverse_shrinking(self, beam):
+        for longMap in self.elements:
+            longMap.track(beam)
+        if self.p_increment:
+            self.p0_reference += self.p_increment
+
+        if self.slices_tuple:
+            for slices in self.slices_tuple:
+                slices.update_slices(beam)
 
     def set_voltage_list(self, voltage_list):
         for i, V in enumerate(voltage_list):
@@ -718,7 +743,7 @@ class RFSystems(LongitudinalOneTurnMap):
 
     def _phaselock(self):
 
-        fc = self.fundamental_cavity
+        fc = self.fundamental_kick
         cavities = [k for k in self.kicks if k is not fc]
 
         for c in cavities:
