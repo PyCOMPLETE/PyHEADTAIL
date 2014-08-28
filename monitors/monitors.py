@@ -26,10 +26,11 @@ class BunchMonitor(Monitor):
                                   'n_macroparticles' ]
         self.n_steps  = n_steps
         self.i_steps  = 0
+	self.filename = filename
 
-        self.buffer_size = 256
+        self.buffer_size = 2048
         self.buffer = np.zeros((len(self.stats_quantities), self.buffer_size))
-        self.write_buffer_to_file_every = 128
+        self.write_buffer_to_file_every = 1024
 
         try:
             self.h5file = hp.File(filename + '.h5', 'w')
@@ -37,10 +38,11 @@ class BunchMonitor(Monitor):
                 for key in dictionary:
                     self.h5file.attrs[key] = dictionary[key]
             self._create_file_structure()            
+	    self.h5file.close()
         except:
             print 'Creation of bunch monitor file failed.'
             sys.exit(-1)
-        
+
 
     def dump(self, bunch):
 
@@ -58,8 +60,6 @@ class BunchMonitor(Monitor):
         h5group = self.h5file['Bunch']
         for stats in sorted(self.stats_quantities):
             h5group.create_dataset(stats, shape=(self.n_steps,), compression='gzip', compression_opts=9)
-
-        self.h5file.flush()
             
 
     def _write_data_to_buffer(self, bunch):
@@ -82,11 +82,12 @@ class BunchMonitor(Monitor):
         up_pos_in_file      = self.i_steps + 1
 
         try:       
+ 	    self.h5file = hp.File(self.filename + '.h5', 'a')
             h5group = self.h5file['Bunch']
             for k, stats in enumerate(sorted(self.stats_quantities)):
                 h5group[stats][low_pos_in_file:up_pos_in_file] = self.buffer[k, low_pos_in_buffer:]
 
-            self.h5file.flush()
+	    self.h5file.close()
         except:
             print 'Bunch monitor file is not accessible.'
 
