@@ -21,17 +21,17 @@ class BunchMonitor(Monitor):
 
     def __init__(self, filename, n_steps, dictionary=None):
 
-        self.stats_quantities = [ 'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
-                                  'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y', 'epsn_z',
-                                  'n_macroparticles' ]
+        self.stats_to_store = [ 'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
+                                'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y', 'epsn_z',
+                                'n_macroparticles' ]
+        self.filename = filename
         self.n_steps  = n_steps
         self.i_steps  = 0
-        self.filename = filename
 
-        self.buffer_size = 2048
-        self.write_buffer_to_file_every = 1024
+        self.buffer_size = 4096
+        self.write_buffer_to_file_every = 512
         self.buffer = {}
-        for stats in self.stats_quantities:
+        for stats in self.stats_to_store:
             self.buffer[stats] = np.zeros(self.buffer_size)
 
         self._create_file_structure(dictionary)
@@ -57,7 +57,7 @@ class BunchMonitor(Monitor):
 
             h5file.create_group('Bunch')
             h5group = h5file['Bunch']
-            for stats in sorted(self.stats_quantities):
+            for stats in sorted(self.stats_to_store):
                 h5group.create_dataset(stats, shape=(self.n_steps,), compression='gzip', compression_opts=9)
 
             h5file.close()
@@ -68,7 +68,7 @@ class BunchMonitor(Monitor):
 
     def _write_data_to_buffer(self, bunch):
 
-        for stats in self.stats_quantities:
+        for stats in self.stats_to_store:
             evaluate_stats = getattr(bunch, stats)
             try:
                 self.buffer[stats][0] = evaluate_stats()
@@ -88,7 +88,7 @@ class BunchMonitor(Monitor):
         try:       
             h5file  = hp.File(self.filename + '.h5', 'a')
             h5group = h5file['Bunch']
-            for stats in self.stats_quantities:
+            for stats in self.stats_to_store:
                 h5group[stats][low_pos_in_file:up_pos_in_file] = self.buffer[stats][low_pos_in_buffer:]
             h5file.close()
             
@@ -100,19 +100,19 @@ class SliceMonitor(Monitor):
 
     def __init__(self, filename, n_steps, dictionary=None, slices=None):
         
-        self.stats_quantities = [ 'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
-                                  'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y', 'epsn_z',
-                                  'n_macroparticles' ]
+        self.stats_to_store = [ 'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
+                                'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y', 'epsn_z',
+                                'n_macroparticles' ]
+        self.filename = filename
         self.n_steps  = n_steps
         self.i_steps  = 0
-        self.filename = filename
         self.slices   = slices
 
-        self.buffer_size = 2048
-        self.write_buffer_to_file_every = 1024
+        self.buffer_size = 4096
+        self.write_buffer_to_file_every = 512
         self.buffer_bunch = {}
         self.buffer_slice = {}
-        for stats in self.stats_quantities:
+        for stats in self.stats_to_store:
             self.buffer_bunch[stats] = np.zeros(self.buffer_size)
             self.buffer_slice[stats] = np.zeros((self.slices.n_slices, self.buffer_size))
         
@@ -141,7 +141,7 @@ class SliceMonitor(Monitor):
             h5file.create_group('Slices')        
             h5group_bunch = h5file['Bunch']
             h5group_slice = h5file['Slices']
-            for stats in sorted(self.stats_quantities):
+            for stats in sorted(self.stats_to_store):
                 h5group_bunch.create_dataset(stats, shape=(self.n_steps,), compression='gzip', compression_opts=9)
                 h5group_slice.create_dataset(stats, shape=(self.slices.n_slices, self.n_steps), compression='gzip', compression_opts=9)
             h5file.close()
@@ -153,7 +153,7 @@ class SliceMonitor(Monitor):
 
     def _write_data_to_buffer(self, bunch):
 
-        for stats in self.stats_quantities:
+        for stats in self.stats_to_store:
             evaluate_stats_bunch = getattr(bunch, stats)
             evaluate_stats_slice = getattr(self.slices, stats)
             try:
@@ -178,7 +178,7 @@ class SliceMonitor(Monitor):
             h5file = hp.File(self.filename + '.h5', 'a')
             h5group_bunch = h5file['Bunch']
             h5group_slice = h5file['Slices']
-            for stats in self.stats_quantities:
+            for stats in self.stats_to_store:
                 h5group_bunch[stats][low_pos_in_file:up_pos_in_file]   = self.buffer_bunch[stats][low_pos_in_buffer:]
                 h5group_slice[stats][:,low_pos_in_file:up_pos_in_file] = self.buffer_slice[stats][:,low_pos_in_buffer:]
             h5file.close()
@@ -188,64 +188,51 @@ class SliceMonitor(Monitor):
 
 class ParticleMonitor(Monitor):
 
-    def __init__(self, filename, stride=1, dictionary=None, slices=None):
+    def __init__(self, filename, stride=1, dictionary=None): #, slices=None):
 
-        self.slices = slices
-        self.stride = stride
-        self.i_steps = 0
-
-        self.h5file = hp.File(filename + '.h5part', 'w')
-        if dictionary:
-            for key in dictionary:
-                self.h5file.attrs[key] = dictionary[key]
-
-        self.h5file.flush()
+        self.quantities_to_store = [ 'x', 'xp', 'y', 'yp', 'z', 'dp', 'id' ]
+        self.filename = filename
+        self.stride   = stride
+        self.i_steps  = 0
+        # self.slices = slices
+        self._create_file_structure(dictionary)
 
 
     def dump(self, bunch):
 
-        if not self.i_steps:
-            resorting_indices = np.argsort(bunch.id)[::self.stride]
-            self.z0 = np.copy(bunch.z[resorting_indices])
-
-        h5group = self.h5file.create_group("Step#" + str(self.i_steps))
-        self._create_data(h5group, (bunch.n_macroparticles // self.stride,))
-        self._write_data(h5group, bunch)
-
+        self._write_data_to_file(bunch)
         self.i_steps += 1
-        self.h5file.flush()
 
 
-    def _create_data(self, h5group, dims):
+    def _create_file_structure(self, dictionary):
 
-        h5group.create_dataset("x",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
-        h5group.create_dataset("xp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
-        h5group.create_dataset("y",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
-        h5group.create_dataset("yp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
-        h5group.create_dataset("z",           dims, compression="gzip", compression_opts=9, dtype=np.float64)
-        h5group.create_dataset("dp",          dims, compression="gzip", compression_opts=9, dtype=np.float64)
-        h5group.create_dataset("slice_index", dims, compression="gzip", compression_opts=9, dtype=np.float64)
-
-        # Do we need/want this here?
-        h5group.create_dataset("id", dims, dtype=np.int)
-        h5group.create_dataset("c",  dims)
+        h5file = hp.File(self.filename + '.h5part', 'w')
+        if dictionary:
+            for key in dictionary:
+                h5file.attrs[key] = dictionary[key]
+        h5file.close()
 
 
-    def _write_data(self, h5group, bunch):
+    def _write_data_to_file(self, bunch):
 
+        h5file  = hp.File(self.filename + '.h5part', 'a')
+        h5group = h5file.create_group('Step#' + str(self.i_steps))
+        dims    = (bunch.n_macroparticles // self.stride,)
+        
         resorting_indices = np.argsort(bunch.id)[::self.stride]
-    
-        h5group["x"][:]           = bunch.x[resorting_indices]
-        h5group["xp"][:]          = bunch.xp[resorting_indices]
-        h5group["y"][:]           = bunch.y[resorting_indices]
-        h5group["yp"][:]          = bunch.yp[resorting_indices]
-        h5group["z"][:]           = bunch.z[resorting_indices]
-        h5group["dp"][:]          = bunch.dp[resorting_indices]
+        for quant in self.quantities_to_store:
+            quant_values = getattr(bunch, quant)
+            h5group.create_dataset(quant, shape=dims, compression='gzip', compression_opts=9, dtype=quant_values.dtype)
+            h5group[quant][:] = quant_values[resorting_indices]
 
-        particle_id = bunch.id[resorting_indices]
-        if self.slices:
-            h5group["slice_index"][:] = self.slices.slice_index_of_particle[particle_id]
+        h5file.close()
+            
+        # h5group.create_dataset("slice_index", dims, compression="gzip", compression_opts=9, dtype=np.float64)
+        # h5group.create_dataset("c",  dims)
+
+        # if self.slices:
+            # h5group["slice_index"][:] = self.slices.slice_index_of_particle[particle_id]
 
         # Do we need/want this here?
-        h5group["id"][:] = particle_id
-        h5group["c"][:] = self.z0
+        # h5group["id"][:] = particle_id
+        # h5group["c"][:] = self.z0
