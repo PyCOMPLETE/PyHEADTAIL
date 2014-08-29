@@ -30,7 +30,9 @@ class BunchMonitor(Monitor):
 
         self.buffer_size = 2048
         self.write_buffer_to_file_every = 1024
-        self.buffer = np.zeros((len(self.stats_quantities), self.buffer_size))
+        self.buffer = {}
+        for stats in self.stats_quantities:
+            self.buffer[stats] = np.zeros(self.buffer_size)
 
         self._create_file_structure(dictionary)
 
@@ -66,14 +68,14 @@ class BunchMonitor(Monitor):
 
     def _write_data_to_buffer(self, bunch):
 
-        for k, stats in enumerate(sorted(self.stats_quantities)):
+        for stats in self.stats_quantities:
             evaluate_stats = getattr(bunch, stats)
             try:
-                self.buffer[k,0] = evaluate_stats()
+                self.buffer[stats][0] = evaluate_stats()
             except TypeError:
-                self.buffer[k,0] = evaluate_stats
+                self.buffer[stats][0] = evaluate_stats
 
-        self.buffer = np.roll(self.buffer, shift=-1, axis=1)
+            self.buffer[stats] = np.roll(self.buffer[stats], shift=-1, axis=0)
         
 
     def _write_buffer_to_file(self):
@@ -86,8 +88,8 @@ class BunchMonitor(Monitor):
         try:       
             h5file  = hp.File(self.filename + '.h5', 'a')
             h5group = h5file['Bunch']
-            for k, stats in enumerate(sorted(self.stats_quantities)):
-                h5group[stats][low_pos_in_file:up_pos_in_file] = self.buffer[k, low_pos_in_buffer:]
+            for stats in self.stats_quantities:
+                h5group[stats][low_pos_in_file:up_pos_in_file] = self.buffer[stats][low_pos_in_buffer:]
             h5file.close()
             
         except:
@@ -108,9 +110,12 @@ class SliceMonitor(Monitor):
 
         self.buffer_size = 2048
         self.write_buffer_to_file_every = 1024
-        self.buffer_bunch = np.zeros((len(self.stats_quantities), self.buffer_size))
-        self.buffer_slice = np.zeros((len(self.stats_quantities), self.slices.n_slices, self.buffer_size))
-
+        self.buffer_bunch = {}
+        self.buffer_slice = {}
+        for stats in self.stats_quantities:
+            self.buffer_bunch[stats] = np.zeros(self.buffer_size)
+            self.buffer_slice[stats] = np.zeros((self.slices.n_slices, self.buffer_size))
+        
         self._create_file_structure(dictionary)
 
 
@@ -148,19 +153,19 @@ class SliceMonitor(Monitor):
 
     def _write_data_to_buffer(self, bunch):
 
-        for k, stats in enumerate(sorted(self.stats_quantities)):
+        for stats in self.stats_quantities:
             evaluate_stats_bunch = getattr(bunch, stats)
             evaluate_stats_slice = getattr(self.slices, stats)
             try:
-                self.buffer_bunch[k,0] = evaluate_stats_bunch()
-                self.buffer_slice[k,:,0] = evaluate_stats_slice(bunch)
+                self.buffer_bunch[stats][0]   = evaluate_stats_bunch()
+                self.buffer_slice[stats][:,0] = evaluate_stats_slice(bunch)
             except TypeError:
-                self.buffer_bunch[k,0] = evaluate_stats_bunch
-                self.buffer_slice[k,:,0] = evaluate_stats_slice
-                
-        self.buffer_bunch = np.roll(self.buffer_bunch, shift=-1, axis=1)
-        self.buffer_slice = np.roll(self.buffer_slice, shift=-1, axis=2)
-        
+                self.buffer_bunch[stats][0]   = evaluate_stats_bunch
+                self.buffer_slice[stats][:,0] = evaluate_stats_slice
+
+            self.buffer_bunch[stats] = np.roll(self.buffer_bunch[stats], shift=-1, axis=0)
+            self.buffer_slice[stats] = np.roll(self.buffer_slice[stats], shift=-1, axis=1)
+
 
     def _write_buffer_to_file(self):
 
@@ -173,9 +178,9 @@ class SliceMonitor(Monitor):
             h5file = hp.File(self.filename + '.h5', 'a')
             h5group_bunch = h5file['Bunch']
             h5group_slice = h5file['Slices']
-            for k, stats in enumerate(sorted(self.stats_quantities)):
-                h5group_bunch[stats][low_pos_in_file:up_pos_in_file]   = self.buffer_bunch[k, low_pos_in_buffer:]
-                h5group_slice[stats][:,low_pos_in_file:up_pos_in_file] = self.buffer_slice[k,:,low_pos_in_buffer:]
+            for stats in self.stats_quantities:
+                h5group_bunch[stats][low_pos_in_file:up_pos_in_file]   = self.buffer_bunch[stats][low_pos_in_buffer:]
+                h5group_slice[stats][:,low_pos_in_file:up_pos_in_file] = self.buffer_slice[stats][:,low_pos_in_buffer:]
             h5file.close()
         except:
             print 'Slices monitor file is not accessible.'
