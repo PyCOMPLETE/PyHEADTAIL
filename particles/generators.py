@@ -575,7 +575,6 @@ class RFBucket(PhaseSpace):
 
         return np.sqrt(V/Q)
 
-
 class UniformX(PhaseSpace):
     """
     Horizontal uniform particle phase space distribution.
@@ -629,11 +628,6 @@ class ImportX(PhaseSpace):
         self.xp = np.array(xp)
 
     def generate(self, particles):
-
-        # x = np.zeros(particles.n_macroparticles)
-        # xp = np.zeros(particles.n_macroparticles)
-        # particles.x = self.x[:particles.n_macroparticles]
-        # particles.xp = self.xp[:particles.n_macroparticles]
 
         assert(particles.n_macroparticles == len(self.x) == len(self.xp))
         particles.x = self.x.copy()

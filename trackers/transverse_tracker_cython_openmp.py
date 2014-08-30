@@ -6,9 +6,7 @@ Created on 07.01.2014
 
 from __future__ import division
 import numpy as np
-
-sin = np.sin
-cos = np.cos
+import cython_tracker as cytrack
 
 
 class TransverseSegmentMap(object):
@@ -21,12 +19,17 @@ class TransverseSegmentMap(object):
 
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
-        self.detuner_elements = detuner_elements
+
+        if detuner_elements:
+            self.detuner_elements = detuner_elements
+            self.track = self.track_with_detuners
+        else:
+            self.track = self.track_without_detuners
 
         self._build_segment_map(alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
                                 alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s1)
 
-
+ 
     def _build_segment_map(self, alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
                                  alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s):
 
@@ -58,37 +61,36 @@ class TransverseSegmentMap(object):
         self.J = J
 
 
-    def track(self, beam):
+    def track_without_detuners(self, beam):
 
-        # Phase advance (w/o. factor 2 np.pi, see below) and detuning.
-        dphi_x = self.dQ_x
-        dphi_y = self.dQ_y
+        # Phase advance.
+        self.dphi_x = self.dQ_x
+        self.dphi_y = self.dQ_y
+
+        cytrack.track_transverse_without_detuners(self.I, self.J, self.dphi_x, self.dphi_y,
+                                                  beam.x, beam.xp, beam.y, beam.yp)
+        
+
+    def track_with_detuners(self, beam):
+
+        try:
+            dphi_x = self.dphi_x
+            dphi_y = self.dphi_y
+        except AttributeError:
+            self.dphi_x = np.zeros(beam.n_macroparticles)
+            self.dphi_y = np.zeros(beam.n_macroparticles)
+            dphi_x = self.dphi_x
+            dphi_y = self.dphi_y
+
+        # Phase advance (w/o. factor 2 np.pi, multiplied after detuning loop).
+        dphi_x[:] = self.dQ_x
+        dphi_y[:] = self.dQ_y
 
         for detuner in self.detuner_elements:
-            detune_x, detune_y = detuner.detune(beam)
-            dphi_x += detune_x
-            dphi_y += detune_y
+           detuner.detune(beam, self.dphi_x, self.dphi_y)
 
-        dphi_x *= 2. * np.pi
-        dphi_y *= 2. * np.pi
-
-        cos_dphi_x = cos(dphi_x)
-        cos_dphi_y = cos(dphi_y)
-        sin_dphi_x = sin(dphi_x)
-        sin_dphi_y = sin(dphi_y)
-
-        # Transport matrix.
-        M00 = self.I[0, 0] * cos_dphi_x + self.J[0, 0] * sin_dphi_x
-        M01 = self.I[0, 1] * cos_dphi_x + self.J[0, 1] * sin_dphi_x
-        M10 = self.I[1, 0] * cos_dphi_x + self.J[1, 0] * sin_dphi_x
-        M11 = self.I[1, 1] * cos_dphi_x + self.J[1, 1] * sin_dphi_x
-        M22 = self.I[2, 2] * cos_dphi_y + self.J[2, 2] * sin_dphi_y
-        M23 = self.I[2, 3] * cos_dphi_y + self.J[2, 3] * sin_dphi_y
-        M32 = self.I[3, 2] * cos_dphi_y + self.J[3, 2] * sin_dphi_y
-        M33 = self.I[3, 3] * cos_dphi_y + self.J[3, 3] * sin_dphi_y
-
-        beam.x, beam.xp = M00 * beam.x + M01 * beam.xp, M10 * beam.x + M11 * beam.xp
-        beam.y, beam.yp = M22 * beam.y + M23 * beam.yp, M32 * beam.y + M33 * beam.yp
+        cytrack.track_transverse_with_detuners(self.I, self.J, self.dphi_x, self.dphi_y,
+                                               beam.x, beam.xp, beam.y, beam.yp)
 
 
 class TransverseMap(object):
