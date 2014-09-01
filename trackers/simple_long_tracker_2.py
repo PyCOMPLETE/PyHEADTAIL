@@ -719,7 +719,9 @@ class RFSystems(LongitudinalOneTurnMap):
 
     def hamiltonian(self, z, dp):
         '''Sign makes sure we stay convex - can then always use H<0'''
-        return -(np.sign(self.eta0) * 1/2 * self.eta0*self.beta_reference*c * dp**2 * self.p0_reference + self.V_acc(z)) / self.p0_reference
+        return (-(np.sign(self.eta0) * 1/2 * self.eta0 *
+                self.beta_reference * c * dp**2 * self.p0_reference
+                + self.V_acc(z)) / self.p0_reference)
 
     def H0_from_sigma(self, z0):
         return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2

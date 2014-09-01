@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from trackers.longitudinal_tracker import *
-from beams.beams import *
+from trackers.simple_long_tracker_2 import *
+from particles.particles import *
 import matplotlib as mpl
 
 n_turns = 10001
@@ -15,15 +15,17 @@ else:
 	gamma = 2.49
 
 beta = np.sqrt(1 - gamma**-2)
-a = RFSystems(np.pi * 50, [1, 2], [8000, 0*6000], [phi1, np.pi],
-              [4.05**-2], m_p * beta * gamma * c * 5e-6)
-beam = Particles.as_gaussian(1000, e, gamma, 1.e11, m_p, 0, 54.6408, 2, 0,
-                             54.5054, 2, 15, 0.001)
+a = RFSystems(np.pi * 50, [1, 2], [3000, 1000], [phi1, 0*np.pi],
+              [4.05**-2], gamma, m_p * beta * gamma * c * 1e-6)
+beam = Particles.as_gaussian(1000, e, m_p, gamma, 1.e11, 0, 54.6408, 2, 0,
+                             54.5054, 2, 20000, 1.2,
+                             is_accepted=a.is_in_separatrix)
+                             # 54.5054, 2, 15, 0.001)
 n = 1
 x = np.arange(n * -100, n * 100, n * 0.1)
 y = np.arange(n * -0.005, n * 0.005, n * 0.00001)
 X, Y = np.meshgrid(x,y)
-Z = a.hamiltonian(X, Y, beam)
+Z = a.hamiltonian(X, Y)
 
 extent=[x.min(), x.max(), y.min(), y.max()]
 
@@ -46,7 +48,7 @@ for i in xrange(n_turns):
 	CS = plt.contour(X, Y, Z, 25)#, colors="black")
 	plt.clabel(CS, fontsize=9, inline=1)
 	# ZZ, DP = np.meshgrid(beam.z, beam.dp)
-	HAM = a.hamiltonian(beam.z, beam.dp, beam)
+	HAM = a.hamiltonian(beam.z, beam.dp)
 	plt.scatter(beam.z, beam.dp, alpha=0.8, linewidth=0.1, c=HAM, marker=".")
 	plt.xlim(x.min(), x.max())
 	plt.ylim(y.min(), y.max())
