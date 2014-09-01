@@ -117,10 +117,12 @@ class WakeTable(object):
         if time[0] > 0:
             time          = np.append(0, time)
             wake_strength = np.append(0, wake_strength)
+        # TODO: check this (commented; diff has a problem here -- KL 30.08.2014)
+        # This should only be true for ultrarelativistic wakes? Perhaps this should be left to the wakefield maker...
         # insert zero value of wake field if provided wake begins with a finite value
-        if wake_strength[0] != 0:
-            time          = np.append(time[0] - np.diff(time[1], time[0]), time)
-            wake_strength = np.append(0, wake_strength)
+        # if wake_strength[0] != 0:
+        #     time          = np.append(time[0] - np.diff(time[1], time[0]), time)
+        #     wake_strength = np.append(0, wake_strength)
 
         def wake(beta, z): 
             return np.interp(- z / (beta * c), time, wake_strength, left=0, right=0)
