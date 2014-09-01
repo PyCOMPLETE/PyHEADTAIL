@@ -22,7 +22,7 @@ class Slicer(object):
         self.n_slices = n_slices
         self.nsigmaz = nsigmaz
         self.mode = mode
-        self.stats = np.zeros(n_slices)
+        # self.stats = np.zeros(n_slices)
 
         if z_cuts:
             self.z_cut_tail, self.z_cut_head = z_cuts
@@ -188,24 +188,27 @@ class Slicer(object):
     '''
     def _mean(self, u):
 
+        stats = np.zeros(self.n_slices)
         index = self.first_particle_index_in_slice
         for i in xrange(self.n_slices):
-            self.stats[i] = cp.mean(u[index[i]:index[i + 1]])
+            stats[i] = cp.mean(u[index[i]:index[i + 1]])
 
-        return self.stats
+        return stats
     
     def _sigma(self, u):
-        
+
+        stats = np.zeros(self.n_slices)
         index = self.first_particle_index_in_slice
         for i in xrange(self.n_slices):
-            self.stats[i] = cp.std(u[index[i]:index[i + 1]])
+            stats[i] = cp.std(u[index[i]:index[i + 1]])
 
-        return self.stats
+        return stats
 
     def _epsn(self, u, up, beta, gamma):
 
+        stats = np.zeros(self.n_slices)
         index = self.first_particle_index_in_slice
         for i in xrange(self.n_slices):
-            self.stats[i] = cp.emittance(u[index[i]:index[i + 1]], up[index[i]:index[i + 1]]) * gamma * beta * 1e6
+            stats[i] = cp.emittance(u[index[i]:index[i + 1]], up[index[i]:index[i + 1]]) * gamma * beta * 1e6
 
-        return self.stats
+        return stats
