@@ -162,6 +162,7 @@ class Particles(object):
         return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
                    [importx, importy, importz])
 
+
     @property
     def intensity(self):
         if self.same_size_for_all_MPs:
