@@ -51,24 +51,89 @@ class PoissonFFT(UniformGrid):
         PoissonFFT.compute_potential_fgreenm2m = MethodType(compute_potential_fgreenm2m, None, PoissonFFT)
         PoissonFFT.compute_potential_fgreenp2m = MethodType(compute_potential_fgreenp2m, None, PoissonFFT)
 
-    # def inject(self, master, slave=None):
+        try:
+            import pyfftw
 
-    #     master.poisson_self = copy.deepcopy(self)
-    #     master.kx = np.zeros(master.n_macroparticles)
-    #     master.ky = np.zeros(master.n_macroparticles)
-    #     if slave:
-    #         slave.poisson_other = copy.deepcopy(self)
-    #         slave.kx = np.zeros(slave.n_macroparticles)
-    #         slave.ky = np.zeros(slave.n_macroparticles)
+            # Arrays
+            self.fftw_fgreen = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+            self.fftw_rho = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+            self.fftw_phi = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+            self.ifftw_fgreen = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+            self.ifftw_rho = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+            self.ifftw_phi = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
 
-    @profile
-    def compute_potential(self, rho, phi):
+            # Plans
+            self.pfftw_fgreen = pyfftw.FFTW(self.fftw_fgreen, self.ifftw_fgreen, axes=(0,1))#, flags=('FFTW_EXHAUSTIVE',), threads=1)
+            self.pfftw_rho = pyfftw.FFTW(self.fftw_rho, self.ifftw_rho, axes=(0,1))#, flags=('FFTW_EXHAUSTIVE',), threads=1)
+            self.pfftw_phi = pyfftw.FFTW(self.ifftw_phi, self.fftw_phi, axes=(0,1), direction='FFTW_BACKWARD')#, flags=('FFTW_EXHAUSTIVE',), threads=1)
+
+            self.compute_potential = self.compute_potential_fftw
+        except ImportError:
+            print '*** WARNING: pyfftw not available. Falling back to NumPy FFT.'
+            self.compute_potential = self.compute_potential_numpy
+
+    # @profile
+    def compute_potential_numpy(self, rho, phi):
 
         self.tmprho[:self.ny, :self.nx] = rho
 
         fftphi = np.fft.fft2(self.tmprho) * np.fft.fft2(self.fgreen)
 
         tmpphi = np.fft.ifft2(fftphi)
+        phi[:] = np.abs(tmpphi[:self.ny, :self.nx])
+
+        # for (size_t j=0; j<np; j++)
+        # {
+        #     tmpphi[j] = std::sqrt(fftw_phi[j][0] * fftw_phi[j][0]
+        #               + fftw_phi[j][1] * fftw_phi[j][1]);
+        #     tmpphi[j] *= norm; // FFT specific
+        # }
+
+    # @profile
+    def compute_potential_fftw(self, rho, phi):
+
+        # // FFT solver
+        # fftw_fgreen = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * np);
+        # fftw_phi = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * np);
+        # fftw_rho = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * np);
+        # fftw_fgreen_T = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * np);
+        # fftw_phi_T = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * np);
+        # fftw_rho_T = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * np);
+
+        # p_fgreen = fftw_plan_dft_2d(2 * n_points_y, 2 * n_points_x,
+        #                      fftw_fgreen, fftw_fgreen_T,
+        #                      FFTW_FORWARD, FFTW_MEASURE);
+        # p_rho = fftw_plan_dft_2d(2 * n_points_y, 2 * n_points_x,
+        #                      fftw_rho, fftw_rho_T,
+        #                      FFTW_FORWARD, FFTW_MEASURE);
+        # p_phi_I = fftw_plan_dft_2d(2 * n_points_y, 2 * n_points_x,
+        #                      fftw_phi_T, fftw_phi,
+        #                      FFTW_BACKWARD, FFTW_MEASURE);
+
+        # # Arrays
+        # fftw_fgreen = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+        # fftw_rho = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+        # fftw_phi = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+        # ifftw_fgreen = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+        # ifftw_rho = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+        # ifftw_phi = pyfftw.n_byte_align_empty((2 * self.ny, 2 * self.nx), 16, 'complex128')
+
+        # # Plans
+        # pfftw_fgreen = pyfftw.FFTW(fftw_fgreen, ifftw_fgreen, axes=(0,1))
+        # pfftw_rho = pyfftw.FFTW(fftw_rho, ifftw_rho, axes=(0,1))
+        # pfftw_phi = pyfftw.FFTW(ifftw_phi, fftw_phi, axes=(0,1), direction='FFTW_BACKWARD')
+
+        # Fill arrays
+        self.fftw_fgreen[:] = self.fgreen
+        self.fftw_rho[:self.ny, :self.nx] = rho
+
+        # Solve
+        tmpfgreen = self.pfftw_fgreen()
+        tmprho = self.pfftw_rho()
+
+        self.ifftw_phi[:] = np.asarray(tmprho) * np.asarray(tmpfgreen)
+        # self.ifftw_phi[:] = np.dot(tmprho, tmpfgreen)
+        tmpphi = self.pfftw_phi()
         phi[:] = np.abs(tmpphi[:self.ny, :self.nx])
 
         # for (size_t j=0; j<np; j++)

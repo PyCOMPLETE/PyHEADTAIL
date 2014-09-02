@@ -1,0 +1,12 @@
+*.html
+*.o
+*.so
+*.c
+*.pyc
+build/
+scripts/
+*~
+.#*
+#*
+.project
+.pydevproject
