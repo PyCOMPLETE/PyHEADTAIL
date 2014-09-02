@@ -12,6 +12,7 @@ from wake_kicks import *
 import numpy as np
 from scipy.constants import c
 from scipy.constants import physical_constants
+from scipy.interpolate import interp1d
 
 sin = np.sin
 cos = np.cos
@@ -108,7 +109,6 @@ class WakeTable(object):
         if 'longitudinal' in self.wakefield_keys:
             wake_function = self._function_longitudinal('longitudinal')
             self.kicks.append(ConstantWakeKickZ(wake_function, slices))
-            
 
     def _function_transverse(self, key):
         time          = np.array(self.wake_table['time'])
@@ -124,11 +124,11 @@ class WakeTable(object):
         #     time          = np.append(time[0] - np.diff(time[1], time[0]), time)
         #     wake_strength = np.append(0, wake_strength)
 
-        def wake(beta, z): 
+        def wake(beta, z):
+            # interp1d(time, wake_strength)(-z/(beta*c))
             return np.interp(- z / (beta * c), time, wake_strength, left=0, right=0)
 
         return wake
-
 
     def _function_longitudinal(self, key):
         time          = np.array(self.wake_table['time'])

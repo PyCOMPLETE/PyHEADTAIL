@@ -180,17 +180,17 @@ class GaussianTheta(PhaseSpace):
         beam.delta_E = delta_E
 
 
-class RFBucket(PhaseSpace):
+class RFBucketMatcher(PhaseSpace):
 
-    def __init__(self, psi, rfsystem, sigma_z=None, epsn_z=None):
+    def __init__(self, psi, rfbucket, sigma_z=None, epsn_z=None):
 
         self.psi = psi
-        self.H = rfsystem
+        self.H = rfbucket
         self.sigma_z = sigma_z
 
-        self.psi_object = psi(rfsystem.hamiltonian, rfsystem.Hmax)
+        self.psi_object = psi(rfbucket.hamiltonian, rfbucket.Hmax)
         self.psi = self.psi_object.function
-        self.p_limits = rfsystem.separatrix
+        self.p_limits = rfbucket.separatrix
 
         self._compute_std = self._compute_std_cumtrapz
 

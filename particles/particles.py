@@ -15,14 +15,14 @@ from generators import *
 
 class Particles(object):
 
-    # (n_macroparticles, n_particles_per_mp, charge, mass, gamma_reference, ring_radius, phase_space_generators)
-    def __init__(self, n_macroparticles, charge, mass, gamma, n_particles_per_mp, phase_space_generators):
+    # (macroparticlenumber, n_particles_per_mp, charge, mass, gamma_reference, ring_radius, phase_space_generators)
+    def __init__(self, macroparticlenumber, charge, mass, gamma, n_particles_per_mp, phase_space_generators):
         """
         Initialises the bunch and distributes its particles via the
         given PhaseSpace generator instances for all planes.
         """
 
-        self.n_macroparticles = n_macroparticles
+        self.n_macroparticles = macroparticlenumber
         self.n_particles_per_mp = n_particles_per_mp
         self.same_size_for_all_MPs = True
 
@@ -38,14 +38,14 @@ class Particles(object):
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
     @classmethod
-    def as_gaussian(cls, n_macroparticles, charge, mass, gamma, intensity,
+    def as_gaussian(cls, macroparticlenumber, charge, mass, gamma, intensity,
                     alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
                     beta_z, epsn_z, is_accepted=None, generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
 
-        n_particles_per_mp = intensity/n_macroparticles
+        n_particles_per_mp = intensity/macroparticlenumber
 
         betagamma = np.sqrt(gamma**2 - 1)
         p0 = betagamma * mass * c
@@ -61,15 +61,15 @@ class Particles(object):
         gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
                                           generator_seed=random_state.randint(sys.maxint))
 
-        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
+        return cls(macroparticlenumber, charge, mass, gamma, n_particles_per_mp,
                    (gaussianx, gaussiany, gaussianz))
 
     @classmethod
-    def as_gaussian_in_bucket(cls, n_macroparticles, charge, gamma, intensity, mass,
+    def as_gaussian_in_bucket(cls, macroparticlenumber, charge, gamma, intensity, mass,
                               alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                              sigma_z=None, epsn_z=None, rfsystem=None, generator_seed=None):
+                              sigma_z=None, epsn_z=None, rfbucket=None, generator_seed=None):
 
-        n_particles_per_mp = intensity/n_macroparticles
+        n_particles_per_mp = intensity/macroparticlenumber
 
         betagamma = np.sqrt(gamma ** 2 - 1)
         p0 = betagamma * mass * c
@@ -82,19 +82,19 @@ class Particles(object):
                                           generator_seed=random_state.randint(sys.maxint))
         gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
                                           generator_seed=random_state.randint(sys.maxint))
-        rfbucket = RFBucket(StationaryExponential, rfsystem, sigma_z, epsn_z)
+        rfbucket = RFBucketMatcher(StationaryExponential, rfbucket, sigma_z, epsn_z)
 
-        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
+        return cls(macroparticlenumber, charge, mass, gamma, n_particles_per_mp,
                    (gaussianx, gaussiany, rfbucket))
 
     @classmethod
-    def as_gaussian_z(cls, n_macroparticles, charge, mass, gamma, intensity,
+    def as_gaussian_z(cls, macroparticlenumber, charge, mass, gamma, intensity,
                       beta_z, epsn_z, is_accepted=None, generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
 
-        n_particles_per_mp = intensity/n_macroparticles
+        n_particles_per_mp = intensity/macroparticlenumber
 
         betagamma = np.sqrt(gamma**2 - 1)
         p0 = betagamma * mass * c
@@ -106,18 +106,18 @@ class Particles(object):
         gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
                                           generator_seed=random_state.randint(sys.maxint))
 
-        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
+        return cls(macroparticlenumber, charge, mass, gamma, n_particles_per_mp,
                    (gaussianz,))
 
 
     @classmethod
-    def as_gaussian_theta(cls, n_macroparticles, charge, mass, gamma, intensity,
+    def as_gaussian_theta(cls, macroparticlenumber, charge, mass, gamma, intensity,
                           sigma_theta, sigma_dE, is_accepted=None, generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
 
-        n_particles_per_mp = intensity/n_macroparticles
+        n_particles_per_mp = intensity/macroparticlenumber
 
         betagamma = np.sqrt(gamma**2 - 1)
         p0 = betagamma * mass * c
@@ -129,15 +129,15 @@ class Particles(object):
         gaussiantheta = GaussianTheta(sigma_theta, sigma_dE, is_accepted,
                                       generator_seed=random_state.randint(sys.maxint))
 
-        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
+        return cls(macroparticlenumber, charge, mass, gamma, n_particles_per_mp,
                    (gaussiantheta,))
 
 
     @classmethod
-    def as_uniform(cls, n_macroparticles, charge, gamma, intensity, mass,
+    def as_uniform(cls, macroparticlenumber, charge, gamma, intensity, mass,
                    xmin, xmax, ymin, ymax, zmin=0, zmax=0):
 
-        n_particles_per_mp = intensity/n_macroparticles
+        n_particles_per_mp = intensity/macroparticlenumber
 
         betagamma = np.sqrt(gamma ** 2 - 1)
         p0 = betagamma * mass * c
@@ -146,20 +146,20 @@ class Particles(object):
         uniformy = UniformY(xmin, xmax)
         uniformz = UniformZ(zmin, zmax)
 
-        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
+        return cls(macroparticlenumber, charge, mass, gamma, n_particles_per_mp,
                    [uniformx, uniformy, uniformz])
 
     @classmethod
-    def as_import(cls, n_macroparticles, charge, mass, gamma, intensity,
+    def as_import(cls, macroparticlenumber, charge, mass, gamma, intensity,
                   x, xp, y, yp, z, dp):
 
-        n_particles_per_mp = intensity/n_macroparticles
+        n_particles_per_mp = intensity/macroparticlenumber
 
         importx = ImportX(x, xp)
         importy = ImportY(y, yp)
         importz = ImportZ(z, dp)
 
-        return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
+        return cls(macroparticlenumber, charge, mass, gamma, n_particles_per_mp,
                    [importx, importy, importz])
 
 
