@@ -174,3 +174,23 @@ class Ecloud():
             if self.save_ele_MP_velocity:
                 self.vx_MP_last_track.append(self.particles.xp.copy())
                 self.vy_MP_last_track.append(self.particles.yp.copy())
+                
+        
+        if self.save_ele_distributions_last_track:
+            self.rho_ele_last_track = self.rho_ele_last_track[::-1]
+
+        if self.save_ele_potential_and_field:
+            self.phi_ele_last_track = self.phi_ele_last_track[::-1]
+            self.Ex_ele_last_track = self.Ex_ele_last_track[::-1]
+            self.Ey_ele_last_track = self.Ey_ele_last_track[::-1]
+
+        if self.save_ele_MP_position:
+            self.x_MP_last_track = self.x_MP_last_track[::-1]
+            self.y_MP_last_track = self.y_MP_last_track[::-1]
+
+        if self.save_ele_MP_velocity:
+            self.vx_MP_last_track = self.vx_MP_last_track[::-1]
+            self.vy_MP_last_track = self.vy_MP_last_track[::-1]
+
+        if self.save_ele_MP_size:
+            raise ValueError('Not implemented yet!')         

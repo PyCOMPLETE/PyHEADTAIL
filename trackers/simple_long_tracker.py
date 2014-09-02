@@ -110,7 +110,9 @@ class Kick(LongitudinalMap):
 
     self.phi_offset reflects an offset of the cavity's reference system,
     this can be tweaked externally by the user for simulating RF system
-    ripple and the like.
+    ripple and the like. Include the pi offset for the right RF voltage
+    gradient here.
+
     (self._phi_acceleration adds to the offset as well but should
     be used internally in the module (e.g. by RFSystems) for
     acceleration purposes. It may be used for synchronisation with the
@@ -365,12 +367,14 @@ class LinearMap(LongitudinalOneTurnMap):
     self.alpha is the linear momentum compaction factor.
     '''
 
-    def __init__(self, circumference, alpha, Qs):
+    def __init__(self, circumference, alpha, Qs, slices):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         self.circumference = circumference
         self.alpha = alpha
         self.Qs = Qs
+
+        self.slices = slices
 
     def track(self, beam):
 
@@ -389,3 +393,5 @@ class LinearMap(LongitudinalOneTurnMap):
         beam.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
         beam.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
 
+        for slices in self.slices:
+            slices.update_slices(beam)
