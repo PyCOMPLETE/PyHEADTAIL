@@ -182,7 +182,7 @@ class Kick(LongitudinalMap):
         """
         if self.p_increment == 0 and self.voltage == 0:
             return 0
-        deltaE  = self.p_increment * c * beam.beta / beam.gamma
+        deltaE  = self.p_increment * c * beam.beta
         phi_rel = np.arcsin(deltaE / (e * self.voltage))
         if self.eta(0, beam.gamma) < 0:
             # return np.sign(deltaE) * np.pi - phi_rel
