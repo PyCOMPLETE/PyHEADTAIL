@@ -24,18 +24,19 @@ class WakeKick(object):
 
         self.wake_function = wake_function
 
-        
+
     def _wake_factor(self, bunch):
-        
+
         particles_per_macroparticle = bunch.intensity / bunch.n_macroparticles
         wake_factor = -(bunch.charge) ** 2 / (bunch.mass * bunch.gamma * (bunch.beta * c) ** 2) * particles_per_macroparticle
 
         return wake_factor
-            
-                
+
+
     def _convolution_dot_product(self, bunch, slices, f, g):
 
         dz_to_target_slice = [slices.z_centers] - np.transpose([slices.z_centers])
+        t = - dz_to_target_slice / (bunch.beta*c)
         wake = f(bunch.beta, dz_to_target_slice)
         beam_profile = g
 
@@ -46,6 +47,7 @@ class WakeKick(object):
 
         dz_to_target_slice = np.concatenate((slices.z_centers - slices.z_centers[-1],
                                             (slices.z_centers - slices.z_centers[0])[1:]))
+        t = - dz_to_target_slice / (bunch.beta*c)
         wake = f(bunch.beta, dz_to_target_slice)
         beam_profile = g
 
@@ -65,7 +67,7 @@ class ConstantWakeKickX(WakeKick):
 
         bunch.xp += constant_kick.take(ix)
 
-        
+
 class ConstantWakeKickY(WakeKick):
 
     def apply(self, bunch, slices):
@@ -98,7 +100,7 @@ class DipoleWakeKickX(WakeKick):
         first_moment_x = slices.n_macroparticles * slices.mean_x(bunch)
         dipole_kick_x = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, first_moment_x)
         ix = slices.slice_index_of_particle
-        
+
         bunch.xp += dipole_kick_x.take(ix)
 
 
@@ -112,7 +114,7 @@ class DipoleWakeKickXY(WakeKick):
 
         bunch.xp += dipole_kick_xy.take(ix)
 
-        
+
 class DipoleWakeKickY(WakeKick):
 
     def apply(self, bunch, slices):
@@ -120,7 +122,7 @@ class DipoleWakeKickY(WakeKick):
         first_moment_y = slices.n_macroparticles * slices.mean_y(bunch)
         dipole_kick_y = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, first_moment_y)
         ix = slices.slice_index_of_particle
-        
+
         bunch.yp += dipole_kick_y.take(ix)
 
 
@@ -134,7 +136,7 @@ class DipoleWakeKickYX(WakeKick):
 
         bunch.yp += dipole_kick_yx.take(ix)
 
-        
+
 '''
 Quadrupole wake kicks.
 '''
@@ -145,7 +147,7 @@ class QuadrupoleWakeKickX(WakeKick):
         zeroth_moment = slices.n_macroparticles
         quadrupole_kick_x = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, zeroth_moment)
         ix = slices.slice_index_of_particle
-        
+
         bunch.xp += quadrupole_kick_x.take(ix) * bunch.x
 
 
@@ -159,7 +161,7 @@ class QuadrupoleWakeKickXY(WakeKick):
 
         bunch.xp += quadrupole_kick_xy.take(ix) * bunch.y
 
-        
+
 class QuadrupoleWakeKickY(WakeKick):
 
     def apply(self, bunch, slices):

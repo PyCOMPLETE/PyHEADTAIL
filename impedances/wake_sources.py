@@ -26,15 +26,14 @@ class WakeTable(object):
         self.wake_table = dict(zip(wake_file_columns, np.array(zip(*table))))
         self._unit_conversion()
 
-        # Generate wake kicks and append to list of kicks.                       
+        # Generate wake kicks and append to list of kicks.
         self.kicks = []
         self._generate_wake_kicks(slices)
 
-                
     def _unit_conversion(self):
 
         print 'Converting wake table to correct units ... '
-        
+
         allowed_transverse_wakefield_keys   = ['constant_x', 'constant_y',
                                                'dipole_x',   'dipole_y',   'quadrupole_x',  'quadrupole_y',
                                                'dipole_xy',  'dipole_yx',  'quadrupole_xy', 'quadrupole_yx']
@@ -60,14 +59,13 @@ class WakeTable(object):
             except:
                 print '\t "' + wake_component + '" wake not provided'
 
-                
     def _generate_wake_kicks(self, slices):
-        
+
         # X wakes.
         if 'constant_x' in self.wakefield_keys:
             wake_function = self._function_transverse('constant_x')
             self.kicks.append(ConstantWakeKickX(wake_function, slices))
-                    
+
         if 'dipole_x' in self.wakefield_keys:
             wake_function = self._function_transverse('dipole_x')
             self.kicks.append(DipoleWakeKickX(wake_function, slices))
@@ -75,7 +73,7 @@ class WakeTable(object):
         if 'quadrupole_x' in self.wakefield_keys:
             wake_function = self._function_transverse('quadrupole_x')
             self.kicks.append(QuadrupoleWakeKickX(wake_function, slices))
-            
+
         if 'dipole_xy' in self.wakefield_keys:
             wake_function = self._function_transverse('dipole_xy')
             self.kicks.append(DipoleWakeKickXY(wake_function, slices))
@@ -88,7 +86,7 @@ class WakeTable(object):
         if 'constant_y' in self.wakefield_keys:
             wake_function = self._function_transverse('constant_y')
             self.kicks.append(ConstantWakeKickY(wake_function, slices))
-                    
+
         if 'dipole_y' in self.wakefield_keys:
             wake_function = self._function_transverse('dipole_y')
             self.kicks.append(DipoleWakeKickY(wake_function, slices))
@@ -96,7 +94,7 @@ class WakeTable(object):
         if 'quadrupole_y' in self.wakefield_keys:
             wake_function = self._function_transverse('quadrupole_y')
             self.kicks.append(QuadrupoleWakeKickY(wake_function, slices))
-            
+
         if 'dipole_yx' in self.wakefield_keys:
             wake_function = self._function_transverse('dipole_yx')
             self.kicks.append(DipoleWakeKickYX(wake_function, slices))
@@ -124,8 +122,8 @@ class WakeTable(object):
         #     time          = np.append(time[0] - np.diff(time[1], time[0]), time)
         #     wake_strength = np.append(0, wake_strength)
 
+        # wake = interp1d(time, wake_strength) # (-z/(beta*c))
         def wake(beta, z):
-            # interp1d(time, wake_strength)(-z/(beta*c))
             return np.interp(- z / (beta * c), time, wake_strength, left=0, right=0)
 
         return wake
@@ -170,13 +168,12 @@ class Resonator(object):
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_Y2 = Yokoya_Y2
-        self.Yokoya_Z  = Yokoya_Z 
+        self.Yokoya_Z  = Yokoya_Z
 
-        # Generate wake kicks and append to list of kicks.                       
+        # Generate wake kicks and append to list of kicks.
         self.kicks = []
         self._generate_wake_kicks(slices)
 
-        
     def _generate_wake_kicks(self, slices):
 
         # Dipole wake kick x.
@@ -204,7 +201,6 @@ class Resonator(object):
             wake_function = self._function_total(self._function_longitudinal, self.Yokoya_Z)
             self.kicks.append(ConstantWakeKickZ(wake_function, slices))
 
-
     def _function_transverse(self, R_shunt, frequency, Q, Yokoya_factor):
 
         # Taken from Alex Chao's resonator model (2.82)
@@ -225,7 +221,6 @@ class Resonator(object):
             return y
 
         return wake
-    
 
     def _function_longitudinal(self, R_shunt, frequency, Q, Yokoya_factor):
 
@@ -249,13 +244,12 @@ class Resonator(object):
 
         return wake
 
-
     def _function_total(self, function_single, Yokoya_factor):
         return reduce(lambda x, y: x + y,
                       [function_single(self.R_shunt[i], self.frequency[i], self.Q[i], Yokoya_factor[i])
                        for i in np.arange(len(self.Q)) if Yokoya_factor[i]!=0])
 
-    
+
 class ResistiveWall(object):
 
     def __init__(self, pipe_radius, resistive_wall_length, conductivity, dz_min,
@@ -271,10 +265,9 @@ class ResistiveWall(object):
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y2 = Yokoya_Y2
 
-        # Generate wake kicks and append to list of kicks.                       
+        # Generate wake kicks and append to list of kicks.
         self.kicks = []
         self._generate_wake_kicks(slices)
-
 
     def _generate_wake_kicks(self, slices):
 
@@ -294,7 +287,6 @@ class ResistiveWall(object):
             wake_function = self._function_transverse(self.Yokoya_Y2)
             self.kicks.append(QuadrupoleWakeKickY(wake_function, slices))
 
-
     def _function_transverse(self, Yokoya_factor):
 
         Z0 = physical_constants['characteristic impedance of vacuum'][0]
@@ -305,7 +297,7 @@ class ResistiveWall(object):
             y = Yokoya_factor * (np.sign(z + np.abs(self.dz_min)) - 1) / 2 * beta * c \
                 * Z0 * self.resistive_wall_length / np.pi / self.pipe_radius ** 3 \
                 * np.sqrt(-lambda_s * mu_r / np.pi / z.clip(max=-abs(self.dz_min)))
-            
+
             return y
 
         return wake

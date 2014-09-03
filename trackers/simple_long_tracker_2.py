@@ -8,7 +8,7 @@ import numpy as np
 import pylab as plt
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
-from scipy.integrate import dblquad
+from trackers.rf_bucket import RFBucket
 
 
 sin = np.sin
@@ -526,6 +526,7 @@ class RFSystems(LongitudinalOneTurnMap):
         # self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
         # self._get_bucket_boundaries()
         # # self.H0_from_sigma = self.H0
+        self.rfbucket = RFBucket(circumference, gamma_reference, alpha_array[0], p_increment, harmonic_list, voltage_list, phi_offset_list)
 
         self.slices_tuple = slices_tuple
 
