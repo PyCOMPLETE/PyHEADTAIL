@@ -22,6 +22,11 @@ class Particles(object):
         given PhaseSpace generator instances for all planes.
         """
 
+        # New
+        self.macroparticlenumber = macroparticlenumber
+        self.particlenumber_per_mp = particlenumber_per_mp
+
+        # Compatibility
         self.n_macroparticles = macroparticlenumber
         self.n_particles_per_mp = particlenumber_per_mp
         self.same_size_for_all_MPs = True
@@ -30,7 +35,6 @@ class Particles(object):
         self.mass = mass
 
         self.ring_radius = ring_radius
-        self.gamma_reference = gamma_reference
         self.gamma = gamma_reference
 
         self.phase_space_coordinates_list = []
@@ -38,6 +42,20 @@ class Particles(object):
             phase_space.generate(self)
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
+    def __init__2(self, macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference, phase_space_coordinates_dict):
+
+        self.macroparticlenumber = macroparticlenumber
+        self.particlenumber_per_mp = particlenumber_per_mp
+
+        self.charge = charge
+        self.mass = mass
+
+        self.ring_radius = circumference
+        self.gamma = gamma_reference
+
+        self.phase_space_coordinates_list = phase_space_coordinates_dict.keys()
+
+        self.id = np.arange(1, self.macroparticlenumber+1, dtype=int)
 
     @classmethod
     def as_gaussian(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
@@ -227,8 +245,9 @@ class Particles(object):
         else:
             return  np.sum(self.n_particles_per_mp)
 
-    def get_gamma(self):
-        return self.gamma
+    def get_ring_radius(self): return self.ring_radius
+
+    def get_gamma(self): return self.gamma
 
     @property
     def gamma(self):
