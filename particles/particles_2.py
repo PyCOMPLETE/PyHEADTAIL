@@ -37,7 +37,7 @@ class Particles(object):
         self.n_particles_per_mp = self.particlenumber_per_mp
         self.gamma = self.gamma_reference
 
-        assert([len(v) == self.macroparticlenumber for v in phase_space_coordinates_list.value()].all())
+        assert( all([len(v) == self.macroparticlenumber for v in phase_space_coordinates_dict.values()]) )
 
     def __init__2(self, macroparticlenumber, particlenumber_per_mp, charge, mass, ring_radius, gamma_reference, *phase_space_generators):
 
@@ -86,7 +86,7 @@ class Particles(object):
 
 
     @classmethod
-    def as_gaussian_from_optics(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
+    def as_gaussian_linear(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
                     alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, epsn_z,
                     is_accepted=None, generator_seed=None):
 
@@ -111,6 +111,19 @@ class Particles(object):
 
         return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
                    phase_space_coordinates_dict)
+
+
+    @classmethod
+    def as_gaussian_bucket(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
+                    alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
+                    alpha, p_increment, harmonic_list, voltage_list, phi_offset_list,
+                    sigma_z=None, epsn_z=None, generator_seed=None): pass
+
+
+    @classmethod
+    def as_gaussian_from_optics(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
+                    alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, epsn_z,
+                    is_accepted=None, generator_seed=None): pass
 
 
     @classmethod
@@ -141,8 +154,9 @@ class Particles(object):
 
 
     @classmethod
-    def as_gaussian_matched(cls, macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
-                            transverse_map, longitudinal_map, epsn_x, epsn_y, sigma_z=None, epsn_z=None, generator_seed=None):
+    def as_gaussian_linear_matched(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
+                                   transverse_map=None, longitudinal_map=None,
+                                   epsn_x=None, epsn_y=None, sigma_z=None, epsn_z=None, generator_seed=None):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
@@ -152,13 +166,60 @@ class Particles(object):
             random_state = RandomState()
             random_state.seed(generator_seed)
 
-        x  = normal(0, np.sqrt(epsn_x/betagamma * transverse_map.beta_x), macroparticlenumber)
-        xp = normal(0, np.sqrt(epsn_x/betagamma / transverse_map.beta_x), macroparticlenumber)
-        y  = normal(0, np.sqrt(epsn_y/betagamma * transverse_map.beta_y), macroparticlenumber)
-        yp = normal(0, np.sqrt(epsn_y/betagamma / transverse_map.beta_y), macroparticlenumber)
-        z, dp = RFBucketMatcher(StationaryExponential, longitudinal_map, sigma_z, epsn_z).generate(macroparticlenumber)
+        phase_space_coordinates_dict = {}
+        if transverse_map:
+            x  = normal(0, np.sqrt(epsn_x/betagamma * transverse_map.beta_x), macroparticlenumber)
+            xp = normal(0, np.sqrt(epsn_x/betagamma / transverse_map.beta_x), macroparticlenumber)
+            y  = normal(0, np.sqrt(epsn_y/betagamma * transverse_map.beta_y), macroparticlenumber)
+            yp = normal(0, np.sqrt(epsn_y/betagamma / transverse_map.beta_y), macroparticlenumber)
+            phase_space_coordinates_dict['x']  = x
+            phase_space_coordinates_dict['xp'] = xp
+            phase_space_coordinates_dict['y']  = y
+            phase_space_coordinates_dict['yp'] = yp
+        if longitudinal_map:
+            beta_z = np.abs(longitudinal_map.eta)*circumference/(2*np.pi)/longitudinal_map.Qs
+            if sigma_z and not epsn_z:
+                sigma_z = sigma_z
+            elif not sigma_z and epsn_z:
+                sigma_z = np.sqrt(epsn_z*beta_z/(4*np.pi) * e/p0)
+            else:
+                raise TypeError('***ERROR: at least and at most one of sigma_z and epsn_z to be given!')
+            z  = normal(0, sigma_z, macroparticlenumber)
+            dp = normal(0, sigma_z/beta_z, macroparticlenumber)
+            phase_space_coordinates_dict['z']  = z
+            phase_space_coordinates_dict['dp'] = dp
 
-        phase_space_coordinates_dict = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'z': z, 'dp': dp}
+        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
+                   phase_space_coordinates_dict)
+
+
+    @classmethod
+    def as_gaussian_bucket_matched(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
+                                   transverse_map=None, longitudinal_map=None,
+                                   epsn_x=None, epsn_y=None, sigma_z=None, epsn_z=None, generator_seed=None):
+
+        particlenumber_per_mp = intensity/macroparticlenumber
+
+        betagamma = np.sqrt(gamma_reference**2 - 1)
+
+        if generator_seed:
+            random_state = RandomState()
+            random_state.seed(generator_seed)
+
+        phase_space_coordinates_dict = {}
+        if transverse_map:
+            x  = normal(0, np.sqrt(epsn_x/betagamma * transverse_map.beta_x), macroparticlenumber)
+            xp = normal(0, np.sqrt(epsn_x/betagamma / transverse_map.beta_x), macroparticlenumber)
+            y  = normal(0, np.sqrt(epsn_y/betagamma * transverse_map.beta_y), macroparticlenumber)
+            yp = normal(0, np.sqrt(epsn_y/betagamma / transverse_map.beta_y), macroparticlenumber)
+            phase_space_coordinates_dict['x']  = x
+            phase_space_coordinates_dict['xp'] = xp
+            phase_space_coordinates_dict['y']  = y
+            phase_space_coordinates_dict['yp'] = yp
+        if longitudinal_map:
+            z, dp = RFBucketMatcher(StationaryExponential, longitudinal_map, sigma_z, epsn_z).generate(macroparticlenumber)
+            phase_space_coordinates_dict['z']  = z
+            phase_space_coordinates_dict['dp'] = dp
 
         self = cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
                    phase_space_coordinates_dict)
@@ -189,7 +250,7 @@ class Particles(object):
 
     @classmethod
     def as_import(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-                  phase_space_coordinates_dict)
+                  phase_space_coordinates_dict):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
@@ -204,9 +265,9 @@ class Particles(object):
         else:
             return  np.sum(self.n_particles_per_mp)
 
-    def get_ring_radius(self): return self.ring_radius
+    def get_circumference(self): return self.circumference
 
-    def get_gamma(self): return self.gamma
+    def get_gamma_reference(self): return self.gamma
 
     @property
     def gamma(self):
@@ -214,9 +275,9 @@ class Particles(object):
     @gamma.setter
     def gamma(self, value):
         self._gamma = value
-        self._beta = np.sqrt(1 - self._gamma**-2)
-        self._betagamma = np.sqrt(self._gamma**2 - 1)
-        self._p0 = self._betagamma * self.mass * c
+        self._beta = np.sqrt(1 - self.gamma**-2)
+        self._betagamma = np.sqrt(self.gamma**2 - 1)
+        self._p0 = self.betagamma * self.mass * c
 
     @property
     def beta(self):
@@ -318,3 +379,31 @@ class Particles(object):
 
     def epsn_z(self):
         return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
+
+
+class StationaryExponential(object):
+
+    def __init__(self, H, Hmax=None, width=1000, Hcut=0):
+        self.H = H
+        self.H0 = 1
+        if not Hmax:
+            self.Hmax = H(0, 0)
+        else:
+            self.Hmax = Hmax
+        self.Hcut = Hcut
+        self.width = width
+
+    def function(self, z, dp):
+        # psi = np.exp((self.H(z, dp)) / (self.width*self.Hmax)) - 1
+        # psi_offset = np.exp(self.Hcut / (self.width*self.Hmax)) - 1
+        # psi_norm = (np.exp(1/self.width) - 1) - psi_offset
+        # return ( (psi-psi_offset) / psi_norm ).clip(min=0)
+
+        # psi = np.exp( (self.H(z, dp)-self.Hcut).clip(min=0) / (self.width*self.Hmax)) - 1
+        # psi_norm = np.exp( (self.Hmax-0*self.Hcut) / (self.width*self.Hmax) ) - 1
+        # psi = np.exp( -self.H(z, dp).clip(min=0)/(self.width*self.Hmax) ) - 1
+        # psi_norm = np.exp( -self.Hmax/(self.width*self.Hmax) ) - 1
+
+        psi = np.exp(self.H(z, dp).clip(min=0)/self.H0) - 1
+        psi_norm = np.exp(self.Hmax/self.H0) - 1
+        return psi/psi_norm

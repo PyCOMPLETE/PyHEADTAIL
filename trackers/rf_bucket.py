@@ -10,11 +10,12 @@ from scipy.integrate import dblquad
 
 class RFBucket(object):
 
-    def __init__(self, circumference, get_gamma, alpha_0, p_increment,
+    def __init__(self, get_circumference, get_gamma, alpha_0, p_increment,
                  harmonic_list, voltage_list, phi_offset_list, phase_lock=True):
 
-        self.circumference = circumference
-        self._gamma_reference = get_gamma
+        # self._circumference = get_circumference
+        # self._gamma_reference = get_gamma
+        self.circumference = get_circumference
         self.gamma_reference = get_gamma
         # self.get_gamma_reference = closed_orbit.get_gamma_reference
         # self.set_gamma_reference = closed_orbit.set_gamma_reference
@@ -46,6 +47,16 @@ class RFBucket(object):
     #     self._beta_reference= np.sqrt(1 - self.gamma_reference**-2)
     #     self._betagamma_reference = np.sqrt(self.gamma_reference**2 - 1)
     #     self._p0_reference = self.betagamma_reference * m_p * c
+
+    @property
+    def circumference(self):
+        try: # reference gamma_reference
+            return self._circumference()
+        except TypeError:
+            return self._circumference
+    @circumference.setter
+    def circumference(self, value):
+        self._circumference = value
 
     @property
     def gamma_reference(self):

@@ -312,7 +312,7 @@ class RFBucketMatcher(PhaseSpace):
         H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
         H.emittance, H.sigma = emittance, sigma
 
-    def generate(self, particles):
+    def generate(self, macroparticlenumber, particles=None):
         '''
         Generate a 2d phase space of n_particles particles randomly distributed
         according to the particle distribution function psi within the region
@@ -350,7 +350,7 @@ class RFBucketMatcher(PhaseSpace):
         #         dp[i] = self.sigma_dp * self.random_state.randn()
         # ================================================================
 
-        n_gen = particles.n_macroparticles
+        n_gen = macroparticlenumber
         u = xmin + lx * np.random.random(n_gen)
         v = ymin + ly * np.random.random(n_gen)
         s = np.random.random(n_gen)
@@ -378,12 +378,12 @@ class RFBucketMatcher(PhaseSpace):
         #         # particles.dp[j] = v
         #         j += 1
 
-        particles.z = u
-        particles.dp = v
-
-        # Stick auxiliary information to particles
-        particles.psi = self.psi
-        particles.linedensity = self.linedensity
+        if particles:
+            particles.z = u
+            particles.dp = v
+            # Stick auxiliary information to particles
+            particles.psi = self.psi
+            particles.linedensity = self.linedensity
 
         return u, v
 
