@@ -1,4 +1,12 @@
-class LinearMap(LongitudinalOneTurnMap):
+import numpy as np
+from scipy.constants import c, e
+
+
+sin = np.sin
+cos = np.cos
+
+
+class LinearMap(object):
     '''
     Linear Map represented by a Courant-Snyder transportation matrix.
     self.alpha is the linear momentum compaction factor.
@@ -33,7 +41,7 @@ class LinearMap(LongitudinalOneTurnMap):
             slices.update_slices(beam)
 
 
-class LinearMap2(LongitudinalOneTurnMap):
+class LinearMap2(object):
     '''
     Linear Map represented by a Courant-Snyder transportation matrix.
     self.alpha is the linear momentum compaction factor.

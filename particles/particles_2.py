@@ -35,6 +35,7 @@ class Particles(object):
         # Compatibility
         self.n_macroparticles = self.macroparticlenumber
         self.n_particles_per_mp = self.particlenumber_per_mp
+        self.same_size_for_all_MPs = True
         self.gamma = self.gamma_reference
 
         assert( all([len(v) == self.macroparticlenumber for v in phase_space_coordinates_dict.values()]) )
