@@ -399,7 +399,7 @@ class Kick(LongitudinalMap):
         deltaE  = self.p_increment*beta*c
         phi_rel = np.arcsin(deltaE / (e*self.voltage))
 
-        if self.eta0<0:
+        if self.eta(0, gamma)<0:
             # return np.sign(deltaE) * np.pi - phi_rel
             return np.pi - phi_rel
         else:
@@ -520,7 +520,7 @@ class RFSystems(LongitudinalOneTurnMap):
         # self.gamma_reference = gamma_reference
         # self.alpha0 = alpha_array[0]
         if phase_lock:
-            self._phaselock()
+            self._phaselock(gamma_reference)
 
         # zmax = self.circumference / (2*np.amin(harmonic_list))
         # self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
@@ -587,24 +587,30 @@ class RFSystems(LongitudinalOneTurnMap):
     # def beta_z(self):
     #     return np.abs(self.eta0 * self.R / self.Qs)
 
-    @property
-    def Qs(self):
+    def Qs(self, gamma):
+        beta = np.sqrt(1 - 1/gamma**2)
+        p0 = m_p*np.sqrt(gama**2 - 1)*c
+        eta0 = self.eta(0, gamma)
+
         fc = self.fundamental_kick
         V = fc.voltage
         h = fc.harmonic
-        return np.sqrt( e*V*np.abs(self.eta0)*h / (2*np.pi*self.p0_reference*self.beta_reference*c) )
 
-    @property
-    def phi_s(self):
+        return np.sqrt( e*V*np.abs(eta0)*h / (2*np.pi*self.p0_reference*self.beta_reference*c) )
+
+    def phi_s(self, gamma):
+        beta = np.sqrt(1 - 1/gamma**2)
+        eta0 = self.eta(0, gamma)
+
         V = self.fundamental_kick.voltage
 
         if self.p_increment == 0 and V == 0:
             return 0
 
-        deltaE  = self.p_increment*self.beta_reference*c
+        deltaE  = self.p_increment * beta*c
         phi_rel = np.arcsin(deltaE / (e*V))
 
-        if self.eta0<0:
+        if eta0<0:
             # return np.sign(deltaE) * np.pi - phi_rel
             return np.pi - phi_rel
         else:
@@ -750,13 +756,13 @@ class RFSystems(LongitudinalOneTurnMap):
 
     #     return Q * 2*self.p0_reference/e
 
-    def _phaselock(self):
+    def _phaselock(self, gamma):
 
         fc = self.fundamental_kick
         cavities = [k for k in self.kicks if k is not fc]
 
         for c in cavities:
-            c._phi_lock -= c.harmonic/fc.harmonic * self.phi_s
+            c._phi_lock -= c.harmonic/fc.harmonic * self.phi_s(gamma)
 
     # def _get_zero_crossings(self, f, zedges=None):
     #     if zedges is None:

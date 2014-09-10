@@ -385,7 +385,7 @@ class RFBucketMatcher(PhaseSpace):
             particles.psi = self.psi
             particles.linedensity = self.linedensity
 
-        return u, v
+        return u, v, self.psi, self.linedensity
 
     def linedensity(self, xx):
         quad_type = fixed_quad

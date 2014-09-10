@@ -218,7 +218,7 @@ class Particles(object):
             phase_space_coordinates_dict['y']  = y
             phase_space_coordinates_dict['yp'] = yp
         if longitudinal_map:
-            z, dp = RFBucketMatcher(StationaryExponential, longitudinal_map, sigma_z, epsn_z).generate(macroparticlenumber)
+            z, dp, psi, linedensity = RFBucketMatcher(StationaryExponential, longitudinal_map, sigma_z, epsn_z).generate(macroparticlenumber)
             phase_space_coordinates_dict['z']  = z
             phase_space_coordinates_dict['dp'] = dp
 
@@ -226,6 +226,9 @@ class Particles(object):
                    phase_space_coordinates_dict)
         longitudinal_map.circumference = self.get_circumference
         longitudinal_map.gamma_reference = self.get_gamma_reference
+
+        self.psi = psi
+        self.linedensity = linedensity
 
         return self
 
