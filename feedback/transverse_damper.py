@@ -15,26 +15,25 @@ import pylab as plt
 class TransverseDamper(object):
 
     def __init__(self, dampingrate_x, dampingrate_y):
-        self.dampingrate_x = dampingrate_x
-        self.dampingrate_y = dampingrate_y
+        self.gain_x = 2/dampingrate_x
+        self.gain_y = 2/dampingrate_y
 
         if dampingrate_x and not dampingrate_y:
             self.track = self.track_horizontal
         elif not dampingrate_x and dampingrate_y:
             self.track = self.track_vertical
         else:
-            self.track = sefl.track_all
+            self.track = self.track_all
 
     def track_horizontal(self, beam):
-        beam.xp -= self.dampingrate_x * beam.xp
+        beam.xp -= self.gain_x * beam.xp
 
     def track_vertical(self, beam):
-        beam.yp -= self.dampingrate_y * beam.yp
+        beam.yp -= self.gain_y * beam.yp
 
     def track_all(self, beam):
-        beam.xp -= self.dampingrate_x * beam.xp
-        beam.yp -= self.dampingrate_y * beam.yp
-
+        beam.xp -= self.gain_x * beam.xp
+        beam.yp -= self.gain_y * beam.yp
 
     @classmethod
     def horizontal(cls, dampingrate_x):
