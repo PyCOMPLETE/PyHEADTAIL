@@ -61,9 +61,11 @@ class ConstantWakeKickX(WakeKick):
 
         zeroth_moment = slices.n_macroparticles
         constant_kick = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, zeroth_moment)
-        ix = slices.slice_index_of_particle
 
-        bunch.xp += constant_kick.take(ix)
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.xp[p_idx] += constant_kick.take(s_idx)
 
         
 class ConstantWakeKickY(WakeKick):
@@ -72,9 +74,11 @@ class ConstantWakeKickY(WakeKick):
 
         zeroth_moment = slices.n_macroparticles
         constant_kick = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, zeroth_moment)
-        ix = slices.slice_index_of_particle
 
-        bunch.yp += constant_kick.take(ix)
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.yp[p_idx] += constant_kick.take(s_idx)
 
 
 class ConstantWakeKickZ(WakeKick):
@@ -83,9 +87,11 @@ class ConstantWakeKickZ(WakeKick):
 
         zeroth_moment = slices.n_macroparticles
         constant_kick = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, zeroth_moment)
-        ix = slices.slice_index_of_particle
 
-        bunch.dp += constant_kick.take(ix)
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.dp[p_idx] += constant_kick.take(s_idx)
 
 
 '''
@@ -97,10 +103,12 @@ class DipoleWakeKickX(WakeKick):
 
         first_moment_x = slices.n_macroparticles * slices.mean_x(bunch)
         dipole_kick_x = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, first_moment_x)
-        ix = slices.slice_index_of_particle
-        
-        bunch.xp += dipole_kick_x.take(ix)
 
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.xp[p_idx] += dipole_kick_x.take(s_idx)
+        
 
 class DipoleWakeKickXY(WakeKick):
 
@@ -108,9 +116,11 @@ class DipoleWakeKickXY(WakeKick):
 
         first_moment_y = slices.n_macroparticles * slices.mean_y(bunch)
         dipole_kick_xy = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, first_moment_y)
-        ix = slices.slice_index_of_particle
 
-        bunch.xp += dipole_kick_xy.take(ix)
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.xp[p_idx] += dipole_kick_xy.take(s_idx)
 
         
 class DipoleWakeKickY(WakeKick):
@@ -119,9 +129,11 @@ class DipoleWakeKickY(WakeKick):
 
         first_moment_y = slices.n_macroparticles * slices.mean_y(bunch)
         dipole_kick_y = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, first_moment_y)
-        ix = slices.slice_index_of_particle
+
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
         
-        bunch.yp += dipole_kick_y.take(ix)
+        bunch.yp[p_idx] += dipole_kick_y.take(s_idx)
 
 
 class DipoleWakeKickYX(WakeKick):
@@ -130,9 +142,11 @@ class DipoleWakeKickYX(WakeKick):
 
         first_moment_x = slices.n_macroparticles * slices.mean_x(bunch)
         dipole_kick_yx = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, first_moment_x)
-        ix = slices.slice_index_of_particle
 
-        bunch.yp += dipole_kick_yx.take(ix)
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.yp[p_idx] += dipole_kick_yx.take(s_idx)
 
         
 '''
@@ -144,9 +158,11 @@ class QuadrupoleWakeKickX(WakeKick):
 
         zeroth_moment = slices.n_macroparticles
         quadrupole_kick_x = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, zeroth_moment)
-        ix = slices.slice_index_of_particle
+
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
         
-        bunch.xp += quadrupole_kick_x.take(ix) * bunch.x
+        bunch.xp[p_idx] += quadrupole_kick_x.take(s_idx) * bunch.x.take(p_idx)
 
 
 class QuadrupoleWakeKickXY(WakeKick):
@@ -155,9 +171,11 @@ class QuadrupoleWakeKickXY(WakeKick):
 
         zeroth_moment = slices.n_macroparticles
         quadrupole_kick_xy = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, zeroth_moment)
-        ix = slices.slice_index_of_particle
 
-        bunch.xp += quadrupole_kick_xy.take(ix) * bunch.y
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.xp[p_idx] += quadrupole_kick_xy.take(s_idx) * bunch.y.take(p_idx)
 
         
 class QuadrupoleWakeKickY(WakeKick):
@@ -166,9 +184,11 @@ class QuadrupoleWakeKickY(WakeKick):
 
         zeroth_moment = slices.n_macroparticles
         quadrupole_kick_y = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, zeroth_moment)
-        ix = slices.slice_index_of_particle
 
-        bunch.yp += quadrupole_kick_y.take(ix) * bunch.y
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.yp[p_idx] += quadrupole_kick_y.take(s_idx) * bunch.y.take(p_idx)
 
 
 class QuadrupoleWakeKickYX(WakeKick):
@@ -177,6 +197,8 @@ class QuadrupoleWakeKickYX(WakeKick):
 
         zeroth_moment = slices.n_macroparticles
         quadrupole_kick_yx = self._wake_factor(bunch) * self._convolution(bunch, slices, self.wake_function, zeroth_moment)
-        ix = slices.slice_index_of_particle
 
-        bunch.yp += quadrupole_kick_yx.take(ix) * bunch.x
+        p_idx = slices.particles_within_cuts
+        s_idx = slices.slice_index_of_particle.take(p_idx)
+        
+        bunch.yp[p_idx] += quadrupole_kick_yx.take(s_idx) * bunch.x.take(p_idx)
