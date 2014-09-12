@@ -23,6 +23,7 @@ class Particles(object):
         """
 
         self.n_macroparticles = macroparticlenumber
+        self.n_macroparticles_lost = 0
         self.n_particles_per_mp = particlenumber_per_mp
         self.same_size_for_all_MPs = True
 
