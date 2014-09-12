@@ -17,7 +17,7 @@ from scipy.optimize import brentq, brenth, bisect, newton
 from scipy.interpolate import interp2d
 from scipy.integrate import quad, fixed_quad, dblquad, cumtrapz, romb
 
-import pylab as plt
+#import pylab as plt
 
 
 class PhaseSpace(object):
