@@ -159,26 +159,3 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle, int[::1] particles_w
             uup[i] /= n_macroparticles[i]
             
         epsn_u[i] = cmath.sqrt(u2[i] * up2[i] - uup[i] * uup[i])
-
-## cpdef count_macroparticles_per_slice_bool(int[::1] slice_index_of_particle_within_cuts, int[::1] n_macroparticles):
-
-##     cdef int n_particles_within_cuts = slice_index_of_particle_within_cuts.shape[0]
-##     cdef int i
-
-##     for i in xrange(n_particles_within_cuts):
-##         n_macroparticles[slice_index_of_particle_within_cuts[i]] += 1
-
-
-## cpdef mean_per_slice_bool(int[::1] slice_index_within_cuts, int[::1] n_macroparticles,
-##                           double[::1] u, double[::1] mean_u):
-
-##     cdef int n_particles_within_cuts = slice_index_within_cuts.shape[0]
-##     cdef int n_slices = mean_u.shape[0]
-##     cdef int i
-
-##     for i in xrange(n_particles_within_cuts):
-##             mean_u[slice_index_within_cuts[i]] += u[i]
-
-##     for i in xrange(n_slices):
-##         if n_macroparticles[i]:
-##             mean_u[i] /= n_macroparticles[i]
