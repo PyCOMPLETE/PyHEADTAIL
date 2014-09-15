@@ -26,6 +26,11 @@ class TransverseSegmentMap(object):
         self._build_segment_map(alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
                                 alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s1)
 
+        # Used only by matched bunch initialisation
+        self.alpha_x = alpha_x_s0
+        self.beta_x  = beta_x_s0
+        self.alpha_y = alpha_y_s0
+        self.beta_y  = beta_y_s0
 
     def _build_segment_map(self, alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
                                  alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s):

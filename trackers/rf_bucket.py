@@ -1,6 +1,3 @@
-'''
-Just to test matching generator for now...
-'''
 from __future__ import division
 
 
@@ -11,142 +8,19 @@ from scipy.constants import c, e, m_p
 from scipy.integrate import dblquad
 
 
-sin = np.sin
-cos = np.cos
-
-
-# class RFSystems(LongitudinalOneTurnMap):
-#     """
-#     With one RFSystems object in the ring layout (with all Kick
-#     objects located at the same longitudinal position), the
-#     longitudinal separatrix function is exact and makes a valid
-#     local statement about stability!
-#     """
-
-#     def __init__(self, circumference, harmonic_list, voltage_list, phi_offset_list,
-#                  alpha_array, gamma_reference, p_increment=0, phase_lock=True,
-#                  shrink_transverse=True, shrink_longitudinal=False, slices_tuple=None):
-#         """
-#         The first entry in harmonic_list, voltage_list and
-#         phi_offset_list defines the parameters for the one
-#         accelerating Kick object (i.e. the accelerating RF system).
-#         For several accelerating Kick objects one would have to
-#         extend this class and settle for the relative phases
-#         between the Kick objects! (For one accelerating Kick object,
-#         all the other Kick objects' zero crossings are displaced by
-#         the negative phase shift induced by the accelerating Kick.)
-
-#         The length of the momentum compaction factor array alpha_array
-#         defines the order of the slippage factor expansion.
-#         (See the LongitudinalMap class for further details.)
-
-#         RFSystems comprises a half the circumference drift,
-#         then all the kicks by the RF Systems in one location,
-#         then the remaining half the circumference drift.
-#         This Verlet algorithm ("leap-frog" featuring O(n_turn^2) as
-#         opposed to symplectic Euler-Cromer with O(n_turn)) makes
-#         sure that the longitudinal phase space is read out in
-#         a symmetric way (otherwise phase space should be tilted
-#         at the entrance or exit of the cavity / kick location!
-#         cf. discussions with Christian Carli).
-
-#         The boolean parameter shrinking determines whether the
-#         shrinkage ratio \\beta_{n+1} / \\beta_n should be taken
-#         into account during the second Drift.
-#         (See the Drift class for further details.)
-
-#         - self.p_increment is the momentum step per turn of the
-#         synchronous particle, it can be continuously adjusted to
-#         reflect different slopes in the dipole magnet strength ramp.
-#         (See the Kick class for further details.)
-#         - self.kicks is a list of the Kick objects (defined by the
-#         respective lists in the constructor)
-#         - self.accelerating_kick returns the first Kick object in
-#         self.kicks which carries the only p_increment != 0
-#         - self.elements is comprised of a half turn Drift, self.kicks,
-#         and another half turn Drift
-#         - self.fundamental_kick returns the Kick object with the lowest
-#         harmonic of the revolution frequency
-#         """
-
-#         super(RFSystems, self).__init__(alpha_array, circumference)
-
-#         self._shrinking = shrink_longitudinal
-#         self._shrink_transverse = shrink_transverse
-
-#         if not len(harmonic_list) == len(voltage_list) == len(phi_offset_list):
-#             print ("Warning: parameter lists for RFSystems " +
-#                                         "do not have the same length!")
-
-#         self.kicks = [Kick(alpha_array, self.circumference, h, V, dphi)
-#                       for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list)]
-#         self.elements = ( [Drift(alpha_array, self.circumference / 2)]
-#                         + self.kicks
-#                         + [Drift(alpha_array, self.circumference / 2)]
-#                         )
-#         self.fundamental_kick = min(self.kicks, key=lambda kick: kick.harmonic)
-#         self.p_increment = p_increment
-
-#     @staticmethod
-#     def _shrink_transverse_emittance(beam, geo_emittance_factor):
-#         """accounts for the transverse geometrical emittance shrinking"""
-#         beam.x *= geo_emittance_factor
-#         beam.xp *= geo_emittance_factor
-#         beam.y *= geo_emittance_factor
-#         beam.yp *= geo_emittance_factor
-
-#     def track(self, beam):
-#         if self.p_increment:
-#             betagamma_old = beam.betagamma
-#         for longMap in self.elements:
-#             longMap.track(beam)
-#         if self.p_increment:
-#             try:
-#                 self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
-#                 self.track = self.track_transverse_shrinking
-#             except AttributeError:
-#                 self.track = self.track_no_transverse_shrinking
-#             self.p0_reference += self.p_increment
-
-#         if self.slices_tuple:
-#             for slices in self.slices_tuple:
-#                 slices.update_slices(beam)
-
-#     def track_transverse_shrinking(self, beam):
-#         if self.p_increment:
-#             betagamma_old = beam.betagamma
-#         for longMap in self.elements:
-#             longMap.track(beam)
-#         if self.p_increment:
-#             self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
-#             self.p0_reference += self.p_increment
-
-#         if self.slices_tuple:
-#             for slices in self.slices_tuple:
-#                 slices.update_slices(beam)
-
-#     def track_no_transverse_shrinking(self, beam):
-#         for longMap in self.elements:
-#             longMap.track(beam)
-#         if self.p_increment:
-#             self.p0_reference += self.p_increment
-
-#         if self.slices_tuple:
-#             for slices in self.slices_tuple:
-#                 slices.update_slices(beam)
-
-
 class RFBucket(object):
 
-    def __init__(self, circumference, gamma_reference, alpha_0, p_increment,
+    def __init__(self, get_circumference, get_gamma, alpha_0, p_increment,
                  harmonic_list, voltage_list, phi_offset_list, phase_lock=True):
 
-        self.circumference = circumference
-        self.gamma_reference = gamma_reference
+        # self._circumference = get_circumference
+        # self._gamma_reference = get_gamma
+        self.circumference = get_circumference
+        self.gamma_reference = get_gamma
         # self.get_gamma_reference = closed_orbit.get_gamma_reference
         # self.set_gamma_reference = closed_orbit.set_gamma_reference
 
-        self.alpha_0 = alpha_0
+        self.alpha0 = alpha_0
         self.p_increment = p_increment
 
         self.h = harmonic_list
@@ -175,14 +49,27 @@ class RFBucket(object):
     #     self._p0_reference = self.betagamma_reference * m_p * c
 
     @property
+    def circumference(self):
+        try: # reference gamma_reference
+            return self._circumference()
+        except TypeError:
+            return self._circumference
+    @circumference.setter
+    def circumference(self, value):
+        self._circumference = value
+
+    @property
     def gamma_reference(self):
-        return self._gamma_reference
+        try: # reference gamma_reference
+            return self._gamma_reference()
+        except TypeError:
+            return self._gamma_reference
     @gamma_reference.setter
     def gamma_reference(self, value):
         self._gamma_reference = value
-        self._beta_reference= np.sqrt(1 - self._gamma_reference**-2)
-        self._betagamma_reference = np.sqrt(self._gamma_reference**2 - 1)
-        self._p0_reference = self._betagamma_reference * m_p * c
+        self._beta_reference= np.sqrt(1 - self.gamma_reference**-2)
+        # self._betagamma_reference = np.sqrt(self.gamma_reference**2 - 1)
+        self._p0_reference = self.beta_reference * self.gamma_reference * m_p * c
 
     @property
     def beta_reference(self):
@@ -191,12 +78,12 @@ class RFBucket(object):
     def beta_reference(self, value):
         self._gamma_reference = (1. / np.sqrt(1 - value**2))
 
-    @property
-    def betagamma_reference(self):
-        return self._betagamma_reference
-    @betagamma_reference.setter
-    def betagamma_reference(self, value):
-        self._gamma_reference = (np.sqrt(value ** 2 + 1))
+    # @property
+    # def betagamma_reference(self):
+    #     return self._betagamma_reference
+    # @betagamma_reference.setter
+    # def betagamma_reference(self, value):
+    #     self._gamma_reference = (np.sqrt(value ** 2 + 1))
 
     @property
     def p0_reference(self):
@@ -211,7 +98,7 @@ class RFBucket(object):
 
     @property
     def eta0(self):
-        return self.alpha_0 - 1/self.gamma_reference**2
+        return self.alpha0 - 1/self.gamma_reference**2
 
     @property
     def beta_z(self):

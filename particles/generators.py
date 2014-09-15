@@ -150,36 +150,6 @@ class GaussianZ(PhaseSpace):
         beam.dp = dp
 
 
-class GaussianTheta(PhaseSpace):
-    """Longitudinal Gaussian particle phase space distribution."""
-
-    def __init__(self, sigma_theta, sigma_dE, is_accepted=None, generator_seed=None):
-
-        self.sigma_theta = sigma_theta
-        self.sigma_dE = sigma_dE
-        self.is_accepted = is_accepted
-
-        self.random_state = RandomState()
-        self.random_state.seed(generator_seed)
-
-    def generate(self, beam):
-        beam.theta = self.sigma_theta * self.random_state.randn(beam.n_macroparticles)
-        beam.delta_E = self.sigma_dE * self.random_state.randn(beam.n_macroparticles)
-        if self.is_accepted:
-            self._redistribute(beam)
-
-    def _redistribute(self, beam):
-        n = beam.n_macroparticles
-        theta = beam.theta.copy()
-        delta_E = beam.delta_E.copy()
-        for i in xrange(n):
-            while not self.is_accepted(theta[i], delta_E[i]):
-                theta[i]  = self.sigma_theta * self.random_state.randn()
-                delta_E[i] = self.sigma_dE * self.random_state.randn()
-        beam.theta = theta
-        beam.delta_E = delta_E
-
-
 class RFBucketMatcher(PhaseSpace):
 
     def __init__(self, psi, rfbucket, sigma_z=None, epsn_z=None):
@@ -342,7 +312,7 @@ class RFBucketMatcher(PhaseSpace):
         H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
         H.emittance, H.sigma = emittance, sigma
 
-    def generate(self, particles):
+    def generate(self, macroparticlenumber, particles=None):
         '''
         Generate a 2d phase space of n_particles particles randomly distributed
         according to the particle distribution function psi within the region
@@ -380,7 +350,7 @@ class RFBucketMatcher(PhaseSpace):
         #         dp[i] = self.sigma_dp * self.random_state.randn()
         # ================================================================
 
-        n_gen = particles.n_macroparticles
+        n_gen = macroparticlenumber
         u = xmin + lx * np.random.random(n_gen)
         v = ymin + ly * np.random.random(n_gen)
         s = np.random.random(n_gen)
@@ -408,12 +378,14 @@ class RFBucketMatcher(PhaseSpace):
         #         # particles.dp[j] = v
         #         j += 1
 
-        particles.z = u
-        particles.dp = v
+        if particles:
+            particles.z = u
+            particles.dp = v
+            # Stick auxiliary information to particles
+            particles.psi = self.psi
+            particles.linedensity = self.linedensity
 
-        # Stick auxiliary information to particles
-        particles.psi = self.psi
-        particles.linedensity = self.linedensity
+        return u, v, self.psi, self.linedensity
 
     def linedensity(self, xx):
         quad_type = fixed_quad

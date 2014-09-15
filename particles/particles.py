@@ -10,18 +10,23 @@ import numpy as np
 from scipy.constants import c, e, m_e, m_p
 
 import cobra_functions.stats as cp
+from trackers.rf_bucket import RFBucket
 from generators import *
 
 
 class Particles(object):
 
-    # (macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference, *phase_space_generators)
-    def __init__(self, macroparticlenumber, charge, mass, gamma, particlenumber_per_mp, phase_space_generators):
+    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge, mass, ring_radius, gamma_reference, *phase_space_generators):
         """
         Initialises the bunch and distributes its particles via the
         given PhaseSpace generator instances for all planes.
         """
 
+        # New
+        self.macroparticlenumber = macroparticlenumber
+        self.particlenumber_per_mp = particlenumber_per_mp
+
+        # Compatibility
         self.n_macroparticles = macroparticlenumber
         self.n_macroparticles_lost = 0
         self.n_particles_per_mp = particlenumber_per_mp
@@ -30,16 +35,31 @@ class Particles(object):
         self.charge = charge
         self.mass = mass
 
-        self.gamma = gamma # gamma_reference
-        self.ring_radius = 0
+        self.ring_radius = ring_radius
+        self.gamma = gamma_reference
 
         self.phase_space_coordinates_list = []
         for phase_space in phase_space_generators:
             phase_space.generate(self)
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
+    def __init__2(self, macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference, phase_space_coordinates_dict):
+
+        self.macroparticlenumber = macroparticlenumber
+        self.particlenumber_per_mp = particlenumber_per_mp
+
+        self.charge = charge
+        self.mass = mass
+
+        self.ring_radius = circumference
+        self.gamma = gamma_reference
+
+        self.phase_space_coordinates_list = phase_space_coordinates_dict.keys()
+
+        self.id = np.arange(1, self.macroparticlenumber+1, dtype=int)
+
     @classmethod
-    def as_gaussian(cls, macroparticlenumber, charge, mass, gamma, intensity,
+    def as_gaussian(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
                     alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
                     beta_z, epsn_z, is_accepted=None, generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
@@ -48,7 +68,7 @@ class Particles(object):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
-        betagamma = np.sqrt(gamma**2 - 1)
+        betagamma = np.sqrt(gamma_reference**2 - 1)
         p0 = betagamma * mass * c
 
         # Generate seeds for GaussianX, Y and Z.
@@ -62,17 +82,59 @@ class Particles(object):
         gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
                                           generator_seed=random_state.randint(sys.maxint))
 
-        return cls(macroparticlenumber, charge, mass, gamma, particlenumber_per_mp,
-                   (gaussianx, gaussiany, gaussianz))
+        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, 0, gamma_reference,
+                   gaussianx, gaussiany, gaussianz)
+
 
     @classmethod
-    def as_gaussian_in_bucket(cls, macroparticlenumber, charge, gamma, intensity, mass,
+    def as_gaussian_bucket(cls, macroparticlenumber, intensity, charge, mass, ring_radius, gamma_reference,
+                           alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
+                           alpha, p_increment, harmonic_list, voltage_list, phi_offset_list,
+                           sigma_z=None, epsn_z=None, generator_seed=None):
+
+        particlenumber_per_mp = intensity/macroparticlenumber
+
+        betagamma = np.sqrt(gamma_reference ** 2 - 1)
+        p0 = betagamma * mass * c
+
+        rfbucket = RFBucket(2*np.pi*ring_radius, gamma_reference, alpha, p_increment, harmonic_list, voltage_list, phi_offset_list)
+
+        # Generate seeds for GaussianX,Y and Z.
+        random_state = RandomState()
+        random_state.seed(generator_seed)
+
+        gaussianx = GaussianX.from_optics(alpha_x, beta_x, epsn_x, betagamma,
+                                          generator_seed=random_state.randint(sys.maxint))
+        gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
+                                          generator_seed=random_state.randint(sys.maxint))
+        rfbucket = RFBucketMatcher(StationaryExponential, rfbucket, sigma_z, epsn_z)
+
+        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, ring_radius, gamma_reference,
+                   gaussianx, gaussiany, rfbucket)
+
+
+    @classmethod
+    def as_gaussian_bucket_match(cls, macroparticlenumber, intensity, charge, mass, ring_radius, gamma_reference,
+                                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, rfbucket,
+                                 sigma_z=None, epsn_z=None, generator_seed=None):
+
+        self = cls.as_gaussian_bucket(macroparticlenumber, intensity, charge, mass, ring_radius, gamma_reference,
+                                      alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
+                                      rfbucket.alpha0, rfbucket.p_increment, rfbucket.h, rfbucket.V, rfbucket.dphi,
+                                      sigma_z, epsn_z, generator_seed)
+        rfbucket.gamma_reference = self.get_gamma
+
+        return self
+
+
+    @classmethod
+    def as_gaussian_in_bucket(cls, macroparticlenumber, charge, gamma_reference, intensity, mass,
                               alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
                               sigma_z=None, epsn_z=None, rfbucket=None, generator_seed=None):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
-        betagamma = np.sqrt(gamma ** 2 - 1)
+        betagamma = np.sqrt(gamma_reference ** 2 - 1)
         p0 = betagamma * mass * c
 
         # Generate seeds for GaussianX,Y and Z.
@@ -85,11 +147,23 @@ class Particles(object):
                                           generator_seed=random_state.randint(sys.maxint))
         rfbucket = RFBucketMatcher(StationaryExponential, rfbucket, sigma_z, epsn_z)
 
-        return cls(macroparticlenumber, charge, mass, gamma, particlenumber_per_mp,
-                   (gaussianx, gaussiany, rfbucket))
+        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, 0, gamma_reference,
+                   gaussianx, gaussiany, rfbucket)
+
+
+    # @classmethod
+    # def as_gaussian_linear_match(cls, macroparticlenumber, intensity, charge, mass, ring_radius, gamma_reference,
+    #                              epsn_x, epsn_y, epsn_z, transverse_map, longitudinal_map, generator_seed=None):
+    #     self = cls.as_gaussian(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
+    #                            transverse_map.alpha_x, transverse_map.beta_x, epsn_x,
+    #                            transverse_map.alpha_y, transverse_map.beta_y, epsn_y,
+    #                            longitudinal_map.beta_z, epsn_z, is_accepted=None, generator_seed=None)
+
+    #     return self
+
 
     @classmethod
-    def as_gaussian_z(cls, macroparticlenumber, charge, mass, gamma, intensity,
+    def as_gaussian_z(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
                       beta_z, epsn_z, is_accepted=None, generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
@@ -97,7 +171,7 @@ class Particles(object):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
-        betagamma = np.sqrt(gamma**2 - 1)
+        betagamma = np.sqrt(gamma_reference**2 - 1)
         p0 = betagamma * mass * c
 
         # Generate seeds for GaussianX, Y and Z.
@@ -107,12 +181,12 @@ class Particles(object):
         gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
                                           generator_seed=random_state.randint(sys.maxint))
 
-        return cls(macroparticlenumber, charge, mass, gamma, particlenumber_per_mp,
-                   (gaussianz,))
+        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, 0, gamma_reference,
+                   gaussianz)
 
 
     @classmethod
-    def as_gaussian_theta(cls, macroparticlenumber, charge, mass, gamma, intensity,
+    def as_gaussian_theta(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
                           sigma_theta, sigma_dE, is_accepted=None, generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
@@ -120,7 +194,7 @@ class Particles(object):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
-        betagamma = np.sqrt(gamma**2 - 1)
+        betagamma = np.sqrt(gamma_reference**2 - 1)
         p0 = betagamma * mass * c
 
         # Generate seeds for GaussianX, Y and Z.
@@ -130,28 +204,29 @@ class Particles(object):
         gaussiantheta = GaussianTheta(sigma_theta, sigma_dE, is_accepted,
                                       generator_seed=random_state.randint(sys.maxint))
 
-        return cls(macroparticlenumber, charge, mass, gamma, particlenumber_per_mp,
-                   (gaussiantheta,))
+        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, 0, gamma_reference,
+                   gaussiantheta)
 
 
     @classmethod
-    def as_uniform(cls, macroparticlenumber, charge, gamma, intensity, mass,
+    def as_uniform(cls, macroparticlenumber, charge, gamma_reference, intensity, mass,
                    xmin, xmax, ymin, ymax, zmin=0, zmax=0):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
-        betagamma = np.sqrt(gamma ** 2 - 1)
+        betagamma = np.sqrt(gamma_reference ** 2 - 1)
         p0 = betagamma * mass * c
 
         uniformx = UniformX(xmin, xmax)
         uniformy = UniformY(xmin, xmax)
         uniformz = UniformZ(zmin, zmax)
 
-        return cls(macroparticlenumber, charge, mass, gamma, particlenumber_per_mp,
-                   [uniformx, uniformy, uniformz])
+        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, 0, gamma_reference,
+                   uniformx, uniformy, uniformz)
+
 
     @classmethod
-    def as_import(cls, macroparticlenumber, charge, mass, gamma, intensity,
+    def as_import(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
                   x, xp, y, yp, z, dp):
 
         particlenumber_per_mp = intensity/macroparticlenumber
@@ -160,8 +235,8 @@ class Particles(object):
         importy = ImportY(y, yp)
         importz = ImportZ(z, dp)
 
-        return cls(macroparticlenumber, charge, mass, gamma, particlenumber_per_mp,
-                   [importx, importy, importz])
+        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, 0, gamma_reference,
+                   importx, importy, importz)
 
 
     @property
@@ -170,6 +245,10 @@ class Particles(object):
             return self.n_particles_per_mp*self.n_macroparticles
         else:
             return  np.sum(self.n_particles_per_mp)
+
+    def get_ring_radius(self): return self.ring_radius
+
+    def get_gamma(self): return self.gamma
 
     @property
     def gamma(self):
