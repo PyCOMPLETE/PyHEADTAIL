@@ -9,7 +9,6 @@ from abc import ABCMeta, abstractmethod
 from scipy.constants import e, c
 import numpy as np
 
-
 cos = np.cos
 sin = np.sin
 
@@ -19,7 +18,7 @@ DETUNER MODEL.
 '''
 """
 Different implementations/parameterizations of the RF Quadrupole as a detuner.
-The formulae are based on 'Radio frequency quadrupole for Landau damping in 
+The formulae are based on 'Radio frequency quadrupole for Landau damping in
 accelerators', A. Grudiev, 2014.
 """
 class RFQTransverseSegmentGeneral(object):
@@ -32,20 +31,18 @@ class RFQTransverseSegmentGeneral(object):
         self.phi_0_RF = phi_0_RF
         self.dapp_xz  = dapp_xz
         self.dapp_yz  = dapp_yz
-        
+
 
     def detune(self, beam):
 
         cos_dependence = cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
-        # For tests (subtract 'constant/coherent tuneshift'):
-        # cos_dependence = cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF) - 1
         cos_dependence /= ((1. + beam.dp) * beam.p0)
 
         dphi_x = self.dapp_xz * cos_dependence
         dphi_y = self.dapp_yz * cos_dependence
-        
+
         return dphi_x, dphi_y
-        
+
 
 class RFQTransverseSegmentOnCrest(object):
     """
@@ -57,16 +54,14 @@ class RFQTransverseSegmentOnCrest(object):
         self.omega_RF = omega_RF
         self.dapp_xz  = dapp_xz
         self.dapp_yz  = dapp_yz
-        
+
 
     def detune(self, beam):
 
         approximate_cos_dependence = 1. - 0.5 * (beam.z * self.omega_RF / (beam.beta * c)) ** 2
-        # For tests (subtract 'constant/coherent tuneshift'):
-        # approximate_cos_dependence = -0.5 * (beam.z * self.omega_RF / (beam.beta * c)) ** 2
         approximate_cos_dependence /= ((1. + beam.dp) * beam.p0)
-        
-        dphi_x = self.dapp_xz * approximate_cos_dependence 
+
+        dphi_x = self.dapp_xz * approximate_cos_dependence
         dphi_y = self.dapp_yz * approximate_cos_dependence
 
         return dphi_x, dphi_y
@@ -83,27 +78,30 @@ class RFQTransverseSegmentOffCrest(object):
         self.omega_RF = omega_RF
         self.dapp_xz  = dapp_xz
         self.dapp_yz  = dapp_yz
-        
+
 
     def detune(self, beam):
 
         approximate_sin_dependence  = beam.z * self.omega_RF / (beam.beta * c)
         approximate_sin_dependence /= ((1. + beam.dp) * beam.p0)
 
-        dphi_x = self.dapp_xz * approximate_sin_dependence 
+        dphi_x = self.dapp_xz * approximate_sin_dependence
         dphi_y = self.dapp_yz * approximate_sin_dependence
-        
+
         return dphi_x, dphi_y
 
 
 """
 Collection class for the RFQ detuner. This is the class instantiated explicitly by the user.
-It uses 1-turn integrated values as input and instantiates an RFQ detuner for each segment 
+It uses 1-turn integrated values as input and instantiates an RFQ detuner for each segment
 in 's' with a detuning proportional to the segment length.
 """
 class RFQTransverse(object):
-     
-    def __init__(self, v2_RF, omega_RF, **kwargs):
+
+    def __init__(self, beta_x, beta_y, v2_RF, omega_RF, **kwargs):
+
+        self.beta_x = beta_x
+        self.beta_y = beta_y
 
         self.omega_RF = omega_RF
         self.v2_RF    = v2_RF
@@ -113,52 +111,52 @@ class RFQTransverse(object):
 
         self.segment_detuners = []
 
-    
-    @classmethod
-    def as_general(cls, v2_RF, omega_RF, phi_0_RF):
 
-        self = cls(v2_RF, omega_RF, phi_0_RF=phi_0_RF)
+    @classmethod
+    def as_general(cls, beta_x, beta_y, v2_RF, omega_RF, phi_0_RF):
+
+        self = cls(beta_x, beta_y, v2_RF, omega_RF, phi_0_RF=phi_0_RF)
         self.generate_segment_detuner = self.generate_segment_detuner_general
-                                
+
         return self
 
-    def generate_segment_detuner_general(self, relative_segment_length, beta_x, beta_y):
-        
-        dapp_xz =  beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-        dapp_yz = -beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-                        
-        self.segment_detuners.append(RFQTransverseSegmentGeneral(dapp_xz, dapp_yz, self.omega_RF, 
+    def generate_segment_detuner_general(self, relative_segment_length):
+
+        dapp_xz =  self.beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
+        dapp_yz = -self.beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
+
+        self.segment_detuners.append(RFQTransverseSegmentGeneral(dapp_xz, dapp_yz, self.omega_RF,
                                                                  self.phi_0_RF))
 
     @classmethod
-    def as_on_crest(cls, v2_RF, omega_RF):
+    def as_on_crest(cls, beta_x, beta_y, v2_RF, omega_RF):
 
-        self = cls(v2_RF, omega_RF)
+        self = cls(beta_x, beta_y, v2_RF, omega_RF)
         self.generate_segment_detuner = self.generate_segment_detuner_on_crest
 
         return self
-        
-    def generate_segment_detuner_on_crest(self, relative_segment_length, beta_x, beta_y):
 
-        dapp_xz =  beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-        dapp_yz = -beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
+    def generate_segment_detuner_on_crest(self, relative_segment_length):
+
+        dapp_xz =  self.beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
+        dapp_yz = -self.beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
 
         self.segment_detuners.append(RFQTransverseSegmentOnCrest(dapp_xz, dapp_yz, self.omega_RF))
 
 
     @classmethod
-    def as_off_crest(cls, v2_RF, omega_RF):
+    def as_off_crest(cls, beta_x, beta_y, v2_RF, omega_RF):
 
-        self = cls(v2_RF, omega_RF)
+        self = cls(beta_x, beta_y, v2_RF, omega_RF)
         self.generate_segment_detuner = self.generate_segment_detuner_off_crest
-                
+
         return self
 
 
-    def generate_segment_detuner_off_crest(self, relative_segment_length, beta_x, beta_y):
+    def generate_segment_detuner_off_crest(self, relative_segment_length):
 
-        dapp_xz =  beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-        dapp_yz = -beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
+        dapp_xz =  self.beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
+        dapp_yz = -self.beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
 
         self.segment_detuners.append(RFQTransverseSegmentOffCrest(dapp_xz, dapp_yz, self.omega_RF))
 
@@ -167,16 +165,17 @@ class RFQTransverse(object):
 
         return len(self.segment_detuners)
 
-    
+
     def __getitem__(self, key):
 
         return self.segment_detuners[key]
 
 
+
 '''
 Longitudinal effect of RFQ. Always acting as a localized kick (applied once per turn).
 '''
-class RFQLongitudinal(object):
+class RFQLongitudinalKick(object):
 
     def __init__(self, v2_RF, omega_RF, phi_0_RF):
 
@@ -184,11 +183,10 @@ class RFQLongitudinal(object):
         self.omega_RF = omega_RF
         self.phi_0_RF = phi_0_RF
 
-        
+
     def track(self, beam):
 
         delta_p = - e * self.v2_RF / (beam.beta * c) * (beam.x ** 2 - beam.y ** 2) * \
                     sin(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
-        
-	beam.dp = beam.dp + delta_p / beam.p0
 
+        beam.dp = beam.dp + delta_p / beam.p0

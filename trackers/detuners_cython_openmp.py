@@ -39,7 +39,7 @@ class ChromaticitySegment(Detuner):
     def detune(self, beam, dphi_x, dphi_y):
 
         cytrack.chromaticity_detune(dphi_x, dphi_y, self.dQp_x, self.dQp_y, beam.dp)
-        
+
 
 class AmplitudeDetuningSegment(Detuner):
 
@@ -47,7 +47,7 @@ class AmplitudeDetuningSegment(Detuner):
 
         self.beta_x = beta_x
         self.beta_y = beta_y
-        
+
         # For octupole magnets: dapp_xy == dapp_yx.
         self.dapp_x  = dapp_x
         self.dapp_y  = dapp_y
@@ -71,17 +71,20 @@ detuning proportional to the segment length.
 """
 class AmplitudeDetuning(object):
 
-    def __init__(self, app_x, app_y, app_xy):
-        
+    def __init__(self, beta_x, beta_y, app_x, app_y, app_xy):
+
         self.app_x  = app_x
         self.app_y  = app_y
         self.app_xy = app_xy
 
+        self.beta_x = beta_x
+        self.beta_y = beta_y
+
         self.segment_detuners = []
-        
-                
+
+
     @classmethod
-    def from_octupole_currents_LHC(cls, i_focusing, i_defocusing):
+    def from_octupole_currents_LHC(cls, beta_x, beta_y, i_focusing, i_defocusing):
         """
         Calculate app_x, app_y, app_xy == app_yx on the basis of formulae (3.6) in
         'THE LHC TRANSVERSE COUPLED-BUNCH INSTABILITY' (EPFL PhD Thesis), N. Mounet, 2012
@@ -101,16 +104,16 @@ class AmplitudeDetuning(object):
         app_y  *= convert_to_SI_units
         app_xy *= convert_to_SI_units
 
-        return cls(app_x, app_y, app_xy)
+        return cls(beta_x, beta_y, app_x, app_y, app_xy)
 
 
-    def generate_segment_detuner(self, relative_segment_length, beta_x, beta_y):
+    def generate_segment_detuner(self, relative_segment_length):
 
         dapp_x  = self.app_x * relative_segment_length
         dapp_y  = self.app_y * relative_segment_length
         dapp_xy = self.app_xy * relative_segment_length          # For octupole magnets, app_xy == app_yx.
-        
-        self.segment_detuners.append(AmplitudeDetuningSegment(beta_x, beta_y, dapp_x, dapp_y, dapp_xy))
+
+        self.segment_detuners.append(AmplitudeDetuningSegment(self.beta_x, self.beta_y, dapp_x, dapp_y, dapp_xy))
 
 
     def __len__(self):
@@ -132,15 +135,15 @@ class Chromaticity(object):
 
         self.segment_detuners = []
 
-                
+
     def generate_segment_detuner(self, relative_segment_length, *dummy):
 
         dQp_x = self.Qp_x * relative_segment_length
         dQp_y = self.Qp_y * relative_segment_length
-                
+
         self.segment_detuners.append(ChromaticitySegment(dQp_x, dQp_y))
 
-        
+
     def __len__(self):
 
         return len(self.segment_detuners)

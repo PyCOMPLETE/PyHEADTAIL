@@ -29,7 +29,7 @@ class TransverseSegmentMap(object):
         self._build_segment_map(alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
                                 alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s1)
 
- 
+
     def _build_segment_map(self, alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
                                  alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s):
 
@@ -69,7 +69,7 @@ class TransverseSegmentMap(object):
 
         cytrack.track_transverse_without_detuners(self.I, self.J, self.dphi_x, self.dphi_y,
                                                   beam.x, beam.xp, beam.y, beam.yp)
-        
+
 
     def track_with_detuners(self, beam):
 
@@ -123,17 +123,15 @@ class TransverseMap(object):
         relative_segment_length = np.diff(self.s) / self.s[-1]
         dQ_x = self.Q_x * relative_segment_length
         dQ_y = self.Q_y * relative_segment_length
-        
-        n_segments     = len(self.s) - 1
+
+        n_segments = len(self.s) - 1
         for seg in range(n_segments):
             s0 = seg % n_segments
             s1 = (seg + 1) % n_segments
 
             for detuner in self.detuner_collections:
-                detuner.generate_segment_detuner(relative_segment_length[s0],
-                                                 (self.beta_x[s0] + self.beta_x[s1]) / 2.,
-                                                 (self.beta_y[s0] + self.beta_y[s1]) / 2.)
-                                
+                detuner.generate_segment_detuner(relative_segment_length[s0])
+
             transverse_segment_map = TransverseSegmentMap(self.alpha_x[s0], self.beta_x[s0], self.D_x[s0],
                                                           self.alpha_x[s1], self.beta_x[s1], self.D_x[s1],
                                                           self.alpha_y[s0], self.beta_y[s0], self.D_y[s0],
@@ -149,7 +147,7 @@ class TransverseMap(object):
 
         return len(self.segment_maps)
 
-    
+
     def __getitem__(self, key):
 
         return self.segment_maps[key]
