@@ -171,6 +171,26 @@ class RFQTransverse(object):
         return self.segment_detuners[key]
 
 
+class RFQTransverseKick(object):
+
+    def __init__(self, v2_RF, omega_RF, phi_0_RF):
+
+        self.v2_RF    = v2_RF
+        self.omega_RF = omega_RF
+        self.phi_0_RF = phi_0_RF
+
+
+    def track(self, beam):
+
+        cos_dependence = cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
+        k = 2. * e * self.v2_RF / self.omega_RF
+
+        delta_p_x = beam.x * k * cos_dependence
+        delta_p_y = -beam.y * k * cos_dependence
+
+        beam.xp += delta_p_x / beam.p0
+        beam.yp += delta_p_y / beam.p0
+
 
 '''
 Longitudinal effect of RFQ. Always acting as a localized kick (applied once per turn).
