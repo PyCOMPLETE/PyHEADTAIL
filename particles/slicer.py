@@ -49,17 +49,18 @@ class Slicer(object):
 
         try:
             z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
-            slice_width            = self.slice_width
+            slice_width = self.slice_width
         except AttributeError:
             z_cut_tail, z_cut_head = self._set_longitudinal_cuts(bunch)
-            slice_width            = (z_cut_head - z_cut_tail) / self.n_slices
+            z_cut_head += 1e-15
+            slice_width = (z_cut_head - z_cut_tail) / self.n_slices
             # linspace is more robust than arange. To reach z_cut_head exactly.
-            self.z_bins    = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
+            self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
             self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
         self.slice_index_of_particle = np.floor((bunch.z + abs(z_cut_tail)) / slice_width ).astype(np.int)
-        self.particles_within_cuts   = np.where((self.slice_index_of_particle > -1) &
-                                                (self.slice_index_of_particle < self.n_slices))[0]
+        self.particles_within_cuts = np.where((self.slice_index_of_particle > -1) &
+                                              (self.slice_index_of_particle < self.n_slices))[0]
         self._count_macroparticles_per_slice()
 
 
@@ -93,8 +94,11 @@ class Slicer(object):
 
     def _slice_constant_charge(self, bunch):
 
-        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
-        bunch.sort_particles()
+        # Sort particles according to z to allow for simple const. charge slicing.
+        # Sort back after the procedure.
+        z_argsorted = np.argsort(bunch.z)
+        bunch.z  = bunch.z.take(z_argsorted)
+        bunch.id = bunch.id.take(z_argsorted)
 
         # try:
         #     z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
@@ -117,19 +121,53 @@ class Slicer(object):
         # Get indices of the particles defining the bin edges
         n_macroparticles_all = np.hstack((self.n_cut_tail, self.n_macroparticles, self.n_cut_head))
         first_index_in_bin = np.cumsum(n_macroparticles_all)
-        self.first_particle_index_in_slice = first_index_in_bin[:-1]
-        self.first_particle_index_in_slice = (self.first_particle_index_in_slice).astype(int)
+        first_particle_index_in_slice = first_index_in_bin[:-1]
+        first_particle_index_in_slice = (first_particle_index_in_slice).astype(int)
 
-        # print(self.z_index.shape)
-        self.z_bins = (bunch.z[self.first_particle_index_in_slice - 1] + bunch.z[self.first_particle_index_in_slice]) / 2.
+        self.z_bins = (bunch.z[first_particle_index_in_slice - 1] + bunch.z[first_particle_index_in_slice]) / 2.
         self.z_bins[0], self.z_bins[-1] = z_cut_tail, z_cut_head
         self.z_centers = (self.z_bins[:-1] + self.z_bins[1:]) / 2.
 
-        self._set_slice_index_of_particle(bunch)
-        self.particles_within_cuts = np.arange(self.n_cut_tail, n_macroparticles_alive - self.n_cut_head)
+        self.slice_index_of_particle = -np.ones(bunch.n_macroparticles, dtype=np.int)
+        for i in range(self.n_slices):
+            self.slice_index_of_particle[first_particle_index_in_slice[i]:first_particle_index_in_slice[i+1]] = i
 
-        # # self.z_centers = map((lambda i: cp.mean(bunch.z[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices)
+        # Sort back, including vector 'slice_index_of_particle'.
+        id_argsorted = np.argsort(bunch.id)
+        bunch.z = bunch.z.take(id_argsorted)
+        bunch.id = bunch.id.take(id_argsorted)
+        self.slice_index_of_particle = self.slice_index_of_particle.take(id_argsorted)
+        self.particles_within_cuts = np.where(self.slice_index_of_particle > -1)[0]
 
+        # TODO:
+        
+        # MS, 16.09.14: update on lost particles should be performed by
+        # a specific method (probably located in particles module) called
+        # by e.g. aperture module.
+        # Hence, the lexsort should not be necessary anymore.
+        
+        # update the number of lost particles
+        # self.n_macroparticles_lost = (self.n_macroparticles -
+                                      # np.count_nonzero(self.id))
+
+        # sort particles according to z (this is needed for correct
+        # functioning of bunch.compute_statistics)
+        # if self.n_macroparticles_lost:
+            # place lost particles at the end of the array
+            # z_argsorted = np.lexsort((self.z, -np.sign(self.id)))
+        # else:
+
+        # MS, 16.09.14: Here we are assuming that z is pointing to
+        # z_all[:n_macroparticles_alive], i.e. excluding lost particles !!!
+        # z_argsorted = np.argsort(self.z)
+
+#        self.x  = self.x.take(z_argsorted)
+#        self.xp = self.xp.take(z_argsorted)
+#        self.y  = self.y.take(z_argsorted)
+#        self.yp = self.yp.take(z_argsorted)
+#        self.dp = self.dp.take(z_argsorted)
+        # self.z  = self.z.take(z_argsorted)
+        # self.id = self.id.take(z_argsorted)
 
     def _count_macroparticles_per_slice(self):
 
@@ -142,15 +180,15 @@ class Slicer(object):
                                               self.n_macroparticles)
 
 
-    def _set_slice_index_of_particle(self, bunch):
+    ## def _set_slice_index_of_particle(self, bunch):
 
-        try:
-            self.slice_index_of_particle
-        except AttributeError:
-            self.slice_index_of_particle = np.zeros(bunch.n_macroparticles, dtype=np.int)
+    ##     try:
+    ##         self.slice_index_of_particle
+    ##     except AttributeError:
+    ##         self.slice_index_of_particle = np.zeros(bunch.n_macroparticles, dtype=np.int)
 
-        for i in range(self.n_slices):
-            self.slice_index_of_particle[self.first_particle_index_in_slice[i]:self.first_particle_index_in_slice[i+1]] = i
+    ##     for i in range(self.n_slices):
+    ##         self.slice_index_of_particle[self.first_particle_index_in_slice[i]:self.first_particle_index_in_slice[i+1]] = i
 
 
     def update_slices(self, bunch):

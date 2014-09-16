@@ -297,28 +297,6 @@ class Particles(object):
         self.dp = value / (self.beta*c*self.p0)
 
 
-    def sort_particles(self):
-        # update the number of lost particles
-        self.n_macroparticles_lost = (self.n_macroparticles -
-                                      np.count_nonzero(self.id))
-
-        # sort particles according to z (this is needed for correct
-        # functioning of bunch.compute_statistics)
-        if self.n_macroparticles_lost:
-            # place lost particles at the end of the array
-            z_argsorted = np.lexsort((self.z, -np.sign(self.id)))
-        else:
-            z_argsorted = np.argsort(self.z)
-
-        self.x  = self.x.take(z_argsorted)
-        self.xp = self.xp.take(z_argsorted)
-        self.y  = self.y.take(z_argsorted)
-        self.yp = self.yp.take(z_argsorted)
-        self.z  = self.z.take(z_argsorted)
-        self.dp = self.dp.take(z_argsorted)
-        self.id = self.id.take(z_argsorted)
-
-
     '''
     Stats.
     '''
