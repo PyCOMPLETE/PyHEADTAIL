@@ -26,14 +26,14 @@ class TransverseDamper(object):
             self.track = self.track_all
 
     def track_horizontal(self, beam):
-        beam.xp -= self.gain_x * beam.xp
+        beam.xp -= self.gain_x * beam.mean_xp()
 
     def track_vertical(self, beam):
-        beam.yp -= self.gain_y * beam.yp
+        beam.yp -= self.gain_y * beam.mean_yp()
 
     def track_all(self, beam):
-        beam.xp -= self.gain_x * beam.xp
-        beam.yp -= self.gain_y * beam.yp
+        beam.xp -= self.gain_x * beam.mean_xp()
+        beam.yp -= self.gain_y * beam.mean_yp()
 
     @classmethod
     def horizontal(cls, dampingrate_x):
