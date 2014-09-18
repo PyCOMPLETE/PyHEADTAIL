@@ -70,5 +70,4 @@ cpdef rfq_longitudinal_kick(double[::1] x, double[::1] y, double[::1] z, double[
 #    for i in prange(n, nogil=True):
     for i in xrange(n):
         delta_p = - e_v2RF_beta_c * (x[i] ** 2 - y[i] ** 2) * sin(omegaRF_beta_c * z[i] + phi_0_RF)
-        dp[i] += delta_p
-
+        dp[i] += delta_p / p0
