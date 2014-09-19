@@ -5,7 +5,7 @@ from __future__ import division
 
 
 import numpy as np
-import pylab as plt
+#import pylab as plt
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
 from trackers.rf_bucket import RFBucket

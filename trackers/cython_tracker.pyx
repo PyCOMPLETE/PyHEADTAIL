@@ -34,10 +34,10 @@ cpdef track_transverse_without_detuners(double[:,::1] I, double[:,::1] J, double
 
     # Track particles.
     cdef double xtmp, xptmp, ytmp, yptmp
-    cdef int n = x.shape[0]
-    cdef int i
-    for i in prange(n, nogil=True):
-        
+    cdef unsigned int n = x.shape[0]
+    cdef unsigned int i
+#    for i in prange(n, nogil=True):
+    for i in xrange(n):
         xtmp  = x[i]
         xptmp = xp[i]
         x[i]  = M00 * xtmp + M01 * xptmp
@@ -75,9 +75,10 @@ cpdef track_transverse_with_detuners(double[:,::1] I, double[:,::1] J, double[::
     cdef double J32 = J[3,2]
     cdef double J33 = J[3,3]
 
-    cdef int n = dphi_x.shape[0]
-    cdef int i
-    for i in prange(n, nogil=True):
+    cdef unsigned int n = dphi_x.shape[0]
+    cdef unsigned int i
+#    for i in prange(n, nogil=True):
+    for i in xrange(n):
         dphix_2pi = 2. * M_PI * dphi_x[i]
         dphiy_2pi = 2. * M_PI * dphi_y[i]
 
@@ -105,9 +106,10 @@ cpdef track_transverse_with_detuners(double[:,::1] I, double[:,::1] J, double[::
 cpdef chromaticity_detune(double[::1] dphi_x, double[::1] dphi_y, \
                           double dQp_x, double dQp_y, double[::1] dp):
 
-    cdef int n = dphi_x.shape[0]
-    cdef int i
-    for i in prange(n, nogil=True):
+    cdef unsigned int n = dphi_x.shape[0]
+    cdef unsigned int i
+#    for i in prange(n, nogil=True):
+    for i in xrange(n):
         # W/o factor 2 np.pi. See track method.
         dphi_x[i] += dQp_x * dp[i]
         dphi_y[i] += dQp_y * dp[i]
@@ -124,9 +126,10 @@ cpdef amplitude_detune(double[::1] dphi_x, double[::1] dphi_y, \
     cdef double jx
     cdef double jy
     
-    cdef int n = dphi_x.shape[0]
-    cdef int i
-    for i in prange(n, nogil=True):
+    cdef unsigned int n = dphi_x.shape[0]
+    cdef unsigned int i
+#    for i in prange(n, nogil=True):
+    for i in xrange(n):
         jx = ( x[i] * x[i] + xp[i] * xp[i] * betax2 ) / ( 2. * beta_x)
         jy = ( y[i] * y[i] + yp[i] * yp[i] * betay2 ) / ( 2. * beta_y)
 

@@ -109,36 +109,46 @@ class WakeTable(object):
             self.kicks.append(ConstantWakeKickZ(wake_function, slices))
 
     def _function_transverse(self, key):
+
         time          = np.array(self.wake_table['time'])
         wake_strength = np.array(self.wake_table[key])
-        # insert zeros at origin if wake functions at (or below) zero not provided
-        if time[0] > 0:
-            time          = np.append(0, time)
-            wake_strength = np.append(0, wake_strength)
-        # TODO: check this (commented; diff has a problem here -- KL 30.08.2014)
-        # This should only be true for ultrarelativistic wakes? Perhaps this should be left to the wakefield maker...
-        # insert zero value of wake field if provided wake begins with a finite value
-        # if wake_strength[0] != 0:
-        #     time          = np.append(time[0] - np.diff(time[1], time[0]), time)
-        #     wake_strength = np.append(0, wake_strength)
 
-        # wake = interp1d(time, wake_strength) # (-z/(beta*c))
-        def wake(beta, z):
-            return np.interp(- z / (beta * c), time, wake_strength, left=0, right=0)
+        # Wake conformity checks.
+        if (time[0] == 0) and (wake_strength[0] == 0):
+            def wake(beta, dz):
+                dz = dz.clip(max=0)
+                return interp1d(time, wake_strength)(- dz / (beta * c))
+
+            print '\t NOTE: Assuming ultrarelativistic wake "%s".'%key
+
+        elif (time[0] < 0) and (wake_strength[0] != 0):
+            def wake(beta, dz):
+                return interp1d(time, wake_strength)(- dz / (beta * c))
+
+            print '\t NOTE: Low beta wake "%s".'%key
+
+        elif (time[0] > 0) and (wake_strength[0] != 0):
+            print '\t ERROR: Wake "%s" does not conform to requirements.'%key
+            exit(-1)
 
         return wake
 
     def _function_longitudinal(self, key):
+
         time          = np.array(self.wake_table['time'])
         wake_strength = np.array(self.wake_table[key])
 
-        def wake(beta, z):
-            wake_interpolated = np.interp(- z / (beta * c), time, wake_strength, left=0, right=0)
+        def wake(beta, dz):
+
+            wake_interpolated = interp1d(time, wake_strength)(-dz / (beta * c))
             if time[0] < 0:
                 return wake_interpolated
             elif time[0] == 0:
                 # beam loading theorem: half value of wake at z=0;
-                return (np.sign(-z) + 1) / 2 * wake_interpolated
+                return (np.sign(-dz) + 1) / 2 * wake_interpolated
+            elif (time[0] > 0):
+                print '\t ERROR: Wake "%s" does not conform to requirements.'%key
+                exit(-1)
 
         return wake
 
@@ -209,18 +219,19 @@ class Resonator(object):
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         # Taken from definition in HEADTAIL
-        def wake(beta, z):
+        def wake(beta, dz):
 
-            t = z.clip(max=0) / (beta*c)
+            dt = dz.clip(max=0) / (beta * c)
             if Q > 0.5:
-                y =  Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) * np.exp(alpha*t) * sin(omegabar*t)
+                y =  Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) * np.exp(alpha*dt) * sin(omegabar*dt)
             elif Q == 0.5:
-                y =  Yokoya_factor * R_shunt * omega**2 / Q * np.exp(alpha*t) * t
+                y =  Yokoya_factor * R_shunt * omega**2 / Q * np.exp(alpha*dt) * dt
             else:
-                y =  Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) * np.exp(alpha*t) * np.sinh(omegabar*t)
+                y =  Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) * np.exp(alpha*dt) * np.sinh(omegabar*dt)
             return y
 
         return wake
+
 
     def _function_longitudinal(self, R_shunt, frequency, Q, Yokoya_factor):
 
@@ -229,17 +240,17 @@ class Resonator(object):
         alpha = omega / (2 * Q)
         omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
 
-        def wake(beta, z):
+        def wake(beta, dz):
 
-            t = z.clip(max=0) / (beta*c)
+            dt = dz.clip(max=0) / (beta * c)
             if Q > 0.5:
-                y =  - Yokoya_factor * (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (cos(omegabar*t) \
-                                                                            + alpha/omegabar * sin(omegabar*t))
+                y =  - Yokoya_factor * (np.sign(dt)-1) * R_shunt * alpha * np.exp(alpha*dt) * (cos(omegabar*dt) \
+                                                                           + alpha/omegabar * sin(omegabar*dt))
             elif Q == 0.5:
-                y =  - Yokoya_factor * (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (1. + alpha*t)
+                y =  - Yokoya_factor * (np.sign(dt)-1) * R_shunt * alpha * np.exp(alpha*dt) * (1. + alpha*dt)
             elif Q < 0.5:
-                y =  - Yokoya_factor * (np.sign(z)-1) * R_shunt * alpha * np.exp(alpha*t) * (np.cosh(omegabar*t) \
-                                                                            + alpha/omegabar * np.sinh(omegabar*t))
+                y =  - Yokoya_factor * (np.sign(dt)-1) * R_shunt * alpha * np.exp(alpha*dt) * (np.cosh(omegabar*dt) \
+                                                                           + alpha/omegabar * np.sinh(omegabar*dt))
             return y
 
         return wake
@@ -293,10 +304,10 @@ class ResistiveWall(object):
         lambda_s = 1. / (Z0*self.conductivity)
         mu_r = 1
 
-        def wake(beta, z):
-            y = Yokoya_factor * (np.sign(z + np.abs(self.dz_min)) - 1) / 2 * beta * c \
+        def wake(beta, dz):
+            y = Yokoya_factor * (np.sign(dz + np.abs(self.dz_min)) - 1) / 2 * beta * c \
                 * Z0 * self.resistive_wall_length / np.pi / self.pipe_radius ** 3 \
-                * np.sqrt(-lambda_s * mu_r / np.pi / z.clip(max=-abs(self.dz_min)))
+                * np.sqrt(-lambda_s * mu_r / np.pi / dz.clip(max=-abs(self.dz_min)))
 
             return y
 
