@@ -58,9 +58,9 @@ class Slicer(object):
             self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
             self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
-        self.slice_index_of_particle = np.floor((bunch.z + abs(z_cut_tail)) / slice_width ).astype(np.int)
+        self.slice_index_of_particle = np.floor((bunch.z + abs(z_cut_tail)) / slice_width ).astype(np.int32)
         self.particles_within_cuts = np.where((self.slice_index_of_particle > -1) &
-                                              (self.slice_index_of_particle < self.n_slices))[0]
+                                              (self.slice_index_of_particle < self.n_slices))[0].astype(np.int32)
         self._count_macroparticles_per_slice()
 
 
@@ -114,7 +114,7 @@ class Slicer(object):
         q0 = n_macroparticles_alive - self.n_cut_tail - self.n_cut_head
         ix = sample(range(self.n_slices), q0 % self.n_slices)
 
-        self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices, dtype=int)
+        self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices, dtype=np.int32)
         self.n_macroparticles[ix] += 1
 
         # 2. z-bins
@@ -122,13 +122,13 @@ class Slicer(object):
         n_macroparticles_all = np.hstack((self.n_cut_tail, self.n_macroparticles, self.n_cut_head))
         first_index_in_bin = np.cumsum(n_macroparticles_all)
         first_particle_index_in_slice = first_index_in_bin[:-1]
-        first_particle_index_in_slice = (first_particle_index_in_slice).astype(int)
+        first_particle_index_in_slice = (first_particle_index_in_slice).astype(np.int32)
 
         self.z_bins = (bunch.z[first_particle_index_in_slice - 1] + bunch.z[first_particle_index_in_slice]) / 2.
         self.z_bins[0], self.z_bins[-1] = z_cut_tail, z_cut_head
         self.z_centers = (self.z_bins[:-1] + self.z_bins[1:]) / 2.
 
-        self.slice_index_of_particle = -np.ones(bunch.n_macroparticles, dtype=np.int)
+        self.slice_index_of_particle = -np.ones(bunch.n_macroparticles, dtype=np.int32)
         for i in range(self.n_slices):
             self.slice_index_of_particle[first_particle_index_in_slice[i]:first_particle_index_in_slice[i+1]] = i
 
@@ -137,7 +137,7 @@ class Slicer(object):
         bunch.z = bunch.z.take(id_argsorted)
         bunch.id = bunch.id.take(id_argsorted)
         self.slice_index_of_particle = self.slice_index_of_particle.take(id_argsorted)
-        self.particles_within_cuts = np.where(self.slice_index_of_particle > -1)[0]
+        self.particles_within_cuts = np.where(self.slice_index_of_particle > -1)[0].astype(np.int32)
 
         # TODO:
         
@@ -175,7 +175,7 @@ class Slicer(object):
             cp.macroparticles_per_slice(self.slice_index_of_particle, self.particles_within_cuts,
                                         self.n_macroparticles)
         except AttributeError:
-            self.n_macroparticles = np.zeros(self.n_slices, dtype=np.int)
+            self.n_macroparticles = np.zeros(self.n_slices, dtype=np.int32)
             cp.count_macroparticles_per_slice(self.slice_index_of_particle, self.particles_within_cuts,
                                               self.n_macroparticles)
 
