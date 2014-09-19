@@ -34,6 +34,7 @@ class Particles(object):
 
         # Compatibility
         self.n_macroparticles = self.macroparticlenumber
+        self.n_macroparticles_lost = 0
         self.n_particles_per_mp = self.particlenumber_per_mp
         self.same_size_for_all_MPs = True
         self.gamma = self.gamma_reference
@@ -121,37 +122,37 @@ class Particles(object):
                     sigma_z=None, epsn_z=None, generator_seed=None): pass
 
 
-    @classmethod
-    def as_gaussian_from_optics(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
-                    alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, epsn_z,
-                    is_accepted=None, generator_seed=None): pass
+    # @classmethod
+    # def as_gaussian_from_optics(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
+    #                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, epsn_z,
+    #                 is_accepted=None, generator_seed=None): pass
 
 
-    @classmethod
-    def as_gaussian_explicit(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-                             alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                             alpha, p_increment, harmonic_list, voltage_list, phi_offset_list,
-                             sigma_z=None, epsn_z=None, generator_seed=None):
+    # @classmethod
+    # def as_gaussian_explicit(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
+    #                          alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
+    #                          alpha, p_increment, harmonic_list, voltage_list, phi_offset_list,
+    #                          sigma_z=None, epsn_z=None, generator_seed=None):
 
-        particlenumber_per_mp = intensity/macroparticlenumber
+    #     particlenumber_per_mp = intensity/macroparticlenumber
 
-        betagamma = np.sqrt(gamma_reference**2 - 1)
+    #     betagamma = np.sqrt(gamma_reference**2 - 1)
 
-        if generator_seed:
-            random_state = RandomState()
-            random_state.seed(generator_seed)
+    #     if generator_seed:
+    #         random_state = RandomState()
+    #         random_state.seed(generator_seed)
 
-        x  = normal(0, np.sqrt(epsn_x/betagamma * transverse_map.beta_x), macroparticlenumber)
-        xp = normal(0, np.sqrt(epsn_x/betagamma / transverse_map.beta_x), macroparticlenumber)
-        y  = normal(0, np.sqrt(epsn_y/betagamma * transverse_map.beta_y), macroparticlenumber)
-        yp = normal(0, np.sqrt(epsn_y/betagamma / transverse_map.beta_y), macroparticlenumber)
-        rfbucket = RFBucket(circumference, gamma_reference, alpha, p_increment, harmonic_list, voltage_list, phi_offset_list)
-        z, dp = RFBucketMatcher(StationaryExponential, rfbucket, sigma_z, epsn_z).generate(macroparticlenumber)
+    #     x  = normal(0, np.sqrt(epsn_x/betagamma * transverse_map.beta_x), macroparticlenumber)
+    #     xp = normal(0, np.sqrt(epsn_x/betagamma / transverse_map.beta_x), macroparticlenumber)
+    #     y  = normal(0, np.sqrt(epsn_y/betagamma * transverse_map.beta_y), macroparticlenumber)
+    #     yp = normal(0, np.sqrt(epsn_y/betagamma / transverse_map.beta_y), macroparticlenumber)
+    #     rfbucket = RFBucket(circumference, gamma_reference, alpha, p_increment, harmonic_list, voltage_list, phi_offset_list)
+    #     z, dp = RFBucketMatcher(StationaryExponential, rfbucket, sigma_z, epsn_z).generate(macroparticlenumber)
 
-        phase_space_coordinates_dict = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'z': z, 'dp': dp}
+    #     phase_space_coordinates_dict = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'z': z, 'dp': dp}
 
-        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
-                   phase_space_coordinates_dict)
+    #     return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
+    #                phase_space_coordinates_dict)
 
 
     @classmethod
