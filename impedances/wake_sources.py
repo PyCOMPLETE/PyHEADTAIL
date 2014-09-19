@@ -113,8 +113,8 @@ class WakeTable(object):
         time          = np.array(self.wake_table['time'])
         wake_strength = np.array(self.wake_table[key])
 
+        # Wake conformity checks.
         if (time[0] == 0) and (wake_strength[0] == 0):
-
             def wake(beta, dz):
                 dz = dz.clip(max=0)
                 return interp1d(time, wake_strength)(- dz / (beta * c))
@@ -122,25 +122,16 @@ class WakeTable(object):
             print '\t NOTE: Assuming ultrarelativistic wake "%s".'%key
 
         elif (time[0] < 0) and (wake_strength[0] != 0):
-
             def wake(beta, dz):
                 return interp1d(time, wake_strength)(- dz / (beta * c))
 
             print '\t NOTE: Low beta wake "%s".'%key
 
         elif (time[0] > 0) and (wake_strength[0] != 0):
-
             print '\t ERROR: Wake "%s" does not conform to requirements.'%key
             exit(-1)
 
         return wake
-
-        # TODO: check this (commented; diff has a problem here -- KL 30.08.2014)
-        # This should only be true for ultrarelativistic wakes? Perhaps this should be left to the wakefield maker...
-        # insert zero value of wake field if provided wake begins with a finite value
-        # if wake_strength[0] != 0:
-        #     time          = np.append(time[0] - np.diff(time[1], time[0]), time)
-        #     wake_strength = np.append(0, wake_strength)
 
     def _function_longitudinal(self, key):
 
@@ -155,6 +146,9 @@ class WakeTable(object):
             elif time[0] == 0:
                 # beam loading theorem: half value of wake at z=0;
                 return (np.sign(-dz) + 1) / 2 * wake_interpolated
+            elif (time[0] > 0):
+                print '\t ERROR: Wake "%s" does not conform to requirements.'%key
+                exit(-1)
 
         return wake
 
