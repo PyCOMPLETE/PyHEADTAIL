@@ -3,9 +3,10 @@ Just to test matching generator for now...
 '''
 from __future__ import division
 
+from . import Element
 
 import numpy as np
-import pylab as plt
+# import matplotlib.pyplot as plt
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
 from scipy.integrate import dblquad
@@ -210,7 +211,7 @@ cos = np.cos
 from abc import ABCMeta, abstractmethod
 
 
-class LongitudinalMap(object):
+class LongitudinalMap(Element):
     """
     A longitudinal map represents a longitudinal dynamical element
     (e.g. a kick or a drift...), i.e. an abstraction of a cavity
@@ -342,7 +343,7 @@ class Kick(LongitudinalMap):
         return e*self.voltage/self.circumference * sin(phi)
 
     def E_acc(self, z):
-        deltaE  = self.p_increment*self.beta_reference*c
+        deltaE = self.p_increment*self.beta_reference*c
         return self.field(z) - deltaE/self.circumference
 
     def potential(self, z):

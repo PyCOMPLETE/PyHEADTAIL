@@ -9,14 +9,16 @@ import sys
 import numpy as np
 from scipy.constants import c, e, m_e, m_p
 
-import cobra_functions.stats as cp
+from ..cobra_functions import stats as cp
 from generators import *
 
 
 class Particles(object):
 
-    # (n_macroparticles, n_particles_per_mp, charge, mass, gamma_reference, ring_radius, phase_space_generators)
-    def __init__(self, n_macroparticles, charge, mass, gamma, n_particles_per_mp, phase_space_generators):
+    # (n_macroparticles, n_particles_per_mp, charge, mass, gamma_reference,
+    #  ring_radius, phase_space_generators)
+    def __init__(self, n_macroparticles, charge, mass, gamma,
+                 n_particles_per_mp, phase_space_generators):
         """
         Initialises the bunch and distributes its particles via the
         given PhaseSpace generator instances for all planes.
@@ -45,7 +47,7 @@ class Particles(object):
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
 
-        n_particles_per_mp = intensity/n_macroparticles
+        n_particles_per_mp = intensity / n_macroparticles
 
         betagamma = np.sqrt(gamma**2 - 1)
         p0 = betagamma * mass * c
@@ -54,20 +56,24 @@ class Particles(object):
         random_state = RandomState()
         random_state.seed(generator_seed)
 
-        gaussianx = GaussianX.from_optics(alpha_x, beta_x, epsn_x, betagamma,
-                                          generator_seed=random_state.randint(sys.maxint))
-        gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
-                                          generator_seed=random_state.randint(sys.maxint))
-        gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
-                                          generator_seed=random_state.randint(sys.maxint))
+        gaussianx = GaussianX.from_optics(
+            alpha_x, beta_x, epsn_x, betagamma,
+            generator_seed=random_state.randint(sys.maxint))
+        gaussiany = GaussianY.from_optics(
+            alpha_y, beta_y, epsn_y, betagamma,
+            generator_seed=random_state.randint(sys.maxint))
+        gaussianz = GaussianZ.from_optics(
+            beta_z, epsn_z, p0, is_accepted,
+            generator_seed=random_state.randint(sys.maxint))
 
         return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
                    (gaussianx, gaussiany, gaussianz))
 
     @classmethod
-    def as_gaussian_in_bucket(cls, n_macroparticles, charge, gamma, intensity, mass,
-                              alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                              sigma_z=None, epsn_z=None, rfsystem=None, generator_seed=None):
+    def as_gaussian_in_bucket(cls, n_macroparticles, charge, gamma, intensity,
+                              mass, alpha_x, beta_x, epsn_x, alpha_y, beta_y,
+                              epsn_y, sigma_z=None, epsn_z=None, rfsystem=None,
+                              generator_seed=None):
 
         n_particles_per_mp = intensity/n_macroparticles
 
@@ -78,10 +84,12 @@ class Particles(object):
         random_state = RandomState()
         random_state.seed(generator_seed)
 
-        gaussianx = GaussianX.from_optics(alpha_x, beta_x, epsn_x, betagamma,
-                                          generator_seed=random_state.randint(sys.maxint))
-        gaussiany = GaussianY.from_optics(alpha_y, beta_y, epsn_y, betagamma,
-                                          generator_seed=random_state.randint(sys.maxint))
+        gaussianx = GaussianX.from_optics(
+            alpha_x, beta_x, epsn_x, betagamma,
+            generator_seed=random_state.randint(sys.maxint))
+        gaussiany = GaussianY.from_optics(
+            alpha_y, beta_y, epsn_y, betagamma,
+            generator_seed=random_state.randint(sys.maxint))
         rfbucket = RFBucket(StationaryExponential, rfsystem, sigma_z, epsn_z)
 
         return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
@@ -103,16 +111,18 @@ class Particles(object):
         random_state = RandomState()
         random_state.seed(generator_seed)
 
-        gaussianz = GaussianZ.from_optics(beta_z, epsn_z, p0, is_accepted,
-                                          generator_seed=random_state.randint(sys.maxint))
+        gaussianz = GaussianZ.from_optics(
+            beta_z, epsn_z, p0, is_accepted,
+            generator_seed=random_state.randint(sys.maxint))
 
         return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
                    (gaussianz,))
 
 
     @classmethod
-    def as_gaussian_theta(cls, n_macroparticles, charge, mass, gamma, intensity,
-                          sigma_theta, sigma_dE, is_accepted=None, generator_seed=None):
+    def as_gaussian_theta(cls, n_macroparticles, charge, mass, gamma,
+                          intensity, sigma_theta, sigma_dE, is_accepted=None,
+                          generator_seed=None):
         """Initialises a Gaussian bunch from the given optics functions.
         For the argument is_accepted cf. generators.Gaussian_Z .
         """
@@ -126,8 +136,9 @@ class Particles(object):
         random_state = RandomState()
         random_state.seed(generator_seed)
 
-        gaussiantheta = GaussianTheta(sigma_theta, sigma_dE, is_accepted,
-                                      generator_seed=random_state.randint(sys.maxint))
+        gaussiantheta = GaussianTheta(
+            sigma_theta, sigma_dE, is_accepted,
+            generator_seed=random_state.randint(sys.maxint))
 
         return cls(n_macroparticles, charge, mass, gamma, n_particles_per_mp,
                    (gaussiantheta,))
@@ -247,13 +258,13 @@ class Particles(object):
 
     def mean_xp(self):
         return cp.mean(self.xp)
-    
+
     def mean_y(self):
         return cp.mean(self.y)
 
     def mean_yp(self):
         return cp.mean(self.yp)
-    
+
     def mean_z(self):
         return cp.mean(self.z)
 
@@ -279,4 +290,5 @@ class Particles(object):
         return cp.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
 
     def epsn_z(self):
-        return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
+        return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0
+                / self.charge)
