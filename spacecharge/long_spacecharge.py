@@ -38,14 +38,10 @@ class LongSpaceCharge(Element):
         slice_kicks = (self._prefactor(beam) * self._gfactor(beam) *
                        lambda_prime) * self.time_step
 
-        dp_kicks = np.empty(beam.n_macroparticles)
-        prev_index = 0
-        for slice_index, next_index in enumerate(
-                self.slices.first_particle_index_in_slice[1:]):
-            dp_kicks[prev_index:next_index] = slice_kicks[slice_index]
-            prev_index = next_index
+        p_id = self.slices.particles_within_cuts
+        s_id = self.slices.slice_index_of_particle.take(p_id)
 
-        beam.dp -= dp_kicks
+        beam.dp[p_id] -= slice_kicks.take(s_id)
 
     @staticmethod
     def _prefactor(beam):

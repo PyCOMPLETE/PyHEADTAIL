@@ -10,7 +10,8 @@ import numpy as np
 
 
 from random import sample
-import cobra_functions.stats as cp
+from ..cobra_functions import stats as cp
+from scipy import ndimage
 
 
 class Slicer(object):
@@ -78,44 +79,47 @@ class Slicer(object):
             slice_width = self.slice_width
         except AttributeError:
             z_cut_tail, z_cut_head = self._set_longitudinal_cuts(bunch)
-            z_cut_head += 1e-15
             slice_width = (z_cut_head - z_cut_tail) / self.n_slices
             # linspace is more robust than arange. To reach z_cut_head exactly.
             self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
-            self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
+            self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] -
+                                                 self.z_bins[:-1]) / 2.
 
-        self.slice_index_of_particle = np.floor((bunch.z + abs(z_cut_tail)) / slice_width ).astype(np.int32)
-        self.particles_within_cuts = np.where((self.slice_index_of_particle > -1) &
-                                              (self.slice_index_of_particle < self.n_slices))[0].astype(np.int32)
+        self.slice_index_of_particle = np.floor((bunch.z - z_cut_tail)
+                                                / slice_width ).astype(np.int32)
+        self.particles_within_cuts = np.where(
+                (self.slice_index_of_particle > -1) &
+                (self.slice_index_of_particle < self.n_slices)
+            )[0].astype(np.int32)
         self._count_macroparticles_per_slice()
 
 
-    def _slice_constant_space_old(self, bunch):
-        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
-        bunch.sort_particles()
+    # def _slice_constant_space_old(self, bunch):
+    #     # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+    #     bunch.sort_particles()
 
-        # 1. z-bins
-        try:
-            z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
-        except AttributeError:
-            z_cut_tail, z_cut_head = self._set_longitudinal_cuts(bunch)
-            self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1) # more robust than arange, to reach z_cut_head exactly
-            self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
+    #     # 1. z-bins
+    #     try:
+    #         z_cut_tail, z_cut_head = self.z_cut_tail, self.z_cut_head
+    #     except AttributeError:
+    #         z_cut_tail, z_cut_head = self._set_longitudinal_cuts(bunch)
+    #         self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1) # more robust than arange, to reach z_cut_head exactly
+    #         self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
-        n_macroparticles_alive = bunch.n_macroparticles - bunch.n_macroparticles_lost
-        self.n_cut_tail = +np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_tail)
-        self.n_cut_head = -np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_head) + n_macroparticles_alive
+    #     n_macroparticles_alive = bunch.n_macroparticles - bunch.n_macroparticles_lost
+    #     self.n_cut_tail = +np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_tail)
+    #     self.n_cut_head = -np.searchsorted(bunch.z[:n_macroparticles_alive], z_cut_head) + n_macroparticles_alive
 
-        # 2. n_macroparticles
-        z_bins_all = np.hstack((bunch.z[0], self.z_bins, bunch.z[n_macroparticles_alive - 1]))
-        first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], z_bins_all)
-        if (self.z_bins[-1] in bunch.z[:n_macroparticles_alive]): first_index_in_bin[-1] += 1
-        self.first_particle_index_in_slice = first_index_in_bin[1:-1]
+    #     # 2. n_macroparticles
+    #     z_bins_all = np.hstack((bunch.z[0], self.z_bins, bunch.z[n_macroparticles_alive - 1]))
+    #     first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], z_bins_all)
+    #     if (self.z_bins[-1] in bunch.z[:n_macroparticles_alive]): first_index_in_bin[-1] += 1
+    #     self.first_particle_index_in_slice = first_index_in_bin[1:-1]
 
-        self.n_macroparticles = np.diff(first_index_in_bin)[1:-1]
+    #     self.n_macroparticles = np.diff(first_index_in_bin)[1:-1]
 
-        # .in_slice indicates in which slice the particle is (needed for wakefields)
-        self._set_slice_index_of_particle(bunch)
+    #     # .in_slice indicates in which slice the particle is (needed for wakefields)
+    #     self._set_slice_index_of_particle(bunch)
 
 
     def _slice_constant_charge(self, bunch):
