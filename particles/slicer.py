@@ -44,7 +44,7 @@ class Slicer(object):
 
         return z_cut_tail, z_cut_head
 
-    @profile
+#    @profile
     def _slice_constant_space(self, bunch):
 
         try:
@@ -193,11 +193,11 @@ class Slicer(object):
 
     def _find_particle_indices_per_slice(self):
 
-        self.position_in_particle_indices_per_slice = np.zeros(self.n_slices, dtype=np.int32)
-        self.position_in_particle_indices_per_slice[1:] = np.cumsum(self.n_macroparticles)[:-1]
+        self.position_in_particle_indices_per_slice = np.zeros(self.n_slices + 1, dtype=np.int32)
+        self.position_in_particle_indices_per_slice[1:] = np.cumsum(self.n_macroparticles)
 
         self.particle_indices_per_slice = np.zeros(len(self.particles_within_cuts),
-                                                  dtype=np.int32)
+                                                   dtype=np.int32)
 
         cp.find_particle_indices_per_slice(self.slice_index_of_particle,
                                            self.particles_within_cuts,

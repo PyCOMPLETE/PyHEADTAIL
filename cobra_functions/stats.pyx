@@ -88,7 +88,7 @@ cpdef find_particle_indices_per_slice(int[::1] slice_index_of_particle,
                                       int[::1] particle_indices_per_slice):
 
     cdef unsigned int n_particles_within_cuts = particles_within_cuts.shape[0]
-    cdef unsigned int n_slices = position_in_particle_indices_per_slice.shape[0]
+    cdef unsigned int n_slices = position_in_particle_indices_per_slice.shape[0] - 1
 
     cdef unsigned int[::1] pos_ctr = np.zeros(n_slices, dtype=np.uint32)
     cdef unsigned int i, p_idx, s_idx
