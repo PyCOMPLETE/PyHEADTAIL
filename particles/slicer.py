@@ -44,7 +44,7 @@ class Slicer(object):
 
         return z_cut_tail, z_cut_head
 
-
+    @profile
     def _slice_constant_space(self, bunch):
 
         try:
@@ -62,6 +62,7 @@ class Slicer(object):
         self.particles_within_cuts = np.where((self.slice_index_of_particle > -1) &
                                               (self.slice_index_of_particle < self.n_slices))[0].astype(np.int32)
         self._count_macroparticles_per_slice()
+        self._find_particle_indices_per_slice()
 
 
     def _slice_constant_space_old(self, bunch):
@@ -139,6 +140,8 @@ class Slicer(object):
         self.slice_index_of_particle = self.slice_index_of_particle.take(id_argsorted)
         self.particles_within_cuts = np.where(self.slice_index_of_particle > -1)[0].astype(np.int32)
 
+        self._find_particle_indices_per_slice()
+
         # TODO:
         
         # MS, 16.09.14: update on lost particles should be performed by
@@ -180,19 +183,26 @@ class Slicer(object):
                                               self.n_macroparticles)
 
 
-    ## def _set_slice_index_of_particle(self, bunch):
+    def particle_indices_of_slice(self, slice_index):
 
-    ##     try:
-    ##         self.slice_index_of_particle
-    ##     except AttributeError:
-    ##         self.slice_index_of_particle = np.zeros(bunch.n_macroparticles, dtype=np.int)
+        pos      = self.position_in_particle_indices_per_slice[slice_index]
+        next_pos = self.position_in_particle_indices_per_slice[slice_index+1]
 
-    ##     for i in range(self.n_slices):
-    ##         self.slice_index_of_particle[self.first_particle_index_in_slice[i]:self.first_particle_index_in_slice[i+1]] = i
+        return self.particle_indices_per_slice[pos:next_pos]
 
 
-    def particle_indices_of_slice(self, i):
-        return np.where(self.slice_index_of_particle==i)[0]
+    def _find_particle_indices_per_slice(self):
+
+        self.position_in_particle_indices_per_slice = np.zeros(self.n_slices, dtype=np.int32)
+        self.position_in_particle_indices_per_slice[1:] = np.cumsum(self.n_macroparticles)[:-1]
+
+        self.particle_indices_per_slice = np.zeros(len(self.particles_within_cuts),
+                                                  dtype=np.int32)
+
+        cp.find_particle_indices_per_slice(self.slice_index_of_particle,
+                                           self.particles_within_cuts,
+                                           self.position_in_particle_indices_per_slice,
+                                           self.particle_indices_per_slice)
 
 
     def update_slices(self, bunch):

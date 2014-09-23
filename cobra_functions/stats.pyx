@@ -71,7 +71,7 @@ cpdef double emittance(double[::1] u, double[::1] v):
 
 
 # STATS FOR SLICES
-cpdef count_macroparticles_per_slice(int[::1] slice_index_of_particle, int[::1] particles_within_cuts, \
+cpdef count_macroparticles_per_slice(int[::1] slice_index_of_particle, int[::1] particles_within_cuts,
                                      int[::1] n_macroparticles):
 
     cdef unsigned int n_particles_within_cuts = particles_within_cuts.shape[0]
@@ -80,6 +80,28 @@ cpdef count_macroparticles_per_slice(int[::1] slice_index_of_particle, int[::1] 
     for i in xrange(n_particles_within_cuts):
         s_idx = slice_index_of_particle[particles_within_cuts[i]]
         n_macroparticles[s_idx] += 1
+
+
+cpdef find_particle_indices_per_slice(int[::1] slice_index_of_particle,
+                                      int[::1] particles_within_cuts,
+                                      int[::1] position_in_particle_indices_per_slice,
+                                      int[::1] particle_indices_per_slice):
+
+    cdef unsigned int n_particles_within_cuts = particles_within_cuts.shape[0]
+    cdef unsigned int n_slices = position_in_particle_indices_per_slice.shape[0]
+
+    cdef unsigned int[::1] pos_ctr = np.zeros(n_slices, dtype=np.uint32)
+    cdef unsigned int i, p_idx, s_idx
+    cdef unsigned int pos
+
+    for i in xrange(n_particles_within_cuts):
+
+        p_idx = particles_within_cuts[i]
+        s_idx = slice_index_of_particle[p_idx]
+
+        pos = position_in_particle_indices_per_slice[s_idx] + pos_ctr[s_idx]
+        particle_indices_per_slice[pos] = p_idx
+        pos_ctr[s_idx] += 1
 
 
 cpdef mean_per_slice(int[::1] slice_index_of_particle, int[::1] particles_within_cuts,
