@@ -331,10 +331,10 @@ class Particles(object):
         return cp.std(self.dp)
 
     def epsn_x(self):
-        return cp.emittance(self.x, self.xp) * self.gamma * self.beta * 1e6
+        return cp.emittance(self.x, self.xp) * self.betagamma
 
     def epsn_y(self):
-        return cp.emittance(self.y, self.yp) * self.gamma * self.beta * 1e6
+        return cp.emittance(self.y, self.yp) * self.betagamma
 
     def epsn_z(self):
         return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)

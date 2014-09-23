@@ -64,19 +64,20 @@ class BunchMonitor(Monitor):
         except:
             print 'Creation of bunch monitor file failed.'
             sys.exit(-1)
-            
+
 
     def _write_data_to_buffer(self, bunch):
 
         for stats in self.stats_to_store:
             evaluate_stats = getattr(bunch, stats)
+       
             try:
                 self.buffer[stats][0] = evaluate_stats()
             except TypeError:
                 self.buffer[stats][0] = evaluate_stats
 
             self.buffer[stats] = np.roll(self.buffer[stats], shift=-1, axis=0)
-        
+
 
     def _write_buffer_to_file(self):
 
@@ -156,11 +157,15 @@ class SliceMonitor(Monitor):
         for stats in self.stats_to_store:
             evaluate_stats_bunch = getattr(bunch, stats)
             evaluate_stats_slice = getattr(self.slices, stats)
+
             try:
                 self.buffer_bunch[stats][0]   = evaluate_stats_bunch()
-                self.buffer_slice[stats][:,0] = evaluate_stats_slice(bunch)
             except TypeError:
                 self.buffer_bunch[stats][0]   = evaluate_stats_bunch
+
+            try:
+                self.buffer_slice[stats][:,0] = evaluate_stats_slice(bunch)
+            except TypeError:
                 self.buffer_slice[stats][:,0] = evaluate_stats_slice
 
             self.buffer_bunch[stats] = np.roll(self.buffer_bunch[stats], shift=-1, axis=0)

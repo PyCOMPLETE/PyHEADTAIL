@@ -21,6 +21,7 @@ class WakeKick(object):
             self._convolution = self._convolution_dot_product
         else:
             self._convolution = self._convolution_numpy
+            # self._convolution = self._convolution_dot_product
 
         self.wake_function = wake_function
 

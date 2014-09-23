@@ -52,20 +52,20 @@ class Slicer(object):
             slice_width = self.slice_width
         except AttributeError:
             z_cut_tail, z_cut_head = self._set_longitudinal_cuts(bunch)
-            z_cut_head += 1e-15
+            z_cut_head += (z_cut_head - z_cut_tail) / self.n_slices * 1e-15
             slice_width = (z_cut_head - z_cut_tail) / self.n_slices
             # linspace is more robust than arange. To reach z_cut_head exactly.
             self.z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
             self.z_centers = self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
-        self.slice_index_of_particle = np.floor((bunch.z + abs(z_cut_tail)) / slice_width ).astype(np.int32)
+        self.slice_index_of_particle = np.floor((bunch.z - z_cut_tail) / slice_width ).astype(np.int32)
         self.particles_within_cuts = np.where((self.slice_index_of_particle > -1) &
                                               (self.slice_index_of_particle < self.n_slices))[0].astype(np.int32)
         self._count_macroparticles_per_slice()
 
 
     def _slice_constant_space_old(self, bunch):
-        # sort particles according to dz (this is needed for correct functioning of bunch.compute_statistics)
+
         bunch.sort_particles()
 
         # 1. z-bins
@@ -191,6 +191,10 @@ class Slicer(object):
     ##         self.slice_index_of_particle[self.first_particle_index_in_slice[i]:self.first_particle_index_in_slice[i+1]] = i
 
 
+    def particle_indices_of_slice(self, i):
+        return np.where(self.slice_index_of_particle==i)[0]
+
+
     def update_slices(self, bunch):
 
         if self.mode == 'const_charge':
@@ -237,10 +241,10 @@ class Slicer(object):
         return self._sigma(bunch.dp)
 
     def epsn_x(self, bunch):
-        return self._epsn(bunch.x, bunch.xp, bunch.beta, bunch.gamma)
+        return self._epsn(bunch.x, bunch.xp) * bunch.betagamma
 
     def epsn_y(self, bunch):
-        return self._epsn(bunch.y, bunch.yp, bunch.beta, bunch.gamma)
+        return self._epsn(bunch.y, bunch.yp) * bunch.betagamma
 
     def epsn_z(self, bunch):
         '''
