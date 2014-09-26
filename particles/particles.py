@@ -7,7 +7,7 @@ Created on 06.01.2014
 
 import sys
 import numpy as np
-from scipy.constants import c, e, m_e, m_p
+from scipy.constants import c, e, m_e, m_p, epsilon_0
 
 from ..cobra_functions import stats as cp
 from ..trackers.rf_bucket import RFBucket
@@ -16,7 +16,8 @@ from generators import *
 
 class Particles(object):
 
-    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge, mass, ring_radius, gamma_reference, *phase_space_generators):
+    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
+                 mass, ring_radius, gamma_reference, *phase_space_generators):
         """
         Initialises the bunch and distributes its particles via the
         given PhaseSpace generator instances for all planes.
@@ -34,6 +35,8 @@ class Particles(object):
 
         self.charge = charge
         self.mass = mass
+        self.classical_particle_radius = (1 / (4 * np.pi * epsilon_0)
+            * self.charge**2 / (self.mass * c**2))
 
         self.ring_radius = ring_radius
         self.gamma = gamma_reference

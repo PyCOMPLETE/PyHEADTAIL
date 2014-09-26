@@ -121,8 +121,8 @@ class TransverseMap(object):
         relative_segment_length = np.diff(self.s) / self.s[-1]
         dQ_x = self.Q_x * relative_segment_length
         dQ_y = self.Q_y * relative_segment_length
-        
-        n_segments     = len(self.s) - 1
+
+        n_segments = len(self.s) - 1
         for seg in range(n_segments):
             s0 = seg % n_segments
             s1 = (seg + 1) % n_segments
@@ -131,7 +131,7 @@ class TransverseMap(object):
                 detuner.generate_segment_detuner(relative_segment_length[s0],
                                                  (self.beta_x[s0] + self.beta_x[s1]) / 2.,
                                                  (self.beta_y[s0] + self.beta_y[s1]) / 2.)
-                                
+
             transverse_segment_map = TransverseSegmentMap(self.alpha_x[s0], self.beta_x[s0], self.D_x[s0],
                                                           self.alpha_x[s1], self.beta_x[s1], self.D_x[s1],
                                                           self.alpha_y[s0], self.beta_y[s0], self.D_y[s0],
@@ -147,7 +147,7 @@ class TransverseMap(object):
 
         return len(self.segment_maps)
 
-    
+
     def __getitem__(self, key):
 
         return self.segment_maps[key]

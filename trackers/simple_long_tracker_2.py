@@ -804,7 +804,7 @@ class LinearMap(LongitudinalOneTurnMap):
     self.alpha is the linear momentum compaction factor.
     '''
 
-    def __init__(self, circumference, alpha, Qs, slices_tuple):
+    def __init__(self, circumference, alpha, Qs, *slices_tuple):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         self.circumference = circumference
