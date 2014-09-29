@@ -131,9 +131,10 @@ class Particles(object):
 
 
     @classmethod
-    def as_gaussian_in_bucket(cls, macroparticlenumber, charge, gamma_reference, intensity, mass,
-                              alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                              sigma_z=None, epsn_z=None, rfbucket=None, generator_seed=None):
+    def as_gaussian_in_bucket(cls, macroparticlenumber, charge, mass,
+                              gamma_reference, intensity, alpha_x, beta_x,
+                              epsn_x, alpha_y, beta_y, epsn_y, sigma_z=None,
+                              epsn_z=None, rfbucket=None, generator_seed=None):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 

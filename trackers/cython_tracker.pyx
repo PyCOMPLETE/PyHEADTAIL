@@ -37,7 +37,7 @@ cpdef track_transverse_without_detuners(double[:,::1] I, double[:,::1] J, double
     cdef int n = x.shape[0]
     cdef int i
     for i in prange(n, nogil=True):
-        
+
         xtmp  = x[i]
         xptmp = xp[i]
         x[i]  = M00 * xtmp + M01 * xptmp
@@ -92,7 +92,7 @@ cpdef track_transverse_with_detuners(double[:,::1] I, double[:,::1] J, double[::
                 (I01 * cos_dphi_x + J01 * sin_dphi_x) * xptmp
         xp[i] = (I10 * cos_dphi_x + J10 * sin_dphi_x) * xtmp + \
                 (I11 * cos_dphi_x + J11 * sin_dphi_x) * xptmp
-        
+
         ytmp  = y[i]
         yptmp = yp[i]
         y[i]  = (I22 * cos_dphi_y + J22 * sin_dphi_y) * ytmp + \
@@ -123,7 +123,7 @@ cpdef amplitude_detune(double[::1] dphi_x, double[::1] dphi_y, \
     cdef double betay2 = beta_y * beta_y
     cdef double jx
     cdef double jy
-    
+
     cdef int n = dphi_x.shape[0]
     cdef int i
     for i in prange(n, nogil=True):

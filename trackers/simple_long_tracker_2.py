@@ -813,7 +813,6 @@ class LinearMap(LongitudinalOneTurnMap):
         self.slices_tuple = slices_tuple
 
     def track(self, beam):
-
         eta = self.alpha - beam.gamma ** -2
 
         omega_0 = 2 * np.pi * beam.beta * c / self.circumference
