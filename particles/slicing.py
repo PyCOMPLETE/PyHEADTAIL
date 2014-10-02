@@ -6,12 +6,12 @@
 @date:    01/10/2014
 '''
 
-
 import numpy as np
+import scipy.ndimage as ndimage
+from random import sample
 
 from abc import ABCMeta, abstractmethod
 
-from random import sample
 from ..cobra_functions import stats as cp
 from ..general.decorators import memoize
 
@@ -42,7 +42,7 @@ class SliceSet(object):
 
     def __init__(self, z_bins, slice_index_of_particle, mode,
                  n_macroparticles_per_slice=None):
-        '''Is intended to be created by the Slicer factory mathod.
+        '''Is intended to be created by the Slicer factory method.
         A SliceSet is given a set of intervals defining the slicing
         region and the histogram over the thereby defined slices.
         '''
@@ -77,9 +77,9 @@ class SliceSet(object):
         '''Position of the respective slice start within the
         array self.particle_indices_per_slice .
         '''
-        slice_positions_ = np.empty(self.n_slices + 1)
+        slice_positions_ = np.zeros(self.n_slices + 1, dtype=np.int32)
         slice_positions_[1:] = (
-                np.cumsum(self.n_macroparticles).astype(np.int32))
+                np.cumsum(self.n_macroparticles_per_slice).astype(np.int32))
         return slice_positions_
 
     @property
@@ -87,7 +87,7 @@ class SliceSet(object):
         '''Slice distribution, i.e. number of macroparticles for each
         slice.
         '''
-        if not self._n_macroparticles_per_slice:
+        if self._n_macroparticles_per_slice is None:
             self._n_macroparticles_per_slice = np.zeros(
                 self.n_slices, dtype=np.int32)
             cp.count_macroparticles_per_slice(self.slice_index_of_particle,
@@ -108,21 +108,33 @@ class SliceSet(object):
 
     @property
     @memoize
-    def particle_indices_per_slice(self):
-        '''Particle indices arranged by their slice affiliation.'''
-        particle_indices_per_slice = np.zeros(len(self.particles_within_cuts),
-                                              dtype=np.int32)
-        cp.find_particle_indices_per_slice(
+    def particle_indices_by_slice(self):
+        '''Array of particle indices arranged / sorted according to
+        their slice affiliation.
+        '''
+        particle_indices_by_slice = np.zeros(len(self.particles_within_cuts),
+                                             dtype=np.int32)
+        cp.sort_particle_indices_by_slice(
             self.slice_index_of_particle, self.particles_within_cuts,
-            self.slice_positions, particle_indices_per_slice)
-        return particle_indices_per_slice
+            self.slice_positions, particle_indices_by_slice)
+        return particle_indices_by_slice
+
+    def particle_indices_of_slice(self, slice_index):
+        '''Return an array of particle indices which are located in the
+        slice defined by the given slice_index.
+        '''
+        pos      = self.slice_positions[slice_index]
+        next_pos = self.slice_positions[slice_index + 1]
+
+        return self.particle_indices_by_slice[pos:next_pos]
 
     @property
     def line_density_derivative(self):
         '''Array of length (n_slices - 1) containing
         the derivative of the n_macroparticles array.
         '''
-        derivative = np.gradient(self.n_macroparticles, self.slice_widths)
+        derivative = np.gradient(self.n_macroparticles_per_slice,
+                                 self.slice_widths)
         return derivative
 
     @property
@@ -138,20 +150,10 @@ class SliceSet(object):
         if self.mode is not 'uniform_bin':
             raise ModeIsNotUniformBin()
         derivative = (ndimage.gaussian_filter1d(
-                self.n_macroparticles, sigma=1, order=1, mode='wrap')
+                self.n_macroparticles_per_slice, sigma=1, order=1, mode='wrap')
                 / self.slice_widths[0]
             )
-        return dist_centers, derivative
-
-
-    def particle_indices_of_slice(self, slice_index):
-        '''return an array of particle indices which are located in the
-        slice defined by the given slice_index.
-        '''
-        pos      = self.slice_positions[slice_index]
-        next_pos = self.slice_positions[slice_index + 1]
-
-        return self.particle_indices_per_slice[pos:next_pos]
+        return derivative
 
     # Statistics
 
@@ -198,24 +200,31 @@ class SliceSet(object):
         return (4. * np.pi * self.sigma_z(beam) * self.sigma_dp(beam) *
                 beam.p0 / beam.charge)
 
+
     # Statistics helper functions.
 
     def _mean(self, u):
         mean_u = np.zeros(self.n_slices)
-        cp.mean_per_slice(self.slice_index_of_particle, self.particles_within_cuts,
-                          self.n_macroparticles, u, mean_u)
+        cp.mean_per_slice(self.slice_index_of_particle,
+                          self.particles_within_cuts,
+                          self.n_macroparticles_per_slice,
+                          u, mean_u)
         return mean_u
 
     def _sigma(self, u):
         sigma_u = np.zeros(self.n_slices)
-        cp.std_per_slice(self.slice_index_of_particle, self.particles_within_cuts,
-                         self.n_macroparticles, u, sigma_u)
+        cp.std_per_slice(self.slice_index_of_particle,
+                         self.particles_within_cuts,
+                         self.n_macroparticles_per_slice,
+                         u, sigma_u)
         return sigma_u
 
     def _epsn(self, u, up):
         epsn_u = np.zeros(self.n_slices)
-        cp.emittance_per_slice(self.slice_index_of_particle, self.particles_within_cuts,
-                               self.n_macroparticles, u, up, epsn_u)
+        cp.emittance_per_slice(self.slice_index_of_particle,
+                               self.particles_within_cuts,
+                               self.n_macroparticles_per_slice,
+                               u, up, epsn_u)
         return epsn_u
 
 
@@ -255,8 +264,8 @@ class Slicer(object):
         if self.z_cuts:
             return self.z_cuts
         elif self.n_sigma_z:
-            z_cut_tail = beam.mean_z - self.n_sigma_z * beam.sigma_z
-            z_cut_head = beam.mean_z + self.n_sigma_z * beam.sigma_z
+            z_cut_tail = beam.mean_z() - self.n_sigma_z * beam.sigma_z()
+            z_cut_head = beam.mean_z() + self.n_sigma_z * beam.sigma_z()
         else:
             z_cut_tail = np.min(beam.z)
             z_cut_head = np.max(beam.z)
@@ -304,8 +313,9 @@ class UniformChargeSlicer(Slicer):
         n_cut_tail = np.searchsorted(z_sorted, z_cut_tail)
         n_cut_head = n_part - np.searchsorted(z_sorted, z_cut_head)
 
-        # 1. n_part_per_slice - distribute macroparticles uniformly along slices.
-        # Must be integer. Distribute remaining particles randomly among slices with indices 'rand_slice_i'.
+        # 1. n_part_per_slice - distribute macroparticles uniformly along
+        # slices. Must be integer. Distribute remaining particles randomly
+        # among slices with indices 'rand_slice_i'.
         n_part_within_cuts = n_part - n_cut_tail - n_cut_head
         rand_slice_i = sample(range(self.n_slices),
                               n_part_within_cuts % self.n_slices)
@@ -317,10 +327,12 @@ class UniformChargeSlicer(Slicer):
         # 2. z-bins
         # Get indices of the particles defining the bin edges
         n_macroparticles_all = np.hstack(
-            (self.n_cut_tail, self.n_part_per_slice, self.n_cut_head))
+            (n_cut_tail, n_part_per_slice, n_cut_head))
         first_indices = np.cumsum(n_macroparticles_all, dtype=np.int32)[:-1]
 
-        z_bins = (z_sorted[first_indices-1] + z_sorted[first_indices]) / 2
+        z_bins = np.empty(self.n_slices + 1)
+        z_bins[1:-1] = ((z_sorted[first_indices[1:-1]-1] +
+            z_sorted[first_indices[1:-1]]) / 2)
         z_bins[0], z_bins[-1] = z_cut_tail, z_cut_head
 
         slice_index_of_particle_sorted = -np.ones(n_part, dtype=np.int32)
@@ -355,12 +367,3 @@ class UniformChargeSlicer(Slicer):
 
         # MS, 16.09.14: Here we are assuming that z is pointing to
         # z_all[:n_macroparticles_alive], i.e. excluding lost particles !!!
-        # z_argsorted = np.argsort(self.z)
-
-#        self.x  = self.x.take(z_argsorted)
-#        self.xp = self.xp.take(z_argsorted)
-#        self.y  = self.y.take(z_argsorted)
-#        self.yp = self.yp.take(z_argsorted)
-#        self.dp = self.dp.take(z_argsorted)
-        # self.z  = self.z.take(z_argsorted)
-        # self.id = self.id.take(z_argsorted)
