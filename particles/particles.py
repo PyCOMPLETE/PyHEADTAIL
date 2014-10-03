@@ -16,7 +16,17 @@ from generators import RFBucketMatcher
 
 class Particles(object):
 
-    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference, phase_space_coordinates_dict):
+    '''Dictionary of SliceSet objects which are retrieved via
+    self.get_slices(slicer) by a client. Each SliceSet is recorded
+    only once for a specific longitudinal state of Particles.
+    Any longitudinal trackers (or otherwise modifying elements)
+    should clean the saved SliceSet dictionary via self.clean_slices().
+    '''
+    _slice_sets = {}
+
+    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
+                 mass, circumference, gamma_reference,
+                 phase_space_coordinates_dict):
 
         self.macroparticlenumber = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
@@ -41,27 +51,27 @@ class Particles(object):
 
         assert( all([len(v) == self.macroparticlenumber for v in phase_space_coordinates_dict.values()]) )
 
-    def __init__2(self, macroparticlenumber, particlenumber_per_mp, charge, mass, ring_radius, gamma_reference, *phase_space_generators):
+    # def __init__(self, macroparticlenumber, particlenumber_per_mp, charge, mass, ring_radius, gamma_reference, *phase_space_generators):
 
-        # New
-        self.macroparticlenumber = macroparticlenumber
-        self.particlenumber_per_mp = particlenumber_per_mp
+    #     # New
+    #     self.macroparticlenumber = macroparticlenumber
+    #     self.particlenumber_per_mp = particlenumber_per_mp
 
-        # Compatibility
-        self.n_macroparticles = macroparticlenumber
-        self.n_particles_per_mp = particlenumber_per_mp
-        self.same_size_for_all_MPs = True
+    #     # Compatibility
+    #     self.n_macroparticles = macroparticlenumber
+    #     self.n_particles_per_mp = particlenumber_per_mp
+    #     self.same_size_for_all_MPs = True
 
-        self.charge = charge
-        self.mass = mass
+    #     self.charge = charge
+    #     self.mass = mass
 
-        self.ring_radius = ring_radius
-        self.gamma = gamma_reference
+    #     self.ring_radius = ring_radius
+    #     self.gamma = gamma_reference
 
-        self.phase_space_coordinates_list = []
-        for phase_space in phase_space_generators:
-            phase_space.generate(self)
-        self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
+    #     self.phase_space_coordinates_list = []
+    #     for phase_space in phase_space_generators:
+    #         phase_space.generate(self)
+    #     self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
 
     @classmethod
@@ -320,6 +330,23 @@ class Particles(object):
     def delta_E(self, value):
         self.dp = value / (self.beta*c*self.p0)
 
+
+    def get_slices(self, slicer):
+        '''For the given Slicer, the last SliceSet is returned.
+        If there is no SliceSet recorded (i.e. the longitudinal
+        state has changed), a new SliceSet is requested from the Slicer
+        via Slicer.slice(self) and stored for future reference.
+        '''
+        if slicer not in self._slice_sets:
+            self._slice_sets[slicer] = slicer.slice(self)
+        return self._slice_sets[slicer]
+
+    def clean_slices(self):
+        '''Erases the SliceSet records of this Particles instance.
+        Any longitudinal trackers (or otherwise modifying elements)
+        should use this method to clean the recorded SliceSet objects.
+        '''
+        del self._slice_sets
 
     def sort_particles(self):
         # update the number of lost particles
