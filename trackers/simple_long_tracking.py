@@ -10,7 +10,7 @@ import numpy as np
 
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
-from trackers.rf_bucket import RFBucket
+from rf_bucket import RFBucket
 
 sin = np.sin
 cos = np.cos
@@ -39,7 +39,7 @@ def clean_slices(long_track_method):
     return cleaned_long_track_method
 
 
-class LongitudinalMap(object):
+class LongitudinalMap(Element):
     """
     A longitudinal map represents a longitudinal dynamical element
     (e.g. a kick or a drift...), i.e. an abstraction of a cavity

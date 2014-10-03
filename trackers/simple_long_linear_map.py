@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import c, e
 
-from simple_long_tracker_2 import LongitudinalMap, clean_slices
+from simple_long_tracking import LongitudinalMap, clean_slices
 
 sin = np.sin
 cos = np.cos

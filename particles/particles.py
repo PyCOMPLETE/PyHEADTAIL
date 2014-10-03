@@ -9,20 +9,12 @@ import numpy as np
 from numpy.random import normal, uniform
 from scipy.constants import c, e, m_e, m_p
 
-import cobra_functions.stats as cp
-from trackers.rf_bucket import RFBucket
+from ..cobra_functions import stats as cp
+from ..trackers.rf_bucket import RFBucket
 from generators import RFBucketMatcher
 
 
 class Particles(object):
-
-    '''Dictionary of SliceSet objects which are retrieved via
-    self.get_slices(slicer) by a client. Each SliceSet is recorded
-    only once for a specific longitudinal state of Particles.
-    Any longitudinal trackers (or otherwise modifying elements)
-    should clean the saved SliceSet dictionary via self.clean_slices().
-    '''
-    _slice_sets = {}
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma_reference,
@@ -36,6 +28,15 @@ class Particles(object):
 
         self.circumference = circumference
         self.gamma_reference = gamma_reference
+
+        '''Dictionary of SliceSet objects which are retrieved via
+        self.get_slices(slicer) by a client. Each SliceSet is recorded
+        only once for a specific longitudinal state of Particles.
+        Any longitudinal trackers (or otherwise modifying elements)
+        should clean the saved SliceSet dictionary via
+        self.clean_slices().
+        '''
+        self._slice_sets = {}
 
         for k, v in phase_space_coordinates_dict.items():
             setattr(self, k, v)
@@ -75,8 +76,9 @@ class Particles(object):
 
 
     @classmethod
-    def as_gaussian(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-                    sigma_x, sigma_xp, sigma_y, sigma_yp, sigma_z, sigma_dp, generator_seed=None):
+    def as_gaussian(cls, macroparticlenumber, intensity, charge, mass,
+                    circumference, gamma_reference, sigma_x, sigma_xp,
+                    sigma_y, sigma_yp, sigma_z, sigma_dp, generator_seed=None):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
@@ -346,7 +348,7 @@ class Particles(object):
         Any longitudinal trackers (or otherwise modifying elements)
         should use this method to clean the recorded SliceSet objects.
         '''
-        del self._slice_sets
+        self._slice_sets = {}
 
     def sort_particles(self):
         # update the number of lost particles

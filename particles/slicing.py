@@ -5,6 +5,7 @@
           Adrian Oeftiger
 @date:    01/10/2014
 '''
+from __future__ import division
 
 import numpy as np
 import scipy.ndimage as ndimage
@@ -18,6 +19,12 @@ from ..general.decorators import memoize
 class ModeIsNotUniformBin(Exception):
     def __str__(self):
         return "This SliceSet has self.mode not set to 'uniform_bin'!"
+
+class ModeIsUniformCharge(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return value
 
 class SliceSet(object):
     '''Defines a set of longitudinal slices. It's a blueprint or photo
@@ -119,33 +126,25 @@ class SliceSet(object):
             self.slice_positions, particle_indices_by_slice)
         return particle_indices_by_slice
 
-    def particle_indices_of_slice(self, slice_index):
-        '''Return an array of particle indices which are located in the
-        slice defined by the given slice_index.
-        '''
-        pos      = self.slice_positions[slice_index]
-        next_pos = self.slice_positions[slice_index + 1]
-
-        return self.particle_indices_by_slice[pos:next_pos]
-
-    @property
     def line_density_derivative(self):
         '''Array of length (n_slices - 1) containing
         the derivative of the n_macroparticles array.
         '''
+        if self.mode is 'uniform_charge':
+            raise ModeIsUniformCharge('The derivative is zero up to ' +
+                                      'numerical issues because the ' +
+                                      'charges have been distributed ' +
+                                      'uniformly across the slices.')
         derivative = np.gradient(self.n_macroparticles_per_slice,
                                  self.slice_widths)
         return derivative
 
-    @property
     def line_density_derivative_gauss(self):
         '''
         Calculate the derivative of the slice charge density while
         smoothing the line density via a Gaussian filter.
         Return list with entries of density derivative of length
         n_slices.
-        Use this only for self.mode='uniform_bin', otherwise use
-        self.line_density_derivative .
         '''
         if self.mode is not 'uniform_bin':
             raise ModeIsNotUniformBin()
@@ -154,6 +153,15 @@ class SliceSet(object):
                 / self.slice_widths[0]
             )
         return derivative
+
+    def particle_indices_of_slice(self, slice_index):
+        '''Return an array of particle indices which are located in the
+        slice defined by the given slice_index.
+        '''
+        pos      = self.slice_positions[slice_index]
+        next_pos = self.slice_positions[slice_index + 1]
+
+        return self.particle_indices_by_slice[pos:next_pos]
 
     # Statistics
 
@@ -268,7 +276,7 @@ class Slicer(object):
         respectively is applied, otherwise the longitudinally first and
         last particle define the full region.
         '''
-        if self.z_cuts:
+        if self.z_cuts is not None:
             return self.z_cuts
         elif self.n_sigma_z:
             z_cut_tail = beam.mean_z() - self.n_sigma_z * beam.sigma_z()
@@ -309,7 +317,7 @@ class UniformBinSlicer(Slicer):
         Factory method for uniformly binned SliceSet objects.
         '''
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
-        slice_width = (z_cut_head - z_cut_tail) / self.n_slices
+        slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
 
         z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
         slice_index_of_particle = np.floor(

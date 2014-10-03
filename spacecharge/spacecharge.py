@@ -5,6 +5,7 @@
 from __future__ import division
 
 from . import Element
+from ..trackers.simple_long_tracking import clean_slices
 
 import numpy as np
 from scipy.constants import m_p, c, e, epsilon_0
@@ -18,28 +19,25 @@ class LongSpaceCharge(Element):
     cf. the original HEADTAIL version.
     '''
 
-    def __init__(self, slices, pipe_radius, time_step,
-                 line_density_derivative_function=None):
-        self.slices = slices
-        if line_density_derivative_function:
-            self.line_density_derivative = line_density_derivative_function
-        else:
-            self.line_density_derivative = slices.line_density_derivative_smooth
+    def __init__(self, slicer, pipe_radius, time_step):
+        self.slicer = slicer
         self.pipe_radius = pipe_radius
         self.time_step = time_step
 
+    @clean_slices
     def track(self, beam):
         '''
         Add the longitudinal space charge contribution to the beam's
         dp kick.
         '''
-        lambda_prime = (self.line_density_derivative()[1] *
+        slices = beam.get_slices(self.slicer)
+        lambda_prime = (slices.line_density_derivative() *
                         beam.n_particles_per_mp)
         slice_kicks = (self._prefactor(beam) * self._gfactor(beam) *
                        lambda_prime) * self.time_step
 
-        p_id = self.slices.particles_within_cuts
-        s_id = self.slices.slice_index_of_particle.take(p_id)
+        p_id = slices.particles_within_cuts
+        s_id = slices.slice_index_of_particle.take(p_id)
 
         beam.dp[p_id] -= slice_kicks.take(s_id)
 
