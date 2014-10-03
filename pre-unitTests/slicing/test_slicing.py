@@ -1,6 +1,15 @@
 #!/usr/bin/python
 from __future__ import division
 
+# include PyHEADTAIL directory
+import sys
+import os
+#BIN = os.path.dirname(__file__)
+#BIN = os.path.abspath( BIN )
+#BIN = os.path.dirname( BIN )
+BIN = "/home/oeftiger/cern/git/PyHEADTAIL-new/"
+sys.path.append(BIN)
+
 import numpy as np
 import pylab as plt
 
