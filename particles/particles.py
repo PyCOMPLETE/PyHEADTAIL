@@ -16,32 +16,41 @@ from generators import *
 
 class Particles(object):
 
-    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge, mass, ring_radius, gamma_reference, *phase_space_generators):
-        """
-        Initialises the bunch and distributes its particles via the
-        given PhaseSpace generator instances for all planes.
-        """
+    '''Dictionary of SliceSet objects which are retrieved via
+    self.get_slices(slicer) by a client. Each SliceSet is recorded
+    only once for a specific longitudinal state of Particles.
+    Any longitudinal trackers (or otherwise modifying elements)
+    should clean the saved SliceSet dictionary via self.clean_slices().
+    '''
+    _slice_sets = {}
 
-        # New
+    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
+                 mass, circumference, gamma_reference,
+                 phase_space_coordinates_dict):
+
         self.macroparticlenumber = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
-
-        # Compatibility
-        self.n_macroparticles = macroparticlenumber
-        self.n_macroparticles_lost = 0
-        self.n_particles_per_mp = particlenumber_per_mp
-        self.same_size_for_all_MPs = True
 
         self.charge = charge
         self.mass = mass
 
-        self.ring_radius = ring_radius
-        self.gamma = gamma_reference
+        self.circumference = circumference
+        self.gamma_reference = gamma_reference
 
-        self.phase_space_coordinates_list = []
-        for phase_space in phase_space_generators:
-            phase_space.generate(self)
-        self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
+        for k, v in phase_space_coordinates_dict.items():
+            setattr(self, k, v)
+        self.phase_space_coordinates_list = phase_space_coordinates_dict.keys()
+        self.id = np.arange(1, self.macroparticlenumber+1, dtype=int)
+
+        # Compatibility
+        self.n_macroparticles = self.macroparticlenumber
+        self.n_macroparticles_lost = 0
+        self.n_particles_per_mp = self.particlenumber_per_mp
+        self.same_size_for_all_MPs = True
+        self.gamma = self.gamma_reference
+
+        assert( all([len(v) == self.macroparticlenumber for v in phase_space_coordinates_dict.values()]) )
+
 
     def __init__2(self, macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference, phase_space_coordinates_dict):
 
@@ -295,6 +304,45 @@ class Particles(object):
     @delta_E.setter
     def delta_E(self, value):
         self.dp = value / (self.beta*c*self.p0)
+
+
+    def get_slices(self, slicer):
+        '''For the given Slicer, the last SliceSet is returned.
+        If there is no SliceSet recorded (i.e. the longitudinal
+        state has changed), a new SliceSet is requested from the Slicer
+        via Slicer.slice(self) and stored for future reference.
+        '''
+        if slicer not in self._slice_sets:
+            self._slice_sets[slicer] = slicer.slice(self)
+        return self._slice_sets[slicer]
+
+    def clean_slices(self):
+        '''Erases the SliceSet records of this Particles instance.
+        Any longitudinal trackers (or otherwise modifying elements)
+        should use this method to clean the recorded SliceSet objects.
+        '''
+        del self._slice_sets
+
+    def sort_particles(self):
+        # update the number of lost particles
+        self.n_macroparticles_lost = (self.n_macroparticles -
+                                      np.count_nonzero(self.id))
+
+        # sort particles according to z (this is needed for correct
+        # functioning of bunch.compute_statistics)
+        if self.n_macroparticles_lost:
+            # place lost particles at the end of the array
+            z_argsorted = np.lexsort((self.z, -np.sign(self.id)))
+        else:
+            z_argsorted = np.argsort(self.z)
+
+        self.x  = self.x.take(z_argsorted)
+        self.xp = self.xp.take(z_argsorted)
+        self.y  = self.y.take(z_argsorted)
+        self.yp = self.yp.take(z_argsorted)
+        self.z  = self.z.take(z_argsorted)
+        self.dp = self.dp.take(z_argsorted)
+        self.id = self.id.take(z_argsorted)
 
 
     '''

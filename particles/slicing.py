@@ -241,9 +241,16 @@ class Slicer(object):
         if n_sigma_z and z_cuts:
             raise ValueError("Both arguments n_sigma_z and z_cuts are" +
                              " given while only one is accepted!")
-        self.n_slices = n_slices
-        self.n_sigma_z = n_sigma_z
-        self.z_cuts = z_cuts
+        self.config = (n_slices, n_sigma_z, z_cuts)
+
+    @property
+    def config(self):
+        return (self.n_slices, self.n_sigma_z, self.z_cuts)
+    @config.setter
+    def config(self, value):
+        self.n_slices = value[0]
+        self.n_sigma_z = value[1]
+        self.z_cuts = value[2]
 
     @abstractmethod
     def slice(self, beam):
@@ -270,9 +277,29 @@ class Slicer(object):
             z_cut_tail = np.min(beam.z)
             z_cut_head = np.max(beam.z)
             z_cut_head += abs(z_cut_head) * 1e-15
-
         return z_cut_tail, z_cut_head
 
+    def __hash__(self):
+        return hash(self.config)
+
+    def __eq__(self, other):
+        return self.config == other.config
+
+    # for notifying users of previous versions to use the right new methods
+    def update_slices(self, beam):
+        '''non-existent anymore!'''
+        raise RuntimeError('update_slices(beam) no longer exists. ' +
+                           'Instead, remove all previously recorded SliceSet' +
+                           'objects in the beam via beam.clean_slices() ' +
+                           'when the longitudinal state of the beam is ' +
+                           'changed. Concretely: replace ' +
+                           'slices.update_slices(beam) by ' +
+                           'beam.clean_slices().' +
+                           'The SliceSet objects should be ' +
+                           'retrieved via beam.get_slices(Slicer) *only*. ' +
+                           'In this way the beam can memorize previously ' +
+                           'created slice snapshots. This minimises ' +
+                           'computation time.')
 
 class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
