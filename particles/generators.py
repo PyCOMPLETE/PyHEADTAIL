@@ -507,34 +507,39 @@ class RFBucketMatcher(object):
 
         # Maximum emittance
         self._set_psi_sigma(H.circumference)
-        zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        epsn_max = self._compute_zero_quad(
-            lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright
-            ) * 2*H.p0_reference/e
+        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+        # epsn_max = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        z, dp = self._generate(50000, self.psi)
+        epsn_max = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
         if epsn_z > epsn_max:
             print ('\n*** RMS emittance larger than bucket; using full ' +
                    'bucket emittance', epsn_max, ' [eV s].')
             epsn_z = epsn_max*0.99
         print '\n*** Maximum RMS emittance', epsn_max, 'eV s.'
 
+        # @profile
         def get_zc_for_epsn_z(ec):
             self._set_psi_epsn(ec)
-            zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-            emittance = self._compute_zero_quad(
-                lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright
-                ) * 2*H.p0_reference/e
+            # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+            # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+            z, dp = self._generate(50000, self.psi)
+            emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
             print '... distance to target emittance:', emittance-epsn_z
 
             return emittance-epsn_z
 
         try:
-            ec_bar = newton(get_zc_for_epsn_z, epsn_z*1.2, tol=5e-3, maxiter=30)
+            ec_bar = newton(get_zc_for_epsn_z, epsn_z*1.2, tol=1e-4, maxiter=30)
         except RuntimeError:
             print ('*** WARNING: failed to converge using Newton-Raphson ' +
                    'method. Trying classic Brent method...')
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
+
         self._set_psi_epsn(ec_bar)
-        zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+        # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        z, dp = self._generate(50000, self.psi)
+        emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
         sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
         emittance = self._compute_zero_quad(
             lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright
@@ -542,8 +547,8 @@ class RFBucketMatcher(object):
 
         print '\n--> Emittance:', emittance
         print '--> Bunch length:', sigma
-        H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
-        H.emittance, H.sigma = emittance, sigma
+        # H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
+        # H.emittance, H.sigma = emittance, sigma
 
     # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
@@ -570,17 +575,18 @@ class RFBucketMatcher(object):
             return length-sigma
 
         zc_bar = newton(get_zc_for_sigma, sigma)
-        self._set_psi_sigma(zc_bar)
-        zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
-        emittance = self._compute_zero_quad(
-            lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright
-            ) * 2*H.p0_reference/e
 
-        print '\n--> Bunch length:', sigma
+        self._set_psi_sigma(zc_bar)
+        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+        # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        z, dp = self._generate(50000, self.psi)
+        emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
+        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
+
         print '--> Emittance:', emittance
-        H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
-        H.emittance, H.sigma = emittance, sigma
+        print '\n--> Bunch length:', sigma
+        # H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
+        # H.emittance, H.sigma = emittance, sigma
 
     def generate(self, macroparticlenumber, particles=None):
         '''
@@ -599,11 +605,11 @@ class RFBucketMatcher(object):
         lx = (xmax - xmin)
         ly = (ymax - ymin)
 
-        xx = np.linspace(xmin, xmax, nx + 1)
-        yy = np.linspace(ymin, ymax, ny + 1)
-        XX, YY = np.meshgrid(xx, yy)
-        HH = self.psi(XX, YY)
-        psi_interp = interp2d(xx, yy, HH)
+        # xx = np.linspace(xmin, xmax, nx + 1)
+        # yy = np.linspace(ymin, ymax, ny + 1)
+        # XX, YY = np.meshgrid(xx, yy)
+        # HH = self.psi(XX, YY)
+        # psi_interp = interp2d(xx, yy, HH)
 
         # ================================================================
         # mask_out = ~self.is_accepted(z, dp)
@@ -656,6 +662,30 @@ class RFBucketMatcher(object):
 
         return 2*L
 
+    def _generate(self, macroparticlenumber, psi):
+
+        # Bin
+        i, j = 0, 0
+        nx, ny = 128, 128
+        xmin, xmax = self.H.zleft, self.H.zright
+        ymin, ymax = -self.H.p_max(self.H.zright), self.H.p_max(self.H.zright)
+        lx = (xmax - xmin)
+        ly = (ymax - ymin)
+
+        n_gen = macroparticlenumber
+        u = xmin + lx * np.random.random(n_gen)
+        v = ymin + ly * np.random.random(n_gen)
+        s = np.random.random(n_gen)
+        mask_out = ~(s<self.psi(u, v))
+        while mask_out.any():
+            n_gen = np.sum(mask_out)
+            u[mask_out] = xmin + lx * np.random.random(n_gen)
+            v[mask_out] = ymin + ly * np.random.random(n_gen)
+            s[mask_out] = np.random.random(n_gen)
+            mask_out = ~(s<self.psi(u, v))
+
+        return u, v
+
     def _set_psi_sigma(self, sigma):
         self.psi_object.H0 = self.H.H0_from_sigma(sigma)
 
@@ -674,6 +704,13 @@ class RFBucketMatcher(object):
         # plt.show()
         return self.H._get_zero_crossings(
             lambda x: self.linedensity(x) - h_cut*lmax)
+
+    def _compute_emittance(self, z, dp):
+        var_z    = np.var(z)
+        var_dp   = np.var(dp)
+        mean_zdp = np.mean( (z-np.mean(z)) * (dp-np.mean(dp)) )
+
+        return np.sqrt(var_z*var_dp - mean_zdp**2)
 
     def _compute_zero_quad(self, psi, p_sep, xmin, xmax):
         '''
