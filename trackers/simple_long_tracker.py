@@ -133,26 +133,27 @@ class Kick(LongitudinalMap):
         self._phi_acceleration = 0
 
     def track(self, beam):
-        amplitude = e * self.voltage / (beam.beta * c)
-        phi = self._phi(beam.z)
+        sgn_eta = np.sign(self.eta(0, beam.gamma))
+        amplitude = sgn_eta * e * self.voltage / (beam.beta * c)
+        theta = (2 * np.pi / self.circumference) * beam.z
+        phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
 
         delta_p = beam.dp * beam.p0
-        delta_p += amplitude * (sin(phi) - sin(self.calc_phi_0(beam))) #- self.p_increment
+        delta_p += amplitude * (sin(phi) - sin(self.calc_phi_0(beam))) #self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
 
     def potential(self, z, beam, phi_0=None):
         """The contribution of this kick to the overall potential V(z)."""
-        amplitude = e * self.voltage / (beam.p0 * 2 * np.pi * self.harmonic)
+        sgn_eta = np.sign(self.eta(0, beam.gamma))
+        amplitude = (sgn_eta * e * self.voltage /
+                     (beam.p0 * 2 * np.pi * self.harmonic))
         if phi_0 is None:
             phi_0 = self.calc_phi_0(beam)
-        phi = self._phi(z)
+        theta = (2 * np.pi / self.circumference) * z
+        phi = self.harmonic * theta + self.phi_offset + self._phi_acceleration
         modulation = cos(phi) - cos(phi_0) + (phi - phi_0) * sin(phi_0)
         return amplitude * modulation
-
-    def _phi(self, z):
-        theta = (2 * np.pi / self.circumference) * z
-        return self.harmonic * theta + self.phi_offset + self._phi_acceleration
 
     def Qs(self, beam):
         '''
@@ -183,15 +184,13 @@ class Kick(LongitudinalMap):
         """
         if self.p_increment == 0 and self.voltage == 0:
             return 0
-        deltaE  = self.p_increment * c * beam.beta / beam.gamma
+        deltaE  = self.p_increment * c * beam.beta
         phi_rel = np.arcsin(deltaE / (e * self.voltage))
-
         if self.eta(0, beam.gamma) < 0:
             # return np.sign(deltaE) * np.pi - phi_rel
             return np.pi - phi_rel
         else:
             return phi_rel
-
         # sgn_eta = np.sign(self.eta(0, beam.gamma))
         # return np.arccos(
         #     sgn_eta * np.sqrt(1 - (deltaE / (e * self.voltage)) ** 2))
@@ -368,12 +367,14 @@ class LinearMap(LongitudinalOneTurnMap):
     self.alpha is the linear momentum compaction factor.
     '''
 
-    def __init__(self, circumference, alpha, Qs):
+    def __init__(self, circumference, alpha, Qs, slices):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         self.circumference = circumference
         self.alpha = alpha
         self.Qs = Qs
+
+        self.slices = slices
 
     def track(self, beam):
 
@@ -392,3 +393,5 @@ class LinearMap(LongitudinalOneTurnMap):
         beam.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
         beam.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
 
+        for slices in self.slices:
+            slices.update_slices(beam)

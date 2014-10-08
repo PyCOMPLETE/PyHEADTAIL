@@ -6,23 +6,15 @@ Created on 04.09.2014
 
 import sys
 import numpy as np
-from numpy.random import normal, uniform
+from numpy.random import normal, uniform, RandomState
 from scipy.constants import c, e, m_e, m_p
 
-import cobra_functions.stats as cp
-from trackers.rf_bucket import RFBucket
+from ..cobra_functions import stats as cp
+from ..trackers.rf_bucket import RFBucket
 from generators import RFBucketMatcher
 
 
 class Particles(object):
-
-    '''Dictionary of SliceSet objects which are retrieved via
-    self.get_slices(slicer) by a client. Each SliceSet is recorded
-    only once for a specific longitudinal state of Particles.
-    Any longitudinal trackers (or otherwise modifying elements)
-    should clean the saved SliceSet dictionary via self.clean_slices().
-    '''
-    _slice_sets = {}
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma_reference,
@@ -36,6 +28,15 @@ class Particles(object):
 
         self.circumference = circumference
         self.gamma_reference = gamma_reference
+
+        '''Dictionary of SliceSet objects which are retrieved via
+        self.get_slices(slicer) by a client. Each SliceSet is recorded
+        only once for a specific longitudinal state of Particles.
+        Any longitudinal trackers (or otherwise modifying elements)
+        should clean the saved SliceSet dictionary via
+        self.clean_slices().
+        '''
+        self._slice_sets = {}
 
         for k, v in phase_space_coordinates_dict.items():
             setattr(self, k, v)
@@ -51,32 +52,11 @@ class Particles(object):
 
         assert( all([len(v) == self.macroparticlenumber for v in phase_space_coordinates_dict.values()]) )
 
-    # def __init__(self, macroparticlenumber, particlenumber_per_mp, charge, mass, ring_radius, gamma_reference, *phase_space_generators):
-
-    #     # New
-    #     self.macroparticlenumber = macroparticlenumber
-    #     self.particlenumber_per_mp = particlenumber_per_mp
-
-    #     # Compatibility
-    #     self.n_macroparticles = macroparticlenumber
-    #     self.n_particles_per_mp = particlenumber_per_mp
-    #     self.same_size_for_all_MPs = True
-
-    #     self.charge = charge
-    #     self.mass = mass
-
-    #     self.ring_radius = ring_radius
-    #     self.gamma = gamma_reference
-
-    #     self.phase_space_coordinates_list = []
-    #     for phase_space in phase_space_generators:
-    #         phase_space.generate(self)
-    #     self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
-
 
     @classmethod
-    def as_gaussian(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-                    sigma_x, sigma_xp, sigma_y, sigma_yp, sigma_z, sigma_dp, generator_seed=None):
+    def as_gaussian(cls, macroparticlenumber, intensity, charge, mass,
+                    circumference, gamma_reference, sigma_x, sigma_xp,
+                    sigma_y, sigma_yp, sigma_z, sigma_dp, generator_seed=None):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
@@ -98,9 +78,11 @@ class Particles(object):
 
 
     @classmethod
-    def as_gaussian_linear(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
-                    alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, epsn_z,
-                    is_accepted=None, generator_seed=None):
+    def as_gaussian_linear(cls, macroparticlenumber, intensity, charge, mass,
+                           circumference, gamma_reference,
+                           alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
+                           beta_z, epsn_z,
+                           is_accepted=None, generator_seed=None):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
@@ -123,46 +105,6 @@ class Particles(object):
 
         return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
                    phase_space_coordinates_dict)
-
-
-    @classmethod
-    def as_gaussian_bucket(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
-                    alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                    alpha, p_increment, harmonic_list, voltage_list, phi_offset_list,
-                    sigma_z=None, epsn_z=None, generator_seed=None): pass
-
-
-    # @classmethod
-    # def as_gaussian_from_optics(cls, macroparticlenumber, charge, mass, gamma_reference, intensity,
-    #                 alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y, beta_z, epsn_z,
-    #                 is_accepted=None, generator_seed=None): pass
-
-
-    # @classmethod
-    # def as_gaussian_explicit(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-    #                          alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-    #                          alpha, p_increment, harmonic_list, voltage_list, phi_offset_list,
-    #                          sigma_z=None, epsn_z=None, generator_seed=None):
-
-    #     particlenumber_per_mp = intensity/macroparticlenumber
-
-    #     betagamma = np.sqrt(gamma_reference**2 - 1)
-
-    #     if generator_seed:
-    #         random_state = RandomState()
-    #         random_state.seed(generator_seed)
-
-    #     x  = normal(0, np.sqrt(epsn_x/betagamma * transverse_map.beta_x), macroparticlenumber)
-    #     xp = normal(0, np.sqrt(epsn_x/betagamma / transverse_map.beta_x), macroparticlenumber)
-    #     y  = normal(0, np.sqrt(epsn_y/betagamma * transverse_map.beta_y), macroparticlenumber)
-    #     yp = normal(0, np.sqrt(epsn_y/betagamma / transverse_map.beta_y), macroparticlenumber)
-    #     rfbucket = RFBucket(circumference, gamma_reference, alpha, p_increment, harmonic_list, voltage_list, phi_offset_list)
-    #     z, dp = RFBucketMatcher(StationaryExponential, rfbucket, sigma_z, epsn_z).generate(macroparticlenumber)
-
-    #     phase_space_coordinates_dict = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'z': z, 'dp': dp}
-
-    #     return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
-    #                phase_space_coordinates_dict)
 
 
     @classmethod
@@ -346,7 +288,7 @@ class Particles(object):
         Any longitudinal trackers (or otherwise modifying elements)
         should use this method to clean the recorded SliceSet objects.
         '''
-        del self._slice_sets
+        self._slice_sets = {}
 
     def sort_particles(self):
         # update the number of lost particles

@@ -1,4 +1,14 @@
+#!/usr/bin/python
 from __future__ import division
+
+# include PyHEADTAIL directory
+import sys
+import os
+#BIN = os.path.dirname(__file__)
+#BIN = os.path.abspath( BIN )
+#BIN = os.path.dirname( BIN )
+BIN = "/home/oeftiger/cern/git/PyHEADTAIL-new/"
+sys.path.append(BIN)
 
 import numpy as np
 import pylab as plt
@@ -38,13 +48,13 @@ def generate_bunch(n_macroparticles):
 
     epsn_z    = 4.*np.pi*sigma_z**2 * p0 / (beta_z * e)
 
-    bunch = Particles.as_gaussian(macroparticlenumber=n_macroparticles,
-                                  charge=charge, gamma_reference=gamma,
-                                  intensity=intensity, mass=mass,
-                                  alpha_x=0, beta_x=beta_x, epsn_x=epsn_x,
-                                  alpha_y=0, beta_y=beta_y, epsn_y=epsn_y,
-                                  beta_z=beta_z, epsn_z=epsn_z,
-                                  generator_seed=10)
+    bunch = Particles.as_gaussian_linear(macroparticlenumber=n_macroparticles,
+        intensity=intensity, charge=charge,
+        gamma_reference=gamma, mass=mass, circumference=C,
+        alpha_x=0, beta_x=beta_x, epsn_x=epsn_x,
+        alpha_y=0, beta_y=beta_y, epsn_y=epsn_y,
+        beta_z=beta_z, epsn_z=epsn_z,
+        generator_seed=None)
     return bunch
 
 def plot_slice_set_structure(axes, bunch, slice_set):
@@ -160,12 +170,12 @@ def main():
     # Line density derivatives
     deriv = uniform_bin_slice_set.line_density_derivative
     deriv_gauss = uniform_bin_slice_set.line_density_derivative_gauss
-    ax3.plot(uniform_bin_slice_set.z_centers, deriv, c='b', lw=2,
-             label='line_density_derivative')
-    ax3.plot(uniform_bin_slice_set.z_centers, deriv_gauss, c='r', lw=2,
-             label='line_density_derivative_gauss')
-    ax3.legend(loc='lower left')
-    ax3.set_xlim(((1+0.1) * min(bunch.z), (1+0.1) * max(bunch.z)))
+    # ax3.plot(uniform_bin_slice_set.z_centers, deriv, c='b', lw=2,
+    #          label='line_density_derivative')
+    # ax3.plot(uniform_bin_slice_set.z_centers, deriv_gauss, c='r', lw=2,
+    #          label='line_density_derivative_gauss')
+    # ax3.legend(loc='lower left')
+    # ax3.set_xlim(((1+0.1) * min(bunch.z), (1+0.1) * max(bunch.z)))
 
     # slice_index_of_particle and particle_indices_of_slice visual tests.
     plot_particle_indices_of_slice(axes=ax5, bunch=bunch,
@@ -194,11 +204,11 @@ def main():
     ax2.legend(loc='lower left')
 
     # Line density derivative
-    deriv = uniform_charge_slice_set.line_density_derivative
-    ax4.plot(uniform_charge_slice_set.z_centers, deriv, c='b', lw=2,
-             label='line_density_derivative')
-    ax4.legend(loc='lower left')
-    ax4.set_xlim(((1+0.1) * min(bunch.z), (1+0.1) * max(bunch.z)))
+    # deriv = uniform_charge_slice_set.line_density_derivative
+    # ax4.plot(uniform_charge_slice_set.z_centers, deriv, c='b', lw=2,
+    #          label='line_density_derivative')
+    # ax4.legend(loc='lower left')
+    # ax4.set_xlim(((1+0.1) * min(bunch.z), (1+0.1) * max(bunch.z)))
 
     # slice_index_of_particle and particle_indices_of_slice visual tests.
     plot_particle_indices_of_slice(axes=ax6, bunch=bunch,

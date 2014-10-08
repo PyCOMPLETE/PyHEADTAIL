@@ -146,11 +146,9 @@ class TransverseMap(object):
 
         self.segment_maps = segment_maps
 
-
     def __len__(self):
 
         return len(self.segment_maps)
-
 
     def __getitem__(self, key):
 

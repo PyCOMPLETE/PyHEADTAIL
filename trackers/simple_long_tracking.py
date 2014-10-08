@@ -39,7 +39,7 @@ def clean_slices(long_track_method):
     return cleaned_long_track_method
 
 
-class LongitudinalMap(object):
+class LongitudinalMap(Element):
     """
     A longitudinal map represents a longitudinal dynamical element
     (e.g. a kick or a drift...), i.e. an abstraction of a cavity

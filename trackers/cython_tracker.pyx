@@ -125,7 +125,6 @@ cpdef amplitude_detune(double[::1] dphi_x, double[::1] dphi_y, \
     cdef double betay2 = beta_y * beta_y
     cdef double jx
     cdef double jy
-    
     cdef unsigned int n = dphi_x.shape[0]
     cdef unsigned int i
 #    for i in prange(n, nogil=True):
