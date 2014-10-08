@@ -34,27 +34,25 @@ class SliceSet(object):
     new SliceSet.
     '''
 
-    '''Array of z values of each bin, goes from the left
-    bin edge of the first bin to the right bin edge of the last bin.'''
-    z_bins = []
-
-    '''Array of slice indices for each particle, positions (indices)
-    are the same as in beam.z .'''
-    slice_index_of_particle = []
-
-    '''How is the slicing done? for the moment it is either
-    'uniform_charge' or 'uniform_bin'.
-    '''
-    mode = None
-
     def __init__(self, z_bins, slice_index_of_particle, mode,
                  n_macroparticles_per_slice=None):
         '''Is intended to be created by the Slicer factory method.
         A SliceSet is given a set of intervals defining the slicing
         region and the histogram over the thereby defined slices.
         '''
+
+        '''Array of z values of each bin, goes from the left
+        bin edge of the first bin to the right bin edge of the last bin.
+        '''
         self.z_bins = z_bins
+
+        '''Array of slice indices for each particle, positions (indices)
+        are the same as in beam.z .'''
         self.slice_index_of_particle = slice_index_of_particle
+
+        '''How is the slicing done? for the moment it is either
+        'uniform_charge' or 'uniform_bin'.
+        '''
         self.mode = mode
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
 
