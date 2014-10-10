@@ -78,11 +78,11 @@ class Particles(object):
 
 
     @classmethod
-    def as_gaussian_linear(cls, macroparticlenumber, intensity, charge, mass,
-                           circumference, gamma_reference,
-                           alpha_x, beta_x, epsn_x, alpha_y, beta_y, epsn_y,
-                           beta_z, epsn_z,
-                           is_accepted=None, generator_seed=None):
+    def as_gaussian_linear(cls, macroparticlenumber, intensity,
+                           charge, mass, circumference, gamma_reference,
+                           alpha_x, beta_x, epsn_x,
+                           alpha_y, beta_y, epsn_y,
+                           beta_z, epsn_z, generator_seed=None):
 
         particlenumber_per_mp = intensity/macroparticlenumber
 
@@ -97,13 +97,13 @@ class Particles(object):
         xp = normal(0, np.sqrt(epsn_x/betagamma / beta_x), macroparticlenumber)
         y  = normal(0, np.sqrt(epsn_y/betagamma * beta_y), macroparticlenumber)
         yp = normal(0, np.sqrt(epsn_y/betagamma / beta_y), macroparticlenumber)
-        if not is_accepted:
-            z  = normal(0, np.sqrt(epsn_z*e/p0 * beta_z), macroparticlenumber)
-            dp = normal(0, np.sqrt(epsn_z*e/p0 / beta_z), macroparticlenumber)
+        z  = normal(0, np.sqrt(epsn_z*e/p0 * beta_z), macroparticlenumber)
+        dp = normal(0, np.sqrt(epsn_z*e/p0 / beta_z), macroparticlenumber)
 
         phase_space_coordinates_dict = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'z': z, 'dp': dp}
 
-        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
+        return cls(macroparticlenumber, particlenumber_per_mp,
+                   charge, mass, circumference, gamma_reference,
                    phase_space_coordinates_dict)
 
 
@@ -352,7 +352,8 @@ class Particles(object):
         return cp.emittance(self.y, self.yp) * self.betagamma
 
     def epsn_z(self):
-        return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
+        return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
+        # return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
 
 
 class StationaryExponential(object):
