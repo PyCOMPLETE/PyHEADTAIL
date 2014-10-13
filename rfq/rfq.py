@@ -1,212 +1,271 @@
-'''
+"""
+This module contains the Cython implementation of a pillbox-cavity RF
+quadrupole - referred to as the RFQ - as it was proposed by Alexej
+Grudiev in 'Radio frequency quadrupole for Landau damping in
+accelerators', Phys. Rev. Special Topics - Accelerators and Beams 17,
+011001 (2014) [1]. Similar to a 'Landau' octupole magnet, this device
+is intended to introduce an incoherent tune spread such that Landau
+damping can prevent the growth of transverse collective instabilities.
+
+The formulae that are used are based on [1] and make use of the thin-
+lens approximation. On the one hand, the RFQ introduces a longitudinal
+spread of the betatron frequency and on the other hand, a transverse
+spread of the synchrotron frequency.
+
+The effect in the transverse plane is modelled in two different
+ways
+
+(I)  RFQ as a detuner acting directly on each particles' betatron
+     tunes,
+(II) RFQ as a localized kick acting on each particles' momenta xp
+     and yp.
+
+The effect in the longitudinal plane is always modelled as a localized
+kick, i.e. a change in a particle's normalized momentum dp. For model
+(II), the incoherent betatron detuning is not applied directly, but is
+a consequence of the change in momenta xp and yp.
+
 @author Michael Schenk
 @date July, 10th 2014
-@brief Implementation of RF quadrupole for Landau damping.
+@brief Cython implementation of a pillbox cavity RF quadrupole for
+       Landau damping.
 @copyright CERN
-'''
+"""
 from __future__ import division
-from abc import ABCMeta, abstractmethod
-from scipy.constants import e, c
-import numpy as np
+from cython.parallel import prange
+cimport cython.boundscheck
+cimport cython.cdivision
 
-cos = np.cos
-sin = np.sin
+from libc.math cimport cos, sin
+from scipy.constants import c, e
+
+from ..trackers.detuners import DetunerCollection
 
 
-'''
-DETUNER MODEL.
-'''
-"""
-Different implementations/parameterizations of the RF Quadrupole as a detuner.
-The formulae are based on 'Radio frequency quadrupole for Landau damping in
-accelerators', A. Grudiev, 2014.
-"""
-class RFQTransverseSegmentGeneral(object):
+class RFQTransverseDetuner(DetunerCollection):
     """
-    General RFQ detuner using exact cosine dependence and allowing for phase shift.
+    Collection class to contain/manage the segment-wise defined
+    RFQ elements RFQTransverseDetunerSegment acting on the
+    betatron tunes (detuner model of the RFQ). This is a pure
+    Python class and it derives from the DetunerCollection class
+    defined in the module PyHEADTAIL.trackers.detuners.
     """
-    def __init__(self, dapp_xz, dapp_yz, omega_RF, phi_0_RF):
+    def __init__(self, v_2, omega, phi_0, beta_x_RFQ, beta_y_RFQ,
+                 n_threads=1):
+        """
+        An RFQ element is fully characterized by the parameters
+          v_2:   quadrupolar expansion coefficient of the accelerating
+                 voltage (~strength of the RFQ), in [V/m^2].
+          omega: Angular frequency of the RF wave, in [rad/s].
+          phi_0: Constant phase offset wrt. bunch center (z=0), in
+                 [rad].
 
-        self.omega_RF = omega_RF
-        self.phi_0_RF = phi_0_RF
-        self.dapp_xz  = dapp_xz
-        self.dapp_yz  = dapp_yz
+        beta_x_RFQ and beta_y_RFQ are the beta functions at the
+        position of the RFQ, although in the detuner model of the RFQ,
+        the RFQ should not actually be understood as being localized.
+
+        n_threads defines the number of threads to be used to execute
+        the for-loop on the number of particles with cython OpenMP. It
+        is set to 1 by default.
+        """
+        self.v_2 = v_2
+        self.omega = omega
+        self.phi_0 = phi_0
+
+        self.beta_x_RFQ = beta_x_RFQ
+        self.beta_y_RFQ = beta_y_RFQ
+
+        self.n_threads = n_threads
+
+    def generate_segment_detuner(self, segment_length, **kwargs):
+        dapp_xz = self.beta_x_RFQ * self.v_2 * e / (2.*np.pi*self.omega)
+        dapp_yz = -self.beta_y_RFQ * self.v_2 * e / (2.*np.pi*self.omega)
+        dapp_xz *= segment_length
+        dapp_yz *= segment_length
+
+        detuner = RFQTransverseDetunerSegment(
+            dapp_xz, dapp_yz, self.omega, self.phi_0, n_threads=self.n_threads)
+        self.segment_detuners.append(detuner)
 
 
+cdef class RFQTransverseDetunerSegment(object):
+    """
+    Cython implementation of the RFQ element acting directly on the
+    particles' betatron tunes (i.e. RFQ detuner model).
+    """
+    cdef double dapp_xz, dapp_yz, omega, phi_0
+    cdef int n_threads
+
+    def __init__(self, dapp_xz, dapp_yz, omega, phi_0, n_threads):
+        """
+          omega:   Angular frequency of the RF wave, in [rad/s].
+          phi_0:   Constant phase offset wrt. bunch center (z=0), in
+                   [rad].
+          dapp_xz: Strength of detuning in the horizontal plane, scaled
+                   to the relative segment length.
+          dapp_yz: Strength of detuning in the vertical plane, scaled
+                   to the relative segment length.
+
+        n_threads defines the number of threads to be used to execute
+        the for-loop on the number of particles with cython OpenMP. It
+        is set to 1 by default.
+        """
+        self.dapp_xz = dapp_xz
+        self.dapp_yz = dapp_yz
+
+        self.omega = omega
+        self.phi_0 = phi_0
+
+        self.n_threads = n_threads
+
+    @cython.boundscheck(False)
+    @cython.cdivision(True)
     def detune(self, beam):
+        """
+        Calculates for each particle its betatron detuning dQ_x, dQ_y
+        according to formulae taken from [1] (see above).
+            dQ_x = dapp_xz / p * \cos(omega / (beta c) z + phi_0)
+            dQ_y = dapp_yz / p * \cos(omega / (beta c) z + phi_0)
+        with
+            dapp_xz = beta_x_RFQ  * v_2 * e / (2 Pi * omega)
+            dapp_yz = -beta_y_RFQ  * v_2 * e / (2 Pi * omega)
+        and p the particle momentum p = (1 + dp) p0.
+        (Probably, it would make sense to approximate p by p0 for better
+        performance).
+        """
+        cdef double[::1] z = beam.z
+        cdef double[::1] dp = beam.dp
+        cdef double p0 = beam.p0
 
-        cos_dependence = cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
-        cos_dependence /= ((1. + beam.dp) * beam.p0)
+        cdef unsigned int n_particles = z.shape[0]
+        cdef double[::1] dQ_x = np.zeros(n_particles, dtype=np.double)
+        cdef double[::1] dQ_y = np.zeros(n_particles, dtype=np.double)
 
-        dphi_x = self.dapp_xz * cos_dependence
-        dphi_y = self.dapp_yz * cos_dependence
+        cdef double cos_arg = self.omega / (beam.beta * c)
+        cdef double p
 
-        return dphi_x, dphi_y
+        cdef unsigned int i
+        for i in prange(n_particles, nogil=True, num_threads=self.n_threads):
+            cos_term = cos(cos_arg * z[i] + self.phi_0)
+            p = (1. + dp[i]) * p0
+            cos_term = cos_term / p
+
+            dQ_x[i] = self.dapp_xz * cos_term
+            dQ_y[i] = self.dapp_yz * cos_term
+
+        return dQ_x, dQ_y
 
 
-class RFQTransverseSegmentOnCrest(object):
+cdef class RFQKick(object):
     """
-    RFQ detuner with beam entering on crest (pure cosine dependence).
-    Using approximation cos(x) \approx 1-x^2/2.
+    Cython base class to describe the RFQ element in the localized kick
+    model for both the transverse and the longitudinal coordinates.
     """
-    def __init__(self, dapp_xz, dapp_yz, omega_RF):
+    cdef double v_2, omega, phi_0
+    cdef int n_threads
 
-        self.omega_RF = omega_RF
-        self.dapp_xz  = dapp_xz
-        self.dapp_yz  = dapp_yz
+    def __init__(self, v_2, omega, phi_0, n_threads=1):
+        """
+        An RFQ element is fully characterized by the parameters
+          v_2:   quadrupolar expansion coefficient of the accelerating
+                 voltage (~strength of the RFQ), in [V/m^2].
+          omega: Angular frequency of the RF wave, in [rad/s].
+          phi_0: Constant phase offset wrt. bunch center (z=0), in
+                 [rad].
 
+        n_threads defines the number of threads to be used to execute
+        the for-loop on the number of particles with cython OpenMP. It
+        is set to 1 by default.
+        """
+        self.v_2 = v_2
+        self.omega = omega
+        self.phi_0 = phi_0
 
-    def detune(self, beam):
-
-        approximate_cos_dependence = 1. - 0.5 * (beam.z * self.omega_RF / (beam.beta * c)) ** 2
-        approximate_cos_dependence /= ((1. + beam.dp) * beam.p0)
-
-        dphi_x = self.dapp_xz * approximate_cos_dependence
-        dphi_y = self.dapp_yz * approximate_cos_dependence
-
-        return dphi_x, dphi_y
-
-
-
-class RFQTransverseSegmentOffCrest(object):
-    """
-    RFQ detuner with beam entering off crest (pure sine dependence).
-    Using approximation sin(x) \approx 1+x.
-    """
-    def __init__(self, dapp_xz, dapp_yz, omega_RF):
-
-        self.omega_RF = omega_RF
-        self.dapp_xz  = dapp_xz
-        self.dapp_yz  = dapp_yz
-
-
-    def detune(self, beam):
-
-        approximate_sin_dependence  = beam.z * self.omega_RF / (beam.beta * c)
-        approximate_sin_dependence /= ((1. + beam.dp) * beam.p0)
-
-        dphi_x = self.dapp_xz * approximate_sin_dependence
-        dphi_y = self.dapp_yz * approximate_sin_dependence
-
-        return dphi_x, dphi_y
-
-
-"""
-Collection class for the RFQ detuner. This is the class instantiated explicitly by the user.
-It uses 1-turn integrated values as input and instantiates an RFQ detuner for each segment
-in 's' with a detuning proportional to the segment length.
-"""
-class RFQTransverse(object):
-
-    def __init__(self, beta_x, beta_y, v2_RF, omega_RF, **kwargs):
-
-        self.beta_x = beta_x
-        self.beta_y = beta_y
-
-        self.omega_RF = omega_RF
-        self.v2_RF    = v2_RF
-
-        for key, value in kwargs.iteritems():
-            setattr(self, key, value)
-
-        self.segment_detuners = []
-
-
-    @classmethod
-    def as_general(cls, beta_x, beta_y, v2_RF, omega_RF, phi_0_RF):
-
-        self = cls(beta_x, beta_y, v2_RF, omega_RF, phi_0_RF=phi_0_RF)
-        self.generate_segment_detuner = self.generate_segment_detuner_general
-
-        return self
-
-    def generate_segment_detuner_general(self, relative_segment_length):
-
-        dapp_xz =  self.beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-        dapp_yz = -self.beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-
-        self.segment_detuners.append(RFQTransverseSegmentGeneral(dapp_xz, dapp_yz, self.omega_RF,
-                                                                 self.phi_0_RF))
-
-    @classmethod
-    def as_on_crest(cls, beta_x, beta_y, v2_RF, omega_RF):
-
-        self = cls(beta_x, beta_y, v2_RF, omega_RF)
-        self.generate_segment_detuner = self.generate_segment_detuner_on_crest
-
-        return self
-
-    def generate_segment_detuner_on_crest(self, relative_segment_length):
-
-        dapp_xz =  self.beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-        dapp_yz = -self.beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-
-        self.segment_detuners.append(RFQTransverseSegmentOnCrest(dapp_xz, dapp_yz, self.omega_RF))
-
-
-    @classmethod
-    def as_off_crest(cls, beta_x, beta_y, v2_RF, omega_RF):
-
-        self = cls(beta_x, beta_y, v2_RF, omega_RF)
-        self.generate_segment_detuner = self.generate_segment_detuner_off_crest
-
-        return self
-
-
-    def generate_segment_detuner_off_crest(self, relative_segment_length):
-
-        dapp_xz =  self.beta_x * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-        dapp_yz = -self.beta_y * self.v2_RF * e / (self.omega_RF * 2. * np.pi) * relative_segment_length
-
-        self.segment_detuners.append(RFQTransverseSegmentOffCrest(dapp_xz, dapp_yz, self.omega_RF))
-
-
-    def __len__(self):
-
-        return len(self.segment_detuners)
-
-
-    def __getitem__(self, key):
-
-        return self.segment_detuners[key]
-
-
-class RFQTransverseKick(object):
-
-    def __init__(self, v2_RF, omega_RF, phi_0_RF):
-
-        self.v2_RF    = v2_RF
-        self.omega_RF = omega_RF
-        self.phi_0_RF = phi_0_RF
-
+        self.n_threads = n_threads
 
     def track(self, beam):
-
-        cos_dependence = cos(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
-        k = 2. * e * self.v2_RF / self.omega_RF
-
-        delta_p_x = beam.x * k * cos_dependence
-        delta_p_y = -beam.y * k * cos_dependence
-
-        beam.xp += delta_p_x / beam.p0
-        beam.yp += delta_p_y / beam.p0
+        pass
 
 
-'''
-Longitudinal effect of RFQ. Always acting as a localized kick (applied once per turn).
-'''
-class RFQLongitudinalKick(object):
+cdef class RFQTransverseKick(RFQKick):
+    """
+    Cython implementation of the RFQ element acting on the particles'
+    transverse coordinates (i.e. localized kick model).
+    """
 
-    def __init__(self, v2_RF, omega_RF, phi_0_RF):
-
-        self.v2_RF    = v2_RF
-        self.omega_RF = omega_RF
-        self.phi_0_RF = phi_0_RF
-
-
+    @cython.boundscheck(False)
+    @cython.cdivision(True)
     def track(self, beam):
+        """
+        The formula that describes the transverse kick experienced by
+        an ultra-relativistic particle traversing the RFQ longitudinally
+        is based on the thin-lens approximation
+            \Delta p_x = -x*(2 e v_2 / omega) *
+                cos(omega z / (beta c) + phi_0),
+            \Delta p_y =  y*(2 e v_2 / omega) *
+                cos(omega z / (beta c) + phi_0).
 
-        delta_p = - e * self.v2_RF / (beam.beta * c) * (beam.x ** 2 - beam.y ** 2) * \
-                    sin(self.omega_RF * beam.z / (beam.beta * c) + self.phi_0_RF)
+        The for loop on the number of particles can make use of cython
+        OpenMP with the number of threads defined by self.n_threads. It
+        is set to 1 by default.
+        """
+        cdef double[::1] x = beam.x
+        cdef double[::1] y = beam.y
+        cdef double[::1] z = beam.z
+        cdef double[::1] xp = beam.xp
+        cdef double[::1] yp = beam.yp
+        cdef double p0 = beam.p0
 
-        beam.dp = beam.dp + delta_p / beam.p0
+        cdef double cos_arg = self.omega / (beam.beta * c)
+        cdef double pre_factor = 2. * e * self.v_2 / self.omega
+        cdef double delta_p_x, delta_p_y, cos_term
+
+        cdef unsigned int i
+        cdef unsigned int n_particles = z.shape[0]
+
+        for i in prange(n_particles, nogil=True, num_threads=self.n_threads):
+            cos_term = pre_factor * cos(cos_arg * z[i] + self.phi_0)
+
+            delta_p_x = -x[i] * cos_term
+            delta_p_y = y[i] * cos_term
+
+            xp[i] += delta_p_x / p0
+            yp[i] += delta_p_y / p0
+
+
+cdef class RFQLongitudinalKick(RFQKick):
+    """
+    Cython implementation of the RFQ element acting on the particles'
+    longitudinal coordinate dp.
+    """
+
+    @cython.boundscheck(False)
+    @cython.cdivision(True)
+    def track(self, beam):
+        """
+        The formula used to describe the longitudinal kick is given by
+            \Delta p_z = -(x^2 - y^2) (e v_2 / (beta c)) *
+                sin(omega z / (beta c) + phi_0).
+
+        The for loop on the number of particles can make use of cython
+        OpenMP with the number of threads defined by self.n_threads. It
+        is set to 1 by default.
+        """
+        cdef double[::1] x = beam.x
+        cdef double[::1] y = beam.y
+        cdef double[::1] z = beam.z
+        cdef double[::1] dp = beam.dp
+        cdef double p0 = beam.p0
+
+        cdef double sin_arg = self.omega / (beam.beta * c)
+        cdef double pre_factor = e * self.v_2 / (beam.beta * c)
+        cdef double delta_p, sin_term
+
+        cdef unsigned int i
+        cdef unsigned int n_particles = z.shape[0]
+
+        for i in prange(n_particles, nogil=True, num_threads=self.n_threads):
+            sin_term = pre_factor * sin(sin_arg * z[i] + self.phi_0)
+            delta_p = -(x[i]*x[i] - y[i]*y[i]) * sin_term
+
+            dp[i] += delta_p / p0
