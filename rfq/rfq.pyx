@@ -38,8 +38,10 @@ cimport cython.cdivision
 
 from libc.math cimport cos, sin
 from scipy.constants import c, e
+import numpy as np
+cimport numpy as np
 
-from ..trackers.detuners import DetunerCollection
+from trackers.detuners import DetunerCollection
 
 
 class RFQTransverseDetuner(DetunerCollection):
@@ -142,7 +144,7 @@ cdef class RFQTransverseDetunerSegment(object):
         cdef double[::1] dQ_y = np.zeros(n_particles, dtype=np.double)
 
         cdef double cos_arg = self.omega / (beam.beta * c)
-        cdef double p
+        cdef double cos_term, p
 
         cdef unsigned int i
         for i in prange(n_particles, nogil=True, num_threads=self.n_threads):
