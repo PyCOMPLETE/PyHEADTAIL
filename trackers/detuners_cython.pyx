@@ -67,10 +67,8 @@ cdef class ChromaticitySegment(object):
     @cython.boundscheck(False)
     def detune(self, beam):
         """
-        Calculates for every particle the change in phase advance
-        (detuning) dQ_x,y  caused by first-order chromaticity effects.
-        Note that the dQ_x,y are not multiplied by the factor 2 Pi here,
-        but only in the TransverseSegmentMap.track(beam) method.
+        Calculates for every particle the change in detuning dQ_x,y
+        caused by first-order chromaticity effects.
         """
         cdef double[::1] dp = beam.dp
         cdef unsigned int n_particles = dp.shape[0]
@@ -126,8 +124,6 @@ cdef class AmplitudeDetuningSegment(object):
         documentation of AmplitudeDetuning class). J_x and J_y resp.
         denote the horizontal and vertical action of a specific
         particle.
-        Note that the dQ_x,y are not multiplied by the factor 2 Pi here,
-        but only in the TransverseSegmentMap.track(beam) method.
         """
         cdef double[::1] x = beam.x
         cdef double[::1] y = beam.y
