@@ -34,8 +34,8 @@ class SegmentDetuner(object):
     for a segment of the accelerator ring (NB. The segment can also be
     given by the full circumference).
     Every detuner element/effect inheriting from this class must
-    implement the detune(beam) method to describe the change in phase
-    advance for each particle in the beam.
+    implement the detune(beam) method to describe the change in tune
+    for each particle in the beam.
     """
     __metaclass__ = ABCMeta
 
@@ -57,8 +57,6 @@ class ChromaticitySegment(SegmentDetuner):
         """
         Calculates for every particle the change in phase advance
         (detuning) dQ_x,y  caused by first-order chromaticity effects.
-        Note that the dQ_x,y are not multiplied by the factor 2 Pi here,
-        but only in the TransverseSegmentMap.track(beam) method.
         """
         dQ_x = self.dQp_x * beam.dp
         dQ_y = self.dQp_y * beam.dp
@@ -93,8 +91,6 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         documentation of AmplitudeDetuning class).
         J_x and J_y resp. denote the horizontal and vertical action of
         a specific particle.
-        Note that the dQ_x,y are not multiplied by the factor 2 Pi here,
-        but only in the TransverseSegmentMap.track(beam) method.
         """
         Jx = (beam.x**2 + (self.beta_x * beam.xp)** 2) / (2. * self.beta_x)
         Jy = (beam.y**2 + (self.beta_y * beam.yp)** 2) / (2. * self.beta_y)
@@ -176,7 +172,6 @@ class DetunerCollection(object):
     segment.
     """
     __metaclass__ = ABCMeta
-    segment_detuners = []
 
     @abstractmethod
     def generate_segment_detuner(self, segment_length, **kwargs):
@@ -216,6 +211,8 @@ class AmplitudeDetuning(DetunerCollection):
         self.app_y  = app_y
         self.app_xy = app_xy
 
+        self.segment_detuners = []
+        
     @classmethod
     def from_octupole_currents_LHC(cls, i_focusing, i_defocusing):
         """
@@ -279,6 +276,8 @@ class Chromaticity(DetunerCollection):
         self.Qp_x = Qp_x
         self.Qp_y = Qp_y
 
+        self.segment_detuners = []
+
     def generate_segment_detuner(self, segment_length, **kwargs):
         dQp_x = self.Qp_x * segment_length
         dQp_y = self.Qp_y * segment_length
@@ -294,6 +293,8 @@ class LaslettSpaceCharge(DetunerCollection):
         self.ointegral_x = ointegral_x
         self.ointegral_y = ointegral_y
 
+        self.segment_detuners = []
+        
     def generate_segment_detuner(self, segment_length, **kwargs):
         ointegral_x = self.ointegral_x * segment_length
         ointegral_y = self.ointegral_y * segment_length
