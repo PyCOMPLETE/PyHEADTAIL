@@ -22,11 +22,14 @@ class TransverseSegmentMap(object):
     and s1 must be provided. The betatron phase advance of each
     particle in the present segment is given by their betatron tune
     Q_{x,y} and possibly by an incoherent tune shift introduced e.g. by
-    amplitude detuning, chromaticity effects or Laslett space charge
-    (see trackers.detuners module). Moreover, it is possible to include
-    dispersion effects, i.e. the change of a particle's transverse
-    phase space coordinates on its relative momentum offset from the
-    reference momentum.
+    amplitude detuning or chromaticity effects (see trackers.detuners
+    module).
+
+    TO DO:
+    Implement dispersion effects, i.e. the change of a particle's
+    transverse phase space coordinates on its relative momentum offset.
+    For the moment, a NotImplementedError is raised if dispersion
+    coefficients are non-zero.
     """
     def __init__(self,
             alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
@@ -34,12 +37,12 @@ class TransverseSegmentMap(object):
             dQ_x, dQ_y, *segment_detuners):
         """
         The values of the TWISS parameters alpha_{x,y} and beta_{x,y} as
-        well as of the dispersion functions D_{x,y} are given at the
-        beginning s0 and at the end s1 of the corresponding segment. The
-        dQ_{x,y} denote the betatron tunes normalized to the (relative)
-        segment length. The SegmentDetuner objects present in this
-        segment are passed and zipped to a list via the argument
-        *segment_detuners.
+        well as of the dispersion coefficients D_{x,y} (not yet
+        implemented) are given at the beginning s0 and at the end s1 of
+        the corresponding segment. The dQ_{x,y} denote the betatron
+        tunes normalized to the (relative) segment length. The
+        SegmentDetuner objects present in this segment are passed and
+        zipped to a list via the argument *segment_detuners.
         The matrices self.I and self.J are constant and are calculated
         only once at instantiation of the TransverseSegmentMap.
         """
@@ -49,11 +52,14 @@ class TransverseSegmentMap(object):
         self.dQ_y = dQ_y
         self.segment_detuners = segment_detuners
 
-        '''
-        Note that the following attributes self.alpha_{x,y} and
+        if any((D_x_s0, D_x_s1, D_y_s0, D_y_s1)) != 0:
+            raise NotImplementedError('Non-zero values have been \n' +
+                'specified for the dispersion coefficients D_{x,y}.\n' +
+                'The effects of dispersion are not yet implemented. \n')
+
+        ''' Note that the following attributes self.alpha_{x,y} and
         self.beta_{x,y} are required only by the matched bunch
-        initialisation.
-        '''
+        initialisation. '''
         self.alpha_x = alpha_x_s0
         self.alpha_y = alpha_y_s0
         self.beta_x = beta_x_s0
@@ -106,10 +112,8 @@ class TransverseSegmentMap(object):
         The transport matrix is defined by the coefficients M_{ij}.
         """
 
-        '''
-        Calculate phase advance (betatron motion in this segment and
-        incoherent tune shifts introduced by detuning effects).
-        '''
+        ''' Calculate phase advance (betatron motion in this segment and
+        incoherent tune shifts introduced by detuning effects). '''
         dphi_x = self.dQ_x
         dphi_y = self.dQ_y
 
@@ -126,10 +130,8 @@ class TransverseSegmentMap(object):
         sin_dphi_x = sin(dphi_x)
         sin_dphi_y = sin(dphi_y)
 
-        '''
-        Calculate the matrix M and transport the transverse phase spaces
-        through the segment.
-        '''
+        ''' Calculate the matrix M and transport the transverse phase
+        spaces through the segment. '''
         M00 = self.I[0,0]*cos_dphi_x + self.J[0,0]*sin_dphi_x
         M01 = self.I[0,1]*cos_dphi_x + self.J[0,1]*sin_dphi_x
         M10 = self.I[1,0]*cos_dphi_x + self.J[1,0]*sin_dphi_x
@@ -190,7 +192,9 @@ class TransverseMap(object):
           that are present in the accelerator. Each DetunerCollection
           knows how to generate and store its SegmentDetuner objects
           to 'distribute' the detuning proportionally along the
-          accelerator circumference. 
+          accelerator circumference.
+
+        WARNING: Dispersion effects are not yet implemented.
         """
         self.s = s
         self.alpha_x = alpha_x
@@ -225,7 +229,7 @@ class TransverseMap(object):
         """
         segment_length = np.diff(self.s) / self.s[-1]
         
-        # Betatron motion normalized to this particular segment.
+        ''' Betatron motion normalized to this particular segment. '''
         dQ_x = self.Q_x * segment_length
         dQ_y = self.Q_y * segment_length
 
@@ -234,12 +238,12 @@ class TransverseMap(object):
             s0 = seg % n_segments
             s1 = (seg + 1) % n_segments
 
-            # Instantiate SegmentDetuner objects.
+            ''' Instantiate SegmentDetuner objects. '''
             for detuner in self.detuner_collections:
                 detuner.generate_segment_detuner(segment_length[s0],
                     beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
             
-            # Instantiate TransverseSegmentMap objects.
+            ''' Instantiate TransverseSegmentMap objects. '''
             transverse_segment_map = TransverseSegmentMap(
                 self.alpha_x[s0], self.beta_x[s0], self.D_x[s0],
                 self.alpha_x[s1], self.beta_x[s1], self.D_x[s1],
