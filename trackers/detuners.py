@@ -1,9 +1,8 @@
 """
-Module to describe devices/effects, such as chromaticity, octupole
-magnets or Laslett space charge, leading to an incoherent detuning
-of the particles in the beam. A detuner is (in general) present along
-the full circumference of the accelerator and the detuning is applied
-proportionally along the ring.
+Module to describe devices/effects, such as chromaticity or octupole
+magnets, leading to an incoherent detuning of the particles in the beam.
+A detuner is (in general) present along the full circumference of the
+accelerator and the detuning is applied proportionally along the ring.
 
 The structure of this module is such that there is a DetunerCollection
 object for each type of detuning effect present in the accelerator. It
@@ -22,8 +21,9 @@ formula describing the effect.
 @copyright CERN
 """
 from __future__ import division
-from scipy.constants import e, c
+
 import numpy as np
+from scipy.constants import e, c
 
 from abc import ABCMeta, abstractmethod
 
@@ -48,6 +48,9 @@ class ChromaticitySegment(SegmentDetuner):
     """
     Detuning object for a segment of the accelerator ring to describe
     the detuning introduced by chromaticity effects.
+
+    TO DO:
+    Implement second and third order chromaticity effects.
     """
     def __init__(self, dQp_x, dQp_y):
         self.dQp_x = dQp_x
@@ -99,53 +102,6 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         dQ_y = (self.dapp_y * Jy + self.dapp_xy * Jx) / beam.p0
 
         return dQ_x, dQ_y
-
-
-class LaslettSpaceChargeDetuner(SegmentDetuner):
-    """
-    Calculate the Laslett direct space charge detuning.
-
-    .. math::
-        \Delta Q_{x,y}(z) = -r_p \lambda(z)/(2 \pi \beta^2 \gamma^3)
-            \cdot \oint ds \frac{\beta_{x,y}(s)}{
-                (\sigma_{x,y}(s) \cdot (\sigma_x(s) + \sigma_y(s)))
-            }
-    """
-
-    def __init__(self, slices, ointegral_x, ointegral_y):
-        """
-        ointegral_x and ointegral_y are the integrals around the
-        accelerator ring over the betatron function divided by the beam
-        rms sizes sigma_x and sigma_y:
-
-        .. math::
-            \oint ds \frac{ \beta_{x,y}(s) }{
-                (\sigma_{x,y}(s) \cdot (\sigma_x(s) + \sigma_y(s)))
-            }
-        """
-        self.slices = slices
-        self.ointegral_x = ointegral_x
-        self.ointegral_y = ointegral_y
-
-    def detune(self, beam):
-        lambda_ = self.slices.n_macroparticles * beam.n_particles_per_mp
-        slice_tuneshift_x = self._prefactor(beam) * lambda_ * self.ointegral_x
-        slice_tuneshift_y = self._prefactor(beam) * lambda_ * self.ointegral_y
-
-        dQ_x = np.empty(beam.n_macroparticles)
-        dQ_y = np.empty(beam.n_macroparticles)
-
-        p_id = self.slices.particles_within_cuts
-        s_id = self.slices.slice_index_of_particle.take(p_id)
-
-        dQ_x[p_id] = slice_tuneshift_x[s_id]
-        dQ_y[p_id] = slice_tuneshift_y[s_id]
-
-        return dQ_x, dQ_y
-
-    def _prefactor(self, beam):
-        return (-beam.classical_particle_radius /
-                (2 * np.pi * beam.beta**2 * beam.gamma**3))
 
 
 class DetunerCollection(object):
@@ -212,7 +168,7 @@ class AmplitudeDetuning(DetunerCollection):
         self.app_xy = app_xy
 
         self.segment_detuners = []
-        
+
     @classmethod
     def from_octupole_currents_LHC(cls, i_focusing, i_defocusing):
         """
@@ -283,22 +239,4 @@ class Chromaticity(DetunerCollection):
         dQp_y = self.Qp_y * segment_length
 
         detuner = ChromaticitySegment(dQp_x, dQp_y)
-        self.segment_detuners.append(detuner)
-
-
-class LaslettSpaceCharge(DetunerCollection):
-
-    def __init__(self, slices, ointegral_x, ointegral_y):
-        self.slices = slices
-        self.ointegral_x = ointegral_x
-        self.ointegral_y = ointegral_y
-
-        self.segment_detuners = []
-        
-    def generate_segment_detuner(self, segment_length, **kwargs):
-        ointegral_x = self.ointegral_x * segment_length
-        ointegral_y = self.ointegral_y * segment_length
-
-        detuner = LaslettSpaceChargeDetuner(self.slices, ointegral_x,
-                                            o_integral_y)
         self.segment_detuners.append(detuner)
