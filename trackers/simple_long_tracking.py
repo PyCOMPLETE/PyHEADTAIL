@@ -10,7 +10,9 @@ import numpy as np
 
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
-from trackers.rf_bucket import RFBucket
+from .rf_bucket import RFBucket
+
+from ..general.element import *
 
 sin = np.sin
 cos = np.cos
