@@ -3,11 +3,11 @@ This module includes the description of a WakeField as well as the
 implementation of the WakeSource objects.
 
 A WakeField is defined as a composition of the elementary WakeKick
-objects (see .wake_kicks module). They originate from a WakeSource,
-e.g. a WakeTable, Resonator or a ResistiveWall. The WakeField does not
-directly accept the WakeKick objects, but takes a list of WakeSources
-first, each of which knows how to generate its own WakeKick objects via
-the factory method WakeSource.get_wake_kicks(..).
+objects (see .wake_kicks module). They originate from WakeSources,
+e.g. a WakeTable, Resonator and/or a ResistiveWall. The WakeField does
+not directly accept the WakeKick objects, but takes a list of
+WakeSources first, each of which knows how to generate its WakeKick
+objects via the factory method WakeSource.get_wake_kicks(..).
 The collection of WakeKicks form all the WakeSources define the
 WakeField and are hence the elementary objects that are stored, (i.e.
 the WakeField forgets about the origin of the WakeKicks once they have
@@ -217,7 +217,7 @@ class WakeTable(WakeSource):
         if wake_component in self.wake_table.keys():
             return True
         else:
-            print(wake_component + ' \n' +
+            print (wake_component + ' \n' +
                   'Wake component is either not provided or does not \n'+
                   'use correct nomenclature. See docstring of WakeTable \n' +
                   'constructor to display valid names. \n')
@@ -254,13 +254,13 @@ class WakeTable(WakeSource):
             def wake(beta, dz):
                 dz = dz.clip(max=0)
                 return interp1d(time, wake_strength)(- dz / (beta * c))
-            print(wake_component + ' \n' +
+            print (wake_component + ' \n' +
                   'Assuming ultrarelativistic wake. \n')
 
         elif (time[0] < 0) and (wake_strength[0] != 0):
             def wake(beta, dz):
                 return interp1d(time, wake_strength)(- dz / (beta * c))
-            print(wake_component + ' \n' + 'Found low beta wake.')
+            print (wake_component + ' \n' + 'Found low beta wake.')
 
         elif (time[0] > 0) and (wake_strength[0] != 0):
             raise ValueError(wake_component + ' \n' +
