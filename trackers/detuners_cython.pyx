@@ -40,7 +40,7 @@ cimport numpy as np
 from scipy.constants import e, c
 from libc.math cimport cos, sin
 
-from detuners import AmplitudeDetuning, Chromaticity
+from .detuners import AmplitudeDetuning, Chromaticity
 
 
 cdef class ChromaticitySegment(object):

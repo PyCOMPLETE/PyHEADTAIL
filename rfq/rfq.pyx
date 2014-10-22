@@ -41,7 +41,7 @@ from scipy.constants import c, e
 import numpy as np
 cimport numpy as np
 
-from trackers.detuners import DetunerCollection
+from ..trackers.detuners import DetunerCollection
 
 
 class RFQTransverseDetuner(DetunerCollection):
