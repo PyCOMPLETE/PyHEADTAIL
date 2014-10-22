@@ -12,7 +12,7 @@ from scipy.constants import c, physical_constants
 from scipy.interpolate import interp1d
 from abc import ABCMeta, abstractmethod
 
-from wake_kicks import *
+from .wake_kicks import *
 
 sin = np.sin
 cos = np.cos
@@ -138,13 +138,13 @@ class WakeTable(WakeSource):
         Check whether wake_component is a valid name and available in
         wake table data. Return 'True' if yes and 'False' if no.
         """
-        if wake_component is not in self.wake_table.keys():
+        if wake_component in self.wake_table.keys():
+            return True
+        else:
             print('Wake component %s is either not provided or does not' +
                   ' use correct nomenclature. See docstring of WakeTable' +
                   ' constructor to display valid names.' % wake_component)
             return False
-        else:
-            return True
 
     def _function_transverse(self, wake_component):
         """
