@@ -9,11 +9,10 @@ or effect, it must be made sure that the detune(beam) method is
 implemented!
 
 Description from PyHEADTAIL.trackers.detuners:
-Module to describe devices/effects, such as chromaticity, octupole
-magnets or Laslett space charge, leading to an incoherent detuning
-of the particles in the beam. A detuner is (in general) present along
-the full circumference of the accelerator and the detuning is applied
-proportionally along the ring.
+Module to describe devices/effects, such as chromaticity or octupole
+magnets, leading to an incoherent detuning of the particles in the beam.
+A detuner is (in general) present along the full circumference of the
+accelerator and the detuning is applied proportionally along the ring.
 
 The structure of this module is such that there is a DetunerCollection
 object for each type of detuning effect present in the accelerator. It
@@ -48,6 +47,9 @@ cdef class ChromaticitySegment(object):
     Cython implementation of a detuning object for a segment of the
     accelerator ring to describe the incoherent detuning introduced by
     chromaticity effects.
+
+    TO DO:
+    Implement second and third order chromaticity effects.
     """
     cdef double dQp_x, dQp_y
     cdef int n_threads
