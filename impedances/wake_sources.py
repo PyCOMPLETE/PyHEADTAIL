@@ -1,8 +1,8 @@
 """
 @class WakeSources
-@author Hannes Bartosik & Kevin Li & Giovanni Rumolo & Michael Schenk
+@author Hannes Bartosik, Kevin Li, Giovanni Rumolo, Michael Schenk
 @date July 2014
-@brief Describes various sources of wake fields.
+@brief Implementation of various sources of wake fields.
 @copyright CERN
 """
 from __future__ import division
@@ -28,13 +28,14 @@ class WakeSource(object):
     @abstractmethod
     def get_wake_kicks(self, slicer_mode):
         """
-        Creates instances of the WakeKick objects for the given
-        WakeSource and returns them as a list wake_kicks. This method is
-        usually only called by a WakeField object to collect all the
-        WakeKick objects originating from the different sources.
-        (The slicer mode Slicer.mode must be passed at instantiation of
-        a WakeKick object only to set the appropriate convolution
-        method. See docstrings of WakeKick class.)
+        Factory method. Creates instances of the WakeKick objects for
+        the given WakeSource and returns them as a list wake_kicks.
+        This method is usually only called by a WakeField object to
+        collect and create all the WakeKick objects originating from the
+        different sources. (The slicer mode Slicer.mode must be passed
+        at instantiation of a WakeKick object only to set the
+        appropriate convolution method. See docstrings of WakeKick
+        class.)
         """
         pass
 
@@ -72,64 +73,68 @@ class WakeTable(WakeSource):
 
         wake_data = np.loadtxt(wake_file, delimiter="\t")
         if len(wake_file_columns) != wake_data.shape[1]:
-            raise ValueError('Length of wake_file_columns list does not' +
-                             'correspond to the number of columns in the' +
-                             'specified wake_file.')
+            raise ValueError('Length of wake_file_columns list does not \n' +
+                             'correspond to the number of columns in \n' +
+                             'the specified wake_file. \n')
 
         for i, column_name in enumerate(wake_file_columns):
             self.wake_table.update({ column_name : wake_data[:,i] })
 
     def get_wake_kicks(self, slicer_mode):
         """
-        Creates instances of the appropriate WakeKick objects for all
-        the wake components provided by the user (and the wake table
-        data). The WakeKick objects are returned as a list wake_kicks.
+        Factory method. Creates instances of the appropriate WakeKick
+        objects for all the wake components provided by the user (and
+        the wake table data). The WakeKick objects are returned as a
+        list wake_kicks.
         """
         wake_kicks = []
 
+        ''' Constant wake kicks. '''
         if self._is_provided('constant_x'):
             wake_function = self._function_transverse('constant_x')
             wake_kicks.append(ConstantWakeKickX(wake_function, slicer_mode))
-
-        if self._is_provided('dipole_x'):
-            wake_function = self._function_transverse('dipole_x')
-            wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
-
-        if self._is_provided('quadrupole_x'):
-            wake_function = self._function_transverse('quadrupole_x')
-            wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
-
-        if self._is_provided('dipole_xy'):
-            wake_function = self._function_transverse('dipole_xy')
-            wake_kicks.append(DipoleWakeKickXY(wake_function, slicer_mode))
-
-        if self._is_provided('quadrupole_xy'):
-            wake_function = self._function_transverse('quadrupole_xy')
-            self.kicks.append(QuadrupoleWakeKickXY(wake_function, slicer_mode))
 
         if self._is_provided('constant_y'):
             wake_function = self._function_transverse('constant_y')
             wake_kicks.append(ConstantWakeKickY(wake_function, slicer_mode))
 
+        if self._is_provided('longitudinal'):
+            wake_function = self._function_longitudinal('longitudinal')
+            wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
+
+        ''' Dipolar wake kicks. '''
+        if self._is_provided('dipole_x'):
+            wake_function = self._function_transverse('dipole_x')
+            wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
+
         if self._is_provided('dipole_y'):
             wake_function = self._function_transverse('dipole_y')
             wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
 
-        if self._is_provided('quadrupole_y'):
-            wake_function = self._function_transverse('quadrupole_y')
-            wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
+        if self._is_provided('dipole_xy'):
+            wake_function = self._function_transverse('dipole_xy')
+            wake_kicks.append(DipoleWakeKickXY(wake_function, slicer_mode))
 
         if self._is_provided('dipole_yx'):
             wake_function = self._function_transverse('dipole_yx')
             wake_kicks.append(DipoleWakeKickYX(wake_function, slicer_mode))
 
+        ''' Quadrupolar wake kicks. '''
+        if self._is_provided('quadrupole_x'):
+            wake_function = self._function_transverse('quadrupole_x')
+            wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
+
+        if self._is_provided('quadrupole_y'):
+            wake_function = self._function_transverse('quadrupole_y')
+            wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
+
+        if self._is_provided('quadrupole_xy'):
+            wake_function = self._function_transverse('quadrupole_xy')
+            self.kicks.append(QuadrupoleWakeKickXY(wake_function, slicer_mode))
+
         if self._is_provided('quadrupole_yx'):
             wake_function = self._function_transverse('quadrupole_yx')
             wake_kicks.append(QuadrupoleWakeKickYX(wake_function, slicer_mode))
-
-        if self._is_provided('longitudinal'):
-            wake_function = self._function_longitudinal('longitudinal')
-            wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
 
         return wake_kicks
 
@@ -141,9 +146,10 @@ class WakeTable(WakeSource):
         if wake_component in self.wake_table.keys():
             return True
         else:
-            print('Wake component %s is either not provided or does not' +
-                  ' use correct nomenclature. See docstring of WakeTable' +
-                  ' constructor to display valid names.' % wake_component)
+            print(wake_component + ' \n' +
+                  'Wake component is either not provided or does not \n'+
+                  'use correct nomenclature. See docstring of WakeTable \n' +
+                  'constructor to display valid names. \n')
             return False
 
     def _function_transverse(self, wake_component):
@@ -177,16 +183,17 @@ class WakeTable(WakeSource):
             def wake(beta, dz):
                 dz = dz.clip(max=0)
                 return interp1d(time, wake_strength)(- dz / (beta * c))
-            print('N.B.: Assuming ultrarelativistic wake %s.' % wake_component)
+            print(wake_component + ' \n' +
+                  'Assuming ultrarelativistic wake. \n')
 
         elif (time[0] < 0) and (wake_strength[0] != 0):
             def wake(beta, dz):
                 return interp1d(time, wake_strength)(- dz / (beta * c))
-            print('N.B.: Low beta wake %s.' % key)
+            print(wake_component + ' \n' + 'Found low beta wake.')
 
         elif (time[0] > 0) and (wake_strength[0] != 0):
-            raise ValueError('Wake %s does not meet requirements.'
-                             % wake_component)
+            raise ValueError(wake_component + ' \n' +
+                             'does not meet requirements. \n')
         return wake
 
     def _function_longitudinal(self, wake_component):
@@ -221,8 +228,8 @@ class WakeTable(WakeSource):
             elif time[0] < 0:
                 return wake_interpolated
             elif (time[0] > 0):
-                raise ValueError('Wake %s does not meet requirements.'
-                                 % wake_component)
+                raise ValueError(wake_component + ' \n' +
+                                 'does not meet requirements.')
         return wake
 
 
@@ -256,9 +263,9 @@ class Resonator(WakeSource):
         if not (len(R_shunt)   == len(frequency) == len(Q) == len(Yokoya_X1) ==
                 len(Yokoya_X2) == len(Yokoya_Y1) == len(Yokoya_Y2) ==
                 len(Yokoya_Z)):
-            raise ValueError('Lengths of resonator parameters R_shunt,' +
-                             ' frequency, Q and Yokoya factors are not' +
-                             ' equal.')
+            raise ValueError('Lengths of resonator parameters R_shunt, \n' +
+                             'frequency, Q and Yokoya factors are not \n' +
+                             'equal. \n')
 
         self.R_shunt = R_shunt
         self.frequency = frequency
@@ -297,11 +304,11 @@ class Resonator(WakeSource):
 
     def get_wake_kicks(self, slicer_mode):
         """
-        Creates instances of the appropriate WakeKick objects for a
-        Resonator WakeSource with the specified parameters. A WakeKick
-        object is instantiated only if the corresponding Yokoya factor
-        is non-zero. The WakeKick objects are returned as a list
-        wake_kicks.
+        Factory method. Creates instances of the appropriate WakeKick
+        objects for a Resonator WakeSource with the specified
+        parameters. A WakeKick object is instantiated only if the
+        corresponding Yokoya factor is non-zero. The WakeKick objects
+        are returned as a list wake_kicks.
         """
         wake_kicks = []
 
@@ -450,11 +457,11 @@ class ResistiveWall(WakeSource):
 
     def get_wake_kicks(self, slicer_mode):
         """
-        Creates instances of the appropriate WakeKick objects for the
-        ResistiveWall WakeSource with the specified parameters. A
-        WakeKick object is instantiated only if the corresponding Yokoya
-        factor is non-zero. The WakeKick objects are returned as a list
-        wake_kicks.
+        Factory method. Creates instances of the appropriate WakeKick
+        objects for the ResistiveWall WakeSource with the specified
+        parameters. A WakeKick object is instantiated only if the
+        corresponding Yokoya factor is non-zero. The WakeKick objects
+        are returned as a list wake_kicks.
         """
         wake_kicks = []
 
