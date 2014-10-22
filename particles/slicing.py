@@ -241,27 +241,30 @@ class Slicer(object):
     '''
     __metaclass__ = ABCMeta
 
+    @abstractmethod
     def __init__(self, n_slices, n_sigma_z=None, z_cuts=None):
-        '''Return a Slicer class. Set either n_sigma_z or z_cuts.
-        If both are given, a ValueError will be raised.'''
-        if n_sigma_z and z_cuts:
-            raise ValueError("Both arguments n_sigma_z and z_cuts are" +
-                             " given while only one is accepted!")
-        self.config = (n_slices, n_sigma_z, z_cuts)
+        '''
+        Return a Slicer object. Set and store the corresponding slicing
+        configuration.
+        Note that either n_sigma_z or z_cuts can be set. If both are
+        given, a ValueError will be raised.
+        '''
+        pass
 
     @property
     def config(self):
-        return (self.n_slices, self.n_sigma_z, self.z_cuts)
+        return (self.mode, self.n_slices, self.n_sigma_z, self.z_cuts)
     @config.setter
     def config(self, value):
-        self.n_slices = value[0]
-        self.n_sigma_z = value[1]
-        self.z_cuts = value[2]
+        self.mode = value[0]
+        self.n_slices = value[1]
+        self.n_sigma_z = value[2]
+        self.z_cuts = value[3]
 
     @abstractmethod
     def slice(self, beam):
-        '''Return a SliceSet according to the saved configuration.
-        Factory method.
+        '''Return a SliceSet object according to the saved
+        configuration. Factory method.
         '''
         pass
 
@@ -310,6 +313,19 @@ class Slicer(object):
 class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
 
+    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None):
+        '''
+        Return a UniformBinSlicer object. Set and store the
+        corresponding slicing configuration in self.config .
+        Note that either n_sigma_z or z_cuts can be set. If both are
+        given, a ValueError will be raised.
+        '''
+        if n_sigma_z and z_cuts:
+            raise ValueError("Both arguments n_sigma_z and z_cuts are" +
+                             " given while only one is accepted!")
+        mode = 'uniform_bin'
+        self.config = (mode, n_slices, n_sigma_z, z_cuts)
+
     def slice(self, beam):
         '''Return a SliceSet according to the saved configuration.
         Factory method for uniformly binned SliceSet objects.
@@ -322,13 +338,26 @@ class UniformBinSlicer(Slicer):
                 (beam.z - z_cut_tail) / slice_width
             ).astype(np.int32)
 
-        return SliceSet(z_bins, slice_index_of_particle, 'uniform_bin')
+        return SliceSet(z_bins, slice_index_of_particle, self.mode)
 
 
 class UniformChargeSlicer(Slicer):
     '''Slices with respect to uniform charge for each bin along the
     slicing region.
     '''
+
+    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None):
+        '''
+        Return a UniformChargeSlicer object. Set and store the
+        corresponding slicing configuration in self.config .
+        Note that either n_sigma_z or z_cuts can be set. If both are
+        given, a ValueError will be raised.
+        '''
+        if n_sigma_z and z_cuts:
+            raise ValueError("Both arguments n_sigma_z and z_cuts are" +
+                             " given while only one is accepted!")
+        mode = 'uniform_charge'
+        self.config = (mode, n_slices, n_sigma_z, z_cuts)
 
     def slice(self, beam):
         '''Return a SliceSet according to the saved configuration.
@@ -377,7 +406,7 @@ class UniformChargeSlicer(Slicer):
         slice_index_of_particle = np.empty(n_part, dtype=np.int32)
         np.put(slice_index_of_particle, id_old, slice_index_of_particle_sorted)
 
-        return SliceSet(z_bins, slice_index_of_particle, 'uniform_charge',
+        return SliceSet(z_bins, slice_index_of_particle, self.mode,
                         n_macroparticles_per_slice=n_part_per_slice)
 
         # TODO:
