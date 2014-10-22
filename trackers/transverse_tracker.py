@@ -143,6 +143,14 @@ class TransverseMap(object):
         self.segment_maps = segment_maps
 
 
+    def get_injection_optics(self):
+        '''Return a tuple with the transverse TWISS parameters
+        (alpha_x, beta_x, alpha_y, beta_y) from the beginning of the
+        first segment.
+        '''
+        return (self.alpha_x[0], self.beta_x[0],
+                self.alpha_y[0], self.beta_y[0])
+
     def __len__(self):
 
         return len(self.segment_maps)
