@@ -8,6 +8,7 @@
 """
 from __future__ import division
 
+import numpy as np
 from scipy.constants import c
 from abc import ABCMeta, abstractmethod
 
@@ -28,7 +29,6 @@ class WakeKick(object):
     """
     __metaclass__ = ABCMeta
 
-
     def __init__(self, wake_function, slicer_mode):
         """
         Universal constructor for WakeKick objects. The slicer_mode is
@@ -42,8 +42,8 @@ class WakeKick(object):
         elif slicer_mode == 'uniform_bin':
             self._convolution = self._convolution_numpy
         else:
-            raise ValueError('Unknown slicer_mode. Must be either ' +
-                             'uniform_bin or uniform_charge.')
+            raise ValueError('Unknown slicer_mode. Must either be' +
+                             ' uniform_bin or uniform_charge.')
 
     @abstractmethod
     def apply(self, bunch, slice_set):
@@ -94,7 +94,7 @@ class WakeKick(object):
 class ConstantWakeKickX(WakeKick):
 
     def apply(self, bunch, slice_set):
-        zeroth_moment = slice_set.n_macroparticles
+        zeroth_moment = slice_set.n_macroparticles_per_slice
         constant_kick = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, zeroth_moment))
 
@@ -107,7 +107,7 @@ class ConstantWakeKickX(WakeKick):
 class ConstantWakeKickY(WakeKick):
 
     def apply(self, bunch, slice_set):
-        zeroth_moment = slice_set.n_macroparticles
+        zeroth_moment = slice_set.n_macroparticles_per_slice
         constant_kick = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, zeroth_moment))
 
@@ -120,7 +120,7 @@ class ConstantWakeKickY(WakeKick):
 class ConstantWakeKickZ(WakeKick):
 
     def apply(self, bunch, slice_set):
-        zeroth_moment = slice_set.n_macroparticles
+        zeroth_moment = slice_set.n_macroparticles_per_slice
         constant_kick = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, zeroth_moment))
 
@@ -133,7 +133,8 @@ class ConstantWakeKickZ(WakeKick):
 class DipoleWakeKickX(WakeKick):
 
     def apply(self, bunch, slice_set):
-        first_moment_x = slice_set.n_macroparticles * slice_set.mean_x(bunch)
+        first_moment_x = (
+            slice_set.n_macroparticles_per_slice * slice_set.mean_x(bunch))
         dipole_kick_x = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, first_moment_x))
 
@@ -146,7 +147,8 @@ class DipoleWakeKickX(WakeKick):
 class DipoleWakeKickXY(WakeKick):
 
     def apply(self, bunch, slice_set):
-        first_moment_y = slice_set.n_macroparticles * slice_set.mean_y(bunch)
+        first_moment_y = (
+            slice_set.n_macroparticles_per_slice * slice_set.mean_y(bunch))
         dipole_kick_xy = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, first_moment_y))
 
@@ -159,7 +161,8 @@ class DipoleWakeKickXY(WakeKick):
 class DipoleWakeKickY(WakeKick):
 
     def apply(self, bunch, slice_set):
-        first_moment_y = slice_set.n_macroparticles * slice_set.mean_y(bunch)
+        first_moment_y = (
+            slice_set.n_macroparticles_per_slice * slice_set.mean_y(bunch))
         dipole_kick_y = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, first_moment_y))
 
@@ -172,7 +175,8 @@ class DipoleWakeKickY(WakeKick):
 class DipoleWakeKickYX(WakeKick):
 
     def apply(self, bunch, slice_set):
-        first_moment_x = slice_set.n_macroparticles * slice_set.mean_x(bunch)
+        first_moment_x = (
+            slice_set.n_macroparticles_per_slice * slice_set.mean_x(bunch))
         dipole_kick_yx = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, first_moment_x))
 
@@ -185,7 +189,7 @@ class DipoleWakeKickYX(WakeKick):
 class QuadrupoleWakeKickX(WakeKick):
 
     def apply(self, bunch, slice_set):
-        zeroth_moment = slice_set.n_macroparticles
+        zeroth_moment = slice_set.n_macroparticles_per_slice
         quadrupole_kick_x = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, zeroth_moment))
 
@@ -198,7 +202,7 @@ class QuadrupoleWakeKickX(WakeKick):
 class QuadrupoleWakeKickXY(WakeKick):
 
     def apply(self, bunch, slice_set):
-        zeroth_moment = slice_set.n_macroparticles
+        zeroth_moment = slice_set.n_macroparticles_per_slice
         quadrupole_kick_xy = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, zeroth_moment))
 
@@ -211,7 +215,7 @@ class QuadrupoleWakeKickXY(WakeKick):
 class QuadrupoleWakeKickY(WakeKick):
 
     def apply(self, bunch, slice_set):
-        zeroth_moment = slice_set.n_macroparticles
+        zeroth_moment = slice_set.n_macroparticles_per_slice
         quadrupole_kick_y = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, zeroth_moment))
 
@@ -224,7 +228,7 @@ class QuadrupoleWakeKickY(WakeKick):
 class QuadrupoleWakeKickYX(WakeKick):
 
     def apply(self, bunch, slice_set):
-        zeroth_moment = slice_set.n_macroparticles
+        zeroth_moment = slice_set.n_macroparticles_per_slice
         quadrupole_kick_yx = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, zeroth_moment))
 
