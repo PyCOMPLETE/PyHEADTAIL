@@ -7,7 +7,8 @@ import os
 #BIN = os.path.dirname(__file__)
 #BIN = os.path.abspath( BIN )
 #BIN = os.path.dirname( BIN )
-BIN = "/home/oeftiger/cern/git/PyHEADTAIL-new/"
+#BIN = "/home/oeftiger/cern/git/PyHEADTAIL-new/"
+BIN = "/home/michael/TECH/PyHEADTAIL/"
 sys.path.append(BIN)
 
 import numpy as np
@@ -55,6 +56,7 @@ def generate_bunch(n_macroparticles):
         alpha_y=0, beta_y=beta_y, epsn_y=epsn_y,
         beta_z=beta_z, epsn_z=epsn_z,
         generator_seed=None)
+    
     return bunch
 
 def plot_slice_set_structure(axes, bunch, slice_set):
@@ -114,9 +116,9 @@ def test_particle_indices_of_slice(bunch, slice_set):
             all_pass = False
 
     if all_pass:
-        print('  Particle_indices_of_slice <-> slice_index_of_particle PASSED')
+        print ('  Particle_indices_of_slice <-> slice_index_of_particle PASSED')
     if not all_pass:
-        print('  Particle_indices_of_slice and slice_index_of_particle FAILED')
+        print ('  Particle_indices_of_slice and slice_index_of_particle FAILED')
 
 def slice_set_statistics(bunch, slice_set):
     '''Test if statistics functions are executable. No value
@@ -139,15 +141,11 @@ def main():
     n_sigma_z = None
 
     # Plot environment
-    fig,  ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
-        3, 2, figsize=(25,22))
+    fig, ((ax1, ax2), (ax5, ax6)) = plt.subplots(2, 2, figsize=(25,18))
 
     ax1.set_xlabel('z [m]')
     ax1.set_ylabel('# macroparticles')
     ax2.set_xlabel('z [m]')
-    ax3.set_xlabel('z [m]')
-    ax3.set_ylabel('dn/dz [part./m]')
-    ax4.set_xlabel('z [m]')
     ax5.set_xlabel('slice index')
     ax5.set_ylabel('z [m]')
     ax6.set_xlabel('slice index')
@@ -166,16 +164,6 @@ def main():
         ax1.hist(bunch.z, uniform_bin_slice_set.n_slices, color='r', alpha=0.6,
                  label='matplotlib hist')
     ax1.legend(loc='lower left')
-
-    # Line density derivatives
-    deriv = uniform_bin_slice_set.line_density_derivative
-    deriv_gauss = uniform_bin_slice_set.line_density_derivative_gauss
-    # ax3.plot(uniform_bin_slice_set.z_centers, deriv, c='b', lw=2,
-    #          label='line_density_derivative')
-    # ax3.plot(uniform_bin_slice_set.z_centers, deriv_gauss, c='r', lw=2,
-    #          label='line_density_derivative_gauss')
-    # ax3.legend(loc='lower left')
-    # ax3.set_xlim(((1+0.1) * min(bunch.z), (1+0.1) * max(bunch.z)))
 
     # slice_index_of_particle and particle_indices_of_slice visual tests.
     plot_particle_indices_of_slice(axes=ax5, bunch=bunch,
@@ -202,13 +190,6 @@ def main():
                 c='r', ls='dashed', lw=2,
                 label='expected number of particles per slice')
     ax2.legend(loc='lower left')
-
-    # Line density derivative
-    # deriv = uniform_charge_slice_set.line_density_derivative
-    # ax4.plot(uniform_charge_slice_set.z_centers, deriv, c='b', lw=2,
-    #          label='line_density_derivative')
-    # ax4.legend(loc='lower left')
-    # ax4.set_xlim(((1+0.1) * min(bunch.z), (1+0.1) * max(bunch.z)))
 
     # slice_index_of_particle and particle_indices_of_slice visual tests.
     plot_particle_indices_of_slice(axes=ax6, bunch=bunch,
