@@ -14,7 +14,7 @@ from printers import ConsolePrinter
 class Element(object):
     '''
     Abstract element as part of the tracking layout. Guarantees
-    to have fulfill it's tracking contract via the method track(beam).
+    to fulfil its tracking contract via the method track(beam).
     Provides prints(output) method in order to communicate any output
     to the user. Use for instance
 
