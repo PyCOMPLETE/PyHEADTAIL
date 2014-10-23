@@ -19,10 +19,10 @@ object for each type of detuning effect present in the accelerator. It
 provides a description of the detuning along the full circumference. The
 accelerator is divided into segments (1 or more) and the
 DetunerCollection can create and store a SegmentDetuner object of the
-given type of detuning for each of the segments that are defined by the
-user. A SegmentDetuner object has a detune(beam) method that defines how
-the tune of each particle in the beam is changed according to the
-formula describing the effect.
+given type of detuning for each of these segments. A SegmentDetuner
+object has a detune(beam) method that defines how the phase advance of
+each particle in the beam is changed according to the formula describing
+the effect.
 
 @author Kevin Li, Michael Schenk
 @date 12. October 2014
@@ -43,24 +43,22 @@ from .detuners import AmplitudeDetuning, Chromaticity
 
 
 cdef class ChromaticitySegment(object):
-    """
-    Cython implementation of a detuning object for a segment of the
+    """ Cython implementation of a detuning object for a segment of the
     accelerator ring to describe the incoherent detuning introduced by
     chromaticity effects.
+    TODO Implement second and third order chromaticity effects. """
 
-    TO DO:
-    Implement second and third order chromaticity effects.
-    """
     cdef double dQp_x, dQp_y
     cdef int n_threads
 
     def __init__(self, dQp_x, dQp_y, n_threads=1):
-        """
+        """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
+        denote the first order chromaticity coefficients scaled to the
+        segment length.
         Note: There is no satisfying solution yet to set the number of
         threads self.n_threads when instantiating the segment detuners
         via the DetunerCollection class (which is the usual way to do
-        it).
-        """
+        it). """
         self.dQp_x = dQp_x
         self.dQp_y = dQp_y
 
@@ -68,10 +66,9 @@ cdef class ChromaticitySegment(object):
 
     @cython.boundscheck(False)
     def detune(self, beam):
-        """
-        Calculates for every particle the change in detuning dQ_x,y
-        caused by first-order chromaticity effects.
-        """
+        """ Calculate for every particle the change in phase advance
+        (detuning) dQ_{x,y}  caused by first order chromaticity
+        effects. """
         cdef double[::1] dp = beam.dp
         cdef unsigned int n_particles = dp.shape[0]
         cdef double[::1] dQ_x = np.zeros(n_particles, dtype=np.double)
@@ -86,27 +83,26 @@ cdef class ChromaticitySegment(object):
 
 
 cdef class AmplitudeDetuningSegment(object):
-    """
-    Cython implementation of a detuning object for a segment of the
-    accelerator ring to describe detuning with amplitude (e.g.
-    introduced by octupoles).
-    """
+    """ Cython implementation of a detuning object for a segment of
+    the accelerator ring to describe detuning with amplitude (e.g.
+    introduced by octupoles). """
+
     cdef double dapp_x, dapp_y, dapp_xy
     cdef double beta_x, beta_y
     cdef int n_threads
 
     def __init__(self, dapp_x, dapp_y, dapp_xy, beta_x, beta_y, n_threads=1):
-        """
-        Note 1: Beta_x and beta_y are only used to correctly calculate
-        the transverse action J_x and J_y. Although they have an
-        influence on the strength of detuning, they have no actual
-        effect on the strength of the octupoles (dapp_x, dapp_y,
-        dapp_xy).
-        Note 2: There is no satisfying solution yet to set the number of
+        """ Return an instance of an AmplitudeDetuningSegment by passing
+        the coefficients of detuning strength dapp_x, dapp_y, dapp_xy
+        (scaled to the segment length. NOT normalized to Beam.p0 yet).
+        Note that beta_{x,y} are only used to correctly calculate the
+        transverse actions J_{x,y}. Although they have an influence on
+        the strength of detuning, they have no actual effect on the
+        strength of the octupoles (dapp_x, dapp_y, dapp_xy).
+        Note: There is no satisfying solution yet to set the number of
         threads self.n_threads when instantiating the segment detuners
         via the DetunerCollection class (which is the usual way to do
-        it).
-        """
+        it). """
         self.beta_x = beta_x
         self.beta_y = beta_y
 
@@ -119,14 +115,12 @@ cdef class AmplitudeDetuningSegment(object):
     @cython.boundscheck(False)
     @cython.cdivision(True)
     def detune(self, beam):
-        """
-        Linear amplitude detuning formula, usually used for detuning
+        """ Linear amplitude detuning formula, usually used for detuning
         introduced by octupoles. The normalization of dapp_x, dapp_y,
         dapp_xy to the reference momentum is done here (compare
-        documentation of AmplitudeDetuning class). J_x and J_y resp.
-        denote the horizontal and vertical action of a specific
-        particle.
-        """
+        documentation of AmplitudeDetuning class).
+        J_x and J_y resp. denote the horizontal and vertical action of
+        a specific particle. """
         cdef double[::1] x = beam.x
         cdef double[::1] y = beam.y
         cdef double[::1] xp = beam.xp
