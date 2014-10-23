@@ -29,9 +29,8 @@ cpdef double mean(double[::1] u):
 
 @cython.boundscheck(False)
 cpdef double std(double[::1] u):
-    """
-    Cython function to calculate the standard deviation of dataset u.
-    """
+    """ Cython function to calculate the standard deviation of
+    dataset u. """
     cdef double mean_u = mean(u)
     cdef double std_u = 0
     cdef double du = 0
@@ -48,11 +47,10 @@ cpdef double std(double[::1] u):
 
 @cython.boundscheck(False)
 cpdef double emittance(double[::1] u, double[::1] up):
-    """
-    Cython function to calculate the emittance of datasets u and up,
-    i.e. a coordinate-momentum pair. To calculate the emittance, one
-    needs the mean values of quantities u and up.
-    """
+    """ Cython function to calculate the emittance of datasets
+    u and up, i.e. a coordinate-momentum pair. To calculate the
+    emittance, one needs the mean values of quantities u and
+    up. """
     cdef double mean_u = mean(u)
     cdef double mean_up = mean(up)
 
@@ -82,14 +80,14 @@ cpdef double emittance(double[::1] u, double[::1] up):
 '''
 Cython statistics functions for an instance of a SliceSet class.
 '''
+
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef count_macroparticles_per_slice(int[::1] slice_index_of_particle,
                                      int[::1] particles_within_cuts,
                                      int[::1] n_macroparticles):
-    """
-    Cython function to count the number of macroparticles in each slice.
-    """
+    """ Cython function to count the number of macroparticles in
+    each slice. """
     cdef unsigned int n_particles_within_cuts = particles_within_cuts.shape[0]
     cdef unsigned int s_idx, i
 
@@ -104,14 +102,12 @@ cpdef sort_particle_indices_by_slice(int[::1] slice_index_of_particle,
                                      int[::1] particles_within_cuts,
                                      int[::1] slice_positions,
                                      int[::1] particle_indices_by_slice):
-    """
-    Iterate once through all the particles within the slicing region and
-    assign their position in the bunch.z array to the respective slice
-    they are in.
-    This is to provide a method to the user that allows to see which
-    particles are in a specific slice (see particle_indices_of_slice in
-    SliceSet class).
-    """
+    """ Iterate once through all the particles within the slicing
+    region and assign their position in the bunch.z array to the
+    respective slice they are in.
+    This is to provide a method to the user that allows to see
+    which particles are in a specific slice (see
+    particle_indices_of_slice in SliceSet class). """
     cdef unsigned int n_part_in_cuts = particles_within_cuts.shape[0]
     cdef unsigned int n_slices = slice_positions.shape[0] - 1
 
@@ -134,11 +130,9 @@ cpdef mean_per_slice(int[::1] slice_index_of_particle,
                      int[::1] particles_within_cuts,
                      int[::1] n_macroparticles,
                      double[::1] u, double[::1] mean_u):
-    """
-    Iterate once through all the particles within the slicing region and
-    calculate simultaneously the mean value of quantity u for each slice
-    separately.
-    """
+    """ Iterate once through all the particles within the
+    slicing region and calculate simultaneously the mean
+    value of quantity u for each slice separately. """
     cdef unsigned int n_part_in_cuts = particles_within_cuts.shape[0]
     cdef unsigned int n_slices = mean_u.shape[0]
     cdef unsigned int p_idx, s_idx, i
@@ -159,11 +153,10 @@ cpdef std_per_slice(int[::1] slice_index_of_particle,
                     int[::1] particles_within_cuts,
                     int[::1] n_macroparticles,
                     double[::1] u, double[::1] std_u):
-    """
-    Iterate once through all the particles within the slicing region and
-    calculate simultaneously the standard deviation of quantity u for
-    each slice separately.
-    """
+    """ Iterate once through all the particles within the
+    slicing region and calculate simultaneously the
+    standard deviation of quantity u for each slice
+    separately. """
     cdef unsigned int n_part_in_cuts = particles_within_cuts.shape[0]
     cdef unsigned int n_slices = std_u.shape[0]
     cdef unsigned int p_idx, s_idx, i
@@ -193,13 +186,12 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
                           int[::1] particles_within_cuts,
                           int[::1] n_macroparticles,
                           double[::1] u, double[::1] up, double[::1] epsn_u):
-    """
-    Iterate once through all the particles within the slicing region and
-    calculate simultaneously the emittance of quantities u and up, i.e.
-    a coordinate-momentum pair, for each slice separately.
-    To calculate the emittance per slice, one needs the mean values of
-    quantities u and up for each slice.
-    """
+    """ Iterate once through all the particles within the
+    slicing region and calculate simultaneously the emittance
+    of quantities u and up, i.e. a coordinate-momentum pair,
+    for each slice separately. To calculate the emittance per
+    slice, one needs the mean values of quantities u and up
+    for each slice. """
     cdef unsigned int n_part_in_cuts = particles_within_cuts.shape[0]
     cdef unsigned int n_slices = epsn_u.shape[0]
     cdef unsigned int p_idx, s_idx, i
