@@ -90,8 +90,8 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         documentation of AmplitudeDetuning class).
         J_x and J_y resp. denote the horizontal and vertical action of
         a specific particle. """
-        Jx = (beam.x**2 + (self.beta_x * beam.xp)** 2) / (2. * self.beta_x)
-        Jy = (beam.y**2 + (self.beta_y * beam.yp)** 2) / (2. * self.beta_y)
+        Jx = (beam.x**2 + (self.beta_x * beam.xp)**2) / (2.*self.beta_x)
+        Jy = (beam.y**2 + (self.beta_y * beam.yp)**2) / (2.*self.beta_y)
 
         dQ_x = (self.dapp_x * Jx + self.dapp_xy * Jy) / beam.p0
         dQ_y = (self.dapp_y * Jy + self.dapp_xy * Jx) / beam.p0
@@ -233,7 +233,7 @@ class Chromaticity(DetunerCollection):
     def __init__(self, Qp_x, Qp_y):
         """ Return an instance of a Chromaticity DetunerCollection
         class. The Qp_{x,y} are the first order chromaticity
-        coefficients (one-turn values). """
+        coefficients (one-turn values), aka. Q'_{x,y} (Q-prime). """
         self.Qp_x = Qp_x
         self.Qp_y = Qp_y
 
