@@ -6,12 +6,12 @@ A WakeField is defined as a composition of the elementary WakeKick
 objects (see .wake_kicks module). They originate from WakeSources,
 e.g. a WakeTable, Resonator and/or a ResistiveWall. The WakeField does
 not directly accept the WakeKick objects, but takes a list of
-WakeSources first, each of which knows how to generate its WakeKick
-objects via the factory method WakeSource.get_wake_kicks(..).
-The collection of WakeKicks form all the WakeSources define the
-WakeField and are hence the elementary objects that are stored, (i.e.
-the WakeField forgets about the origin of the WakeKicks once they have
-been created).
+WakeSources first (can be of different kinds), each of which knows how
+to generate its WakeKick objects via the factory method
+WakeSource.get_wake_kicks(..). The collection of WakeKicks from all the
+WakeSources define the WakeField and are the elementary objects that are
+stored, (i.e. the WakeField forgets about the origin of the WakeKicks
+once the latter have been created).
 
 @author Hannes Bartosik, Kevin Li, Giovanni Rumolo, Michael Schenk
 @date March 2014
@@ -27,25 +27,23 @@ from scipy.interpolate import interp1d
 from abc import ABCMeta, abstractmethod
 
 from .wake_kicks import *
+from ..general.element import Element
 
 sin = np.sin
 cos = np.cos
 
 
-class WakeField(object):
-    """
-    A WakeField is defined by elementary WakeKick objects that may
+class WakeField(Element):
+    """ A WakeField is defined by elementary WakeKick objects that may
     originate from different WakeSource objects. Usually, there is
     no need for the user to define more than one instance of the
     WakeField class in a simulation - except if one wants to use
     different slicing configurations (one WakeField object is allowed
     to have exactly one slicing configuration, i.e. only one instance
-    of the Slicer class).
-    """
+    of the Slicer class). """
 
     def __init__(self, slicer, *wake_sources):
-        """
-        Accepts a list of WakeSource objects. Each WakeSource object
+        """ Accepts a list of WakeSource objects. Each WakeSource object
         knows how to generate its corresponding WakeKick objects. The
         collection of all the WakeKick objects of each of the passed
         WakeSource objects defines the WakeField.
@@ -58,8 +56,7 @@ class WakeField(object):
         Exactly one instance of the Slicer class must be passed to the
         WakeField constructor. All the wake field components (kicks)
         hence use the same slicing and thus the same slice_set to
-        calculate the strength of the kicks.
-        """
+        calculate the strength of the kicks. """
         self.slicer = slicer
 
         self.wake_kicks = []
@@ -68,16 +65,14 @@ class WakeField(object):
             self.wake_kicks.extend(kicks)
 
     def track(self, bunch):
-        """
-        Calls the WakeKick.apply(bunch, slice_set) method of each of the
-        WakeKick objects stored in self.wake_kicks. A slice_set is
+        """ Calls the WakeKick.apply(bunch, slice_set) method of each of
+        the WakeKick objects stored in self.wake_kicks. A slice_set is
         necessary to perform this operation. It is requested from the
         bunch (instance of the Particles class) using the
         Particles.get_slices(self.slicer) method, where self.slicer is
         the instance of the Slicer class used for this particluar
         WakeField object. A slice_set is returned according to the
-        self.slicer configuration.
-        """
+        self.slicer configuration. """
         slice_set = bunch.get_slices(self.slicer)
 
         for kick in self.wake_kicks:
@@ -87,36 +82,29 @@ class WakeField(object):
 ''' WakeSource classes. '''
 
 class WakeSource(object):
-    """
-    Abstract base class for wake sources, such as WakeTable, Resonator
-    or ResistiveWall.
-    """
+    """ Abstract base class for wake sources, such as WakeTable,
+    Resonator or ResistiveWall. """
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_wake_kicks(self, slicer_mode):
-        """
-        Factory method. Creates instances of the WakeKick objects for
-        the given WakeSource and returns them as a list wake_kicks.
+        """ Factory method. Creates instances of the WakeKick objects
+        for the given WakeSource and returns them as a list wake_kicks.
         This method is usually only called by a WakeField object to
         collect and create all the WakeKick objects originating from the
         different sources. (The slicer mode Slicer.mode must be passed
         at instantiation of a WakeKick object only to set the
         appropriate convolution method. See docstrings of WakeKick
-        class.)
-        """
+        class.) """
         pass
 
 
 class WakeTable(WakeSource):
-    """
-    Class to define wake functions and WakeKick objects using data
-    from a table.
-    """
+    """ Class to define wake functions and WakeKick objects using data
+    from a table. """
 
     def __init__(self, wake_file, wake_file_columns):
-        """
-        Load data from the wake_file and store them in a dictionary
+        """ Load data from the wake_file and store them in a dictionary
         self.wake_table. Keys are the names specified by the user in
         wake_file_columns and describe the names of the wake field
         components (e.g. dipole_x or dipole_yx). The dict values are
@@ -131,15 +119,15 @@ class WakeTable(WakeSource):
         The order of wake_file_columns is relevant and must correspond
         to the one in the wake_file. There is no way to check this here
         and it is in the responsibility of the user to ensure it is
-        correct. The only check made here is whether the length of
+        correct. Two checks made here are whether the length of
         wake_file_columns corresponds to the number of columns in the
-        wake_file.
-        Moreover, units of the wake table data are assumed to follow the
-        HEADTAIL conventions, i.e.
+        wake_file and whether a column 'time' is specified.
+
+        The units and signs of the wake table data are assumed to follow
+        the HEADTAIL conventions, i.e.
           time: [ns]
           transverse wake components: [V/pC/mm]
-          longitudinal wake component: [V/pC].
-        """
+          longitudinal wake component: [V/pC]. """
         self.wake_table = {}
 
         wake_data = np.loadtxt(wake_file, delimiter="\t")
@@ -147,20 +135,21 @@ class WakeTable(WakeSource):
             raise ValueError('Length of wake_file_columns list does not \n' +
                              'correspond to the number of columns in \n' +
                              'the specified wake_file. \n')
+        if 'time' not in wake_file_columns:
+            raise ValueError("No wake_file_column with name 'time' has \n" +
+                             "been specified. \n")
 
         for i, column_name in enumerate(wake_file_columns):
             self.wake_table.update({ column_name : wake_data[:,i] })
 
     def get_wake_kicks(self, slicer_mode):
-        """
-        Factory method. Creates instances of the appropriate WakeKick
-        objects for all the wake components provided by the user (and
-        the wake table data). The WakeKick objects are returned as a
-        list wake_kicks.
-        """
+        """ Factory method. Creates instances of the appropriate
+        WakeKick objects for all the wake components provided by the
+        user (and the wake table data). The WakeKick objects are
+        returned as a list wake_kicks. """
         wake_kicks = []
 
-        ''' Constant wake kicks. '''
+        # Constant wake kicks.
         if self._is_provided('constant_x'):
             wake_function = self._function_transverse('constant_x')
             wake_kicks.append(ConstantWakeKickX(wake_function, slicer_mode))
@@ -173,7 +162,7 @@ class WakeTable(WakeSource):
             wake_function = self._function_longitudinal('longitudinal')
             wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
 
-        ''' Dipolar wake kicks. '''
+        # Dipolar wake kicks.
         if self._is_provided('dipole_x'):
             wake_function = self._function_transverse('dipole_x')
             wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
@@ -190,7 +179,7 @@ class WakeTable(WakeSource):
             wake_function = self._function_transverse('dipole_yx')
             wake_kicks.append(DipoleWakeKickYX(wake_function, slicer_mode))
 
-        ''' Quadrupolar wake kicks. '''
+        # Quadrupolar wake kicks.
         if self._is_provided('quadrupole_x'):
             wake_function = self._function_transverse('quadrupole_x')
             wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
@@ -210,10 +199,8 @@ class WakeTable(WakeSource):
         return wake_kicks
 
     def _is_provided(self, wake_component):
-        """
-        Check whether wake_component is a valid name and available in
-        wake table data. Return 'True' if yes and 'False' if no.
-        """
+        """ Check whether wake_component is a valid name and available
+        in wake table data. Return 'True' if yes and 'False' if no. """
         if wake_component in self.wake_table.keys():
             return True
         else:
@@ -224,14 +211,13 @@ class WakeTable(WakeSource):
             return False
 
     def _function_transverse(self, wake_component):
-        """
-        Defines and returns the wake(beta, dz) function for the given
-        wake_component (transverse). Data from the wake table are used,
-        but first converted to SI units assuming that time is specified
-        in [ns] and transverse wake field strengths in [V/pC/mm]. Sign
-        conventions are applied (HEADTAIL conventions). dz is related to
-        wake table time data by dz = beta c dt (dz < 0 for the
-        ultrarelativistic case).
+        """ Defines and returns the wake(beta, dz) function for the
+        given wake_component (transverse). Data from the wake table are
+        used, but first converted to SI units assuming that time is
+        specified in [ns] and transverse wake field strengths in
+        [V/pC/mm]. Sign conventions are applied (HEADTAIL conventions).
+        dz is related to wake table time data by dz = beta c dt (dz < 0
+        for the ultrarelativistic case).
         The wake(beta, dz) uses the scipy.interpolate.interp1d linear
         interpolation to calculate the wake strength at an arbitrary
         value of dz (provided it is in the valid range). The valid range
@@ -242,8 +228,7 @@ class WakeTable(WakeSource):
         performed at definition time of the wake(beta, dz) method. E.g.
         whether the specified wake is valid only for ultrarelativistic
         cases or low beta cases. In the former case, the wake strength
-        at time 0 must be defined by the user!
-        """
+        at time 0 must be defined by the user! """
         convert_to_s = 1e-9
         convert_to_V_per_Cm = 1e15
 
@@ -268,22 +253,20 @@ class WakeTable(WakeSource):
         return wake
 
     def _function_longitudinal(self, wake_component):
-        """
-        Defines and returns the wake(beta, dz) function for the given
-        wake_component (longitudinal). Data from the wake table are used,
-        but first converted to SI units assuming that time is specified
-        in [ns] and longitudinal wake field strength in [V/pC]. Sign
-        conventions are applied (HEADTAIL conventions). dz is related to
-        wake table time data by dz = -beta c dt (dz < 0 for the
-        ultrarelativistic case).
+        """ Defines and returns the wake(beta, dz) function for the
+        given wake_component (longitudinal). Data from the wake table
+        are used, but first converted to SI units assuming that time is
+        specified in [ns] and longitudinal wake field strength in
+        [V/pC]. Sign conventions are applied (HEADTAIL conventions). dz
+        is related to wake table time data by dz = -beta c dt (dz < 0
+        for the ultrarelativistic case).
         The wake(beta, dz) uses the scipy.interpolate.interp1d linear
         interpolation to calculate the wake strength at an arbitrary
         value of dz (provided it is in the valid range). The valid range
         of dz is given by the time range from the wake table. If values
         of wake(beta, dz) are requested for dz outside the valid range,
         a ValueError is raised by interp1d.
-        The beam loading theorem is respected and applied for dz = 0.
-        """
+        The beam loading theorem is respected and applied for dz=0. """
         convert_to_s = 1e-9
         convert_to_V_per_C = 1e12
 
@@ -305,39 +288,20 @@ class WakeTable(WakeSource):
 
 
 class Resonator(WakeSource):
-    """
-    Class to describe the wake functions originating from a resonator
-    impedance. Alex Chao's resonator model (Eq. 2.82) is used as well as
-    the definitions from HEADTAIL.
-    """
+    """ Class to describe the wake functions originating from a
+    resonator impedance. Alex Chao's resonator model (Eq. 2.82) is used
+    as well as the definitions from HEADTAIL. """
+
     def __init__(self, R_shunt, frequency, Q,
                  Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, Yokoya_Z):
-        """
-        General constructor to create a Resonator WakeSource object
+        """ General constructor to create a Resonator WakeSource object
         describing the wake functions of a resonator impedance. Alex
         Chao's resonator model (Eq. 2.82) is used as well as definitions
         from HEADTAIL.
-        An arbitrary number of different resonators can be defined with
-        only one instance of the Resonator class by passing lists of
-        parameters for R_shunt, frequency, Q and the Yokoya factors.
-        Their lengths must be equal.
-        """
-        if not isinstance(R_shunt, list): R_shunt = [R_shunt]
-        if not isinstance(frequency, list): frequency = [frequency]
-        if not isinstance(Q, list): Q = [Q]
-        if not isinstance(Yokoya_X1, list): Yokoya_X1 = [Yokoya_X1]
-        if not isinstance(Yokoya_X2, list): Yokoya_X2 = [Yokoya_X2]
-        if not isinstance(Yokoya_Y1, list): Yokoya_Y1 = [Yokoya_Y1]
-        if not isinstance(Yokoya_Y2, list): Yokoya_Y2 = [Yokoya_Y2]
-        if not isinstance(Yokoya_Z, list): Yokoya_Z = [Yokoya_Z]
-
-        if not (len(R_shunt)   == len(frequency) == len(Q) == len(Yokoya_X1) ==
-                len(Yokoya_X2) == len(Yokoya_Y1) == len(Yokoya_Y2) ==
-                len(Yokoya_Z)):
-            raise ValueError('Lengths of resonator parameters R_shunt, \n' +
-                             'frequency, Q and Yokoya factors are not \n' +
-                             'equal. \n')
-
+        Note that it is no longer allowed to pass a LIST of parameters
+        to generate a number of resonators with different parameters
+        within the same Resonator object. Instead, create the Resonator
+        objects and pass all of them to the WakeField constructor. """
         self.R_shunt = R_shunt
         self.frequency = frequency
         self.Q = Q
@@ -374,53 +338,49 @@ class Resonator(WakeSource):
         return self
 
     def get_wake_kicks(self, slicer_mode):
-        """
-        Factory method. Creates instances of the appropriate WakeKick
-        objects for a Resonator WakeSource with the specified
+        """ Factory method. Creates instances of the appropriate
+        WakeKick objects for a Resonator WakeSource with the specified
         parameters. A WakeKick object is instantiated only if the
         corresponding Yokoya factor is non-zero. The WakeKick objects
-        are returned as a list wake_kicks.
-        """
+        are returned as a list wake_kicks. """
         wake_kicks = []
 
         # Dipole wake kick x.
-        if any(self.Yokoya_X1):
-            wake_function = self._function_total(self._function_transverse,
-                                                 self.Yokoya_X1)
+        if self.Yokoya_X1:
+            wake_function = self._function_transverse(
+                self.R_shunt, self.frequency, self.Q, self.Yokoya_X1)
             wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
 
         # Quadrupole wake kick x.
-        if any(self.Yokoya_X2):
-            wake_function = self._function_total(self._function_transverse,
-                                                 self.Yokoya_X2)
+        if self.Yokoya_X2:
+            wake_function = self._function_transverse(
+                self.R_shunt, self.frequency, self.Q, self.Yokoya_X2)
             wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
 
         # Dipole wake kick y.
-        if any(self.Yokoya_Y1):
-            wake_function = self._function_total(self._function_transverse,
-                                                 self.Yokoya_Y1)
+        if self.Yokoya_Y1:
+            wake_function = self._function_transverse(
+                self.R_shunt, self.frequency, self.Q, self.Yokoya_Y1)
             wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
 
         # Quadrupole wake kick y.
-        if any(self.Yokoya_Y2):
-            wake_function = self._function_total(self._function_transverse,
-                                                 self.Yokoya_Y2)
+        if self.Yokoya_Y2:
+            wake_function = self._function_transverse(
+                self.R_shunt, self.frequency, self.Q, self.Yokoya_Y2)
             wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
 
         # Constant wake kick z.
-        if any(self.Yokoya_Z):
-            wake_function = self._function_total(self._function_longitudinal,
-                                                 self.Yokoya_Z)
+        if self.Yokoya_Z:
+            wake_function = self._function_longitudinal(
+                self.R_shunt, self.frequency, self.Q, self.Yokoya_Z)
             wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
 
         return wake_kicks
 
     def _function_transverse(self, R_shunt, frequency, Q, Yokoya_factor):
-        """
-        Define the wake function (transverse) of a resonator with the
-        given parameters according to Alex Chao's resonator model
-        (Eq. 2.82) and definitions of the resonator in HEADTAIL.
-        """
+        """ Define the wake function (transverse) of a resonator with
+        the given parameters according to Alex Chao's resonator model
+        (Eq. 2.82) and definitions of the resonator in HEADTAIL. """
         omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
@@ -440,11 +400,9 @@ class Resonator(WakeSource):
         return wake
 
     def _function_longitudinal(self, R_shunt, frequency, Q, Yokoya_factor):
-        """
-        Define the wake function (longitudinal) of a resonator with the
-        given parameters according to Alex Chao's resonator model
-        (Eq. 2.82) and definitions of the resonator in HEADTAIL.
-        """
+        """ Define the wake function (longitudinal) of a resonator with
+        the given parameters according to Alex Chao's resonator model
+        (Eq. 2.82) and definitions of the resonator in HEADTAIL. """
         omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
         omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
@@ -465,31 +423,16 @@ class Resonator(WakeSource):
             return y
         return wake
 
-    def _function_total(self, function_single, Yokoya_factor):
-        """
-        Method to combine (sum up) the wake functions of an arbitrary
-        number of _function_transverse or _function_longitudinal. This
-        method is used to determine the total wake function in case more
-        than one resonator is described by one and the same instance of
-        the resonator class. See also docstring of Resonator.__init__ .
-        """
-        return reduce(lambda x, y: x + y,
-            [ function_single(self.R_shunt[i], self.frequency[i], self.Q[i],
-                              Yokoya_factor[i])
-             for i in np.arange(len(self.Q)) if Yokoya_factor[i] != 0 ])
-
 
 class ResistiveWall(WakeSource):
-    """
-    Class to describe the wake functions originating from a resistive
-    wall impedance.
-    """
+    """ Class to describe the wake functions originating from a
+    resistive wall impedance. """
+
     def __init__(self, pipe_radius, resistive_wall_length, conductivity,
                  dz_min, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2):
-        """
-        General constructor to create a ResistiveWall WakeSource object
-        describing the wake functions of a resistive wall impedance.
-        """
+        """ General constructor to create a ResistiveWall WakeSource
+        object describing the wake functions of a resistive wall
+        impedance. """
         self.pipe_radius = np.array([pipe_radius]).flatten()
         self.resistive_wall_length = resistive_wall_length
         self.conductivity = conductivity
@@ -514,7 +457,7 @@ class ResistiveWall(WakeSource):
         return self
 
     @classmethod
-    def parallel_plates(cls, pipe_radius, length_resistive_wall, conductivity,
+    def parallel_plates(cls, pipe_radius, resistive_wall_length, conductivity,
                         dz_min):
         """ Special case of a parallel plates resistive wall. """
         Yokoya_X1 = np.pi**2 / 24.
@@ -522,18 +465,16 @@ class ResistiveWall(WakeSource):
         Yokoya_X2 = -np.pi**2 / 24.
         Yokoya_Y2 = np.pi**2 / 24.
 
-        self = cls(pipe_radius, length_resistive_wall, conductivity, dz_min,
+        self = cls(pipe_radius, resistive_wall_length, conductivity, dz_min,
                    Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2)
         return self
 
     def get_wake_kicks(self, slicer_mode):
-        """
-        Factory method. Creates instances of the appropriate WakeKick
-        objects for the ResistiveWall WakeSource with the specified
-        parameters. A WakeKick object is instantiated only if the
-        corresponding Yokoya factor is non-zero. The WakeKick objects
-        are returned as a list wake_kicks.
-        """
+        """ Factory method. Creates instances of the appropriate
+        WakeKick objects for the ResistiveWall WakeSource with the
+        specified parameters. A WakeKick object is instantiated only if
+        the corresponding Yokoya factor is non-zero. The WakeKick
+        objects are returned as a list wake_kicks. """
         wake_kicks = []
 
         # Dipole wake kick x.
@@ -559,10 +500,8 @@ class ResistiveWall(WakeSource):
         return wake_kicks
 
     def _function_transverse(self, Yokoya_factor):
-        """
-        Define the wake function (transverse) of a resistive wall with
-        the given parameters.
-        """
+        """ Define the wake function (transverse) of a resistive wall
+        with the given parameters. """
         Z0 = physical_constants['characteristic impedance of vacuum'][0]
         lambda_s = 1. / (Z0 * self.conductivity)
         mu_r = 1
