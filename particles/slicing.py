@@ -241,16 +241,6 @@ class Slicer(object):
     '''
     __metaclass__ = ABCMeta
 
-    @abstractmethod
-    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None):
-        '''
-        Return a Slicer object. Set and store the corresponding slicing
-        configuration.
-        Note that either n_sigma_z or z_cuts can be set. If both are
-        given, a ValueError will be raised.
-        '''
-        pass
-
     @property
     def config(self):
         return (self.mode, self.n_slices, self.n_sigma_z, self.z_cuts)
