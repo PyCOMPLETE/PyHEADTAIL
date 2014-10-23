@@ -24,7 +24,7 @@ class ModeIsUniformCharge(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
-        return value
+        return self.value
 
 class SliceSet(object):
     '''Defines a set of longitudinal slices. It's a blueprint or photo
@@ -328,7 +328,7 @@ class UniformBinSlicer(Slicer):
                 (beam.z - z_cut_tail) / slice_width
             ).astype(np.int32)
 
-        return SliceSet(z_bins, slice_index_of_particle, self.mode)
+        return SliceSet(z_bins, slice_index_of_particle, 'uniform_bin')
 
 
 class UniformChargeSlicer(Slicer):
@@ -396,26 +396,5 @@ class UniformChargeSlicer(Slicer):
         slice_index_of_particle = np.empty(n_part, dtype=np.int32)
         np.put(slice_index_of_particle, id_old, slice_index_of_particle_sorted)
 
-        return SliceSet(z_bins, slice_index_of_particle, self.mode,
+        return SliceSet(z_bins, slice_index_of_particle, 'uniform_charge',
                         n_macroparticles_per_slice=n_part_per_slice)
-
-        # TODO:
-
-        # MS, 16.09.14: update on lost particles should be performed by
-        # a specific method (probably located in particles module) called
-        # by e.g. aperture module.
-        # Hence, the lexsort should not be necessary anymore.
-
-        # update the number of lost particles
-        # self.n_macroparticles_lost = (self.n_macroparticles -
-                                      # np.count_nonzero(self.id))
-
-        # sort particles according to z (this is needed for correct
-        # functioning of beam.compute_statistics)
-        # if self.n_macroparticles_lost:
-            # place lost particles at the end of the array
-            # z_argsorted = np.lexsort((self.z, -np.sign(self.id)))
-        # else:
-
-        # MS, 16.09.14: Here we are assuming that z is pointing to
-        # z_all[:n_macroparticles_alive], i.e. excluding lost particles !!!
