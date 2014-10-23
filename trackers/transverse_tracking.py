@@ -66,24 +66,24 @@ class TransverseSegmentMap(object):
         # Sine component.
         self.I[0,0] = np.sqrt(beta_x_s1 / beta_x_s0)
         self.I[0,1] = 0.
-        self.I[1,0] = (np.sqrt(1 / (beta_x_s0 * beta_x_s1)) *
+        self.I[1,0] = (np.sqrt(1. / (beta_x_s0 * beta_x_s1)) *
                       (alpha_x_s0 - alpha_x_s1))
         self.I[1,1] = np.sqrt(beta_x_s0 / beta_x_s1)
         self.I[2,2] = np.sqrt(beta_y_s1 / beta_y_s0)
         self.I[2,3] = 0.
-        self.I[3,2] = (np.sqrt(1 / (beta_y_s0 * beta_y_s1)) *
+        self.I[3,2] = (np.sqrt(1. / (beta_y_s0 * beta_y_s1)) *
                       (alpha_y_s0 - alpha_y_s1))
         self.I[3,3] = np.sqrt(beta_y_s0 / beta_y_s1)
 
         # Cosine component.
         self.J[0,0] = np.sqrt(beta_x_s1 / beta_x_s0) * alpha_x_s0
         self.J[0,1] = np.sqrt(beta_x_s0 * beta_x_s1)
-        self.J[1,0] = -(np.sqrt(1 / (beta_x_s0 * beta_x_s1)) *
+        self.J[1,0] = -(np.sqrt(1. / (beta_x_s0 * beta_x_s1)) *
                       (1. + alpha_x_s0 * alpha_x_s1))
         self.J[1,1] = -np.sqrt(beta_x_s0 / beta_x_s1) * alpha_x_s1
         self.J[2,2] = np.sqrt(beta_y_s1 / beta_y_s0) * alpha_y_s0
         self.J[2,3] = np.sqrt(beta_y_s0 * beta_y_s1)
-        self.J[3,2] = -(np.sqrt(1 / (beta_y_s0 * beta_y_s1)) *
+        self.J[3,2] = -(np.sqrt(1. / (beta_y_s0 * beta_y_s1)) *
                       (1. + alpha_y_s0 * alpha_y_s1))
         self.J[3,3] = -np.sqrt(beta_y_s0 / beta_y_s1) * alpha_y_s1
 
@@ -96,8 +96,9 @@ class TransverseSegmentMap(object):
         all instances of the SegmentDetuner child classes).
         The transport matrix is defined by the coefficients M_{ij}. """
 
-        # Calculate phase advance (betatron motion in this segment and
-        # incoherent tune shifts introduced by detuning effects).
+        # Calculate phase advance for this segment (betatron motion in
+        # this segment and incoherent tune shifts introduced by detuning
+        # effects).
         dphi_x = self.dQ_x
         dphi_y = self.dQ_y
 
@@ -156,27 +157,34 @@ class TransverseMap(object):
     self.segment_maps) can be accessed using the notation
     TransverseMap(...)[i] (with i the index of the accelerator
     segment). """
-    def __init__(self, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
+    def __init__(self, C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
                  Q_x, Q_y, *detuner_collections):
         """ Create a one-turn map that manages the transverse tracking
         for each of the accelerator segments defined by s.
-          s is the array of positions defining the boundaries of the
-          segments for one turn.
-          alpha_{x,y}, beta_{x,y} are the TWISS parameters alpha and
-          beta. They are arrays of size len(s) as these parameters must
-          be defined at every segment boundary of the accelerator.
-          D_{x,y} are the dispersion coefficients. They are arrays of
-          size len(s) as these parameters must be defined at every
-          segment boundary of the accelerator.
-          Q_{x,y} are scalar values and define the betatron tunes (i.e.
-          the number of betatron oscillations in one complete turn).
-
-          detuner_collections is a list of DetunerCollection objects
-          that are present in the accelerator. Each DetunerCollection
-          knows how to generate and store its SegmentDetuner objects
-          to 'distribute' the detuning proportionally along the
-          accelerator circumference.
-        WARNING: Dispersion effects are not yet implemented. """
+          - s is the array of positions defining the boundaries of the
+            segments for one turn. The first element in s must be zero
+            and the last element must be equal to the accelerator
+            circumference C.
+          - alpha_{x,y}, beta_{x,y} are the TWISS parameters alpha and
+            beta. They are arrays of size len(s) as these parameters
+            must be defined at every segment boundary of the
+            accelerator.
+          - D_{x,y} are the dispersion coefficients. They are arrays of
+            size len(s) as these parameters must be defined at every
+            segment boundary of the accelerator.
+            WARNING: Dispersion effects are not yet implemented.
+          - Q_{x,y} are scalar values and define the betatron tunes
+            (i.e. the number of betatron oscillations in one complete
+            turn).
+          - detuner_collections is a list of DetunerCollection objects
+            that are present in the accelerator. Each DetunerCollection
+            knows how to generate and store its SegmentDetuner objects
+            to 'distribute' the detuning proportionally along the
+            accelerator circumference. """
+        if s[0] != 0 or s[-1] != C:
+            raise ValueError('The first element of s must be zero \n' +
+                'and the last element must be equal to the \n' +
+                'accelerator circumference C. \n')
         self.s = s
         self.alpha_x = alpha_x
         self.beta_x = beta_x
