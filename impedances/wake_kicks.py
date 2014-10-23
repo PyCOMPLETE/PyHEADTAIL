@@ -86,7 +86,7 @@ class WakeKick(object):
 class ConstantWakeKickX(WakeKick):
 
     def apply(self, bunch, slice_set):
-       """ Calculates and applies a constant wake kick to bunch.xp
+        """ Calculates and applies a constant wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
