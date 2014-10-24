@@ -71,8 +71,8 @@ cdef class ChromaticitySegment(object):
         effects. """
         cdef double[::1] dp = beam.dp
         cdef unsigned int n_particles = dp.shape[0]
-        cdef double[::1] dQ_x = np.zeros(n_particles, dtype=np.double)
-        cdef double[::1] dQ_y = np.zeros(n_particles, dtype=np.double)
+        cdef double[::1] dQ_x = np.empty(n_particles, dtype=np.double)
+        cdef double[::1] dQ_y = np.empty(n_particles, dtype=np.double)
 
         cdef unsigned int i
         for i in prange(n_particles, nogil=True, num_threads=self.n_threads):
@@ -128,8 +128,8 @@ cdef class AmplitudeDetuningSegment(object):
         cdef double p0 = beam.p0
 
         cdef unsigned int n_particles = x.shape[0]
-        cdef double[::1] dQ_x = np.zeros(n_particles, dtype=np.double)
-        cdef double[::1] dQ_y = np.zeros(n_particles, dtype=np.double)
+        cdef double[::1] dQ_x = np.empty(n_particles, dtype=np.double)
+        cdef double[::1] dQ_y = np.empty(n_particles, dtype=np.double)
 
         cdef double xp_floquet, yp_floquet, Jx, Jy
         cdef unsigned int i

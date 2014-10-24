@@ -100,6 +100,7 @@ class RFQTransverseDetuner(DetunerCollection):
 cdef class RFQTransverseDetunerSegment(object):
     """ Cython implementation of the RFQ element acting directly on the
     particles' betatron tunes (i.e. RFQ detuner model). """
+
     cdef double dapp_xz, dapp_yz, omega, phi_0
     cdef int n_threads
 
@@ -144,8 +145,8 @@ cdef class RFQTransverseDetunerSegment(object):
         cdef double p0 = beam.p0
 
         cdef unsigned int n_particles = z.shape[0]
-        cdef double[::1] dQ_x = np.zeros(n_particles, dtype=np.double)
-        cdef double[::1] dQ_y = np.zeros(n_particles, dtype=np.double)
+        cdef double[::1] dQ_x = np.empty(n_particles, dtype=np.double)
+        cdef double[::1] dQ_y = np.empty(n_particles, dtype=np.double)
 
         cdef double cos_arg = self.omega / (beam.beta * c)
         cdef double cos_term, p
