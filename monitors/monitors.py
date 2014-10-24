@@ -54,7 +54,7 @@ class BunchMonitor(Monitor):
         self.stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
-            'epsn_z', 'n_macroparticles' ]
+            'epsn_z', 'macroparticlenumber' ]
         self.filename = filename
         self.n_steps = n_steps
         self.i_steps = 0
@@ -117,7 +117,7 @@ class BunchMonitor(Monitor):
 
             # Handle the different statistics quantities, which can
             # either be methods (like mean(), ...) or simply attributes
-            # (n_macroparticles) of the bunch.
+            # (macroparticlenumber) of the bunch.
             try:
                 self.buffer[stats][0] = evaluate_stats()
             except TypeError:
@@ -180,7 +180,7 @@ class SliceMonitor(Monitor):
         self.bunch_stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
-            'epsn_z', 'n_macroparticles' ]
+            'epsn_z', 'macroparticlenumber' ]
         self.slice_stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
@@ -262,7 +262,7 @@ class SliceMonitor(Monitor):
 
         # Handle the different statistics quantities, which can
         # either be methods (like mean(), ...) or simply attributes
-        # (n_macroparticles or n_macroparticles_per_slice) of the bunch
+        # (macroparticlenumber or n_macroparticles_per_slice) of the bunch
         # or slice_set resp.
 
         # bunch-specific data.
@@ -368,7 +368,7 @@ class ParticleMonitor(Monitor):
         given in self.quantities_to_store. """
         h5file = hp.File(self.filename + '.h5part', 'a')
         h5group = h5file.create_group('Step#' + str(self.i_steps))
-        dims = (bunch.n_macroparticles // self.stride,)
+        dims = (bunch.macroparticlenumber // self.stride,)
 
         # resorting_indices = np.argsort(bunch.id)[::self.stride]
         for quant in self.quantities_to_store:
