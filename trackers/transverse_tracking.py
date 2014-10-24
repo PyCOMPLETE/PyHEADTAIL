@@ -110,21 +110,21 @@ class TransverseSegmentMap(object):
         dphi_x *= 2.*np.pi
         dphi_y *= 2.*np.pi
 
-        cos_dphi_x = cos(dphi_x)
-        cos_dphi_y = cos(dphi_y)
-        sin_dphi_x = sin(dphi_x)
-        sin_dphi_y = sin(dphi_y)
+        c_dphi_x = cos(dphi_x)
+        c_dphi_y = cos(dphi_y)
+        s_dphi_x = sin(dphi_x)
+        s_dphi_y = sin(dphi_y)
 
         # Calculate the matrix M and transport the transverse phase
         # spaces through the segment.
-        M00 = self.I[0,0]*cos_dphi_x + self.J[0,0]*sin_dphi_x
-        M01 = self.I[0,1]*cos_dphi_x + self.J[0,1]*sin_dphi_x
-        M10 = self.I[1,0]*cos_dphi_x + self.J[1,0]*sin_dphi_x
-        M11 = self.I[1,1]*cos_dphi_x + self.J[1,1]*sin_dphi_x
-        M22 = self.I[2,2]*cos_dphi_y + self.J[2,2]*sin_dphi_y
-        M23 = self.I[2,3]*cos_dphi_y + self.J[2,3]*sin_dphi_y
-        M32 = self.I[3,2]*cos_dphi_y + self.J[3,2]*sin_dphi_y
-        M33 = self.I[3,3]*cos_dphi_y + self.J[3,3]*sin_dphi_y
+        M00 = self.I[0,0] * c_dphi_x + self.J[0,0] * s_dphi_x
+        M01 = self.I[0,1] * c_dphi_x + self.J[0,1] * s_dphi_x
+        M10 = self.I[1,0] * c_dphi_x + self.J[1,0] * s_dphi_x
+        M11 = self.I[1,1] * c_dphi_x + self.J[1,1] * s_dphi_x
+        M22 = self.I[2,2] * c_dphi_y + self.J[2,2] * s_dphi_y
+        M23 = self.I[2,3] * c_dphi_y + self.J[2,3] * s_dphi_y
+        M32 = self.I[3,2] * c_dphi_y + self.J[3,2] * s_dphi_y
+        M33 = self.I[3,3] * c_dphi_y + self.J[3,3] * s_dphi_y
 
         beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
         beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp 
