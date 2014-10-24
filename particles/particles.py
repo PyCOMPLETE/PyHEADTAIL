@@ -1,25 +1,29 @@
 '''
-Created on 04.09.2014
-@author: Kevin Li, Adrian Oeftiger
+Created on 17.10.2014
+@author: Kevin Li, Michael Schenk, Adrian Oeftiger
 '''
 
+from abc import ABCMeta, abstractmethod
+# import itertools
 
-import sys
 import numpy as np
-from numpy.random import normal, uniform, RandomState
-from scipy.constants import c, e, m_e, m_p
+from scipy.constants import c, e
 
 from ..cobra_functions import stats as cp
-from ..trackers.rf_bucket import RFBucket
-from generators import RFBucketMatcher
-
 
 class Particles(object):
-
+    '''Contains the basic properties of a particle ensemble with
+    their coordinate and conjugate momentum arrays, energy and the like.
+    Designed to describe beams, electron clouds, ...
+    '''
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma_reference,
-                 phase_space_coordinates_dict):
-
+                 coords_n_momenta_dict={}):
+        '''The dictionary coords_n_momenta_dict contains the coordinate
+        and conjugate momenta names and assigns to each the
+        corresponding array.
+        e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
+        '''
         self.macroparticlenumber = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
 
@@ -27,7 +31,7 @@ class Particles(object):
         self.mass = mass
 
         self.circumference = circumference
-        self.gamma_reference = gamma_reference
+        self.gamma = gamma_reference
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded
@@ -38,193 +42,20 @@ class Particles(object):
         '''
         self._slice_sets = {}
 
-        for k, v in phase_space_coordinates_dict.items():
-            setattr(self, k, v)
-        self.phase_space_coordinates_list = phase_space_coordinates_dict.keys()
+        '''Set of coordinate and momentum attributes of this Particles
+        instance.
+        '''
+        self.coords_n_momenta = set()
+
+        '''ID of particles in order to keep track of single entries
+        in the coordinate and momentum arrays.
+        '''
         self.id = np.arange(1, self.macroparticlenumber+1, dtype=int)
-
-        # Compatibility
-        self.n_macroparticles = self.macroparticlenumber
-        self.n_macroparticles_lost = 0
-        self.n_particles_per_mp = self.particlenumber_per_mp
-        self.same_size_for_all_MPs = True
-        self.gamma = self.gamma_reference
-
-        assert( all([len(v) == self.macroparticlenumber for v in phase_space_coordinates_dict.values()]) )
-
-
-    @classmethod
-    def as_gaussian(cls, macroparticlenumber, intensity, charge, mass,
-                    circumference, gamma_reference, sigma_x, sigma_xp,
-                    sigma_y, sigma_yp, sigma_z, sigma_dp, generator_seed=None):
-
-        particlenumber_per_mp = intensity/macroparticlenumber
-
-        if generator_seed:
-            random_state = RandomState()
-            random_state.seed(generator_seed)
-
-        x  = normal(0, sigma_x, macroparticlenumber)
-        xp = normal(0, sigma_xp, macroparticlenumber)
-        y  = normal(0, sigma_y, macroparticlenumber)
-        yp = normal(0, sigma_yp, macroparticlenumber)
-        z  = normal(0, sigma_z, macroparticlenumber)
-        dp = normal(0, sigma_dp, macroparticlenumber)
-
-        phase_space_coordinates_dict = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'z': z, 'dp': dp}
-
-        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
-                   phase_space_coordinates_dict)
-
-
-    @classmethod
-    def as_gaussian_linear(cls, macroparticlenumber, intensity,
-                           charge, mass, circumference, gamma_reference,
-                           alpha_x, beta_x, epsn_x,
-                           alpha_y, beta_y, epsn_y,
-                           beta_z, epsn_z, generator_seed=None):
-
-        particlenumber_per_mp = intensity/macroparticlenumber
-
-        betagamma = np.sqrt(gamma_reference**2 - 1)
-        p0 = betagamma * mass * c
-
-        if generator_seed:
-            random_state = RandomState()
-            random_state.seed(generator_seed)
-
-        x  = normal(0, np.sqrt(epsn_x/betagamma * beta_x), macroparticlenumber)
-        xp = normal(0, np.sqrt(epsn_x/betagamma / beta_x), macroparticlenumber)
-        y  = normal(0, np.sqrt(epsn_y/betagamma * beta_y), macroparticlenumber)
-        yp = normal(0, np.sqrt(epsn_y/betagamma / beta_y), macroparticlenumber)
-        z  = normal(0, np.sqrt(epsn_z*e/p0 * beta_z), macroparticlenumber)
-        dp = normal(0, np.sqrt(epsn_z*e/p0 / beta_z), macroparticlenumber)
-
-        phase_space_coordinates_dict = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'z': z, 'dp': dp}
-
-        return cls(macroparticlenumber, particlenumber_per_mp,
-                   charge, mass, circumference, gamma_reference,
-                   phase_space_coordinates_dict)
-
-
-    @classmethod
-    def as_gaussian_linear_matched(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-                                   transverse_map=None, longitudinal_map=None,
-                                   epsn_x=None, epsn_y=None, sigma_z=None, epsn_z=None, generator_seed=None):
-
-        particlenumber_per_mp = intensity/macroparticlenumber
-
-        betagamma = np.sqrt(gamma_reference**2 - 1)
-
-        if generator_seed:
-            random_state = RandomState()
-            random_state.seed(generator_seed)
-
-        phase_space_coordinates_dict = {}
-        if transverse_map:
-            x  = normal(0, np.sqrt(epsn_x/betagamma * transverse_map.beta_x), macroparticlenumber)
-            xp = normal(0, np.sqrt(epsn_x/betagamma / transverse_map.beta_x), macroparticlenumber)
-            y  = normal(0, np.sqrt(epsn_y/betagamma * transverse_map.beta_y), macroparticlenumber)
-            yp = normal(0, np.sqrt(epsn_y/betagamma / transverse_map.beta_y), macroparticlenumber)
-            phase_space_coordinates_dict['x']  = x
-            phase_space_coordinates_dict['xp'] = xp
-            phase_space_coordinates_dict['y']  = y
-            phase_space_coordinates_dict['yp'] = yp
-        if longitudinal_map:
-            beta_z = np.abs(longitudinal_map.eta)*circumference/(2*np.pi)/longitudinal_map.Qs
-            if sigma_z and not epsn_z:
-                sigma_z = sigma_z
-            elif not sigma_z and epsn_z:
-                sigma_z = np.sqrt(epsn_z*beta_z/(4*np.pi) * e/p0)
-            else:
-                raise TypeError('***ERROR: at least and at most one of sigma_z and epsn_z to be given!')
-            z  = normal(0, sigma_z, macroparticlenumber)
-            dp = normal(0, sigma_z/beta_z, macroparticlenumber)
-            phase_space_coordinates_dict['z']  = z
-            phase_space_coordinates_dict['dp'] = dp
-
-        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
-                   phase_space_coordinates_dict)
-
-
-    @classmethod
-    def as_gaussian_bucket_matched(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-                                   transverse_map=None, longitudinal_map=None,
-                                   epsn_x=None, epsn_y=None, sigma_z=None, epsn_z=None, generator_seed=None):
-
-        particlenumber_per_mp = intensity/macroparticlenumber
-
-        betagamma = np.sqrt(gamma_reference**2 - 1)
-
-        if generator_seed:
-            random_state = RandomState()
-            random_state.seed(generator_seed)
-
-        phase_space_coordinates_dict = {}
-        if transverse_map:
-            x  = normal(0, np.sqrt(epsn_x/betagamma * transverse_map.beta_x), macroparticlenumber)
-            xp = normal(0, np.sqrt(epsn_x/betagamma / transverse_map.beta_x), macroparticlenumber)
-            y  = normal(0, np.sqrt(epsn_y/betagamma * transverse_map.beta_y), macroparticlenumber)
-            yp = normal(0, np.sqrt(epsn_y/betagamma / transverse_map.beta_y), macroparticlenumber)
-            phase_space_coordinates_dict['x']  = x
-            phase_space_coordinates_dict['xp'] = xp
-            phase_space_coordinates_dict['y']  = y
-            phase_space_coordinates_dict['yp'] = yp
-        if longitudinal_map:
-            z, dp, psi, linedensity = RFBucketMatcher(StationaryExponential, longitudinal_map, sigma_z, epsn_z).generate(macroparticlenumber)
-            phase_space_coordinates_dict['z']  = z
-            phase_space_coordinates_dict['dp'] = dp
-
-        self = cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
-                   phase_space_coordinates_dict)
-        longitudinal_map.circumference = self.get_circumference
-        longitudinal_map.gamma_reference = self.get_gamma_reference
-
-        self.psi = psi
-        self.linedensity = linedensity
-
-        return self
-
-
-    @classmethod
-    def as_uniform(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-                   xextent, yextent, zextent):
-
-        particlenumber_per_mp = intensity/macroparticlenumber
-
-        x  = uniform(-xextent, xextent, macroparticlenumber)
-        xp = np.zeros(macroparticlenumber)
-        y  = normal(-yextent, yextent, macroparticlenumber)
-        yp = np.zeros(macroparticlenumber)
-        z  = uniform(-zextent, zextent, macroparticlenumber)
-        dp = np.zeros(macroparticlenumber)
-
-        phase_space_coordinates_dict = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'z': z, 'dp': dp}
-
-        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
-                   phase_space_coordinates_dict)
-
-
-    @classmethod
-    def as_import(cls, macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-                  phase_space_coordinates_dict):
-
-        particlenumber_per_mp = intensity/macroparticlenumber
-
-        return cls(macroparticlenumber, particlenumber_per_mp, charge, mass, circumference, gamma_reference,
-                   phase_space_coordinates_dict)
-
+        self.update(coords_n_momenta_dict)
 
     @property
     def intensity(self):
-        if self.same_size_for_all_MPs:
-            return self.n_particles_per_mp*self.n_macroparticles
-        else:
-            return  np.sum(self.n_particles_per_mp)
-
-    def get_circumference(self): return self.circumference
-
-    def get_gamma_reference(self): return self.gamma
+        return self.particlenumber_per_mp * self.macroparticlenumber
 
     @property
     def gamma(self):
@@ -248,7 +79,7 @@ class Particles(object):
         return self._betagamma
     @betagamma.setter
     def betagamma(self, value):
-        self.gamma = np.sqrt(value ** 2 + 1)
+        self.gamma = np.sqrt(value**2 + 1)
 
     @property
     def p0(self):
@@ -273,6 +104,12 @@ class Particles(object):
         self.dp = value / (self.beta*c*self.p0)
 
 
+    def get_coords_n_momenta_dict(self):
+        '''Return a dictionary containing the coordinate and conjugate
+        momentum arrays.
+        '''
+        return {coord: getattr(self, coord) for coord in self.coords_n_momenta}
+
     def get_slices(self, slicer):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
@@ -290,31 +127,35 @@ class Particles(object):
         '''
         self._slice_sets = {}
 
-    def sort_particles(self):
-        # update the number of lost particles
-        self.n_macroparticles_lost = (self.n_macroparticles -
-                                      np.count_nonzero(self.id))
+    def update(self, coords_n_momenta_dict):
+        '''Assigns the keys of the dictionary coords_n_momenta_dict as
+        attributes to this Particles instance and puts the corresponding
+        values. Pretty much the same as dict.update({...}) .
+        Attention: overwrites existing coordinate / momentum attributes.
+        '''
+        if any(len(v) != self.macroparticlenumber for v in
+               coords_n_momenta_dict.values()):
+            raise ValueError("lengths of given phase space coordinate arrays" +
+                             " do not coincide with self.macroparticlenumber.")
+        for coord, array in coords_n_momenta_dict.items():
+            setattr(self, coord, array)
+        self.coords_n_momenta.update(coords_n_momenta_dict.keys())
 
-        # sort particles according to z (this is needed for correct
-        # functioning of bunch.compute_statistics)
-        if self.n_macroparticles_lost:
-            # place lost particles at the end of the array
-            z_argsorted = np.lexsort((self.z, -np.sign(self.id)))
-        else:
-            z_argsorted = np.argsort(self.z)
-
-        self.x  = self.x.take(z_argsorted)
-        self.xp = self.xp.take(z_argsorted)
-        self.y  = self.y.take(z_argsorted)
-        self.yp = self.yp.take(z_argsorted)
-        self.z  = self.z.take(z_argsorted)
-        self.dp = self.dp.take(z_argsorted)
-        self.id = self.id.take(z_argsorted)
+    def add(self, coordinate, array):
+        '''Add the coordinate with its according array to the
+        attributes of the Particles instance
+        (via self.update(coords_n_momenta_dict)).
+        Does not allow existing coordinate or momentum attributes
+        to be overwritten.
+        '''
+        if coordinate in self.coords_n_momenta:
+            raise ValueError(coordinate + " already exists and cannot be" +
+                             " added. Use self.update(...) for this purpose.")
+        self.update({coordinate: array})
 
 
-    '''
-    Stats.
-    '''
+    # Statistics methods
+
     def mean_x(self):
         return cp.mean(self.x)
 
@@ -354,31 +195,3 @@ class Particles(object):
     def epsn_z(self):
         return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
         # return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
-
-
-class StationaryExponential(object):
-
-    def __init__(self, H, Hmax=None, width=1000, Hcut=0):
-        self.H = H
-        self.H0 = 1
-        if not Hmax:
-            self.Hmax = H(0, 0)
-        else:
-            self.Hmax = Hmax
-        self.Hcut = Hcut
-        self.width = width
-
-    def function(self, z, dp):
-        # psi = np.exp((self.H(z, dp)) / (self.width*self.Hmax)) - 1
-        # psi_offset = np.exp(self.Hcut / (self.width*self.Hmax)) - 1
-        # psi_norm = (np.exp(1/self.width) - 1) - psi_offset
-        # return ( (psi-psi_offset) / psi_norm ).clip(min=0)
-
-        # psi = np.exp( (self.H(z, dp)-self.Hcut).clip(min=0) / (self.width*self.Hmax)) - 1
-        # psi_norm = np.exp( (self.Hmax-0*self.Hcut) / (self.width*self.Hmax) ) - 1
-        # psi = np.exp( -self.H(z, dp).clip(min=0)/(self.width*self.Hmax) ) - 1
-        # psi_norm = np.exp( -self.Hmax/(self.width*self.Hmax) ) - 1
-
-        psi = np.exp(self.H(z, dp).clip(min=0)/self.H0) - 1
-        psi_norm = np.exp(self.Hmax/self.H0) - 1
-        return psi/psi_norm
