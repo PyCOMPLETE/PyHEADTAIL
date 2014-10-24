@@ -31,8 +31,8 @@ class LongSpaceCharge(Element):
         dp kick.
         '''
         slices = beam.get_slices(self.slicer)
-        lambda_prime = (slices.line_density_derivative() *
-                        beam.n_particles_per_mp)
+        lambda_prime = (slices.line_density_derivative_gauss() *
+                        beam.particlenumber_per_mp)
         slice_kicks = (self._prefactor(beam) * self._gfactor(beam) *
                        lambda_prime) * self.time_step
 
