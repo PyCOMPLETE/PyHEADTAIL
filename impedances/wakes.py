@@ -26,8 +26,8 @@ from scipy.constants import c, physical_constants
 from scipy.interpolate import interp1d
 from abc import ABCMeta, abstractmethod
 
-from .wake_kicks import *
-from ..general.element import Element
+from wake_kicks import *
+from . import Element
 
 sin = np.sin
 cos = np.cos

@@ -7,17 +7,19 @@
 from __future__ import division
 import numpy as np
 
+from . import Element
+
 sin = np.sin
 cos = np.cos
 
 
-class TransverseSegmentMap(object):
+class TransverseSegmentMap(Element):
     """ Class to transport/track the particles of the beam in the
     transverse plane through an accelerator ring segment defined by its
     boundaries [s0, s1]. To calculate the transverse linear transport
     matrix M that transports each particle's transverse phase space
     coordinates (x, xp, y, yp) from position s0 to position s1 in the
-    accelerator, the TWISS parameters alpha and beta at positions s0 
+    accelerator, the TWISS parameters alpha and beta at positions s0
     and s1 must be provided. The betatron phase advance of each
     particle in the present segment is given by their betatron tune
     Q_{x,y} and possibly by an incoherent tune shift introduced e.g. by
@@ -127,7 +129,7 @@ class TransverseSegmentMap(object):
         M33 = self.I[3,3] * c_dphi_y + self.J[3,3] * s_dphi_y
 
         beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
-        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp 
+        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
 
 
 class TransverseMap(object):
@@ -196,7 +198,7 @@ class TransverseMap(object):
         self.Q_y = Q_y
         self.detuner_collections = detuner_collections
 
-        # List to store TransverseSegmentMap objects.
+        '''List to store TransverseSegmentMap instances.'''
         self.segment_maps = []
         self._generate_segment_maps()
 
@@ -209,13 +211,13 @@ class TransverseMap(object):
         SegmentDetuner objects which is achieved by calling the
         self.detuner_collections.generate_segment_detuner(...) method.
         The detuning strength given in a DetunerCollection is valid for
-        one complete turn around the accelerator. To determine the 
+        one complete turn around the accelerator. To determine the
         detuning strength of a SegmentDetuner, the one-turn detuning
         strength is scaled to the segment_length. Note that this
         quantity is given in relative units (i.e. it is normalized to
         the accelerator circumference s[-1]). """
         segment_length = np.diff(self.s) / self.s[-1]
-        
+
         # Betatron motion normalized to this particular segment.
         dQ_x = self.Q_x * segment_length
         dQ_y = self.Q_y * segment_length
@@ -229,7 +231,7 @@ class TransverseMap(object):
             for detuner in self.detuner_collections:
                 detuner.generate_segment_detuner(segment_length[s0],
                     beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
-            
+
             # Instantiate TransverseSegmentMap objects.
             transverse_segment_map = TransverseSegmentMap(
                 self.alpha_x[s0], self.beta_x[s0], self.D_x[s0],

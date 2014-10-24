@@ -13,12 +13,8 @@ class RFBucket(object):
     def __init__(self, get_circumference, get_gamma, alpha_0, p_increment,
                  harmonic_list, voltage_list, phi_offset_list, phase_lock=True):
 
-        # self._circumference = get_circumference
-        # self._gamma_reference = get_gamma
         self.circumference = get_circumference
         self.gamma_reference = get_gamma
-        # self.get_gamma_reference = closed_orbit.get_gamma_reference
-        # self.set_gamma_reference = closed_orbit.set_gamma_reference
 
         self.alpha0 = alpha_0
         self.p_increment = p_increment

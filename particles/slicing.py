@@ -12,6 +12,7 @@ import scipy.ndimage as ndimage
 from random import sample
 
 from abc import ABCMeta, abstractmethod
+from functools import partial
 
 from ..cobra_functions import stats as cp
 from ..general.decorators import memoize
@@ -124,20 +125,22 @@ class SliceSet(object):
             self.slice_positions, particle_indices_by_slice)
         return particle_indices_by_slice
 
-    def line_density_derivative(self):
+    def line_density_derivative(
+            self, n_macroparticles=None):
         '''Array of length (n_slices - 1) containing
         the derivative of the n_macroparticles array.
         '''
         if self.mode is 'uniform_charge':
             raise ModeIsUniformCharge('The derivative is zero up to ' +
-                                      'numerical issues because the ' +
+                                      'numerical fluctuations because the ' +
                                       'charges have been distributed ' +
                                       'uniformly across the slices.')
-        derivative = np.gradient(self.n_macroparticles_per_slice,
-                                 self.slice_widths)
-        return derivative
+        if n_macroparticles is None:
+            n_macroparticles = self.n_macroparticles_per_slice
+        return np.gradient(n_macroparticles, self.slice_widths[0]) 
 
-    def line_density_derivative_gauss(self):
+    def line_density_derivative_gauss(self, sigma=None, smoothen_before=True,
+                                      smoothen_after=True):
         '''
         Calculate the derivative of the slice charge density while
         smoothing the line density via a Gaussian filter.
@@ -146,10 +149,16 @@ class SliceSet(object):
         '''
         if self.mode is not 'uniform_bin':
             raise ModeIsNotUniformBin()
-        derivative = (ndimage.gaussian_filter1d(
-                self.n_macroparticles_per_slice, sigma=1, order=1, mode='wrap')
-                / self.slice_widths[0]
-            )
+        if sigma is None:
+            sigma = 0.04 * self.n_slices
+        smoothen = partial(ndimage.gaussian_filter1d, 
+                           sigma=sigma, mode='wrap')
+        line_density = self.n_macroparticles_per_slice
+        if smoothen_before:
+            line_density = smoothen(line_density)
+        derivative = self.line_density_derivative(line_density)
+        if smoothen_after:
+            derivative = smoothen(derivative)        
         return derivative
 
     def particle_indices_of_slice(self, slice_index):

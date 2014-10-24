@@ -3,20 +3,11 @@ from __future__ import division
 
 import numpy as np
 
-
-import pylab as plt
 from solvers.grid_functions import gather_from, scatter_to
 
+from . import Element
 
-class Grid(object):
-
-    pass
-
-
-class UniformGrid(Grid):
-    '''
-    classdocs
-    '''
+class UniformGrid(Element):
 
     def __init__(self, extension_x, extension_y, nx, ny):
 
@@ -85,7 +76,7 @@ class UniformGrid(Grid):
         exit(-1)
 
 
-class AdaptiveGrid(Grid):
+class AdaptiveGrid(object):
     '''
     classdocs
     '''

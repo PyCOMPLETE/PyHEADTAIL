@@ -7,12 +7,11 @@ from __future__ import division
 
 
 import numpy as np
-
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
-from .rf_bucket import RFBucket
 
-from ..general.element import *
+from . import Element
+from rf_bucket import RFBucket
 
 sin = np.sin
 cos = np.cos
@@ -75,7 +74,7 @@ class LongitudinalMap(Element):
         '''
         pass
 
-    def eta(self, delta, gamma):
+    def eta(self, dp, gamma):
         """
         Depending on the number of entries in self.alpha_array the
         according order of \eta = \sum_i \eta_i * \delta^i where
@@ -83,13 +82,13 @@ class LongitudinalMap(Element):
 
         Note: Please implement higher slippage factor orders as static methods
         with name _eta<N> where <N> is the order of delta in eta(delta)
-        and with signature (alpha_array, beam).
+        and with signature (alpha_array, gamma).
         """
         eta = 0
         for i in xrange( len(self.alpha_array) ):   # order = len - 1
             eta_func = getattr(self, '_eta' + str(i))
             eta_i = eta_func(self.alpha_array, gamma)
-            eta  += eta_i * (delta ** i)
+            eta  += eta_i * (dp ** i)
         return eta
 
     @staticmethod
@@ -287,9 +286,10 @@ class RFSystems(LongitudinalOneTurnMap):
     local statement about stability!
     """
 
-    def __init__(self, circumference, harmonic_list, voltage_list, phi_offset_list,
-                 alpha_array, gamma_reference, p_increment=0, phase_lock=True,
-                 shrink_transverse=True, shrink_longitudinal=False, slices_tuple=None):
+    def __init__(self, circumference, harmonic_list, voltage_list,
+                 phi_offset_list, alpha_array, gamma_reference,
+                 p_increment=0, phase_lock=True,
+                 shrink_transverse=True, shrink_longitudinal=False):
         """
         The first entry in harmonic_list, voltage_list and
         phi_offset_list defines the parameters for the one
@@ -463,7 +463,6 @@ class RFSystems(LongitudinalOneTurnMap):
         beam.y *= geo_emittance_factor
         beam.yp *= geo_emittance_factor
 
-    @clean_slices
     def track(self, beam):
         if self.p_increment:
             betagamma_old = beam.betagamma
@@ -477,10 +476,7 @@ class RFSystems(LongitudinalOneTurnMap):
                 self.track = self.track_no_transverse_shrinking
             # self.p0_reference += self.p_increment
 
-        if self.slices_tuple:
-            for slices in self.slices_tuple:
-                slices.update_slices(beam)
-
+    @clean_slices
     def track_transverse_shrinking(self, beam):
         if self.p_increment:
             betagamma_old = beam.betagamma
@@ -490,19 +486,12 @@ class RFSystems(LongitudinalOneTurnMap):
             self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
             # self.p0_reference += self.p_increment
 
-        if self.slices_tuple:
-            for slices in self.slices_tuple:
-                slices.update_slices(beam)
-
+    @clean_slices
     def track_no_transverse_shrinking(self, beam):
         for longMap in self.elements:
             longMap.track(beam)
         # if self.p_increment:
             # self.p0_reference += self.p_increment
-
-        if self.slices_tuple:
-            for slices in self.slices_tuple:
-                slices.update_slices(beam)
 
     # DYNAMICAL LIST SETTERS
     # ======================
@@ -521,77 +510,6 @@ class RFSystems(LongitudinalOneTurnMap):
             self.kicks[i].phi_offset = dphi
         # self._get_bucket_boundaries()
 
-    # def Ef(self, z):
-    #     return reduce(lambda x, y: x + y, [kick.field(z) for kick in self.kicks])
-
-    # def E_acc(self, z):
-    #     deltaE  = self.p_increment*self.beta_reference*c
-    #     return self.Ef(z) - deltaE/self.circumference
-
-    # def Vf(self, z):
-    #     return reduce(lambda x, y: x + y, [kick.potential(z) for kick in self.kicks])
-
-    # def V_acc(self, z):
-    #     '''Sign makes sure we stay convex - just nicer'''
-    #     z_extrema = self._get_zero_crossings(self.E_acc)
-    #     deltaE  = self.p_increment*self.beta_reference*c
-
-    #     if np.sign(self.eta0) < 0:
-    #         zc, zmax = z_extrema[-1], z_extrema[0]
-    #     else:
-    #         zmax, zc = z_extrema[-1], z_extrema[0]
-
-    #     return -np.sign(self.eta0) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * deltaE/self.circumference)
-
-    # def get_z_left_right(self, zc):
-    #     z_cut = self._get_zero_crossings(lambda x: self.V_acc(x) - self.V_acc(zc))
-    #     zleft, zright = z_cut[0], z_cut[-1]
-
-    #     return zleft, zright
-
-    # def Hcut(self, zc):
-    #     return self.hamiltonian(zc, 0)
-
-    # def equihamiltonian(self, zc):
-    #     def s(z):
-    #         r = np.sign(self.eta0) * 2/(self.eta0*self.beta_reference*c) * (-self.Hcut(zc) - self.V_acc(z)/self.p0_reference)
-    #         return np.sqrt(r.clip(min=0))
-    #     return s
-
-    # def separatrix(self, z):
-    #     f = self.equihamiltonian(self.zright)
-    #     return f(z)
-
-    # def p_max(self, zc):
-    #     f = self.equihamiltonian(zc)
-    #     return np.amax(f(self.zs))
-
-    # def hamiltonian(self, z, dp):
-    #     '''Sign makes sure we stay convex - can then always use H<0'''
-    #     return (-(np.sign(self.eta0) * 1/2 * self.eta0 *
-    #             self.beta_reference * c * dp**2 * self.p0_reference
-    #             + self.V_acc(z)) / self.p0_reference)
-
-    # def H0_from_sigma(self, z0):
-    #     return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2
-
-    # def H0_from_epsn(self, epsn):
-    #     z0 = np.sqrt(epsn/(4*np.pi) * self.beta_z * e/self.p0_reference)
-    #     return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2
-
-    # def is_in_separatrix(self, z, dp):
-    #     """
-    #     Returns boolean whether this coordinate is located
-    #     strictly inside the separatrix.
-    #     """
-    #     return np.logical_and(np.logical_and(self.zleft < z, z < self.zright), self.hamiltonian(z, dp) > 0)
-
-    # def bucket_area(self):
-    #     xmin, xmax = self.zleft, self.zright
-    #     Q, error = dblquad(lambda y, x: 1, xmin, xmax, lambda x: 0, lambda x: self.separatrix(x))
-
-    #     return Q * 2*self.p0_reference/e
-
     def _phaselock(self, gamma):
 
         fc = self.fundamental_kick
@@ -600,47 +518,30 @@ class RFSystems(LongitudinalOneTurnMap):
         for c in cavities:
             c._phi_lock -= c.harmonic/fc.harmonic * self.phi_s(gamma)
 
-    # def _get_zero_crossings(self, f, zedges=None):
-    #     if zedges is None:
-    #         zmin, zmax = self.zmin*1.01, self.zmax*1.01
-    #     else:
-    #         zmin, zmax = zedges
 
-    #     zz = np.linspace(zmin, zmax, 1000)
+class LinearMap(LongitudinalOneTurnMap):
+    '''
+    Linear Map represented by a Courant-Snyder transfer matrix.
+    '''
 
-    #     a = np.sign(f(zz))
-    #     b = np.diff(a)
-    #     ix = np.where(b)[0]
-    #     s = []
-    #     for i in ix:
-    #         s.append(brentq(f, zz[i], zz[i + 1]))
-    #     s = np.array(s)
+    def __init__(self, alpha_array, circumference, Qs):
+        '''Qs is the synchrotron tune.'''
+        super(LinearMap, self).__init__(alpha_array, circumference)
+        self.Qs = Qs
 
-    #     return s
+    @clean_slices
+    def track(self, beam):
+        omega_0 = 2 * np.pi * beam.beta * c / self.circumference
+        omega_s = self.Qs * omega_0
 
-    # def _get_bucket_boundaries(self):
-    #     '''
-    #     Treat all crazy situations here
-    #     '''
-    #     z_extrema = self._get_zero_crossings(self.E_acc)
-    #     z_cut = self._get_zero_crossings(self.V_acc)
+        dQs = 2 * np.pi * self.Qs
+        cosdQs = cos(dQs)
+        sindQs = sin(dQs)
 
-    #     try:
-    #         if np.sign(self.eta0) < 0:
-    #             if len(z_extrema)==2:
-    #                 self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[-1], z_cut[0]
-    #             elif len(z_extrema)==3:
-    #                 self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_cut[0]
-    #             else:
-    #                 raise ValueError("\n*** This length of z_extrema is not known how to be treated. Aborting.\n")
-    #             self.zcut = z_cut[0]
-    #         else:
-    #             if len(z_extrema)==2:
-    #                 self.zleft, self.zs, self.zright = z_cut[0], z_extrema[0], z_extrema[-1]
-    #             elif len(z_extrema)==3:
-    #                 self.zleft, self.zs, self.zright = z_cut[0], z_extrema[1], z_extrema[-1]
-    #             else:
-    #                 raise ValueError("\n*** This length of z_extrema is not known how to be treated. Aborting.\n")
-    #             self.zcut = z_cut[0]
-    #     except IndexError:
-    #         self.zleft, self.zs, self.zright = z_extrema[0], z_extrema[1], z_extrema[-1]
+        z0 = beam.z
+        dp0 = beam.dp
+
+        beam.z = (z0 * cosdQs - self.eta(0, beam.gamma) * beam.beta * c /
+                  omega_s * dp0 * sindQs)
+        beam.dp = (dp0 * cosdQs + omega_s / self.eta(0, beam.gamma) /
+                   (beam.beta * c) * z0 * sindQs)
