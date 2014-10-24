@@ -1,18 +1,26 @@
 #!/usr/bin/python
 from __future__ import division
 
+import sys, os
+BIN = os.path.dirname(__file__) # ./PyHEADTAIL/testing/unittests/
+BIN = os.path.abspath( BIN ) # absolute path to unittests
+BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/testing/
+BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/
+BIN = os.path.dirname( BIN ) # ../ -->  ./
+sys.path.append(BIN)
+
 import unittest
 
 import numpy as np
 from scipy.constants import c, e, m_p
 
-from ..particles.generators import (
+from PyHEADTAIL.trackers.rf_bucket import RFBucket
+from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
+from PyHEADTAIL.trackers.simple_long_tracking import LinearMap, RFSystems
+from PyHEADTAIL.particles.generators import (
     ParticleGenerator,
     Gaussian6D
     )
-from ..trackers.rf_bucket import RFBucket
-from ..trackers.transverse_tracking import TransverseMap
-from ..trackers.simple_long_tracking import LinearMap, RFSystems
 
 class TestParticleGenerators(unittest.TestCase):
 
@@ -46,7 +54,7 @@ class TestParticleGenerators(unittest.TestCase):
         self.gamma = 1 + e * self.Ekin / (m_p * c**2)
         self.beta = np.sqrt(1 - self.gamma**-2)
         self.betagamma = np.sqrt(self.gamma**2 - 1)
-        self.eta = self.alpha_c_array[0] - self.gamma**-2
+        self.eta = self.alpha_array[0] - self.gamma**-2
         if self.eta < 0:
             self.phi_offset = np.pi - self.phi_offset
         self.Etot = self.gamma * m_p * c**2 / e
@@ -76,16 +84,16 @@ class TestParticleGenerators(unittest.TestCase):
         self.D_y     = np.zeros(self.n_segments)
 
     def create_Gaussian6D(self):
-        return generators.Gaussian6D(
-            self.n_particles, self.intensity, self.e, self.m_p,
-            self.circumference, self.gamma,
+        return Gaussian6D(
+            self.macroparticlenumber, self.intensity, e, m_p,
+            self.C, self.gamma,
             self.sigma_x, self.sigma_xp,
             self.sigma_y, self.sigma_yp,
             self.sigma_z, self.sigma_dp
             )
 
     def test_Gaussian6D_macroparticlenumber(self):
-        bunch = create_Gaussian6D().generate()
+        bunch = self.create_Gaussian6D().generate()
         self.assertTrue(bunch.macroparticlenumber == self.macroparticlenumber)
 
 if __name__ == '__main__':
