@@ -27,7 +27,7 @@ from scipy.interpolate import interp1d
 from abc import ABCMeta, abstractmethod
 
 from wake_kicks import *
-from . import Element
+from . import Element, Printing
 
 sin = np.sin
 cos = np.cos
@@ -81,7 +81,7 @@ class WakeField(Element):
 
 ''' WakeSource classes. '''
 
-class WakeSource(object):
+class WakeSource(Printing):
     """ Abstract base class for wake sources, such as WakeTable,
     Resonator or ResistiveWall. """
     __metaclass__ = ABCMeta
@@ -103,7 +103,7 @@ class WakeTable(WakeSource):
     """ Class to define wake functions and WakeKick objects using data
     from a table. """
 
-    def __init__(self, wake_file, wake_file_columns):
+    def __init__(self, wake_file, wake_file_columns, *args, **kwargs):
         """ Load data from the wake_file and store them in a dictionary
         self.wake_table. Keys are the names specified by the user in
         wake_file_columns and describe the names of the wake field
@@ -204,7 +204,7 @@ class WakeTable(WakeSource):
         if wake_component in self.wake_table.keys():
             return True
         else:
-            print (wake_component + ' \n' +
+            self.warns(wake_component + ' \n' +
                   'Wake component is either not provided or does not \n'+
                   'use correct nomenclature. See docstring of WakeTable \n' +
                   'constructor to display valid names. \n')
@@ -239,17 +239,17 @@ class WakeTable(WakeSource):
             def wake(beta, dz):
                 dz = dz.clip(max=0)
                 return interp1d(time, wake_strength)(- dz / (beta * c))
-            print (wake_component + ' \n' +
-                  'Assuming ultrarelativistic wake. \n')
+            self.warns(wake_component +
+                  ' Assuming ultrarelativistic wake.')
 
         elif (time[0] < 0) and (wake_strength[0] != 0):
             def wake(beta, dz):
                 return interp1d(time, wake_strength)(- dz / (beta * c))
-            print (wake_component + ' \n' + 'Found low beta wake.')
+            self.warns(wake_component +  ' Found low beta wake.')
 
         elif (time[0] > 0) and (wake_strength[0] != 0):
-            raise ValueError(wake_component + ' \n' +
-                             'does not meet requirements. \n')
+            raise ValueError(wake_component +
+                             ' does not meet requirements.')
         return wake
 
     def _function_longitudinal(self, wake_component):
@@ -293,7 +293,8 @@ class Resonator(WakeSource):
     as well as the definitions from HEADTAIL. """
 
     def __init__(self, R_shunt, frequency, Q,
-                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, Yokoya_Z):
+                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, Yokoya_Z,
+                 *args, **kwargs):
         """ General constructor to create a Resonator WakeSource object
         describing the wake functions of a resonator impedance. Alex
         Chao's resonator model (Eq. 2.82) is used as well as definitions
@@ -310,32 +311,6 @@ class Resonator(WakeSource):
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_Y2 = Yokoya_Y2
         self.Yokoya_Z = Yokoya_Z
-
-    @classmethod
-    def circular(cls, R_shunt, frequency, Q):
-        """ Special case of circular resonator. """
-        Yokoya_X1 = 1.
-        Yokoya_Y1 = 1.
-        Yokoya_X2 = 0.
-        Yokoya_Y2 = 0.
-        Yokoya_Z = 0.
-
-        self = cls(R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-                   Yokoya_X2, Yokoya_Y2, Yokoya_Z)
-        return self
-
-    @classmethod
-    def parallel_plates(cls, R_shunt, frequency, Q):
-        """ Special case of parallel plate resonator. """
-        Yokoya_X1 = np.pi**2 / 24.
-        Yokoya_Y1 = np.pi**2 / 12.
-        Yokoya_X2 = -np.pi**2 / 24.
-        Yokoya_Y2 = np.pi**2 / 24.
-        Yokoya_Z = 0
-
-        self = cls(R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-                   Yokoya_X2, Yokoya_Y2, Yokoya_Z)
-        return self
 
     def get_wake_kicks(self, slicer_mode):
         """ Factory method. Creates instances of the appropriate
@@ -424,12 +399,43 @@ class Resonator(WakeSource):
         return wake
 
 
+class CircularResonator(Resonator):
+    '''Circular Resonator.'''
+    def __init__(self, R_shunt, frequency, Q, *args, **kwargs):
+        """ Special case of circular resonator. """
+        Yokoya_X1 = 1.
+        Yokoya_Y1 = 1.
+        Yokoya_X2 = 0.
+        Yokoya_Y2 = 0.
+        Yokoya_Z = 0.
+
+        super(CircularResonator, self).__init__(
+            R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
+            Yokoya_X2, Yokoya_Y2, Yokoya_Z)
+
+
+class ParallelPlatesResonator(Resonator):
+    '''Parallel Plate Resonator.'''
+    def __init__(self, R_shunt, frequency, Q, *args, **kwargs):
+        """ Special case of parallel plate resonator. """
+        Yokoya_X1 = np.pi**2 / 24.
+        Yokoya_Y1 = np.pi**2 / 12.
+        Yokoya_X2 = -np.pi**2 / 24.
+        Yokoya_Y2 = np.pi**2 / 24.
+        Yokoya_Z = 0
+
+        super(ParallelPlatesResonator, self).__init__(
+            R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
+            Yokoya_X2, Yokoya_Y2, Yokoya_Z)
+
+
 class ResistiveWall(WakeSource):
     """ Class to describe the wake functions originating from a
     resistive wall impedance. """
 
     def __init__(self, pipe_radius, resistive_wall_length, conductivity,
-                 dz_min, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2):
+                 dz_min, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
+                 *args, **kwargs):
         """ General constructor to create a ResistiveWall WakeSource
         object describing the wake functions of a resistive wall
         impedance. """
@@ -442,32 +448,6 @@ class ResistiveWall(WakeSource):
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y2 = Yokoya_Y2
-
-    @classmethod
-    def circular(cls, pipe_radius, resistive_wall_length, conductivity,
-                 dz_min):
-        """ Special case of a circular resistive wall. """
-        Yokoya_X1 = 1.
-        Yokoya_Y1 = 1.
-        Yokoya_X2 = 0.
-        Yokoya_Y2 = 0.
-
-        self = cls(pipe_radius, resistive_wall_length, conductivity, dz_min,
-                   Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2)
-        return self
-
-    @classmethod
-    def parallel_plates(cls, pipe_radius, resistive_wall_length, conductivity,
-                        dz_min):
-        """ Special case of a parallel plates resistive wall. """
-        Yokoya_X1 = np.pi**2 / 24.
-        Yokoya_Y1 = np.pi**2 / 12.
-        Yokoya_X2 = -np.pi**2 / 24.
-        Yokoya_Y2 = np.pi**2 / 24.
-
-        self = cls(pipe_radius, resistive_wall_length, conductivity, dz_min,
-                   Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2)
-        return self
 
     def get_wake_kicks(self, slicer_mode):
         """ Factory method. Creates instances of the appropriate
@@ -513,3 +493,33 @@ class ResistiveWall(WakeSource):
                  dz.clip(max=-abs(self.dz_min))))
             return y
         return wake
+
+
+class CircularResistiveWall(ResistiveWall):
+    '''Circular resistive wall.'''
+    def __init__(self, pipe_radius, resistive_wall_length,
+                 conductivity, dz_min, *args, **kwargs):
+        """ Special case of a circular resistive wall. """
+        Yokoya_X1 = 1.
+        Yokoya_Y1 = 1.
+        Yokoya_X2 = 0.
+        Yokoya_Y2 = 0.
+
+        super(CircularResistiveWall, self).__init__(
+            pipe_radius, resistive_wall_length, conductivity, dz_min,
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2)
+
+
+class ParallelPlatesResistiveWall(ResistiveWall):
+    '''Parallel plates resistive wall.'''
+    def __init__(self, pipe_radius, resistive_wall_length,
+                 conductivity, dz_min, *args, **kwargs):
+        """ Special case of a parallel plates resistive wall. """
+        Yokoya_X1 = np.pi**2 / 24.
+        Yokoya_Y1 = np.pi**2 / 12.
+        Yokoya_X2 = -np.pi**2 / 24.
+        Yokoya_Y2 = np.pi**2 / 24.
+
+        super(ParallelPlatesResistiveWall, self).__init__(
+            pipe_radius, resistive_wall_length, conductivity, dz_min,
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2)

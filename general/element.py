@@ -11,11 +11,8 @@ in PyHEADTAIL should have.
 from abc import ABCMeta, abstractmethod
 from printers import ConsolePrinter
 
-class Element(object):
-    '''
-    Abstract element as part of the tracking layout. Guarantees
-    to fulfil its tracking contract via the method track(beam).
-    Provides prints(output) method in order to communicate any output
+class Printing(object):
+    '''Provides prints(output) method in order to communicate any output
     to the user. Use for instance
 
     >>> self.prints("Example message to console.")
@@ -26,7 +23,6 @@ class Element(object):
 
     in order to obtain full flexibility over output channels.
     '''
-    __metaclass__ = ABCMeta
 
     def __new__(cls, *args, **kwargs):
         '''
@@ -39,14 +35,9 @@ class Element(object):
         '''
         instance = object.__new__(cls)
         instance._printer = kwargs.get('printer', ConsolePrinter())
+        instance._warningprinter = kwargs.get('warningprinter',
+                                              ConsolePrinter())
         return instance
-
-    @abstractmethod
-    def track(self, beam):
-        '''
-        Perform tracking of beam through this Element.
-        '''
-        pass
 
     def prints(self, output):
         '''
@@ -61,3 +52,30 @@ class Element(object):
         in order to obtain full flexibility over output channels.
         '''
         self._printer.prints(output)
+
+    def warns(self, output):
+        '''
+        Communicate warnings to the user. Use for instance
+
+        >>> self.warns("Example warning to console.")
+
+        instead of
+
+        >>> print ("Example message to console.")
+        '''
+        self._warningprinter.prints(output)
+
+
+class Element(Printing):
+    '''
+    Abstract element as part of the tracking layout. Guarantees
+    to fulfil its tracking contract via the method track(beam).
+    '''
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def track(self, beam):
+        '''
+        Perform tracking of beam through this Element.
+        '''
+        pass
