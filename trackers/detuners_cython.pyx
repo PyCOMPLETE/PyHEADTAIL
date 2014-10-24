@@ -1,5 +1,5 @@
 """
-The PyHEADTAIL.trackers.detuners module implemented in CYTHON (incl.
+The PyHEADTAIL.trackers.detuners module implemented in Cython (incl.
 support for OpenMP). Collection classes are imported from the Python
 PyHEADTAIL.trackers.detuners module.
 
@@ -7,6 +7,11 @@ NB. Cython does not allow the use of abstract classes which is why there
 is no ABC 'Detuner' in this module. When adding a new detuning element
 or effect, it must be made sure that the detune(beam) method is
 implemented!
+
+TODO
+Instead of passing the python object beam to the Cython methods, it could
+be better to make a wrapper to the Cython function to pass directly the
+arrays beam.x, beam.y, ... for better performance.
 
 Description from PyHEADTAIL.trackers.detuners:
 Module to describe devices/effects, such as chromaticity or octupole
