@@ -279,3 +279,128 @@ cpdef cytrack_without_detuners(double[::1] x, double[::1] xp, double[::1] y,
 
         xp[i] = M[1,0] * x_tmp + M[1,1] * xp_tmp
         yp[i] = M[3,2] * y_tmp + M[3,3] * yp_tmp
+
+
+class TransverseMap(object):
+    """ Collection class for TransverseSegmentMap objects. This class is
+    used to define a one turn map for transverse particle tracking. An
+    accelerator ring is divided into segments (1 or more). They are
+    defined by the user with the array s containing the positions of
+    all the segment boundaries. The TransverseMap stores all the
+    relevant parameters (optics) at each segment boundary. The first
+    boundary of the first segment is referred to as the injection
+    point.
+    At instantiation of the TransverseMap, a TransverseSegmentMap object
+    is created for each segment of the accelerator and appended to the
+    list self.segment_maps. When generating the TransverseSegmentMaps,
+    the influence of incoherent detuning by effects defined in the
+    trackers.detuners module is included and the corresponding
+    SegmentDetuner objects are generated on the fly. Their strength of
+    detuning is distributed proportionally along the accelerator
+    circumference.
+    Note that the TransverseMap only knows all the relevant optics
+    parameters needed to generate the TransverseSegmentMaps. It is not
+    capable of tracking particles. The transport mechanism of particles
+    in the transverse plane is entirely implemented in the
+    TransverseSegmentMap class.
+    Since the TransverseMap is implemented to act as a sequence, the
+    instances of the TransverseSegmentMap objects (stored in
+    self.segment_maps) can be accessed using the notation
+    TransverseMap(...)[i] (with i the index of the accelerator
+    segment). """
+    def __init__(self, C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
+                 Q_x, Q_y, *detuner_collections):
+        """ Create a one-turn map that manages the transverse tracking
+        for each of the accelerator segments defined by s.
+          - s is the array of positions defining the boundaries of the
+            segments for one turn. The first element in s must be zero
+            and the last element must be equal to the accelerator
+            circumference C.
+          - alpha_{x,y}, beta_{x,y} are the TWISS parameters alpha and
+            beta. They are arrays of size len(s) as these parameters
+            must be defined at every segment boundary of the
+            accelerator.
+          - D_{x,y} are the dispersion coefficients. They are arrays of
+            size len(s) as these parameters must be defined at every
+            segment boundary of the accelerator.
+            WARNING: Dispersion effects are not yet implemented.
+          - Q_{x,y} are scalar values and define the betatron tunes
+            (i.e. the number of betatron oscillations in one complete
+            turn).
+          - detuner_collections is a list of DetunerCollection objects
+            that are present in the accelerator. Each DetunerCollection
+            knows how to generate and store its SegmentDetuner objects
+            to 'distribute' the detuning proportionally along the
+            accelerator circumference. """
+        if s[0] != 0 or s[-1] != C:
+            raise ValueError('The first element of s must be zero \n' +
+                'and the last element must be equal to the \n' +
+                'accelerator circumference C. \n')
+        self.s = s
+        self.alpha_x = alpha_x
+        self.beta_x = beta_x
+        self.D_x = D_x
+        self.alpha_y = alpha_y
+        self.beta_y = beta_y
+        self.D_y = D_y
+        self.Q_x = Q_x
+        self.Q_y = Q_y
+        self.detuner_collections = detuner_collections
+
+        # List to store TransverseSegmentMap objects.
+        self.segment_maps = []
+        self._generate_segment_maps()
+
+    def _generate_segment_maps(self):
+        """ This method is called at instantiation of a TransverseMap
+        object. For each segment of the accelerator ring (defined by the
+        array self.s), a TransverseSegmentMap object is instantiated and
+        appended to the list self.segment_maps. The creation of the
+        TransverseSegmentMaps includes the instantiation of the
+        SegmentDetuner objects which is achieved by calling the
+        self.detuner_collections.generate_segment_detuner(...) method.
+        The detuning strength given in a DetunerCollection is valid for
+        one complete turn around the accelerator. To determine the 
+        detuning strength of a SegmentDetuner, the one-turn detuning
+        strength is scaled to the segment_length. Note that this
+        quantity is given in relative units (i.e. it is normalized to
+        the accelerator circumference s[-1]). """
+        segment_length = np.diff(self.s) / self.s[-1]
+        
+        # Betatron motion normalized to this particular segment.
+        dQ_x = self.Q_x * segment_length
+        dQ_y = self.Q_y * segment_length
+
+        n_segments = len(self.s) - 1
+        for seg in range(n_segments):
+            s0 = seg % n_segments
+            s1 = (seg + 1) % n_segments
+
+            # Instantiate SegmentDetuner objects.
+            for detuner in self.detuner_collections:
+                detuner.generate_segment_detuner(segment_length[s0],
+                    beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
+            
+            # Instantiate TransverseSegmentMap objects.
+            transverse_segment_map = TransverseSegmentMap(
+                self.alpha_x[s0], self.beta_x[s0], self.D_x[s0],
+                self.alpha_x[s1], self.beta_x[s1], self.D_x[s1],
+                self.alpha_y[s0], self.beta_y[s0], self.D_y[s0],
+                self.alpha_y[s1], self.beta_y[s1], self.D_y[s1],
+                dQ_x[seg], dQ_y[seg],
+                *[detuner[seg] for detuner in self.detuner_collections])
+
+            self.segment_maps.append(transverse_segment_map)
+
+    def get_injection_optics(self):
+        """ Return a tuple with the transverse TWISS parameters
+        (alpha_x, beta_x, alpha_y, beta_y) from the beginning of the
+        first segment (injection point). """
+        return (self.alpha_x[0], self.beta_x[0],
+                self.alpha_y[0], self.beta_y[0])
+
+    def __len__(self):
+        return len(self.segment_maps)
+
+    def __getitem__(self, key):
+        return self.segment_maps[key]
