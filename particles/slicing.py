@@ -2,6 +2,7 @@
 @authors: Hannes Bartosik,
           Kevin Li,
           Michael Schenk,
+          Giovanni Iadarola,
           Adrian Oeftiger
 @date:    01/10/2014
 '''
@@ -137,7 +138,7 @@ class SliceSet(object):
                                       'uniformly across the slices.')
         if n_macroparticles is None:
             n_macroparticles = self.n_macroparticles_per_slice
-        return np.gradient(n_macroparticles, self.slice_widths[0]) 
+        return np.gradient(n_macroparticles, self.slice_widths[0])
 
     def line_density_derivative_gauss(self, sigma=None, smoothen_before=True,
                                       smoothen_after=True):
@@ -151,14 +152,14 @@ class SliceSet(object):
             raise ModeIsNotUniformBin()
         if sigma is None:
             sigma = 0.04 * self.n_slices
-        smoothen = partial(ndimage.gaussian_filter1d, 
+        smoothen = partial(ndimage.gaussian_filter1d,
                            sigma=sigma, mode='wrap')
         line_density = self.n_macroparticles_per_slice
         if smoothen_before:
             line_density = smoothen(line_density)
         derivative = self.line_density_derivative(line_density)
         if smoothen_after:
-            derivative = smoothen(derivative)        
+            derivative = smoothen(derivative)
         return derivative
 
     def particle_indices_of_slice(self, slice_index):
