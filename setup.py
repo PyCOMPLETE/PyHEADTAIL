@@ -77,14 +77,14 @@ cy_ext = [
 #                 #extra_compile_args=["-g"],
 #                 #extra_link_args=["-g"],
 #                 ),
-        Extension("trackers.transverse_tracking_cython",
-                 ["trackers/transverse_tracking_cython.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 extra_compile_args=["-fopenmp"],
-                 extra_link_args=["-fopenmp"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
-                 ),
+        # Extension("trackers.transverse_tracking_cython",
+        #          ["trackers/transverse_tracking_cython.pyx"],
+        #          include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
+        #          extra_compile_args=["-fopenmp"],
+        #          extra_link_args=["-fopenmp"],
+        #          #extra_compile_args=["-g"],
+        #          #extra_link_args=["-g"],
+        #          ),
         Extension("trackers.detuners_cython",
                  ["trackers/detuners_cython.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
@@ -110,7 +110,7 @@ cy_ext = [
     #                          libraries=cython_gsl.get_libraries(),
     #                          library_dirs=[cython_gsl.get_library_dir()],
     #                          include_dirs=[cython_gsl.get_cython_include_dir()])]
-    
+
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 
 setup(cmdclass={'build_ext': build_ext},
