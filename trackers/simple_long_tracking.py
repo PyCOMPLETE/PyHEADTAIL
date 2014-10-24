@@ -85,7 +85,7 @@ class LongitudinalMap(Element):
         and with signature (alpha_array, gamma).
         """
         eta = 0
-        for i in xrange( len(self.alpha_array) ):   # order = len - 1
+        for i in xrange(len(self.alpha_array)):   # order = len - 1
             eta_func = getattr(self, '_eta' + str(i))
             eta_i = eta_func(self.alpha_array, gamma)
             eta  += eta_i * (dp ** i)
@@ -351,19 +351,11 @@ class RFSystems(LongitudinalOneTurnMap):
         self.fundamental_kick = min(self.kicks, key=lambda kick: kick.harmonic)
         self.p_increment = p_increment
 
-        # Reference energy and make eta0, resp. "machine gamma_tr" available for all routines
-        # self.gamma_reference = gamma_reference
-        # self.alpha0 = alpha_array[0]
         if phase_lock:
             self._phaselock(gamma_reference)
 
-        # zmax = self.circumference / (2*np.amin(harmonic_list))
-        # self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
-        # self._get_bucket_boundaries()
-        # # self.H0_from_sigma = self.H0
         self.rfbucket = RFBucket(circumference, gamma_reference, alpha_array[0], p_increment, harmonic_list, voltage_list, phi_offset_list)
 
-        self.slices_tuple = slices_tuple
 
     @property
     def p_increment(self):
@@ -373,54 +365,6 @@ class RFSystems(LongitudinalOneTurnMap):
         self.fundamental_kick.p_increment = value
         if self._shrinking:
             self.elements[-1].shrinkage_p_increment = value
-
-    # @property
-    # def p_increment(self):
-    #     return self._p_increment
-    # @p_increment.setter
-    # def p_increment(self, value):
-    #     self._p_increment = value
-    #     if self._shrinking:
-    #         self.elements[-1].shrinkage_p_increment = value
-
-    # @property
-    # def gamma_reference(self):
-    #     return self._gamma_reference
-    # @gamma_reference.setter
-    # def gamma_reference(self, value):
-    #     self._gamma_reference = value
-    #     self._beta_reference= np.sqrt(1 - self._gamma_reference**-2)
-    #     self._betagamma_reference = np.sqrt(self._gamma_reference**2 - 1)
-    #     self._p0_reference = self._betagamma_reference * m_p * c
-
-    # @property
-    # def beta_reference(self):
-    #     return self._beta_reference
-    # @beta_reference.setter
-    # def beta_reference(self, value):
-    #     self.gamma_reference = 1. / np.sqrt(1 - value**2)
-
-    # @property
-    # def betagamma_reference(self):
-    #     return self._betagamma_reference
-    # @betagamma_reference.setter
-    # def betagamma_reference(self, value):
-    #     self.gamma_reference = np.sqrt(value ** 2 + 1)
-
-    # @property
-    # def p0_reference(self):
-    #     return self._p0_reference
-    # @p0_reference.setter
-    # def p0_reference(self, value):
-    #     self.gamma_reference = value / (m_p * self.beta_reference * c)
-
-    # @property
-    # def eta0(self):
-    #     return self.alpha0 - 1/self.gamma_reference**2
-
-    # @property
-    # def beta_z(self):
-    #     return np.abs(self.eta0 * self.R / self.Qs)
 
     def Qs(self, gamma):
         beta = np.sqrt(1 - 1/gamma**2)
@@ -450,10 +394,6 @@ class RFSystems(LongitudinalOneTurnMap):
             return np.pi - phi_rel
         else:
             return phi_rel
-
-    # @property
-    # def Hmax(self):
-    #     return self.hamiltonian(self.zs, 0)
 
     @staticmethod
     def _shrink_transverse_emittance(beam, geo_emittance_factor):
@@ -522,12 +462,26 @@ class RFSystems(LongitudinalOneTurnMap):
 class LinearMap(LongitudinalOneTurnMap):
     '''
     Linear Map represented by a Courant-Snyder transfer matrix.
+    Makes use only of the linear first order slippage factor eta.
+    Higher orders are manifestly neglected:
+
+    .. math::
+    \eta(\delta = 0) = \sum_i \eta_i * \delta^i === \eta_0
+
+    where
+
+    .. math::
+    \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
-    def __init__(self, alpha_array, circumference, Qs):
+    def __init__(self, alpha_array, circumference, Qs, *args, **kwargs):
         '''Qs is the synchrotron tune.'''
-        super(LinearMap, self).__init__(alpha_array, circumference)
+        super(LinearMap, self).__init__(alpha_array, circumference,
+                                        *args, **kwargs)
         self.Qs = Qs
+        if len(alpha_array) > 1:
+            self.warns('The higher orders in the given alpha_array are ' +
+                       'manifestly neglected.')
 
     @clean_slices
     def track(self, beam):
@@ -541,6 +495,7 @@ class LinearMap(LongitudinalOneTurnMap):
         z0 = beam.z
         dp0 = beam.dp
 
+        # self.eta(0, beam.gamma) is identical to using first order eta!
         beam.z = (z0 * cosdQs - self.eta(0, beam.gamma) * beam.beta * c /
                   omega_s * dp0 * sindQs)
         beam.dp = (dp0 * cosdQs + omega_s / self.eta(0, beam.gamma) /
