@@ -103,7 +103,7 @@ class SliceSet(object):
         return self._n_macroparticles_per_slice
 
     @property
-    @memoize
+    # @memoize
     def particles_within_cuts(self):
         '''All particle indices which are situated within the
         slicing region defined by [z_cut_tail, z_cut_head).'''
@@ -114,7 +114,7 @@ class SliceSet(object):
         return particles_within_cuts_
 
     @property
-    @memoize
+    # @memoize
     def particle_indices_by_slice(self):
         '''Array of particle indices arranged / sorted according to
         their slice affiliation.
@@ -151,7 +151,7 @@ class SliceSet(object):
         if self.mode is not 'uniform_bin':
             raise ModeIsNotUniformBin()
         if sigma is None:
-            sigma = 0.04 * self.n_slices
+            sigma = 0.02 * self.n_slices
         smoothen = partial(ndimage.gaussian_filter1d,
                            sigma=sigma, mode='wrap')
         line_density = self.n_macroparticles_per_slice
