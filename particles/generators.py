@@ -8,6 +8,7 @@
 from __future__ import division
 
 from abc import ABCMeta, abstractmethod
+import sys
 
 import numpy as np
 from numpy.random import normal, uniform, RandomState
@@ -499,8 +500,9 @@ class RFBucketMatcher(object):
             self.variable = epsn_z
             self.psi_for_variable = self.psi_for_emittance_newton_method
         else:
-            raise ValueError(
-                "Can not generate mismatched matched distribution!")
+            raise ValueError("Can not generate mismatched matched distribution!")
+
+        self.seed = np.random.randint(sys.maxint)
 
     def psi_for_emittance_newton_method(self, epsn_z):
         H = self.H
@@ -509,11 +511,10 @@ class RFBucketMatcher(object):
         self._set_psi_sigma(H.circumference)
         # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
         # epsn_max = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-        z, dp = self._generate(50000, self.psi)
+        z, dp = self._regenerate(seed=self.seed)
         epsn_max = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
         if epsn_z > epsn_max:
-            print ('\n*** RMS emittance larger than bucket; using full ' +
-                   'bucket emittance', epsn_max, ' [eV s].')
+            print '\n*** RMS emittance larger than bucket; using full bucket emittance', epsn_max, ' [eV s].'
             epsn_z = epsn_max*0.99
         print '\n*** Maximum RMS emittance', epsn_max, 'eV s.'
 
@@ -522,33 +523,29 @@ class RFBucketMatcher(object):
             self._set_psi_epsn(ec)
             # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
             # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-            z, dp = self._generate(50000, self.psi)
+            z, dp = self._regenerate(seed=self.seed)
             emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
-            print '... distance to target emittance:', emittance-epsn_z
+            print '... distance to target emittance: {:.2e}'.format(emittance-epsn_z)
 
             return emittance-epsn_z
 
         try:
-            ec_bar = newton(get_zc_for_epsn_z, epsn_z*1.2, tol=1e-4, maxiter=30)
+            ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4, maxiter=30)
         except RuntimeError:
-            print ('*** WARNING: failed to converge using Newton-Raphson ' +
-                   'method. Trying classic Brent method...')
+            print '*** WARNING: failed to converge using Newton-Raphson method. Trying classic Brent method...'
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
 
         self._set_psi_epsn(ec_bar)
         # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
         # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-        z, dp = self._generate(50000, self.psi)
+        z, dp = self._regenerate(seed=self.seed)
         emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
         sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
-        emittance = self._compute_zero_quad(
-            lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright
-            ) * 2*H.p0_reference/e
 
         print '\n--> Emittance:', emittance
         print '--> Bunch length:', sigma
         # H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
-        # H.emittance, H.sigma = emittance, sigma
+        H.emittance, H.sigma = emittance, sigma
 
     # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
@@ -579,37 +576,68 @@ class RFBucketMatcher(object):
         self._set_psi_sigma(zc_bar)
         # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
         # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-        z, dp = self._generate(50000, self.psi)
+        z, dp = self._regenerate(seed=self.seed)
         emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
         sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
 
         print '--> Emittance:', emittance
         print '\n--> Bunch length:', sigma
         # H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
-        # H.emittance, H.sigma = emittance, sigma
+        H.emittance, H.sigma = emittance, sigma
 
     def generate(self, macroparticlenumber, particles=None):
         '''
-        Generate a 2d phase space of n_particles particles randomly
-        distributed according to the particle distribution function psi
-        within the region [xmin, xmax, ymin, ymax].
+        Generate a 2d phase space of n_particles particles randomly distributed
+        according to the particle distribution function psi within the region
+        [xmin, xmax, ymin, ymax].
         '''
-        # psi = self.psi_for_variable(self.variable)
         self.psi_for_variable(self.variable)
+        u, v = self._regenerate(macroparticlenumber, self.seed)
 
-        # Bin
-        i, j = 0, 0
-        nx, ny = 128, 128
-        xmin, xmax = self.H.zleft, self.H.zright
-        ymin, ymax = -self.H.p_max(self.H.zright), self.H.p_max(self.H.zright)
-        lx = (xmax - xmin)
-        ly = (ymax - ymin)
+        if particles:
+            particles.z = u
+            particles.dp = v
+            particles.psi = self.psi
+            particles.linedensity = self.linedensity
 
+        return u, v, self.psi, self.linedensity
+
+    def linedensity(self, xx):
+        quad_type = fixed_quad
+
+        L = []
+        try:
+            L = np.array([quad_type(lambda y: self.psi(x, y), 0, self.p_limits(x))[0] for x in xx])
+        except TypeError:
+            L = quad_type(lambda y: self.psi(xx, y), 0, self.p_limits(xx))[0]
+        L = np.array(L)
+
+        return 2*L
+
+    def _regenerate(self, macroparticlenumber=50000, seed=None):
+
+        # # Bin
+        # i, j = 0, 0
+        # nx, ny = 128, 128
         # xx = np.linspace(xmin, xmax, nx + 1)
         # yy = np.linspace(ymin, ymax, ny + 1)
         # XX, YY = np.meshgrid(xx, yy)
         # HH = self.psi(XX, YY)
         # psi_interp = interp2d(xx, yy, HH)
+
+        # while j < particles.n_macroparticles:
+        #     u = xmin + lx * np.random.random()
+        #     v = ymin + ly * np.random.random()
+
+        #     s = np.random.random()
+
+        #     i += 1
+        #     if s < psi_interp(u, v):
+        #         x[j] = u
+        #         y[j] = v
+        #         # TODO: check if this does not cause problems! Setter for item does not work - not implemented!
+        #         # particles.dp[j] = v
+        #         j += 1
 
         # ================================================================
         # mask_out = ~self.is_accepted(z, dp)
@@ -626,62 +654,25 @@ class RFBucketMatcher(object):
         #         dp[i] = self.sigma_dp * self.random_state.randn()
         # ================================================================
 
-        n_gen = macroparticlenumber
-        u = xmin + lx * np.random.random(n_gen)
-        v = ymin + ly * np.random.random(n_gen)
-        s = np.random.random(n_gen)
-        mask_out = ~(s<self.psi(u, v))
-        while mask_out.any():
-            n_gen = np.sum(mask_out)
-            u[mask_out] = xmin + lx * np.random.random(n_gen)
-            v[mask_out] = ymin + ly * np.random.random(n_gen)
-            s[mask_out] = np.random.random(n_gen)
-            mask_out = ~(s<self.psi(u, v))
-            # print 'Reiterate on non-accepted particles.'
-            # print n_gen, '\n'
-
-        if particles:
-            particles.z = u
-            particles.dp = v
-            # Stick auxiliary information to particles
-            particles.psi = self.psi
-            particles.linedensity = self.linedensity
-
-        return u, v, self.psi, self.linedensity
-
-    def linedensity(self, xx):
-        quad_type = fixed_quad
-
-        L = []
-        try:
-            L = [quad_type(lambda y: self.psi(x, y), 0,
-                 self.p_limits(x))[0] for x in xx]
-        except TypeError:
-            L = quad_type(lambda y: self.psi(xx, y), 0, self.p_limits(xx))[0]
-        L = np.array(L)
-
-        return 2*L
-
-    def _generate(self, macroparticlenumber, psi):
-
-        # Bin
-        i, j = 0, 0
-        nx, ny = 128, 128
         xmin, xmax = self.H.zleft, self.H.zright
         ymin, ymax = -self.H.p_max(self.H.zright), self.H.p_max(self.H.zright)
         lx = (xmax - xmin)
         ly = (ymax - ymin)
 
+        if seed:
+            random_state = RandomState()
+            random_state.seed(seed)
+
         n_gen = macroparticlenumber
-        u = xmin + lx * np.random.random(n_gen)
-        v = ymin + ly * np.random.random(n_gen)
-        s = np.random.random(n_gen)
+        u = xmin + lx * random_state.uniform(size=n_gen)
+        v = ymin + ly * random_state.uniform(size=n_gen)
+        s = random_state.uniform(size=n_gen)
         mask_out = ~(s<self.psi(u, v))
         while mask_out.any():
             n_gen = np.sum(mask_out)
-            u[mask_out] = xmin + lx * np.random.random(n_gen)
-            v[mask_out] = ymin + ly * np.random.random(n_gen)
-            s[mask_out] = np.random.random(n_gen)
+            u[mask_out] = xmin + lx * random_state.uniform(size=n_gen)
+            v[mask_out] = ymin + ly * random_state.uniform(size=n_gen)
+            s[mask_out] = random_state.uniform(size=n_gen)
             mask_out = ~(s<self.psi(u, v))
 
         return u, v
