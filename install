@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [[ $1 = '-c' ]] || [[ $1 = '--cleanall' ]]; then
+    python setup.py build_ext --inplace cleanall
+else
+    python setup.py build_ext --inplace
+fi
+
