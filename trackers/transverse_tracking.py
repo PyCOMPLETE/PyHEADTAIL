@@ -33,27 +33,29 @@ class TransverseSegmentMap(Element):
     def __init__(self,
             alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
             alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s1,
-            dQ_x, dQ_y, *segment_detuners):
+            dQ_x, dQ_y, *args, **kwargs):
         """ Return an instance of the TransverseSegmentMap class. The
         values of the TWISS parameters alpha_{x,y} and beta_{x,y} as
         well as of the dispersion coefficients D_{x,y} (not yet
         implemented) are given at the beginning s0 and at the end s1 of
         the corresponding segment. The dQ_{x,y} denote the betatron
         tunes normalized to the (relative) segment length. The
-        SegmentDetuner objects present in this segment are passed and
-        zipped to a list via the argument *segment_detuners.
+        SegmentDetuner objects present in this segment are passed as a
+        list via the keyword argument 'segment_detuners'.
         The matrices self.I and self.J are constant and are calculated
         only once at instantiation of the TransverseSegmentMap. """
-        self._build_segment_map(alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
-                                alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
-        self.segment_detuners = segment_detuners
 
         if (D_x_s0 != 0 or D_x_s1 != 0 or D_y_s0 != 0 or D_y_s1 != 0):
             raise NotImplementedError('Non-zero values have been \n' +
                 'specified for the dispersion coefficients D_{x,y}.\n' +
                 'But, the effects of dispersion are not yet implemented. \n')
+
+        self._build_segment_map(alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
+                                alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
+
+        self.segment_detuners = kwargs.pop('segment_detuners', [])
 
     def _build_segment_map(self, alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                            alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1):
@@ -239,7 +241,8 @@ class TransverseMap(object):
                 self.alpha_y[s0], self.beta_y[s0], self.D_y[s0],
                 self.alpha_y[s1], self.beta_y[s1], self.D_y[s1],
                 dQ_x[seg], dQ_y[seg],
-                *[detuner[seg] for detuner in self.detuner_collections])
+                segment_detuners=[detuner[seg]
+                                  for detuner in self.detuner_collections])
 
             self.segment_maps.append(transverse_segment_map)
 
