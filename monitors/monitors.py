@@ -12,9 +12,10 @@ import numpy as np
 import sys
 
 from abc import ABCMeta, abstractmethod
+from . import Printing
 
 
-class Monitor(object):
+class Monitor(Printing):
     """ Abstract base class for monitors. A monitor can request
     statistics data such as mean value and standard deviation and store
     the results in an HDF5 file. """
@@ -37,7 +38,8 @@ class BunchMonitor(Monitor):
     data when writing to a file that may become temporarily unavailable
     (e.g. if file is located on network) during the simulation. """
     def __init__(self, filename, n_steps, parameters_dict=None,
-                 write_buffer_every=512, buffer_size=4096):
+                 write_buffer_every=512, buffer_size=4096,
+                 *args, **kwargs):
         """ Create an instance of a BunchMonitor class. Apart from
         initializing the HDF5 file, a self.buffer dictionary is
         prepared to buffer the data before writing them to file.
@@ -105,7 +107,7 @@ class BunchMonitor(Monitor):
                                        compression='gzip', compression_opts=9)
             h5file.close()
         except:
-            print ('Creation of bunch monitor file ' + self.filename +
+            self.prints('Creation of bunch monitor file ' + self.filename +
                    'failed. \n')
             raise
 
@@ -148,7 +150,7 @@ class BunchMonitor(Monitor):
                     self.buffer[stats][low_pos_in_buffer:]
             h5file.close()
         except:
-            print ('Bunch monitor file is temporarily unavailable. \n')
+            self.warns('Bunch monitor file is temporarily unavailable. \n')
 
 
 class SliceMonitor(Monitor):
@@ -160,7 +162,8 @@ class SliceMonitor(Monitor):
     the simulation. """
 
     def __init__(self, filename, n_steps, slicer, parameters_dict=None,
-                 write_buffer_every=512, buffer_size=4096):
+                 write_buffer_every=512, buffer_size=4096,
+                 *args, **kwargs):
         """ Create an instance of a SliceMonitor class. Apart from
         initializing the HDF5 file, two buffers self.buffer_bunch and
         self.buffer_slice are prepared to buffer the bunch-specific and
@@ -248,8 +251,8 @@ class SliceMonitor(Monitor):
                     self.n_steps), compression='gzip', compression_opts=9)
             h5file.close()
         except:
-            print ('Creation of slice monitor file ' + self.filename +
-                   'failed. \n')
+            self.prints('Creation of slice monitor file ' + self.filename +
+                        'failed. \n')
             raise
 
     def _write_data_to_buffer(self, bunch):
@@ -311,7 +314,7 @@ class SliceMonitor(Monitor):
                     self.buffer_slice[stats][:,low_pos_in_buffer:]
             h5file.close()
         except:
-            print ('Slice monitor file is temporarily unavailable. \n')
+            self.warns('Slice monitor file is temporarily unavailable. \n')
 
 
 class ParticleMonitor(Monitor):
@@ -319,7 +322,8 @@ class ParticleMonitor(Monitor):
     coordinates and conjugate momenta as well as the id of individual
     macroparticles of a bunch. """
 
-    def __init__(self, filename, stride=1, parameters_dict=None):
+    def __init__(self, filename, stride=1, parameters_dict=None,
+                 *args, **kwargs):
         """ Create an instance of a ParticleMonitor class. The HDF5 file
         is initialized, and if specified, the parameters_dict is written
         to file.
@@ -354,8 +358,8 @@ class ParticleMonitor(Monitor):
                     h5file.attrs[key] = parameters_dict[key]
             h5file.close()
         except:
-            print ('Creation of particle monitor file ' + self.filename +
-                   'failed. \n')
+            self.prints('Creation of particle monitor file ' +
+                        self.filename + 'failed. \n')
             raise
 
     def _write_data_to_file(self, bunch):
