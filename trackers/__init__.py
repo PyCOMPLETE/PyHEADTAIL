@@ -1,2 +1,2 @@
 from .. import Element
-from _version import __version__
+from .. import __version__

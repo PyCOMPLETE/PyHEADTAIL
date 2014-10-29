@@ -1,5 +1,5 @@
+from ._version import __version__
 from general.element import Element, Printing
-from _version import __version__
 # print '                                                                                                                             '
 # print '                                                                ;Cfttttt11111111tttt1f0f.                                    '
 # print '                                                                ,GttttfG0GGG00000GGG0G0G0G0G0G0Ct1t1fG:                      '
@@ -46,4 +46,4 @@ from _version import __version__
 # print '                                            :.:;::::::;i ,                   Ct11G               LC1i                        '
 # print '                                              1:::::::1001         C              .               tf                         '
 # print '                                                                                                                             '
-print 'PyHEADTAIL v'+__version__+'\n\n'
+print ('PyHEADTAIL v' + __version__ + '\n\n')
