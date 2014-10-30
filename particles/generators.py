@@ -377,43 +377,6 @@ class MatchLinearLongMap(Gaussian):
                              ' epsn_z is required!')
 
 
-#class MatchRFBucketHTStyle(Gaussian):
-    #'''
-    #For HEADTAIL style matching inot RF bucket. BY KEVIN: NEEDS TO BE CLEANED UP BY ADRIAN!
-    #'''
-
-    #def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 #circumference, gamma_reference, longitudinal_map,
-                 #epsn_z=None, sigma_z=None, is_accepted=None, generator_seed=None):
-
-        #self.check_long_input(epsn_z, sigma_z)
-        #p0 = np.sqrt(gamma_reference**2 - 1) * mass * c
-        #eta = longitudinal_map.eta(0, gamma_reference)
-        #Qs = longitudinal_map.Qs(gamma_reference)
-        #beta_z = np.abs(eta) * circumference / (2 * np.pi * Qs)
-        #if sigma_z is None:
-            #sigma_z = np.sqrt(epsn_z * beta_z / (4*np.pi) * e/p0)
-        #sigma_dp = sigma_z / beta_z
-
-        #self.is_accepted = is_accepted
-        #self.random_state = RandomState()
-        #self.random_state.seed(generator_seed)
-
-        #super(MatchRFBucketHTStyle, self).__init__(
-            #macroparticlenumber, intensity, charge, mass, circumference,
-            #gamma_reference, {'z': sigma_z, 'dp': sigma_dp}, *args, **kwargs
-        #)
-
-    #@staticmethod
-    #def check_long_input(epsn_z, sigma_z):
-        #'''Check that exactly one of epsn_z and sigma_z is given,
-        #the other one should be None.
-        #'''
-        #if (epsn_z is None and sigma_z is None) or (epsn_z and sigma_z):
-            #raise ValueError('***ERROR: exactly one of sigma_z and ' +
-                             #' epsn_z is required!')
-
-
 class MatchGaussian6D(ParticleGenerator):
     '''The classic HEADTAIL phase space generator with coordinates
     (x, xp, y, yp, z, dp) using the given epsn_x, epsn_y and either
@@ -488,6 +451,45 @@ class MatchRFBucket6D(ParticleGenerator):
         return coords_n_momenta_dict
 
 
+class CutRFBucket6D(ParticleGenerator):
+    '''The classic HEADTAIL phase space generator with coordinates
+    (x, xp, y, yp, z, dp) using the given epsn_x, epsn_y as well as
+    the optics resp. TWISS parameters taken from a TransverseMap
+    instance. The longitudinal phase space is initialised as a
+    bi-gaussian with given sigma_z and sigma_dp which is then cut along
+    the funciotn given by is_accepted which is typically the function
+    is_in_separatrix of the rfbucket instance of the longitudinal map.
+    '''
+    def __init__(self, macroparticlenumber, intensity, charge, mass,
+                 circumference, gamma_reference,
+                 transverse_map, epsn_x, epsn_y,
+                 sigma_z, sigma_dp, is_accepted=None,
+                 *args, **kwargs):
+        '''Uses the transverse_map to extract the optics parameters
+        and the rf_bucket to match the longitudinal distribution.
+        '''
+        self._transverse_matcher = MatchTransverseMap(
+            macroparticlenumber, intensity, charge, mass,
+            circumference, gamma_reference, transverse_map,
+            epsn_x, epsn_y, *args, **kwargs)
+        self._rf_bucket_matcher = CutRFBucket2D(
+            macroparticlenumber, intensity, charge, mass,
+            circumference, gamma_reference,
+            sigma_z, sigma_dp, is_accepted, *args, **kwargs)
+        super(CutRFBucket6D, self).__init__(
+            macroparticlenumber, intensity, charge, mass, circumference,
+            gamma_reference, HEADTAILcoords.coordinates, *args, **kwargs)
+
+    def distribute(self):
+        '''Create the Gaussian distribution for all 6D HEADTAIL
+        coordinates and conjugate momenta in both the transverse and
+        longitudinal plane.
+        '''
+        coords_n_momenta_dict = self._transverse_matcher.distribute()
+        coords_n_momenta_dict.update(self._rf_bucket_matcher.distribute())
+        return coords_n_momenta_dict
+
+
 # possible TODO: incorporate RFBucketMatcher class
 class MatchRFBucket2D(ParticleGenerator):
     '''Longitudinal phase space (z, dp) is generated with the epsn_z
@@ -519,12 +521,12 @@ class MatchRFBucket2D(ParticleGenerator):
 
 class CutRFBucket2D(ParticleGenerator):
     '''
-    For HEADTAIL style matching inot RF bucket. BY KEVIN: NEEDS TO BE CLEANED UP BY ADRIAN!
+    For HEADTAIL style matching into RF bucket.
+    BY KEVIN: NEEDS TO BE CLEANED UP BY ADRIAN!
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
                  circumference, gamma_reference, sigma_z, sigma_dp,
-                 is_accepted=None, generator_seed=None, 
-                 *args, **kwargs):
+                 is_accepted=None, generator_seed=None, *args, **kwargs):
 
         self.sigma_z = sigma_z
         self.sigma_dp = sigma_dp
@@ -532,15 +534,11 @@ class CutRFBucket2D(ParticleGenerator):
         self.random_state = RandomState()
         self.random_state.seed(generator_seed)
 
-        # MatchLinearLongMap.check_long_input(epsn_z, sigma_z)
         super(CutRFBucket2D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
             HEADTAILcoords.longitudinal, *args, **kwargs)
 
     def distribute(self):
-
-        # sigma_z = np.sqrt(beta_z*epsn_z/(4*np.pi) * e/p0)
-        # sigma_dp = sigma_z / beta_z
 
         z  = self.sigma_z  * self.random_state.randn(self.macroparticlenumber)
         dp = self.sigma_dp * self.random_state.randn(self.macroparticlenumber)
@@ -550,9 +548,6 @@ class CutRFBucket2D(ParticleGenerator):
         return {'z': z, 'dp': dp}
 
     def _redistribute(self, z, dp):
-#       n = self.n_macroparticles
-#       z = z.copy()
-#       dp = dp.copy()
 
         mask_out = ~self.is_accepted(z, dp)
         while mask_out.any():
@@ -561,8 +556,6 @@ class CutRFBucket2D(ParticleGenerator):
             dp[mask_out] = self.sigma_dp * self.random_state.randn(n_gen)
             mask_out = ~self.is_accepted(z, dp)
             print 'Reiterate on non-accepted particles'
-
-#        return z, dp
 
 
 class RFBucketMatcher(object):
