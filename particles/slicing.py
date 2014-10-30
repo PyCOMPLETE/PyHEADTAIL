@@ -10,6 +10,7 @@ from __future__ import division
 
 import numpy as np
 import scipy.ndimage as ndimage
+from scipy.constants import e
 from random import sample
 
 from abc import ABCMeta, abstractmethod
@@ -210,11 +211,8 @@ class SliceSet(object):
         return self._epsn(beam.y, beam.yp) * beam.betagamma
 
     def epsn_z(self, beam):
-        '''
-        Approximate epsn_z. Correct for Gaussian beam.
-        '''
-        return (4. * np.pi * self.sigma_z(beam) * self.sigma_dp(beam) *
-                beam.p0 / beam.charge)
+        return (4. * np.pi * self._epsn(beam.z, beam.dp) *
+                beam.p0 / e)
 
 
     # Statistics helper functions.
