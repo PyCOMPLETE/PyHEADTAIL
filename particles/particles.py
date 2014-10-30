@@ -28,6 +28,11 @@ class Particles(object):
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
+        if self.charge != e:
+            raise NotImplementedError('PyHEADTAIL currently features many "e" '
+                                      + 'all over the place, these need to be '
+                                      + 'consistently replaced by '
+                                      + '"self.charge"!')
         self.mass = mass
 
         self.circumference = circumference
