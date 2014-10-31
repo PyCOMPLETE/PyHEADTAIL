@@ -301,7 +301,14 @@ class MatchLinearLongMap(Gaussian):
         self.check_long_input(epsn_z, sigma_z)
         p0 = np.sqrt(gamma_reference**2 - 1) * mass * c
         eta = longitudinal_map.eta(0, gamma_reference)
-        Qs = longitudinal_map.Qs
+        try:
+            Qs = longitudinal_map.Qs
+        except AttributeError as exc:
+            raise ValueError('"' + self.__name__ + '" expects a ' +
+                             'longitudinal_map with a Qs attribute ' +
+                             'yielding the linear synchroton frequency. ' +
+                             'However, the given "' + exc.message
+                             )
         beta_z = np.abs(eta) * circumference / (2 * np.pi * Qs)
         if sigma_z is None:
             sigma_z = np.sqrt(epsn_z * beta_z / (4*np.pi) * e/p0)
