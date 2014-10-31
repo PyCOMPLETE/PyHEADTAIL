@@ -61,6 +61,9 @@ class Particles(object):
     @property
     def intensity(self):
         return self.particlenumber_per_mp * self.macroparticlenumber
+    @intensity.setter
+    def intensity(self, value):
+        self.particlenumber_per_mp = value / float(self.macroparticlenumber)
 
     @property
     def gamma(self):
