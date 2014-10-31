@@ -19,6 +19,9 @@ from functools import partial
 from ..cobra_functions import stats as cp
 from ..general.decorators import memoize
 
+from functools import wraps
+
+
 class ModeIsNotUniformBin(Exception):
     def __str__(self):
         return "This SliceSet has self.mode not set to 'uniform_bin'!"
@@ -28,6 +31,20 @@ class ModeIsUniformCharge(Exception):
         self.value = value
     def __str__(self):
         return self.value
+
+
+def clean_slices(long_track_method):
+    '''Adds the beam.clean_slices() to any track(beam) method of
+    longitudinal elements (elements that change the
+    longitudinal state of the beam).
+    '''
+    @wraps(long_track_method)
+    def cleaned_long_track_method(long_track_element, beam, *args, **kwargs):
+        res = long_track_method(long_track_element, beam, *args, **kwargs)
+        beam.clean_slices()
+        return res
+    return cleaned_long_track_method
+
 
 class SliceSet(object):
     '''Defines a set of longitudinal slices. It's a blueprint or photo

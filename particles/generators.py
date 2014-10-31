@@ -21,62 +21,6 @@ from scipy.integrate import quad, fixed_quad, dblquad, cumtrapz, romb
 from particles import Particles
 from ..trackers.rf_bucket import RFBucket
 
-class GaussianZ(object):
-    """Longitudinal Gaussian particle phase space distribution."""
-
-    def __init__(self, sigma_z, sigma_dp, is_accepted=None, generator_seed=None):
-        """Initiates the longitudinal beam coordinates to a given
-        Gaussian shape. If the argument is_accepted is set to
-        the is_in_separatrix(z, dp, beam) method of a RFSystems
-        object (or similar), macroparticles will be initialised
-        until is_accepted returns True.
-        """
-        self.sigma_z = sigma_z
-        self.sigma_dp = sigma_dp
-        self.is_accepted = is_accepted
-
-        self.random_state = RandomState()
-        self.random_state.seed(generator_seed)
-
-    @classmethod
-    def from_optics(cls, beta_z, epsn_z, p0, is_accepted=None,
-                    generator_seed=None):
-        """Initialise GaussianZ from the given optics functions.
-        For the argument is_accepted see __init__.
-        """
-
-        sigma_z = np.sqrt(beta_z*epsn_z/(4*np.pi) * e/p0)
-        sigma_dp = sigma_z / beta_z
-
-        return cls(sigma_z, sigma_dp, is_accepted, generator_seed)
-
-    def generate(self, beam):
-        beam.z = self.sigma_z * self.random_state.randn(beam.n_macroparticles)
-        beam.dp = self.sigma_dp * self.random_state.randn(beam.n_macroparticles)
-        if self.is_accepted:
-            self._redistribute(beam)
-
-    def _redistribute(self, beam):
-        n = beam.n_macroparticles
-        z = beam.z.copy()
-        dp = beam.dp.copy()
-
-        mask_out = ~self.is_accepted(z, dp)
-        while mask_out.any():
-            n_gen = np.sum(mask_out)
-            z[mask_out] = self.sigma_z * self.random_state.randn(n_gen)
-            dp[mask_out] = self.sigma_dp * self.random_state.randn(n_gen)
-            mask_out = ~self.is_accepted(z, dp)
-            print 'Reiterate on non-accepted particles'
-
-        # for i in xrange(n):
-        #     while not self.is_accepted(z[i], dp[i]):
-        #         z[i]  = self.sigma_z * self.random_state.randn()
-        #         dp[i] = self.sigma_dp * self.random_state.randn()
-
-        beam.z = z
-        beam.dp = dp
-
 
 class ParticleGenerator(object):
     '''Factory to provide Particle instances according to certain
@@ -535,8 +479,8 @@ class CutRFBucket2D(ParticleGenerator):
         self.random_state.seed(generator_seed)
 
         super(CutRFBucket2D, self).__init__(
-            macroparticlenumber, intensity, charge, mass, circumference, gamma_reference,
-            HEADTAILcoords.longitudinal, *args, **kwargs)
+            macroparticlenumber, intensity, charge, mass, circumference,
+            gamma_reference, HEADTAILcoords.longitudinal, *args, **kwargs)
 
     def distribute(self):
 
@@ -555,7 +499,7 @@ class CutRFBucket2D(ParticleGenerator):
             z[mask_out] = self.sigma_z * self.random_state.randn(n_gen)
             dp[mask_out] = self.sigma_dp * self.random_state.randn(n_gen)
             mask_out = ~self.is_accepted(z, dp)
-            print 'Reiterate on non-accepted particles'
+            self.prints('Reiterate on non-accepted particles')
 
 
 class RFBucketMatcher(object):

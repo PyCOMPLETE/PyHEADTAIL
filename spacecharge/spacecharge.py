@@ -4,8 +4,7 @@
 '''
 from __future__ import division
 
-from . import Element
-from ..trackers.simple_long_tracking import clean_slices
+from . import Element, clean_slices
 
 import numpy as np
 from scipy.constants import m_p, c, e, epsilon_0

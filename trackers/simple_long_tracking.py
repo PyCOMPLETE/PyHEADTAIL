@@ -6,11 +6,13 @@
 from __future__ import division
 
 
+from abc import ABCMeta, abstractmethod
+
 import numpy as np
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
 
-from . import Element
+from . import Element, clean_slices
 from rf_bucket import RFBucket
 
 sin = np.sin
@@ -21,23 +23,6 @@ cos = np.cos
 # and physical parameters (as before for the libintegrators.py)
 # while satisfying this design layout.
 # currently: only Euler Cromer supported in RFSystems
-
-
-from abc import ABCMeta, abstractmethod
-from functools import wraps
-
-
-def clean_slices(long_track_method):
-    '''Adds the beam.clean_slices() to any track(beam) method of
-    longitudinal elements (elements that change the
-    longitudinal state of the beam).
-    '''
-    @wraps(long_track_method)
-    def cleaned_long_track_method(long_track_element, beam, *args, **kwargs):
-        res = long_track_method(long_track_element, beam, *args, **kwargs)
-        beam.clean_slices()
-        return res
-    return cleaned_long_track_method
 
 
 class LongitudinalMap(Element):
