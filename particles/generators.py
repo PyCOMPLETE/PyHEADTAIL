@@ -20,9 +20,10 @@ from scipy.integrate import quad, fixed_quad, dblquad, cumtrapz, romb
 
 from particles import Particles
 from ..trackers.rf_bucket import RFBucket
+from . import Printing
 
 
-class ParticleGenerator(object):
+class ParticleGenerator(Printing):
     '''Factory to provide Particle instances according to certain
     distributions (which are implemented in inheriting classes via
     the self.distribute() function).
