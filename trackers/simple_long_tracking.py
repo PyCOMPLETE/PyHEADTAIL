@@ -73,7 +73,7 @@ class LongitudinalMap(Element):
         for i in xrange(len(self.alpha_array)):   # order = len - 1
             eta_func = getattr(self, '_eta' + str(i))
             eta_i = eta_func(self.alpha_array, gamma)
-            eta  += eta_i * (dp ** i)
+            eta += eta_i * (dp ** i)
         return eta
 
     @staticmethod
@@ -144,10 +144,6 @@ class Kick(LongitudinalMap):
         self.p_increment = p_increment
         self._phi_lock = 0
 
-    # @property
-    # def R(self):
-    #     return self.circumference/(2*np.pi)
-
     def track(self, beam):
         amplitude = e*self.voltage / (beam.beta*c)
         phi = self._phi(2*np.pi*beam.z/self.circumference)
@@ -156,34 +152,6 @@ class Kick(LongitudinalMap):
         delta_p += amplitude * sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
-
-    # def field(self, z):
-    #     phi = self._phi(z)
-    #     return e*self.voltage/self.circumference * sin(phi)
-
-    # def E_acc(self, z):
-    #     deltaE  = self.p_increment*self.beta_reference*c
-    #     return self.field(z) - deltaE/self.circumference
-
-    # def potential(self, z):
-    #     phi = self._phi(z)
-    #     return e*self.voltage/(2*np.pi*self.harmonic) * cos(phi)
-
-    # def V_acc(self, z):
-    #     '''Sign makes sure we stay convex - just nicer'''
-    #     z_extrema = self._get_zero_crossings(self.E_acc)
-    #     deltaE  = self.p_increment*self.beta_reference*c
-
-    #     if deltaE < 0:
-    #         print '*** WARNING! Deceleration not gonna work. Please implement it correctly here in line ~355.'
-    #         exit(-1)
-    #     else:
-    #         if np.sign(self.eta0) < 0:
-    #             zc, zmax = z_extrema[-1], z_extrema[0]
-    #         else:
-    #             zmax, zc = z_extrema[-1], z_extrema[0]
-
-    #     return -np.sign(self.eta) * ((self.potential(z) - self.potential(zmax)) + (z - zmax) * deltaE/self.circumference)
 
     def Qs(self, gamma):
         '''
@@ -212,21 +180,17 @@ class Kick(LongitudinalMap):
         In the case of only one Kick element in the ring, this phase
         deviation coincides with the synchronous phase!
         """
-        if self.p_increment == 0 and self.voltage == 0:
+        if self.p_increment == 0 or self.voltage == 0:
             return 0
-        beta = np.sqrt(1 - 1/gamma**2)
-        deltaE  = self.p_increment*beta*c
-        phi_rel = np.arcsin(deltaE / (e*self.voltage))
+        beta = np.sqrt(1 - gamma**-2)
+        deltaE = self.p_increment * beta * c
+        phi_rel = np.arcsin(deltaE / (e * self.voltage))
 
         if self.eta(0, gamma)<0:
             # return np.sign(deltaE) * np.pi - phi_rel
             return np.pi - phi_rel
         else:
             return phi_rel
-
-        # sgn_eta = np.sign(self.eta(0, beam.gamma))
-        # return np.arccos(
-        #     sgn_eta * np.sqrt(1 - (deltaE / (e * self.voltage)) ** 2))
 
     def _phi(self, theta):
         return self.harmonic*theta + self.phi_offset + self._phi_lock
@@ -249,10 +213,6 @@ class LongitudinalOneTurnMap(LongitudinalMap):
         this is THE ONE place to store the circumference in the simulations!"""
         super(LongitudinalOneTurnMap, self).__init__(alpha_array)
         self.circumference = circumference
-
-    # @property
-    # def R(self):
-    #     return self.circumference / (2 * np.pi)
 
     @abstractmethod
     def track(self, beam):
@@ -371,8 +331,8 @@ class RFSystems(LongitudinalOneTurnMap):
         if self.p_increment == 0 and V == 0:
             return 0
 
-        deltaE  = self.p_increment * beta*c
-        phi_rel = np.arcsin(deltaE / (e*V))
+        deltaE = self.p_increment * beta * c
+        phi_rel = np.arcsin(deltaE / (e * V))
 
         if eta0<0:
             # return np.sign(deltaE) * np.pi - phi_rel
