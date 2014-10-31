@@ -17,7 +17,7 @@ from abc import ABCMeta, abstractmethod
 from functools import partial
 
 from ..cobra_functions import stats as cp
-from ..general.decorators import memoize
+# from ..general.decorators import memoize
 
 from functools import wraps
 
@@ -32,7 +32,12 @@ class ModeIsUniformCharge(Exception):
     def __str__(self):
         return self.value
 
-
+# @clean_slices needs to be attached to the track methods that change
+# the longitudinal phase space. It could not be handled automatically
+# inside the Particles class because e.g. the beam.z and beam.dp would
+# have to be exposed as properties. This would introduce function
+# overhead to a central data element and thus slow down PyHEADTAIL
+# considerably.
 def clean_slices(long_track_method):
     '''Adds the beam.clean_slices() to any track(beam) method of
     longitudinal elements (elements that change the
