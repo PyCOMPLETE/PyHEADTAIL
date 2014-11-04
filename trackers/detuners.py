@@ -23,6 +23,8 @@ the effect.
 from __future__ import division
 
 import numpy as np
+from math import factorial
+from numpy.polynomial.polynomial import polyval
 from scipy.constants import e, c
 
 from abc import ABCMeta, abstractmethod
@@ -44,24 +46,57 @@ class SegmentDetuner(object):
 
 class ChromaticitySegment(SegmentDetuner):
     """ Detuning object for a segment of the accelerator ring to
-    describe the detuning introduced by chromaticity effects.
-    TODO Implement second and third order chromaticity effects. """
+    describe the detuning introduced by chromaticity effects. """
 
     def __init__(self, dQp_x, dQp_y):
         """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
-        denote the first order chromaticity coefficients scaled to the
-        segment length. """
-        self.dQp_x = dQp_x
-        self.dQp_y = dQp_y
+        denote lists containing first, second, third, ... order
+        chromaticity coefficients scaled to the segment length.
+        The check for list is done again here in case the
+        ChromaticitySegment objects are directly created by the
+        user. """
+        if not isinstance(dQp_x, list): dQp_x = [ dQp_x ]
+        if not isinstance(dQp_y, list): dQp_y = [ dQp_y ]
+
+        self.calc_detuning_x = ChromaticitySegment._make_calc_detuning(dQp_x)
+        self.calc_detuning_y = ChromaticitySegment._make_calc_detuning(dQp_y)
 
     def detune(self, beam):
         """ Calculate for every particle the change in phase advance
-        (detuning) dQ_{x,y}  caused by first order chromaticity
-        effects. """
-        dQ_x = self.dQp_x * beam.dp
-        dQ_y = self.dQp_y * beam.dp
+        (detuning) dQ_{x,y}  caused by chromaticity effects. """
+        dQ_x = self.calc_detuning_x(beam.dp)
+        dQ_y = self.calc_detuning_y(beam.dp)
 
         return dQ_x, dQ_y
+
+    @staticmethod
+    def _make_calc_detuning(Qp):
+        """ Define the polynomial used to calculate the chromaticity
+        up to higher orders. The If-statements checking order of
+        chromaticity are put inside the enclosed function for better
+        readability as their overhead is negligible compared to the
+        evaluation of the polynomial (< 1e-3 at 1e6 particles). The
+        polynomials are explicitly defined up to order 4 as this is
+        the max. usually used. Above order 4, the numpy polyval is
+        used to evaluate the polynomial. """
+        order = len(Qp)
+        coeffs = [ Qp[i] / factorial(i+1) for i in xrange(order) ]
+
+        def calc_detuning(dp):
+            if order == 1:
+                val = coeffs[0] * dp
+            elif order == 2:
+                val = (coeffs[0] + coeffs[1] * dp) * dp
+            elif order == 3:
+                val = (coeffs[0] + (coeffs[1] + coeffs[2] * dp) * dp) * dp
+            elif order == 4:
+                val = (coeffs[0] + (coeffs[1] + (coeffs[2] + coeffs[3] * dp) *
+                                    dp) * dp) * dp
+            elif order > 4:
+                coeffs.insert(0,0)
+                val = polyval(dp, coeffs)
+            return val
+        return calc_detuning
 
 
 class AmplitudeDetuningSegment(SegmentDetuner):
@@ -232,11 +267,15 @@ class Chromaticity(DetunerCollection):
 
     def __init__(self, Qp_x, Qp_y):
         """ Return an instance of a Chromaticity DetunerCollection
-        class. The Qp_{x,y} are the first order chromaticity
-        coefficients (one-turn values), aka. Q'_{x,y} (Q-prime). """
+        class. The Qp_{x,y} are lists containing first, second, third,
+        ... order chromaticity coefficients (one-turn values), aka.
+        Q'_{x,y}, Q''_{x,y} (Q-prime, Q-double-prime), .... """
+        if not isinstance(Qp_x, list): Qp_x = [ Qp_x ]
+        if not isinstance(Qp_y, list): Qp_y = [ Qp_y ]
+
         self.Qp_x = Qp_x
         self.Qp_y = Qp_y
-
+            
         self.segment_detuners = []
 
     def generate_segment_detuner(self, segment_length, **kwargs):
@@ -247,8 +286,8 @@ class Chromaticity(DetunerCollection):
         strength proportionally to the segment length. The method is
         called by the TransverseMap object which manages the creation
         of a detuner for every defined segment. """
-        dQp_x = self.Qp_x * segment_length
-        dQp_y = self.Qp_y * segment_length
+        dQp_x = [ Qp * segment_length for Qp in self.Qp_x ]
+        dQp_y = [ Qp * segment_length for Qp in self.Qp_y ]
 
         detuner = ChromaticitySegment(dQp_x, dQp_y)
         self.segment_detuners.append(detuner)
