@@ -56,6 +56,11 @@ class Particles(object):
         in the coordinate and momentum arrays.
         '''
         self.id = np.arange(1, self.macroparticlenumber+1, dtype=int)
+
+        '''Alive flag to handle the loss of macroparticles
+        '''
+        self.alive = np.ones(self.macroparticlenumber, dtype=bool)
+
         self.update(coords_n_momenta_dict)
 
     @property
