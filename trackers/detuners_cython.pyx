@@ -1,4 +1,22 @@
 """
+The PyHEADTAIL.trackers.detuners module implemented in Cython (incl.
+support for OpenMP). Collection classes are imported from the Python
+PyHEADTAIL.trackers.detuners module.
+
+NB. Cython does not allow the use of abstract classes to inherit from
+which is why there is no ABC Detuner here. When adding a new detuning
+element or effect, it must be made sure that the detune(beam) method is
+implemented!
+
+TODO
+Instead of passing the python object beam to the Cython methods, it could
+be better to make a wrapper to the Cython function to pass directly the
+arrays beam.x, beam.y, ... for better performance.
+The number of threads num_threads in the cython.parallel.prange for loops
+is hard-coded to 1 for the moment. Find a good way to make it controllable
+by the user.
+
+Description from PyHEADTAIL.trackers.detuners:
 Module to describe devices/effects, such as chromaticity or octupole
 magnets, leading to an incoherent detuning of the particles in the beam.
 A detuner is (in general) present along the full circumference of the
@@ -14,38 +32,29 @@ object has a detune(beam) method that defines how the phase advance of
 each particle in the beam is changed according to the formula describing
 the effect.
 
-@author Kevin Li, Michael Schenk, Adrian Oeftiger
-@date 23. June 2014
-@brief Module to describe elements/effects in an accelerator leading to
-       an incoherent detuning.
+@author Kevin Li, Michael Schenk
+@date 12. October 2014
+@brief Cython implementation of the detuners module to describe the
+       elements/effects in an accelerator ring leading to an incoherent
+       detuning.
 @copyright CERN
 """
-from __future__ import division
+from cython.parallel cimport prange
+cimport cython
 
 import numpy as np
+cimport numpy as np
 from scipy.constants import e, c
-
-from abc import ABCMeta, abstractmethod
-
-
-class SegmentDetuner(object):
-    """ Abstract base class for detuning elements and effects defined
-    only for a segment of the accelerator ring (NB. The segment can also
-    be given by the full circumference).
-    Every detuner element/effect inheriting from this class must
-    implement the detune(beam) method to describe the change in phase
-    advance for each particle of the beam. """
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def detune(self, beam):
-        pass
+from libc.math cimport cos, sin
 
 
-class ChromaticitySegment(SegmentDetuner):
-    """ Detuning object for a segment of the accelerator ring to
-    describe the detuning introduced by chromaticity effects.
+cdef class ChromaticitySegment(object):
+    """ Cython implementation of a detuning object for a segment of the
+    accelerator ring to describe the incoherent detuning introduced by
+    chromaticity effects.
     TODO Implement second and third order chromaticity effects. """
+
+    cdef double dQp_x, dQp_y
 
     def __init__(self, dQp_x, dQp_y):
         """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
@@ -54,19 +63,32 @@ class ChromaticitySegment(SegmentDetuner):
         self.dQp_x = dQp_x
         self.dQp_y = dQp_y
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def detune(self, beam):
-        """ Calculate for every particle the change in phase advance
-        (detuning) dQ_{x,y}  caused by first order chromaticity
+        """ Method to calculate for every particle the change in phase
+        advance (detuning) dQ_{x,y} caused by first order chromaticity
         effects. """
-        dQ_x = self.dQp_x * beam.dp
-        dQ_y = self.dQp_y * beam.dp
+        cdef double[::1] dp = beam.dp
+        cdef unsigned int n_particles = dp.shape[0]
+        cdef double[::1] dQ_x = np.empty(n_particles, dtype=np.double)
+        cdef double[::1] dQ_y = np.empty(n_particles, dtype=np.double)
+
+        cdef unsigned int i
+        for i in prange(n_particles, nogil=True, num_threads=1):
+            dQ_x[i] = self.dQp_x * dp[i]
+            dQ_y[i] = self.dQp_y * dp[i]
 
         return dQ_x, dQ_y
 
 
-class AmplitudeDetuningSegment(SegmentDetuner):
-    """ Detuning object for a segment of the accelerator ring to
-    describe amplitude detuning (introduced by octupoles). """
+cdef class AmplitudeDetuningSegment(object):
+    """ Cython implementation of a detuning object for a segment of
+    the accelerator ring to describe detuning with amplitude (e.g.
+    introduced by octupoles). """
+
+    cdef double dapp_x, dapp_y, dapp_xy
+    cdef double beta_x, beta_y
 
     def __init__(self, dapp_x, dapp_y, dapp_xy, beta_x, beta_y):
         """ Return an instance of an AmplitudeDetuningSegment by passing
@@ -83,6 +105,9 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         self.dapp_y = dapp_y
         self.dapp_xy = dapp_xy
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def detune(self, beam):
         """ Linear amplitude detuning formula, usually used for detuning
         introduced by octupoles. The normalization of dapp_x, dapp_y,
@@ -90,15 +115,35 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         documentation of AmplitudeDetuning class).
         J_x and J_y resp. denote the horizontal and vertical action of
         a specific particle. """
-        Jx = (beam.x**2 + (self.beta_x * beam.xp)**2) / (2.*self.beta_x)
-        Jy = (beam.y**2 + (self.beta_y * beam.yp)**2) / (2.*self.beta_y)
+        cdef double[::1] x = beam.x
+        cdef double[::1] y = beam.y
+        cdef double[::1] xp = beam.xp
+        cdef double[::1] yp = beam.yp
+        cdef double p0 = beam.p0
 
-        dQ_x = (self.dapp_x * Jx + self.dapp_xy * Jy) / beam.p0
-        dQ_y = (self.dapp_y * Jy + self.dapp_xy * Jx) / beam.p0
+        cdef unsigned int n_particles = x.shape[0]
+        cdef double[::1] dQ_x = np.empty(n_particles, dtype=np.double)
+        cdef double[::1] dQ_y = np.empty(n_particles, dtype=np.double)
+
+        cdef double xp_floquet, yp_floquet, Jx, Jy
+        cdef unsigned int i
+        for i in prange(n_particles, nogil=True, num_threads=1):
+            xp_floquet = self.beta_x * xp[i]
+            yp_floquet = self.beta_y * yp[i]
+
+            Jx = (x[i]*x[i] + xp_floquet*xp_floquet) / (2.*self.beta_x)
+            Jy = (y[i]*y[i] + yp_floquet*yp_floquet) / (2.*self.beta_y)
+
+            dQ_x[i] = (self.dapp_x*Jx + self.dapp_xy*Jy) / p0
+            dQ_y[i] = (self.dapp_y*Jy + self.dapp_xy*Jx) / p0
 
         return dQ_x, dQ_y
 
 
+''' DetunerCollection classes '''
+
+from abc import abstractmethod, ABCMeta
+    
 class DetunerCollection(object):
     """ Abstract base class for a collection of SegmentDetuner objects
     (see above). A detuner collection object defines the detuning for
