@@ -4,7 +4,7 @@ import numpy as np
 from _version import __version__
 
 import re, os, sys, subprocess
-import cython_gsl
+#import cython_gsl
 import numpy as np
 
 from distutils.core import setup
@@ -72,13 +72,13 @@ cy_ext = [
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
                  ),
-        Extension("cobra_functions.random",
-                 ["cobra_functions/random.pyx"],
-                 include_dirs=[np.get_include(), cython_gsl.get_cython_include_dir()],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
-                 library_dirs=[], libraries=["gsl", "gslcblas"],
-                 ),
+        #Extension("cobra_functions.random",
+                 #["cobra_functions/random.pyx"],
+                 #include_dirs=[np.get_include(), cython_gsl.get_cython_include_dir()],
+                 ##extra_compile_args=["-g"],
+                 ##extra_link_args=["-g"],
+                 #library_dirs=[], libraries=["gsl", "gslcblas"],
+                 #),
         Extension("solvers.compute_potential_fgreenm2m",
                  ["solvers/compute_potential_fgreenm2m.pyx"],
                   include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
