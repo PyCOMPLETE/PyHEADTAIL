@@ -76,9 +76,11 @@ class ChromaticitySegment(SegmentDetuner):
         chromaticity are put inside the enclosed function for better
         readability as their overhead is negligible compared to the
         evaluation of the polynomial (< 1e-3 at 1e6 particles). The
-        polynomials are explicitly defined up to order 4 as this is
-        the max. usually used. Above order 4, the numpy polyval is
-        used to evaluate the polynomial. """
+        polynomials are explicitly defined up to order 3 for
+        performance reasons (order 3 is the highest usually used).
+        Above order 3, the numpy polyval is used to evaluate the
+        polynomial. np.polynomial polyval is considerably slower for
+        low order polynomials! """
         order = len(Qp)
         coeffs = [ Qp[i] / factorial(i+1) for i in xrange(order) ]
 
@@ -89,10 +91,7 @@ class ChromaticitySegment(SegmentDetuner):
                 val = (coeffs[0] + coeffs[1] * dp) * dp
             elif order == 3:
                 val = (coeffs[0] + (coeffs[1] + coeffs[2] * dp) * dp) * dp
-            elif order == 4:
-                val = (coeffs[0] + (coeffs[1] + (coeffs[2] + coeffs[3] * dp) *
-                                    dp) * dp) * dp
-            elif order > 4:
+            elif order > 3:
                 coeffs.insert(0,0)
                 val = polyval(dp, coeffs)
             return val
