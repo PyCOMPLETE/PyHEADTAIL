@@ -103,6 +103,7 @@ class Drift(LongitudinalMap):
         self.length = length
         self.shrinkage_p_increment = shrinkage_p_increment
 
+    @clean_slices
     def track(self, beam):
         beta_ratio = 1 - self.shrinkage_p_increment / (beam.gamma**3 * beam.p0)
         beam.z = (beta_ratio * beam.z -
