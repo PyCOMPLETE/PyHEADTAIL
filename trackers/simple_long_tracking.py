@@ -298,7 +298,10 @@ class RFSystems(LongitudinalOneTurnMap):
         self.p_increment = p_increment
 
         if phase_lock:
-            self._phaselock(gamma_reference)
+            try:
+                self._phaselock(gamma_reference())
+            except TypeError:
+                self._phaselock(gamma_reference)
 
         self.rfbucket = RFBucket(circumference, gamma_reference, alpha_array[0], p_increment, harmonic_list, voltage_list, phi_offset_list)
 

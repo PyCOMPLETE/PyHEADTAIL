@@ -111,6 +111,8 @@ class Particles(object):
     def delta_E(self, value):
         self.dp = value / (self.beta*c*self.p0)
 
+    def get_circumference(self): return self.circumference
+    def get_gamma_reference(self): return self.gamma
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate

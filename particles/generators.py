@@ -717,6 +717,7 @@ class RFBucketMatcher(object):
             v[mask_out] = ymin + ly * random_state.uniform(size=n_gen)
             s[mask_out] = random_state.uniform(size=n_gen)
             mask_out = ~(s<self.psi(u, v))
+            # print 'regenerating '+str(n_gen)+' macroparticles...'
 
         return u, v
 
