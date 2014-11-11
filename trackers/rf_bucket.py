@@ -266,7 +266,8 @@ class RFBucket(object):
         Returns boolean whether this coordinate is located
         strictly inside the separatrix.
         """
-        return np.logical_and(np.logical_and(self.zleft < z, z < self.zright), self.hamiltonian(z, dp) > 0)
+        return np.logical_and(np.logical_and(self.zleft < z, z < self.zright),
+                              self.hamiltonian(z, dp) > 0.01 * self.Hmax)
 
     def bucket_area(self):
         xmin, xmax = self.zleft, self.zright
