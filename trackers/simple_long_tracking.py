@@ -180,7 +180,7 @@ class Kick(LongitudinalMap):
         In the case of only one Kick element in the ring, this phase
         deviation coincides with the synchronous phase!
         """
-        if self.p_increment == 0 or self.voltage == 0:
+        if self.p_increment == 0 and self.voltage == 0:
             return 0
         beta = np.sqrt(1 - gamma**-2)
         deltaE = self.p_increment * beta * c
@@ -281,14 +281,15 @@ class RFSystems(LongitudinalOneTurnMap):
         super(RFSystems, self).__init__(alpha_array, circumference)
 
         if not len(harmonic_list) == len(voltage_list) == len(phi_offset_list):
-            print ("Warning: parameter lists for RFSystems " +
-                                        "do not have the same length!")
+            self.warns("Parameter lists for RFSystems do not have the " +
+                       "same length!")
 
         self._shrinking = shrink_longitudinal
         self._shrink_transverse = shrink_transverse
 
         self.kicks = [Kick(alpha_array, self.circumference, h, V, dphi)
-                      for h, V, dphi in zip(harmonic_list, voltage_list, phi_offset_list)]
+                      for h, V, dphi in
+                      zip(harmonic_list, voltage_list, phi_offset_list)]
         self.elements = ( [Drift(alpha_array, self.circumference / 2)]
                         + self.kicks
                         + [Drift(alpha_array, self.circumference / 2)]
@@ -299,7 +300,9 @@ class RFSystems(LongitudinalOneTurnMap):
         if phase_lock:
             self._phaselock(gamma_reference)
 
-        self.rfbucket = RFBucket(circumference, gamma_reference, alpha_array[0], p_increment, harmonic_list, voltage_list, phi_offset_list)
+        self.rfbucket = RFBucket(circumference, gamma_reference, alpha_array[0],
+                                 p_increment, harmonic_list, voltage_list,
+                                 phi_offset_list)
 
 
     @property
