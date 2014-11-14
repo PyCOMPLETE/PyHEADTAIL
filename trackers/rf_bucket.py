@@ -262,13 +262,13 @@ class RFBucket(object):
         return np.amax(f(self.zs))
 
     def is_in_separatrix(self, z, dp):
-        """ Returns boolean whether this coordinate is located strictly
-        inside the separatrix. """
+        """ Returns boolean whether the coordinate (z, dp) is located
+        strictly inside the separatrix. """
         return np.logical_and(np.logical_and(self.zleft < z, z < self.zright),
                               self.hamiltonian(z, dp) > 0)
 
     def make_is_accepted(self, margin):
-        """ Returns the function is_accepted(self, z, dp) definining the
+        """ Returns the function is_accepted(z, dp) definining the
         equihamiltonian with a value of margin*self.Hmax . For margin 0,
         the returned is_accepted(z, dp) function is equivalent to
         self.is_in_separatrix(z, dp). """
