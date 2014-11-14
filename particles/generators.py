@@ -474,17 +474,18 @@ class MatchRFBucket2D(ParticleGenerator):
 class CutRFBucket2D(ParticleGenerator):
     '''
     For HEADTAIL style matching into RF bucket.
+    The argument is_accepted takes a function (usually
+    RFBucket.is_in_separatrix) defining the separatrix of the rf bucket.
+
     BY KEVIN: NEEDS TO BE CLEANED UP BY ADRIAN!
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
                  circumference, gamma_reference, sigma_z, sigma_dp,
-                 is_accepted=None, generator_seed=None, *args, **kwargs):
+                 is_accepted=None, *args, **kwargs):
 
         self.sigma_z = sigma_z
         self.sigma_dp = sigma_dp
         self.is_accepted = is_accepted
-        self.random_state = RandomState()
-        self.random_state.seed(generator_seed)
 
         super(CutRFBucket2D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
@@ -492,8 +493,8 @@ class CutRFBucket2D(ParticleGenerator):
 
     def distribute(self):
 
-        z  = self.sigma_z  * self.random_state.randn(self.macroparticlenumber)
-        dp = self.sigma_dp * self.random_state.randn(self.macroparticlenumber)
+        z = normal(0, self.sigma_z, self.macroparticlenumber)
+        dp = normal(0, self.sigma_dp, self.macroparticlenumber)
         if self.is_accepted:
             self._redistribute(z, dp)
 
@@ -504,8 +505,8 @@ class CutRFBucket2D(ParticleGenerator):
         mask_out = ~self.is_accepted(z, dp)
         while mask_out.any():
             n_gen = np.sum(mask_out)
-            z[mask_out] = self.sigma_z * self.random_state.randn(n_gen)
-            dp[mask_out] = self.sigma_dp * self.random_state.randn(n_gen)
+            z[mask_out] = normal(0, self.sigma_z, n_gen)
+            dp[mask_out] = normal(0, self.sigma_dp, n_gen)
             mask_out = ~self.is_accepted(z, dp)
             self.prints('Reiterate on non-accepted particles')
 
