@@ -261,13 +261,14 @@ class RFBucket(object):
         f = self.equihamiltonian(zc)
         return np.amax(f(self.zs))
 
-    def is_in_separatrix(self, z, dp):
+    def is_in_separatrix(self, z, dp, margin):
         """
-        Returns boolean whether this coordinate is located
-        strictly inside the separatrix.
+        Returns boolean whether this coordinate is located inside the
+        separatrix. A margin, in % of self.Hmax, can be specified so
+        that the separatrix is not strictly followed.
         """
         return np.logical_and(np.logical_and(self.zleft < z, z < self.zright),
-                              self.hamiltonian(z, dp) > 0.01 * self.Hmax)
+                              self.hamiltonian(z, dp) > margin * self.Hmax)
 
     def bucket_area(self):
         xmin, xmax = self.zleft, self.zright
