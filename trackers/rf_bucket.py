@@ -261,14 +261,26 @@ class RFBucket(object):
         f = self.equihamiltonian(zc)
         return np.amax(f(self.zs))
 
-    def is_in_separatrix(self, z, dp, margin):
-        """
-        Returns boolean whether this coordinate is located inside the
-        separatrix. A margin, in % of self.Hmax, can be specified so
-        that the separatrix is not strictly followed.
-        """
+    def is_in_separatrix(self, z, dp):
+        """ Returns boolean whether this coordinate is located strictly
+        inside the separatrix. """
         return np.logical_and(np.logical_and(self.zleft < z, z < self.zright),
-                              self.hamiltonian(z, dp) > margin * self.Hmax)
+                              self.hamiltonian(z, dp) > 0)
+
+    def make_is_accepted(self, margin):
+        """ Returns the function is_accepted(self, z, dp) definining the
+        equihamiltonian with a value of margin*self.Hmax . For margin 0,
+        the returned is_accepted(z, dp) function is equivalent to
+        self.is_in_separatrix(z, dp). """
+
+        def is_accepted(z, dp):
+            """ Returns boolean whether the coordinate (z, dp) is
+            located inside the equihamiltonian defined by
+            margin*self.Hmax . """
+            return np.logical_and(
+                np.logical_and(self.zleft < z, z < self.zright),
+                self.hamiltonian(z, dp) > margin * self.Hmax)
+        return is_accepted
 
     def bucket_area(self):
         xmin, xmax = self.zleft, self.zright
