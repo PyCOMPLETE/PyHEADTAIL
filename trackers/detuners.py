@@ -51,15 +51,9 @@ class ChromaticitySegment(SegmentDetuner):
     def __init__(self, dQp_x, dQp_y):
         """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
         denote lists containing first, second, third, ... order
-        chromaticity coefficients scaled to the segment length.
-        The check for list is done again here in case the
-        ChromaticitySegment objects are directly created by the
-        user. """
-        if not isinstance(dQp_x, list): dQp_x = [ dQp_x ]
-        if not isinstance(dQp_y, list): dQp_y = [ dQp_y ]
-
-        self.calc_detuning_x = ChromaticitySegment._make_calc_detuning(dQp_x)
-        self.calc_detuning_y = ChromaticitySegment._make_calc_detuning(dQp_y)
+        chromaticity coefficients scaled to the segment length. """
+        self.calc_detuning_x = self._make_calc_detuning(dQp_x)
+        self.calc_detuning_y = self._make_calc_detuning(dQp_y)
 
     def detune(self, beam):
         """ Calculate for every particle the change in phase advance
@@ -72,29 +66,27 @@ class ChromaticitySegment(SegmentDetuner):
     @staticmethod
     def _make_calc_detuning(Qp):
         """ Define the polynomial used to calculate the chromaticity
-        up to higher orders. The If-statements checking order of
-        chromaticity are put inside the enclosed function for better
-        readability as their overhead is negligible compared to the
-        evaluation of the polynomial (< 1e-3 at 1e6 particles). The
-        polynomials are explicitly defined up to order 3 for
-        performance reasons (order 3 is the highest usually used).
-        Above order 3, the numpy polyval is used to evaluate the
-        polynomial. np.polynomial polyval is considerably slower for
-        low order polynomials! """
+        up to higher orders. The polynomials are explicitly defined up
+        to order 3 for performance reasons (order 3 is the highest
+        usually used). Above order 3, the numpy polyval is used to
+        evaluate the polynomial. np.polynomial polyval is considerably
+        slower for low order polynomials. """
         order = len(Qp)
-        coeffs = [ Qp[i] / factorial(i+1) for i in xrange(order) ]
+        coeffs = [ Qp[i] / float(factorial(i+1)) for i in xrange(order) ]
 
-        def calc_detuning(dp):
-            if order == 1:
-                val = coeffs[0] * dp
-            elif order == 2:
-                val = (coeffs[0] + coeffs[1] * dp) * dp
-            elif order == 3:
-                val = (coeffs[0] + (coeffs[1] + coeffs[2] * dp) * dp) * dp
-            elif order > 3:
+        if order == 1:
+            def calc_detuning(dp):
+                return coeffs[0] * dp
+        elif order == 2:
+            def calc_detuning(dp):
+                return (coeffs[0] + coeffs[1] * dp) * dp
+        elif order == 3:
+            def calc_detuning(dp):
+                return (coeffs[0] + (coeffs[1] + coeffs[2] * dp) * dp) * dp
+        elif order > 3:
+            def calc_detuning(dp):
                 coeffs.insert(0,0)
-                val = polyval(dp, coeffs)
-            return val
+                return polyval(dp, coeffs)
         return calc_detuning
 
 
@@ -269,12 +261,9 @@ class Chromaticity(DetunerCollection):
         class. The Qp_{x,y} are lists containing first, second, third,
         ... order chromaticity coefficients (one-turn values), aka.
         Q'_{x,y}, Q''_{x,y} (Q-prime, Q-double-prime), .... """
-        if not isinstance(Qp_x, list): Qp_x = [ Qp_x ]
-        if not isinstance(Qp_y, list): Qp_y = [ Qp_y ]
-
         self.Qp_x = Qp_x
         self.Qp_y = Qp_y
-            
+
         self.segment_detuners = []
 
     def generate_segment_detuner(self, segment_length, **kwargs):
