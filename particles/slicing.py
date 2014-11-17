@@ -40,8 +40,8 @@ class ModeIsUniformCharge(Exception):
 # considerably.
 def clean_slices(long_track_method):
     '''Adds the beam.clean_slices() to any track(beam) method of
-    longitudinal elements (elements that change the
-    longitudinal state of the beam).
+    longitudinal elements (elements that change beam.z, the
+    longitudinal position of any particles).
     '''
     @wraps(long_track_method)
     def cleaned_long_track_method(long_track_element, beam, *args, **kwargs):

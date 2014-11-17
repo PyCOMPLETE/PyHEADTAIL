@@ -443,7 +443,6 @@ class RFSystems(LongitudinalOneTurnMap):
                            "transverse emittance...")
                 self.track = self.track_no_transverse_shrinking
 
-    @clean_slices
     def track_transverse_shrinking(self, beam):
         if self.p_increment:
             betagamma_old = beam.betagamma
@@ -453,7 +452,6 @@ class RFSystems(LongitudinalOneTurnMap):
             self._shrink_transverse_emittance(
                 beam, np.sqrt(betagamma_old / beam.betagamma))
 
-    @clean_slices
     def track_no_transverse_shrinking(self, beam):
         for longMap in self._elements:
             longMap.track(beam)
