@@ -409,19 +409,23 @@ class CutRFBucket6D(ParticleGenerator):
     the optics resp. TWISS parameters taken from a TransverseMap
     instance. The longitudinal phase space is initialised as a
     bi-gaussian with given sigma_z and sigma_dp which is then cut along
-    the funciotn given by is_accepted which is typically the function
-    is_in_separatrix of the rfbucket instance of the longitudinal map.
-    To avoid bucket leakage and particle losses as a consequence of the
-    unmatched initialisation, a margin / tolerance can be specified by
-    the argument margin (in % of RFBucket.Hmax, 5% by default), so that
-    particles will not be initialised too close to the separatrix. The
-    boundary will in fact be given by the equihamiltonian with a value
-    of margin*Hmax.
+    the function given by is_accepted. The usual choices for
+    is_accepted are either RFBucket.is_in_separatrix or
+    RFBucket.is_accepted . The former strictly follows the separatrix
+    of the bucket (the equihamiltonian with a value of 0), while with
+    the latter, tighter boundaries can be used (equihamiltonian lying
+    inside the RFBucket) as a result of which particles are not
+    initialised too close to the separatrix. This option is usually
+    preferred as it avoids bucket leakage and particle losses which may
+    occur as a consequence of the unmatched initialisation. The
+    RFBucket.is_accepted method must be created first however, by
+    calling the RFBucket.make_is_accepted(margin) method with a certain
+    value for the margin (in % of RFBucket.Hmax, 5% by default).
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
                  circumference, gamma_reference,
                  transverse_map, epsn_x, epsn_y,
-                 sigma_z, sigma_dp, is_accepted, margin=0.05,
+                 sigma_z, sigma_dp, is_accepted,
                  *args, **kwargs):
         '''Uses the transverse_map to extract the optics parameters
         and the rf_bucket to match the longitudinal distribution.
@@ -433,7 +437,7 @@ class CutRFBucket6D(ParticleGenerator):
         self._rf_bucket_matcher = CutRFBucket2D(
             macroparticlenumber, intensity, charge, mass,
             circumference, gamma_reference,
-            sigma_z, sigma_dp, is_accepted, margin, *args, **kwargs)
+            sigma_z, sigma_dp, is_accepted, *args, **kwargs)
         super(CutRFBucket6D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
             gamma_reference, HEADTAILcoords.coordinates, *args, **kwargs)
@@ -478,27 +482,29 @@ class MatchRFBucket2D(ParticleGenerator):
 
 
 class CutRFBucket2D(ParticleGenerator):
-    '''
-    For HEADTAIL style matching into RF bucket.
-    The argument is_accepted takes a function (usually
-    RFBucket.is_in_separatrix) defining the separatrix of the rf bucket.
-    To avoid bucket leakage and particle losses as a consequence of the
-    unmatched initialisation, a margin / tolerance can be specified by
-    the argument margin (in % of RFBucket.Hmax, 5% by default), so that
-    particles will not be initialised too close to the separatrix. The
-    boundary will in fact be given by the equihamiltonian with a value
-    of margin*Hmax.
+    '''For HEADTAIL style matching into RF bucket.
+    The argument is_accepted takes a function (i.e. reference to a
+    function). The usual choices are RFBucket.is_in_separatrix or
+    RFBucket.is_accepted . The former strictly follows the separatrix
+    of the bucket (the equihamiltonian with a value of 0), while with
+    the latter, tighter boundaries can be used (equihamiltonian lying
+    inside the RFBucket) as a result of which particles are not
+    initialised too close to the separatrix. This option is usually
+    preferred as it avoids bucket leakage and particle losses which may
+    occur as a consequence of the unmatched initialisation.
+    The RFBucket.is_accepted method must be created first however, by
+    calling the RFBucket.make_is_accepted(margin) method with a certain
+    value for the margin (in % of RFBucket.Hmax, 5% by default).
 
     BY KEVIN: NEEDS TO BE CLEANED UP BY ADRIAN!
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
                  circumference, gamma_reference, sigma_z, sigma_dp,
-                 is_accepted, margin=0.05, *args, **kwargs):
+                 is_accepted, *args, **kwargs):
 
         self.sigma_z = sigma_z
         self.sigma_dp = sigma_dp
         self.is_accepted = is_accepted
-        self.margin = margin
 
         super(CutRFBucket2D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
@@ -514,12 +520,12 @@ class CutRFBucket2D(ParticleGenerator):
 
     def _redistribute(self, z, dp):
 
-        mask_out = ~self.is_accepted(z, dp, self.margin)
+        mask_out = ~self.is_accepted(z, dp)
         while mask_out.any():
             n_gen = np.sum(mask_out)
             z[mask_out] = normal(0, self.sigma_z, n_gen)
             dp[mask_out] = normal(0, self.sigma_dp, n_gen)
-            mask_out = ~self.is_accepted(z, dp, self.margin)
+            mask_out = ~self.is_accepted(z, dp)
             self.prints('Reiterate on non-accepted particles')
 
 

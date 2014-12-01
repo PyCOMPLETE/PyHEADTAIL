@@ -380,7 +380,9 @@ class ParticleMonitor(Monitor):
         for quant in self.quantities_to_store:
             quant_values = getattr(bunch, quant)
             all_quantities[quant] = quant_values
-        all_quantities.update(arrays_dict)
+
+        if arrays_dict is not None:
+            all_quantities.update(arrays_dict)
 
         for quant in all_quantities.keys():
             quant_values = all_quantities[quant]
