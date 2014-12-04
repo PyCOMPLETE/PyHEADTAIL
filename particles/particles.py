@@ -10,12 +10,24 @@ import numpy as np
 from scipy.constants import c, e
 
 from ..cobra_functions import stats as cp
+from . import cython_functions as cyfunc
 
 class Particles(object):
-    '''Contains the basic properties of a particle ensemble with
+    ''' Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
     Designed to describe beams, electron clouds, ...
-    '''
+    To consider particle losses during the simulation, the actual
+    particle coords and momenta data are stored in numpy arrays
+    self.u_all, where u = x, y, z, xp, yp, dp, id, alive. In addition,
+    there are self.u attributes, which are numpy array slices / views of
+    the self.u_all, i.e. they point to the same memory addresses(shallow
+    copies). In case of losses, the method Particles.update_losses() is
+    called. Particles marked as lost will then be relocated to the end
+    of the self.u (and hence of self.u_all) arrays. The views self.u are
+    updated such that they view only the first part of the self.u_all
+    where all the alive particles are located. By doing that, the lost
+    particles are set to an untracked state. '''
+
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma_reference,
                  coords_n_momenta_dict={}):
@@ -25,6 +37,7 @@ class Particles(object):
         e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
         '''
         self.macroparticlenumber = macroparticlenumber
+        self.macroparticlenumber_all = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
@@ -55,11 +68,13 @@ class Particles(object):
         '''ID of particles in order to keep track of single entries
         in the coordinate and momentum arrays.
         '''
-        self.id = np.arange(1, self.macroparticlenumber+1, dtype=int)
+        self.id_all = np.arange(1, self.macroparticlenumber+1, dtype=np.uint)
+        self.id = self.id_all.view()
 
-        '''Alive flag to handle the loss of macroparticles
+        '''Alive flag to handle the loss of particles
         '''
-        self.alive = np.ones(self.macroparticlenumber, dtype=bool)
+        self.alive_all = np.ones(self.macroparticlenumber, dtype=np.uint)
+        self.alive = self.alive_all.view()
 
         self.update(coords_n_momenta_dict)
 
@@ -125,6 +140,37 @@ class Particles(object):
         '''
         return {coord: getattr(self, coord) for coord in self.coords_n_momenta}
 
+    def update(self, coords_n_momenta_dict):
+        '''Assigns the keys of the dictionary coords_n_momenta_dict as
+        attributes to this Particles instance and puts the corresponding
+        values. Pretty much the same as dict.update({...}) .
+        Attention: overwrites existing coordinate / momentum attributes.
+        Note that in order to account for particle losses, for each
+        coord (and momentum), a shallow copy (view) self.u of the numpy
+        array is created (with u = x, y, z, ...). The actual place where
+        the data are stored are the numpy arrays self.u_all .
+        '''
+        if any(len(v) != self.macroparticlenumber for v in
+               coords_n_momenta_dict.values()):
+            raise ValueError("lengths of given phase space coordinate arrays" +
+                             " do not coincide with self.macroparticlenumber.")
+        for coord, array in coords_n_momenta_dict.items():
+            setattr(self, coord+'_all', array)
+            setattr(self, coord, getattr(self, coord+'_all').view())
+        self.coords_n_momenta.update(coords_n_momenta_dict.keys())
+
+    def add(self, coordinate, array):
+        '''Add the coordinate with its according array to the
+        attributes of the Particles instance
+        (via self.update(coords_n_momenta_dict)).
+        Does not allow existing coordinate or momentum attributes
+        to be overwritten.
+        '''
+        if coordinate in self.coords_n_momenta:
+            raise ValueError(coordinate + " already exists and cannot be" +
+                             " added. Use self.update(...) for this purpose.")
+        self.update({coordinate: array})
+
     def get_slices(self, slicer):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
@@ -142,31 +188,28 @@ class Particles(object):
         '''
         self._slice_sets = {}
 
-    def update(self, coords_n_momenta_dict):
-        '''Assigns the keys of the dictionary coords_n_momenta_dict as
-        attributes to this Particles instance and puts the corresponding
-        values. Pretty much the same as dict.update({...}) .
-        Attention: overwrites existing coordinate / momentum attributes.
-        '''
-        if any(len(v) != self.macroparticlenumber for v in
-               coords_n_momenta_dict.values()):
-            raise ValueError("lengths of given phase space coordinate arrays" +
-                             " do not coincide with self.macroparticlenumber.")
-        for coord, array in coords_n_momenta_dict.items():
-            setattr(self, coord, array)
-        self.coords_n_momenta.update(coords_n_momenta_dict.keys())
+    def update_losses(self):
+        ''' Rearrange coords_n_momenta arrays self.u_all (with u = z, y,
+        z, ...) such that lost particles are relocated to the end of the
+        arrays. Re-set the self.u, which are shallow copies (views) of
+        the numpy arrays self.u_all. They view only the first part of
+        self.u_all containing the alive particles, i.e.
+        self.u = self.u_all[:n_alive_post]. They point to the same
+        locations in memory. Hence, by rearranging the self.u arrays,
+        what is actually sorted are the bunch.u_all. Update the number
+        of macroparticles which are still alive, i.e.
+        self.macroparticlenumber. '''
+        n_alive_post = cyfunc.relocate_lost_particles(self)
 
-    def add(self, coordinate, array):
-        '''Add the coordinate with its according array to the
-        attributes of the Particles instance
-        (via self.update(coords_n_momenta_dict)).
-        Does not allow existing coordinate or momentum attributes
-        to be overwritten.
-        '''
-        if coordinate in self.coords_n_momenta:
-            raise ValueError(coordinate + " already exists and cannot be" +
-                             " added. Use self.update(...) for this purpose.")
-        self.update({coordinate: array})
+        self.macroparticlenumber = n_alive_post
+        self.x = self.x_all[:n_alive_post]
+        self.y = self.y_all[:n_alive_post]
+        self.z = self.z_all[:n_alive_post]
+        self.xp = self.xp_all[:n_alive_post]
+        self.yp = self.yp_all[:n_alive_post]
+        self.dp = self.dp_all[:n_alive_post]
+        self.id = self.id_all[:n_alive_post]
+        self.alive = self.alive_all[:n_alive_post]
 
 
     # Statistics methods
