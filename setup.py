@@ -114,6 +114,14 @@ cy_ext = [
                  extra_link_args=["-fopenmp"],
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
+                 ),
+        Extension("particles.cython_functions",
+                 ["particles/cython_functions.pyx"],
+                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
+                 #extra_compile_args=["-fopenmp"],
+                 #extra_link_args=["-fopenmp"],
+                 #extra_compile_args=["-g"],
+                 #extra_link_args=["-g"],
                  )
           ]
 
