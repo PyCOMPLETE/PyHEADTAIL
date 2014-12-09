@@ -130,7 +130,7 @@ class WakeTable(WakeSource):
           longitudinal wake component: [V/pC]. """
         self.wake_table = {}
 
-        wake_data = np.loadtxt(wake_file, delimiter="\t")
+        wake_data = np.loadtxt(wake_file)
         if len(wake_file_columns) != wake_data.shape[1]:
             raise ValueError('Length of wake_file_columns list does not \n' +
                              'correspond to the number of columns in \n' +
@@ -204,10 +204,10 @@ class WakeTable(WakeSource):
         if wake_component in self.wake_table.keys():
             return True
         else:
-            self.warns(wake_component + ' \n' +
-                  'Wake component is either not provided or does not \n'+
-                  'use correct nomenclature. See docstring of WakeTable \n' +
-                  'constructor to display valid names. \n')
+            # self.warns(wake_component + ' \n' +
+            #       'Wake component is either not provided or does not \n'+
+            #       'use correct nomenclature. See docstring of WakeTable \n' +
+            #       'constructor to display valid names. \n')
             return False
 
     def _function_transverse(self, wake_component):
@@ -242,12 +242,12 @@ class WakeTable(WakeSource):
             self.warns(wake_component +
                   ' Assuming ultrarelativistic wake.')
 
-        elif (time[0] < 0) and (wake_strength[0] != 0):
+        elif (time[0] < 0):
             def wake(beta, dz):
                 return interp1d(time, wake_strength)(- dz / (beta * c))
             self.warns(wake_component +  ' Found low beta wake.')
 
-        elif (time[0] > 0) and (wake_strength[0] != 0):
+        else:
             raise ValueError(wake_component +
                              ' does not meet requirements.')
         return wake
@@ -281,7 +281,7 @@ class WakeTable(WakeSource):
                 return (np.sign(-dz) + 1) / 2 * wake_interpolated
             elif time[0] < 0:
                 return wake_interpolated
-            elif (time[0] > 0):
+            else:
                 raise ValueError(wake_component + ' \n' +
                                  'does not meet requirements.')
         return wake
