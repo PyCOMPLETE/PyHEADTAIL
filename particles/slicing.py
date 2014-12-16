@@ -76,19 +76,23 @@ class SliceSet(Printing):
         '''
 
         '''Array of z values of each bin, goes from the left bin edge
-        of the first bin to the right bin edge of the last bin.'''
+        of the first bin to the right bin edge of the last bin.
+        '''
         self.z_bins = z_bins
 
         '''Array of slice indices for each particle, positions (indices)
-        are the same as in beam.z .'''
+        are the same as in beam.z .
+        '''
         self.slice_index_of_particle = slice_index_of_particle
 
         '''How is the slicing done? For the moment it is either
-        'uniform_charge' or 'uniform_bin'.'''
+        'uniform_charge' or 'uniform_bin'.
+        '''
         self.mode = mode
 
         '''Numpy array containing the number of macroparticles in each
-        slice.'''
+        slice.
+        '''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
 
         for p_name, p_value in beam_parameters.iteritems():
@@ -146,6 +150,13 @@ class SliceSet(Printing):
                                               self.particles_within_cuts,
                                               self._n_macroparticles_per_slice)
         return self._n_macroparticles_per_slice
+
+    @property
+    def charge_per_slice(self):
+        '''Array of slice charges, i.e. summing up all the
+        particle charges for each slice.
+        '''
+        return self.charge_per_mp * self.n_macroparticles_per_slice
 
     @property
     # @memoize
@@ -259,6 +270,7 @@ class SliceSet(Printing):
         s_id = self.slice_index_of_particle.take(p_id)
         particle_array[p_id] = slice_array.take(s_id)
         return particle_array
+
 
 class Slicer(Printing):
     '''Slicer class that controls longitudinal binning of a beam.

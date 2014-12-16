@@ -14,6 +14,12 @@ from scipy.interpolate import splrep, splev
 log = np.log
 exp = np.exp
 
+from errfff import errf as errf_f
+errf = np.vectorize(errf_f)
+from scipy.special import erfc
+errfsp = lambda z: np.exp(-z**2) * erfc(z * -1j)
+
+
 class LongSpaceCharge(Element):
     '''Contains longitudinal space charge (SC) via Chao's expression:
 
@@ -111,3 +117,74 @@ class LongSpaceCharge(Element):
             return (self._prefactor(sliceset) * gfac *
                     sliceset.lambda_z(z) * sliceset.p0)
         return potential
+
+class TransverseGaussianSpaceCharge(Element):
+    '''
+    Contains transverse space charge for a Gaussian configuration
+    applying the Bassetti-Erskine electric field expression slice-wise.
+    '''
+
+    def __init__(self, slicer):
+        self.slicer = slicer
+
+    def track(self, beam):
+        '''
+        Add the transverse space charge contribution to the beam's
+        transverse kicks.
+        '''
+        slices = beam.get_slices(self.slicer)
+        Q_mp = beam.particlenumber_per_mp * beam.charge
+
+        for p_id, Q_sl, sig_x, sig_y in zip(slices.particle_indices_by_slice,
+                                            slices.charge_per_slice,
+                                            slices.sigma_x(beam),
+                                            slices.sigma_y(beam)):
+            sig_sqrt = np.sqrt(2 * (sig_x**2 - sig_y**2))
+            efields_x, efields_y = Q_sl * self.efieldn(
+                beam.x[p_id], beam.y[p_id], sig_x, sig_y, sig_sqrt)
+
+            beam.xp[p_id] += Q_mp * efields_x
+            beam.yp[p_id] += Q_mp * efields_y
+
+
+
+    @staticmethod
+    def efieldn(x, y, sig_x, sig_y, sig_sqrt):
+        '''The charge-normalised electric field components of a
+        two-dimensional Gaussian charge distribution according to
+        M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.
+
+        Return (E_x / Q, E_y / Q).
+        '''
+        # timing was ~208 us for:
+        # x = np.arange(-1e-5, 1e-5, 1e-7)
+        # y = np.empty(len(x))
+        # sig_x = 1.2e-6
+        # sig_y = 1e-6
+        # sig_sqrt = np.sqrt(2 * (sig_x**2 - sig_y**2))
+        w1 = errfsp((x + 1j * y) / sig_sqrt)
+        ex = np.exp(-x**2 / (2 * sig_x**2) +
+                    -y**2 / (2 * sig_y**2))
+        w2 = errfsp(x * sig_y/(sig_x*sig_sqrt) +
+                    y * sig_x/(sig_y*sig_sqrt) * 1j)
+        val = (w1 - ex * w2) / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
+        return val.imag, val.real
+
+    @staticmethod
+    def efieldn2(x, y, sig_x, sig_y, sig_sqrt):
+        '''The charge-normalised electric field components of a
+        two-dimensional Gaussian charge distribution according to
+        M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.
+
+        Return (E_x / Q, E_y / Q).
+
+        25%% slower than efieldn (for numpy vectors), uses CERN library.
+        '''
+        # timing was ~268 us for same situation as efieldn
+        w1re, w1im = errf(x/sig_sqrt, y/sig_sqrt)
+        ex = np.exp(-x**2 / (2 * sig_x**2) +
+                    -y**2 / (2 * sig_y**2))
+        w2re, w2im = errf(x * sig_y/(sig_x*sig_sqrt),
+                          y * sig_x/(sig_y*sig_sqrt))
+        pref = 1. / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
+        return pref * (w1im - ex * w2im), pref * (w1re - ex * w2re)
