@@ -18,10 +18,11 @@ class LongSpaceCharge(Element):
     cf. the original HEADTAIL version.
     '''
 
-    def __init__(self, slicer, pipe_radius, time_step):
+    def __init__(self, slicer, pipe_radius, time_step, *args, **kwargs):
         self.slicer = slicer
         self.pipe_radius = pipe_radius
         self.time_step = time_step
+        # include slice_sigma
 
     @clean_slices
     def track(self, beam):
@@ -30,7 +31,7 @@ class LongSpaceCharge(Element):
         dp kick.
         '''
         slices = beam.get_slices(self.slicer)
-        lambda_prime = (slices.line_density_derivative_gauss() *
+        lambda_prime = (slices.line_density_derivative_gauss(sigma=3) *
                         beam.particlenumber_per_mp)
         slice_kicks = (self._prefactor(beam) * self._gfactor(beam) *
                        lambda_prime) * self.time_step
