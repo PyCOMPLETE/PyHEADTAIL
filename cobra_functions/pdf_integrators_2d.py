@@ -3,7 +3,7 @@ from scipy.integrate import quad, fixed_quad, dblquad, cumtrapz, romb
 
 def quad2d(f, ylimits, xmin, xmax):
     Q, error = dblquad(lambda y, x: f(x, y), xmin, xmax,
-                       lambda x: 0, lambda x: ylimits(x))
+                       lambda x: -ylimits(x), lambda x: ylimits(x))
 
     return Q
 

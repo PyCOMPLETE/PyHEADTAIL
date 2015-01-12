@@ -563,7 +563,7 @@ class RFBucketMatcher(object):
             return emittance-epsn_z
 
         try:
-            ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4, maxiter=30)
+            ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4)
         except RuntimeError:
             print '*** WARNING: failed to converge using Newton-Raphson method. Trying classic Brent method...'
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
@@ -583,8 +583,7 @@ class RFBucketMatcher(object):
         self._set_psi_sigma(self.H.circumference)
         sigma_max = self._compute_sigma(self.H, self.psi)
         if sigma > sigma_max:
-            print ('\n*** RMS bunch larger than bucket; using full bucket' +
-                   ' rms length', sigma_max, ' m.')
+            print '\n*** RMS bunch larger than bucket; using full bucket rms length', sigma_max, ' m.'
             sigma = sigma_max*0.99
         print '\n*** Maximum RMS bunch length', sigma_max, 'm.'
 
@@ -659,10 +658,10 @@ class RFBucketMatcher(object):
         f = lambda x, y: self.psi(x, y)
         Q = quad2d(f, H.separatrix, H.zleft, H.zright)
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)
+        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)
-        var_x = V/Q
+        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        var_x = V
 
         return np.sqrt(var_x)
 
@@ -672,20 +671,22 @@ class RFBucketMatcher(object):
         Q = quad2d(f, H.separatrix, H.zleft, H.zright)
 
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)
+        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)
-        var_x = V/Q
+        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        mean_x = M
+        var_x  = V
 
         f = lambda x, y: psi(x, y)*y
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)
+        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
         f = lambda x, y: psi(x, y)*(y-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)
-        var_y = V/Q
+        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        mean_y = M
+        var_y  = V
 
-        f = lambda x, y: psi(x, y)*x*y
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)
-        mean_xy = M/Q
+        f = lambda x, y: psi(x, y)*(x-mean_x)*(y-mean_y)
+        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        mean_xy = M
 
         return np.sqrt(var_x*var_y - mean_xy**2) * 4*np.pi*H.p0_reference/e
 
