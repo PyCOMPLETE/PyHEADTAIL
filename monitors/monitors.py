@@ -374,6 +374,7 @@ class ParticleMonitor(Monitor):
         h5file = hp.File(self.filename + '.h5part', 'a')
         h5group = h5file.create_group('Step#' + str(self.i_steps))
         dims = (bunch.macroparticlenumber // self.stride,)
+        dims = bunch.get_coords_n_momenta_dict().values()[0][::self.stride].shape # more robust implementation
 
         # resorting_indices = np.argsort(bunch.id)[::self.stride]
         all_quantities = {}

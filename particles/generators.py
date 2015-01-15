@@ -551,7 +551,7 @@ class RFBucketMatcher(object):
         else:
             raise ValueError("Can not generate mismatched matched distribution!")
 
-        self.seed = np.random.randint(sys.maxint)
+        self.seed = np.random.randint(np.iinfo(np.int32).max)
 
     def psi_for_emittance_newton_method(self, epsn_z):
         H = self.H
