@@ -210,7 +210,7 @@ class Gaussian2DTwiss(Gaussian):
         the correspondingly matched coordinate and its conjugate
         momentum.
         '''
-        if alpha != 0:
+        if not np.allclose(alpha, 0., atol=1e-15):
             raise NotImplementedError("alpha != 0 is not yet taken into" +
                                       " account")
         coordssig = self.coords_n_momenta_with_sigmas(coords, epsn_geo, beta)
@@ -275,7 +275,7 @@ class MatchTransverseMap(Gaussian):
         epsn_geo_y = epsn_y / betagamma
         alpha_x, beta_x, alpha_y, beta_y = transverse_map.get_injection_optics()
 
-        if alpha_x != 0 or alpha_y != 0:
+        if not np.allclose([alpha_x, alpha_y], [0., 0.], atol=1e-15):
             raise NotImplementedError("alpha != 0 is not yet taken into" +
                                       " account")
 

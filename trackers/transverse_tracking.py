@@ -47,7 +47,8 @@ class TransverseSegmentMap(Element):
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
 
-        if (D_x_s0 != 0 or D_x_s1 != 0 or D_y_s0 != 0 or D_y_s1 != 0):
+        if not np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
+                           [0., 0., 0., 0.], atol=1e-15):
             raise NotImplementedError('Non-zero values have been \n' +
                 'specified for the dispersion coefficients D_{x,y}.\n' +
                 'But, the effects of dispersion are not yet implemented. \n')
@@ -185,7 +186,7 @@ class TransverseMap(object):
             knows how to generate and store its SegmentDetuner objects
             to 'distribute' the detuning proportionally along the
             accelerator circumference. """
-        if s[0] != 0 or s[-1] != C:
+        if not np.allclose([s[0], s[-1]], [0., C]):
             raise ValueError('The first element of s must be zero \n' +
                 'and the last element must be equal to the \n' +
                 'accelerator circumference C. \n')
