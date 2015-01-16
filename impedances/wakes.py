@@ -385,14 +385,14 @@ class Resonator(WakeSource):
         def wake(beta, dz):
             dt = dz.clip(max=0) / (beta * c)
             if Q > 0.5:
-                y = (-Yokoya_factor * (np.sign(dt) - 1) * R_shunt * alpha *
+                y = (-Yokoya_factor * (np.sign(dz) - 1) * R_shunt * alpha *
                       np.exp(alpha * dt) * (cos(omegabar * dt) +
                       alpha / omegabar * sin(omegabar*dt)))
             elif Q == 0.5:
-                y = (-Yokoya_factor * (np.sign(dt) - 1) * R_shunt * alpha *
+                y = (-Yokoya_factor * (np.sign(dz) - 1) * R_shunt * alpha *
                       np.exp(alpha * dt) * (1. + alpha * dt))
             elif Q < 0.5:
-                y = (-Yokoya_factor * (np.sign(dt) - 1) * R_shunt * alpha *
+                y = (-Yokoya_factor * (np.sign(dz) - 1) * R_shunt * alpha *
                      np.exp(alpha * dt) * (np.cosh(omegabar * dt) +
                      alpha / omegabar * np.sinh(omegabar * dt)))
             return y
