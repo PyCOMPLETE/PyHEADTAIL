@@ -15,11 +15,10 @@ from numpy.random import normal, uniform, RandomState
 
 from scipy.constants import c, e
 from scipy.optimize import brentq, brenth, bisect, newton
-from scipy.interpolate import interp2d
-from scipy.integrate import quad, fixed_quad, dblquad, cumtrapz, romb
 
 from particles import Particles
 from ..trackers.rf_bucket import RFBucket
+from ..cobra_functions.pdf_integrators_2d import quad2d
 from . import Printing
 
 
@@ -476,7 +475,7 @@ class MatchRFBucket2D(ParticleGenerator):
         and return it.
         '''
         rf_bucket_matcher = RFBucketMatcher(
-            StationaryExponential, self.rf_bucket, self.sigma_z, self.epsn_z)
+            self.rf_bucket, StationaryExponential, self.sigma_z, self.epsn_z)
         z, dp, _, _ = rf_bucket_matcher.generate(self.macroparticlenumber)
         return {'z': z, 'dp': dp}
 
@@ -530,17 +529,12 @@ class CutRFBucket2D(ParticleGenerator):
 
 
 class RFBucketMatcher(object):
-    def __init__(self, psi, rfbucket, sigma_z=None, epsn_z=None):
 
-        self.psi = psi
+    def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None):
+
         self.H = rfbucket
-        self.sigma_z = sigma_z
-
         self.psi_object = psi(rfbucket.hamiltonian, rfbucket.Hmax)
         self.psi = self.psi_object.function
-        self.p_limits = rfbucket.separatrix
-
-        self._compute_std = self._compute_std_cumtrapz
 
         if sigma_z and not epsn_z:
             self.variable = sigma_z
@@ -551,105 +545,67 @@ class RFBucketMatcher(object):
         else:
             raise ValueError("Can not generate mismatched matched distribution!")
 
-        self.seed = np.random.randint(np.iinfo(np.int32).max)
-
     def psi_for_emittance_newton_method(self, epsn_z):
-        H = self.H
 
         # Maximum emittance
-        self._set_psi_sigma(H.circumference)
-        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        # epsn_max = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-        z, dp = self._regenerate(seed=self.seed)
-        epsn_max = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
+        self._set_psi_sigma(self.H.circumference)
+        epsn_max = self._compute_emittance(self.H, self.psi)
         if epsn_z > epsn_max:
             print '\n*** RMS emittance larger than bucket; using full bucket emittance', epsn_max, ' [eV s].'
             epsn_z = epsn_max*0.99
         print '\n*** Maximum RMS emittance', epsn_max, 'eV s.'
 
-        # @profile
         def get_zc_for_epsn_z(ec):
             self._set_psi_epsn(ec)
-            # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-            # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-            z, dp = self._regenerate(seed=self.seed)
-            emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
-            print '... distance to target emittance: {:.2e}'.format(emittance-epsn_z)
+            emittance = self._compute_emittance(self.H, self.psi)
 
+            print '... distance to target emittance: {:.2e}'.format(emittance-epsn_z)
             return emittance-epsn_z
 
         try:
-            ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4, maxiter=30)
+            ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4)
         except RuntimeError:
             print '*** WARNING: failed to converge using Newton-Raphson method. Trying classic Brent method...'
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
 
         self._set_psi_epsn(ec_bar)
-        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-        z, dp = self._regenerate(seed=self.seed)
-        emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
-        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
-
+        emittance = self._compute_emittance(self.H, self.psi)
         print '\n--> Emittance:', emittance
+        sigma = self._compute_sigma(self.H, self.psi)
         print '--> Bunch length:', sigma
-        # H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
-        H.emittance, H.sigma = emittance, sigma
+
+        self.H.emittance, self.H.sigma = emittance, sigma
 
     # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
-        H = self.H
 
         # Maximum bunch length
-        self._set_psi_sigma(H.circumference)
-        sigma_max = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
+        self._set_psi_sigma(self.H.circumference)
+        sigma_max = self._compute_sigma(self.H, self.psi)
         if sigma > sigma_max:
-            print ('\n*** RMS bunch larger than bucket; using full bucket' +
-                   ' rms length', sigma_max, ' m.')
+            print '\n*** RMS bunch larger than bucket; using full bucket rms length', sigma_max, ' m.'
             sigma = sigma_max*0.99
         print '\n*** Maximum RMS bunch length', sigma_max, 'm.'
 
         def get_zc_for_sigma(zc):
             '''Width for bunch length'''
             self._set_psi_sigma(zc)
-            length = self._compute_std(self.psi, H.separatrix,
-                                       H.zleft, H.zright)
-            if np.isnan(length):
-                raise ValueError
-            print '... distance to target bunchlength:', length-sigma
+            length = self._compute_sigma(self.H, self.psi)
 
+            if np.isnan(length): raise ValueError
+
+            print '... distance to target bunchlength:', length-sigma
             return length-sigma
 
         zc_bar = newton(get_zc_for_sigma, sigma)
 
         self._set_psi_sigma(zc_bar)
-        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
-        z, dp = self._regenerate(seed=self.seed)
-        emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
-        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
+        sigma = self._compute_sigma(self.H, self.psi)
+        print '--> Bunch length:', sigma
+        emittance = self._compute_emittance(self.H, self.psi)
+        print '\n--> Emittance:', emittance
 
-        print '--> Emittance:', emittance
-        print '\n--> Bunch length:', sigma
-        # H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
-        H.emittance, H.sigma = emittance, sigma
-
-    def generate(self, macroparticlenumber, particles=None):
-        '''
-        Generate a 2d phase space of n_particles particles randomly distributed
-        according to the particle distribution function psi within the region
-        [xmin, xmax, ymin, ymax].
-        '''
-        self.psi_for_variable(self.variable)
-        u, v = self._regenerate(macroparticlenumber, self.seed)
-
-        if particles:
-            particles.z = u
-            particles.dp = v
-            particles.psi = self.psi
-            particles.linedensity = self.linedensity
-
-        return u, v, self.psi, self.linedensity
+        self.H.emittance, self.H.sigma = emittance, sigma
 
     def linedensity(self, xx):
         quad_type = fixed_quad
@@ -663,69 +619,33 @@ class RFBucketMatcher(object):
 
         return 2*L
 
-    def _regenerate(self, macroparticlenumber=50000, seed=None):
-
-        # # Bin
-        # i, j = 0, 0
-        # nx, ny = 128, 128
-        # xx = np.linspace(xmin, xmax, nx + 1)
-        # yy = np.linspace(ymin, ymax, ny + 1)
-        # XX, YY = np.meshgrid(xx, yy)
-        # HH = self.psi(XX, YY)
-        # psi_interp = interp2d(xx, yy, HH)
-
-        # while j < particles.n_macroparticles:
-        #     u = xmin + lx * np.random.random()
-        #     v = ymin + ly * np.random.random()
-
-        #     s = np.random.random()
-
-        #     i += 1
-        #     if s < psi_interp(u, v):
-        #         x[j] = u
-        #         y[j] = v
-        #         # TODO: check if this does not cause problems! Setter for item does not work - not implemented!
-        #         # particles.dp[j] = v
-        #         j += 1
-
-        # ================================================================
-        # mask_out = ~self.is_accepted(z, dp)
-        # while mask_out.any():
-        #     n_gen = np.sum(mask_out)
-        #     z[mask_out] = self.sigma_z * self.random_state.randn(n_gen)
-        #     dp[mask_out] = self.sigma_dp * self.random_state.randn(n_gen)
-        #     mask_out = ~self.is_accepted(z, dp)
-        #     print 'Reiterate on non-accepted particles'
-
-        # for i in xrange(n):
-        #     while not self.is_accepted(z[i], dp[i]):
-        #         z[i]  = self.sigma_z * self.random_state.randn()
-        #         dp[i] = self.sigma_dp * self.random_state.randn()
-        # ================================================================
+    def generate(self, macroparticlenumber):
+        '''
+        Generate a 2d phase space of n_particles particles randomly distributed
+        according to the particle distribution function psi within the region
+        [xmin, xmax, ymin, ymax].
+        '''
+        self.psi_for_variable(self.variable)
 
         xmin, xmax = self.H.zleft, self.H.zright
         ymin, ymax = -self.H.p_max(self.H.zright), self.H.p_max(self.H.zright)
         lx = (xmax - xmin)
         ly = (ymax - ymin)
 
-        if seed:
-            random_state = RandomState()
-            random_state.seed(seed)
-
         n_gen = macroparticlenumber
-        u = xmin + lx * random_state.uniform(size=n_gen)
-        v = ymin + ly * random_state.uniform(size=n_gen)
-        s = random_state.uniform(size=n_gen)
+        u = xmin + lx * uniform(size=n_gen)
+        v = ymin + ly * uniform(size=n_gen)
+        s = uniform(size=n_gen)
         mask_out = ~(s<self.psi(u, v))
         while mask_out.any():
             n_gen = np.sum(mask_out)
-            u[mask_out] = xmin + lx * random_state.uniform(size=n_gen)
-            v[mask_out] = ymin + ly * random_state.uniform(size=n_gen)
-            s[mask_out] = random_state.uniform(size=n_gen)
+            u[mask_out] = xmin + lx * uniform(size=n_gen)
+            v[mask_out] = ymin + ly * uniform(size=n_gen)
+            s[mask_out] = uniform(size=n_gen)
             mask_out = ~(s<self.psi(u, v))
             # print 'regenerating '+str(n_gen)+' macroparticles...'
 
-        return u, v
+        return u, v, self.psi, self.linedensity
 
     def _set_psi_sigma(self, sigma):
         self.psi_object.H0 = self.H.H0_from_sigma(sigma)
@@ -733,140 +653,55 @@ class RFBucketMatcher(object):
     def _set_psi_epsn(self, epsn):
         self.psi_object.H0 = self.H.H0_from_epsn(epsn)
 
-    # @profile
-    def _get_edges_for_cut(self, h_cut):
-        zz = np.linspace(self.H.zmin, self.H.zmax, 128)
-        ll = self.linedensity(zz)
-        lmax = np.amax(ll)
-        # plt.plot(zz, linedensity(zz)/lmax, 'r', lw=2)
-        # plt.plot(zz, psi(zz, 0))
-        # plt.axhline(h_cut)
-        # plt.axvline(zcut_bar)
-        # plt.show()
-        return self.H._get_zero_crossings(
-            lambda x: self.linedensity(x) - h_cut*lmax)
+    def _compute_sigma(self, H, psi):
 
-    def _compute_emittance(self, z, dp):
-        var_z    = np.var(z)
-        var_dp   = np.var(dp)
-        mean_zdp = np.mean( (z-np.mean(z)) * (dp-np.mean(dp)) )
+        f = lambda x, y: self.psi(x, y)
+        Q = quad2d(f, H.separatrix, H.zleft, H.zright)
+        f = lambda x, y: psi(x, y)*x
+        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        f = lambda x, y: psi(x, y)*(x-M)**2
+        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        var_x = V
 
-        return np.sqrt(var_z*var_dp - mean_zdp**2)
+        return np.sqrt(var_x)
 
-    def _compute_zero_quad(self, psi, p_sep, xmin, xmax):
-        '''
-        Compute the variance of the distribution function psi from xmin
-        to xmax along the contours p_sep using numerical integration
-        methods.
-        '''
+    def _compute_emittance(self, H, psi):
 
-        Q, error = dblquad(lambda y, x: psi(x, y), xmin, xmax,
-                    lambda x: 0, lambda x: p_sep(x))
+        f = lambda x, y: self.psi(x, y)
+        Q = quad2d(f, H.separatrix, H.zleft, H.zright)
 
-        return Q
+        f = lambda x, y: psi(x, y)*x
+        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        f = lambda x, y: psi(x, y)*(x-M)**2
+        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        mean_x = M
+        var_x  = V
 
-    def _compute_mean_quad(self, psi, p_sep, xmin, xmax):
-        '''
-        Compute the variance of the distribution function psi from xmin
-        to xmax along the contours p_sep using numerical integration
-        methods.
-        '''
+        f = lambda x, y: psi(x, y)*y
+        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        f = lambda x, y: psi(x, y)*(y-M)**2
+        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        mean_y = M
+        var_y  = V
 
-        Q = self._compute_zero_quad(psi, p_sep, xmin, xmax)
-        M, error = dblquad(lambda y, x: x * psi(x, y), xmin, xmax,
-                    lambda x: 0, lambda x: p_sep(x))
+        f = lambda x, y: psi(x, y)*(x-mean_x)*(y-mean_y)
+        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        mean_xy = M
 
-        return M/Q
+        return np.sqrt(var_x*var_y - mean_xy**2) * 4*np.pi*H.p0_reference/e
 
-    def _compute_std_quad(self, psi, p_sep, xmin, xmax):
-        '''
-        Compute the variance of the distribution function psi from xmin
-        to xmax along the contours p_sep using numerical integration
-        methods.
-        '''
-
-        Q = self._compute_zero_quad(psi, p_sep, xmin, xmax)
-        M = self._compute_mean_quad(psi, p_sep, xmin, xmax)
-        V, error = dblquad(lambda y, x: (x-M) ** 2 * psi(x, y), xmin, xmax,
-                           lambda x: 0, lambda x: p_sep(x))
-
-        return np.sqrt(V/Q)
-
-    def _compute_zero_cumtrapz(self, psi, p_sep, xmin, xmax):
-
-        x_arr = np.linspace(xmin, xmax, 257)
-        dx = x_arr[1] - x_arr[0]
-
-        Q = 0
-        for x in x_arr:
-            y = np.linspace(0, p_sep(x), 257)
-            z = psi(x, y)
-            Q += cumtrapz(z, y)[-1]
-        Q *= dx
-
-        return Q
-
-    def _compute_mean_cumtrapz(self, psi, p_sep, xmin, xmax):
-
-        Q = self._compute_zero_cumtrapz(psi, p_sep, xmin, xmax)
-
-        x_arr = np.linspace(xmin, xmax, 257)
-        dx = x_arr[1] - x_arr[0]
-
-        M = 0
-        for x in x_arr:
-            y = np.linspace(0, p_sep(x), 257)
-            z = x * psi(x, y)
-            M += cumtrapz(z, y)[-1]
-        M *= dx
-
-        return M/Q
-
-    def _compute_std_cumtrapz(self, psi, p_sep, xmin, xmax):
-        '''
-        Compute the variance of the distribution function psi from xmin
-        to xmax along the contours p_sep using numerical integration
-        methods.
-        '''
-
-        Q = self._compute_zero_cumtrapz(psi, p_sep, xmin, xmax)
-        M = self._compute_mean_cumtrapz(psi, p_sep, xmin, xmax)
-
-        x_arr = np.linspace(xmin, xmax, 257)
-        dx = x_arr[1] - x_arr[0]
-
-        V = 0
-        for x in x_arr:
-            y = np.linspace(0, p_sep(x), 257)
-            z = (x-M)**2 * psi(x, y)
-            V += cumtrapz(z, y)[-1]
-        V *= dx
-
-        return np.sqrt(V/Q)
-
-    def _compute_std_romberg(self, psi, p_sep, xmin, xmax):
-        '''
-        Compute the variance of the distribution function psi from xmin
-        to xmax along the contours p_sep using numerical integration
-        methods.
-        '''
-
-        x_arr = np.linspace(xmin, xmax, 257)
-        dx = x_arr[1] - x_arr[0]
-
-        Q, V = 0, 0
-        for x in x_arr:
-            y = np.linspace(0, p_sep(x), 257)
-            dy = y[1] - y[0]
-            z = psi(x, y)
-            Q += romb(z, dy)
-            z = x**2 * psi(x, y)
-            V += romb(z, dy)
-        Q *= dx
-        V *= dx
-
-        return np.sqrt(V/Q)
-
+    # # @profile
+    # def _get_edges_for_cut(self, h_cut):
+    #     zz = np.linspace(self.H.zmin, self.H.zmax, 128)
+    #     ll = self.linedensity(zz)
+    #     lmax = np.amax(ll)
+    #     # plt.plot(zz, linedensity(zz)/lmax, 'r', lw=2)
+    #     # plt.plot(zz, psi(zz, 0))
+    #     # plt.axhline(h_cut)
+    #     # plt.axvline(zcut_bar)
+    #     # plt.show()
+    #     return self.H._get_zero_crossings(
+    #         lambda x: self.linedensity(x) - h_cut*lmax)
 
 class StationaryExponential(object):
 
