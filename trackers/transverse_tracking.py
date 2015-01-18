@@ -233,7 +233,9 @@ class TransverseMap(object):
             # Instantiate SegmentDetuner objects.
             for detuner in self.detuner_collections:
                 detuner.generate_segment_detuner(segment_length[s0],
-                    beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
+                    alpha_x=self.alpha_x[0], beta_x=self.beta_x[s0],
+                    alpha_y=self.alpha_y[0], beta_y=self.beta_y[s0],
+                    )
 
             # Instantiate TransverseSegmentMap objects.
             transverse_segment_map = TransverseSegmentMap(
