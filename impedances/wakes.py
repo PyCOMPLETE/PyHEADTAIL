@@ -293,7 +293,7 @@ class Resonator(WakeSource):
     as well as the definitions from HEADTAIL. """
 
     def __init__(self, R_shunt, frequency, Q,
-                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, Yokoya_Z,
+                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, switch_Z,
                  *args, **kwargs):
         """ General constructor to create a Resonator WakeSource object
         describing the wake functions of a resonator impedance. Alex
@@ -310,7 +310,7 @@ class Resonator(WakeSource):
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_Y2 = Yokoya_Y2
-        self.Yokoya_Z = Yokoya_Z
+        self.switch_Z  = switch_Z
 
     def get_wake_kicks(self, slicer_mode):
         """ Factory method. Creates instances of the appropriate
@@ -345,9 +345,9 @@ class Resonator(WakeSource):
             wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
 
         # Constant wake kick z.
-        if self.Yokoya_Z:
+        if self.switch_Z:
             wake_function = self._function_longitudinal(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_Z)
+                self.R_shunt, self.frequency, self.Q, 1)
             wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
 
         return wake_kicks
@@ -407,11 +407,11 @@ class CircularResonator(Resonator):
         Yokoya_Y1 = 1.
         Yokoya_X2 = 0.
         Yokoya_Y2 = 0.
-        Yokoya_Z = 0.
+        switch_Z  = False
 
         super(CircularResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, Yokoya_Z)
+            Yokoya_X2, Yokoya_Y2, switch_Z)
 
 
 class ParallelPlatesResonator(Resonator):
@@ -422,11 +422,11 @@ class ParallelPlatesResonator(Resonator):
         Yokoya_Y1 = np.pi**2 / 12.
         Yokoya_X2 = -np.pi**2 / 24.
         Yokoya_Y2 = np.pi**2 / 24.
-        Yokoya_Z = 0
+        switch_Z  = False
 
         super(ParallelPlatesResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, Yokoya_Z)
+            Yokoya_X2, Yokoya_Y2, switch_Z)
 
 
 class ResistiveWall(WakeSource):
