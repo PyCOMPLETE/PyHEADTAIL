@@ -96,13 +96,13 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         # Jy = (beam.y**2 + (self.beta_y * beam.yp)**2) / (2.*self.beta_y)
 
         Jx = 1/2 * (
-            (1 + alpha_x**2)/beta_x * beam.x**2
-            + 2*alpha_x * beam.x*beam.xp
-            + beta_x * beam.xp**2)
+            (1 + self.alpha_x**2)/self.beta_x * beam.x**2
+            + 2*self.alpha_x * beam.x*beam.xp
+            + self.beta_x * beam.xp**2)
         Jy = 1/2 * (
-            (1 + alpha_y**2)/beta_y * beam.y**2
-            + 2*alpha_y * beam.y*beam.yp
-            + beta_y * beam.yp**2)
+            (1 + self.alpha_y**2)/self.beta_y * beam.y**2
+            + 2*self.alpha_y * beam.y*beam.yp
+            + self.beta_y * beam.yp**2)
 
         dQ_x = (self.dapp_x * Jx + self.dapp_xy * Jy) / beam.p0
         dQ_y = (self.dapp_y * Jy + self.dapp_xy * Jx) / beam.p0
