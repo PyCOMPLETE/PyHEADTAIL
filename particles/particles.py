@@ -148,7 +148,7 @@ class Particles(object):
             raise ValueError("lengths of given phase space coordinate arrays" +
                              " do not coincide with self.macroparticlenumber.")
         for coord, array in coords_n_momenta_dict.items():
-            setattr(self, coord, array)
+            setattr(self, coord, array.copy())
         self.coords_n_momenta.update(coords_n_momenta_dict.keys())
 
     def add(self, coordinate, array):
