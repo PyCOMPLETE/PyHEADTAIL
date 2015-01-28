@@ -322,78 +322,73 @@ class Resonator(WakeSource):
 
         # Dipole wake kick x.
         if self.Yokoya_X1:
-            wake_function = self._function_transverse(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_X1)
+            wake_function = self._function_transverse(self.Yokoya_X1)
             wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
 
         # Quadrupole wake kick x.
         if self.Yokoya_X2:
-            wake_function = self._function_transverse(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_X2)
+            wake_function = self._function_transverse(self.Yokoya_X2)
             wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
 
         # Dipole wake kick y.
         if self.Yokoya_Y1:
-            wake_function = self._function_transverse(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_Y1)
+            wake_function = self._function_transverse(self.Yokoya_Y1)
             wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
 
         # Quadrupole wake kick y.
         if self.Yokoya_Y2:
-            wake_function = self._function_transverse(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_Y2)
+            wake_function = self._function_transverse(self.Yokoya_Y2)
             wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
 
         # Constant wake kick z.
         if self.switch_Z:
-            wake_function = self._function_longitudinal(
-                self.R_shunt, self.frequency, self.Q, 1)
+            wake_function = self._function_longitudinal(1)
             wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
 
         return wake_kicks
 
-    def _function_transverse(self, R_shunt, frequency, Q, Yokoya_factor):
+    def _function_transverse(self, Yokoya_factor):
         """ Define the wake function (transverse) of a resonator with
         the given parameters according to Alex Chao's resonator model
         (Eq. 2.82) and definitions of the resonator in HEADTAIL. """
-        omega = 2 * np.pi * frequency
-        alpha = omega / (2 * Q)
+        omega = 2 * np.pi * self.frequency
+        alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         def wake(beta, dz):
             dt = dz.clip(max=0) / (beta * c)
-            if Q > 0.5:
-                y = (Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) *
-                      np.exp(alpha*dt) * sin(omegabar*dt))
-            elif Q == 0.5:
-                y = (Yokoya_factor * R_shunt * omega**2 / Q *
+            if self.Q > 0.5:
+                y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
+                     omegabar) * np.exp(alpha*dt) * sin(omegabar*dt))
+            elif self.Q == 0.5:
+                y = (Yokoya_factor * self.R_shunt * omega**2 / self.Q *
                       np.exp(alpha*dt) * dt)
             else:
-                y = (Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) *
-                     np.exp(alpha*dt) * np.sinh(omegabar*dt))
+                y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
+                     omegabar) * np.exp(alpha*dt) * np.sinh(omegabar*dt))
             return y
         return wake
 
-    def _function_longitudinal(self, R_shunt, frequency, Q, Yokoya_factor):
+    def _function_longitudinal(self, Yokoya_factor):
         """ Define the wake function (longitudinal) of a resonator with
         the given parameters according to Alex Chao's resonator model
         (Eq. 2.82) and definitions of the resonator in HEADTAIL. """
-        omega = 2 * np.pi * frequency
-        alpha = omega / (2 * Q)
-        omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
+        omega = 2 * np.pi * self.frequency
+        alpha = omega / (2 * self.Q)
+        omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         def wake(beta, dz):
             dt = dz.clip(max=0) / (beta * c)
-            if Q > 0.5:
-                y = (-Yokoya_factor * (np.sign(dz) - 1) * R_shunt * alpha *
-                      np.exp(alpha * dt) * (cos(omegabar * dt) +
-                      alpha / omegabar * sin(omegabar*dt)))
-            elif Q == 0.5:
-                y = (-Yokoya_factor * (np.sign(dz) - 1) * R_shunt * alpha *
-                      np.exp(alpha * dt) * (1. + alpha * dt))
-            elif Q < 0.5:
-                y = (-Yokoya_factor * (np.sign(dz) - 1) * R_shunt * alpha *
-                     np.exp(alpha * dt) * (np.cosh(omegabar * dt) +
+            if self.Q > 0.5:
+                y = (-Yokoya_factor * (np.sign(dz) - 1) * self.R_shunt *
+                     alpha * np.exp(alpha * dt) * (cos(omegabar * dt) +
+                     alpha / omegabar * sin(omegabar*dt)))
+            elif self.Q == 0.5:
+                y = (-Yokoya_factor * (np.sign(dz) - 1) * self.R_shunt *
+                     alpha * np.exp(alpha * dt) * (1. + alpha * dt))
+            elif self.Q < 0.5:
+                y = (-Yokoya_factor * (np.sign(dz) - 1) * self.R_shunt *
+                     alpha * np.exp(alpha * dt) * (np.cosh(omegabar * dt) +
                      alpha / omegabar * np.sinh(omegabar * dt)))
             return y
         return wake
