@@ -151,17 +151,18 @@ class Particles(object):
             setattr(self, coord, array.copy())
         self.coords_n_momenta.update(coords_n_momenta_dict.keys())
 
-    def add(self, coordinate, array):
-        '''Add the coordinate with its according array to the
-        attributes of the Particles instance
-        (via self.update(coords_n_momenta_dict)).
-        Does not allow existing coordinate or momentum attributes
-        to be overwritten.
+    def add(self, coords_n_momenta_dict):
+        '''Add the coordinates and momenta with their according arrays
+        to the attributes of the Particles instance (via
+        self.update(coords_n_momenta_dict)). Does not allow existing
+        coordinate or momentum attributes to be overwritten.
         '''
-        if coordinate in self.coords_n_momenta:
-            raise ValueError(coordinate + " already exists and cannot be" +
-                             " added. Use self.update(...) for this purpose.")
-        self.update({coordinate: array})
+        if any(s in self.coords_n_momenta
+               for s in coords_n_momenta_dict.keys()):
+            raise ValueError("One or more of the specified coordinates or" +
+                             " momenta already exist and cannot be added." +
+                             " Use self.update(...) for this purpose.")
+        self.update(coords_n_momenta_dict)
 
 
     # Statistics methods
