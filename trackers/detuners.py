@@ -28,6 +28,7 @@ from numpy.polynomial.polynomial import polyval
 from scipy.constants import e, c
 
 from abc import ABCMeta, abstractmethod
+from collections import Iterable
 
 
 class SegmentDetuner(object):
@@ -51,7 +52,12 @@ class ChromaticitySegment(SegmentDetuner):
     def __init__(self, dQp_x, dQp_y):
         """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
         denote lists containing first, second, third, ... order
-        chromaticity coefficients scaled to the segment length. """
+        chromaticity coefficients scaled to the segment length."""
+        if not (isinstance(dQp_x, Iterable) and isinstance(dQp_y, Iterable)):
+            raise TypeError("dQp_x and dQp_y must not be scalars, but lists" +
+                            " (or numpy-arrays), even if the only non-zero" +
+                            " chromaticity coefficient is the linear one," +
+                            " i.e. dQ'.")
         self.calc_detuning_x = self._make_calc_detuning(dQp_x)
         self.calc_detuning_y = self._make_calc_detuning(dQp_y)
 
@@ -252,15 +258,19 @@ class AmplitudeDetuning(DetunerCollection):
 
 class Chromaticity(DetunerCollection):
     """ Collection class to contain/manage the segment-wise defined
-    elements that introduce detuning as a result of first-order
-    chromaticity effects.  They are stored in the self.segment_detuners
-    list. """
+    elements that introduce detuning as a result of chromaticity
+    effects.  They are stored in the self.segment_detuners list. """
 
     def __init__(self, Qp_x, Qp_y):
         """ Return an instance of a Chromaticity DetunerCollection
         class. The Qp_{x,y} are lists containing first, second, third,
         ... order chromaticity coefficients (one-turn values), aka.
         Q'_{x,y}, Q''_{x,y} (Q-prime, Q-double-prime), .... """
+        if not (isinstance(Qp_x, Iterable) and isinstance(Qp_y, Iterable)):
+            raise TypeError("Qp_x and Qp_y must not be scalars, but lists" +
+                            " (or numpy-arrays), even if the only non-zero" +
+                            " chromaticity coefficient is the linear one," +
+                            " i.e. Q'.")
         self.Qp_x = Qp_x
         self.Qp_y = Qp_y
 
