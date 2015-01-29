@@ -1,20 +1,21 @@
 """
 The PyHEADTAIL.trackers.detuners module implemented in Cython (incl.
-support for OpenMP). Collection classes are imported from the Python
-PyHEADTAIL.trackers.detuners module.
+support for OpenMP). Collection classes are still written in Python
+and correspond to those of the PyHEADTAIL.trackers.detuners module.
 
-NB. Cython does not allow the use of abstract classes to inherit from
+NB I. For 1st order chromaticity, the ChromaticitySegment.detune(beam)
+cython method performs about the same as the Python implementation
+(8ms for 1e6 particles). However, for higher order chromaticity, the
+speed-up gets significant:
+  2nd order chroma: factor > 2 (single-threaded)
+                    10ms (cython) vs. 23ms (python) for 1e6 particles.
+  3rd order chroma: factor ~ 3-4 (single-threaded)
+                    11ms (cython) vs. 38ms (python) for 1e6 particles.
+
+NB II. Cython does not allow the use of abstract classes to inherit from
 which is why there is no ABC Detuner here. When adding a new detuning
 element or effect, it must be made sure that the detune(beam) method is
 implemented!
-
-TODO
-Instead of passing the python object beam to the Cython methods, it could
-be better to make a wrapper to the Cython function to pass directly the
-arrays beam.x, beam.y, ... for better performance.
-The number of threads num_threads in the cython.parallel.prange for loops
-is hard-coded to 1 for the moment. Find a good way to make it controllable
-by the user.
 
 Description from PyHEADTAIL.trackers.detuners:
 Module to describe devices/effects, such as chromaticity or octupole
@@ -32,6 +33,14 @@ object has a detune(beam) method that defines how the phase advance of
 each particle in the beam is changed according to the formula describing
 the effect.
 
+TODO
+Instead of passing the python object beam to the Cython methods, it could
+be better to make a wrapper to the Cython function to pass directly the
+arrays beam.x, beam.y, ... for better performance.
+The number of threads num_threads in the cython.parallel.prange for loops
+is hard-coded to 1 for the moment. Find a good way to make it controllable
+by the user.
+
 @author Kevin Li, Michael Schenk
 @date 12. October 2014
 @brief Cython implementation of the detuners module to describe the
@@ -46,40 +55,73 @@ import numpy as np
 cimport numpy as np
 from scipy.constants import e, c
 from libc.math cimport cos, sin
-
+from collections import Iterable
 
 cdef class ChromaticitySegment(object):
     """ Cython implementation of a detuning object for a segment of the
     accelerator ring to describe the incoherent detuning introduced by
-    chromaticity effects.
-    TODO Implement second and third order chromaticity effects. """
-
-    cdef double dQp_x, dQp_y
+    chromaticity effects. """
+    cdef double[::1] coeffs_x, coeffs_y
+    cdef int order_x, order_y
 
     def __init__(self, dQp_x, dQp_y):
         """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
-        denote the first order chromaticity coefficients scaled to the
-        segment length. """
-        self.dQp_x = dQp_x
-        self.dQp_y = dQp_y
+        denote numpy arrays containing first, second, third, ... order
+        chromaticity coefficients scaled to the segment length. """
+        self.order_x = dQp_x.shape[0]
+        self.order_y = dQp_y.shape[0]
+        self.coeffs_x = np.empty(self.order_x, dtype=np.double)
+        self.coeffs_y = np.empty(self.order_y, dtype=np.double)
+
+        cdef unsigned int i
+        for i in xrange(self.order_x):
+            self.coeffs_x[i] = dQp_x[i] / factorial(i+1)
+        for i in xrange(self.order_y):
+            self.coeffs_y[i] = dQp_y[i] / factorial(i+1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def detune(self, beam):
-        """ Method to calculate for every particle the change in phase
-        advance (detuning) dQ_{x,y} caused by first order chromaticity
-        effects. """
+        """ Calculate for every particle the change in phase advance
+        (detuning) dQ_{x,y}  caused by chromaticity effects. """
         cdef double[::1] dp = beam.dp
         cdef unsigned int n_particles = dp.shape[0]
         cdef double[::1] dQ_x = np.empty(n_particles, dtype=np.double)
         cdef double[::1] dQ_y = np.empty(n_particles, dtype=np.double)
 
         cdef unsigned int i
-        for i in prange(n_particles, nogil=True, num_threads=1):
-            dQ_x[i] = self.dQp_x * dp[i]
-            dQ_y[i] = self.dQp_y * dp[i]
-
+        if self.order_x > 1 or self.order_y > 1:
+            for i in prange(n_particles, nogil=True, num_threads=1):
+                dQ_x[i] = eval_poly(self.coeffs_x, self.order_x, dp[i])
+                dQ_y[i] = eval_poly(self.coeffs_y, self.order_y, dp[i])
+        else:
+            for i in prange(n_particles, nogil=True, num_threads=1):
+                dQ_x[i] = self.coeffs_x[0] * dp[i]
+                dQ_y[i] = self.coeffs_y[0] * dp[i]
         return dQ_x, dQ_y
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef double factorial(int n):
+    """ Calculate factorial of n. """
+    cdef double result = 1.
+    cdef unsigned int i
+    for i in xrange(1, n):
+        result *= (i+1)
+    return result
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef double eval_poly(double[::1] coeffs, int n, double x) nogil:
+    """ Evaluate polynomial of order n with coefficients 'coeffs'
+    at value x using Horner's method. Zeroth order coefficient is
+    assumed to be always 0, i.e. coeffs[0] is c1, ... """
+    cdef double result = 0.
+    cdef unsigned int i
+    for i in xrange(n, 0, -1):
+        result += coeffs[i-1]
+        result *= x
+    return result
 
 
 cdef class AmplitudeDetuningSegment(object):
@@ -143,7 +185,7 @@ cdef class AmplitudeDetuningSegment(object):
 ''' DetunerCollection classes '''
 
 from abc import abstractmethod, ABCMeta
-    
+
 class DetunerCollection(object):
     """ Abstract base class for a collection of SegmentDetuner objects
     (see above). A detuner collection object defines the detuning for
@@ -271,14 +313,19 @@ class AmplitudeDetuning(DetunerCollection):
 
 class Chromaticity(DetunerCollection):
     """ Collection class to contain/manage the segment-wise defined
-    elements that introduce detuning as a result of first-order
-    chromaticity effects.  They are stored in the self.segment_detuners
-    list. """
+    elements that introduce detuning as a result of chromaticity
+    effects.  They are stored in the self.segment_detuners list. """
 
     def __init__(self, Qp_x, Qp_y):
         """ Return an instance of a Chromaticity DetunerCollection
-        class. The Qp_{x,y} are the first order chromaticity
-        coefficients (one-turn values), aka. Q'_{x,y} (Q-prime). """
+        class. The Qp_{x,y} are lists containing first, second, third,
+        ... order chromaticity coefficients (one-turn values), aka.
+        Q'_{x,y}, Q''_{x,y} (Q-prime, Q-double-prime), .... """
+        if not (isinstance(Qp_x, Iterable) and isinstance(Qp_y, Iterable)):
+            raise TypeError("Qp_x and Qp_y must not be scalars, but lists" +
+                            " (or numpy-arrays), even if the only non-zero" +
+                            " chromaticity coefficient is the linear one," +
+                            " i.e. Q'.")
         self.Qp_x = Qp_x
         self.Qp_y = Qp_y
 
@@ -292,8 +339,8 @@ class Chromaticity(DetunerCollection):
         strength proportionally to the segment length. The method is
         called by the TransverseMap object which manages the creation
         of a detuner for every defined segment. """
-        dQp_x = self.Qp_x * segment_length
-        dQp_y = self.Qp_y * segment_length
+        dQp_x = np.array([ Qp * segment_length for Qp in self.Qp_x ])
+        dQp_y = np.array([ Qp * segment_length for Qp in self.Qp_y ])
 
         detuner = ChromaticitySegment(dQp_x, dQp_y)
         self.segment_detuners.append(detuner)
