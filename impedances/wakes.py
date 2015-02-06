@@ -69,7 +69,7 @@ class WakeField(Element):
         self.slicer = slicer
         self.wake_kicks = []
         for source in wake_sources:
-            kicks = source.get_wake_kicks(self.slicer.mode)
+            kicks = source.get_wake_kicks(self.slicer)
             self.wake_kicks.extend(kicks)
 
         n_turns_wake_max = max([ source.n_turns_wake
@@ -96,8 +96,8 @@ class WakeField(Element):
 
         slice_set = bunch.get_slices(self.slicer,
                                      statistics=['mean_x', 'mean_y'])
-        self.slice_set_deque.append(slice_set)
-        self.slice_set_age_deque.append(0.)
+        self.slice_set_deque.appendleft(slice_set)
+        self.slice_set_age_deque.appendleft(0.)
 
         for kick in self.wake_kicks:
             kick.apply(bunch, self.slice_set_deque, self.slice_set_age_deque)
@@ -172,7 +172,7 @@ class WakeTable(WakeSource):
 
         self.n_turns_wake = n_turns_wake
 
-    def get_wake_kicks(self, slicer_mode):
+    def get_wake_kicks(self, slicer):
         """ Factory method. Creates instances of the appropriate
         WakeKick objects for all the wake components provided by the
         user (and the wake table data). The WakeKick objects are
@@ -183,59 +183,59 @@ class WakeTable(WakeSource):
         if self._is_provided('constant_x'):
             wake_function = self.function_transverse('constant_x')
             wake_kicks.append(ConstantWakeKickX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('constant_y'):
             wake_function = self.function_transverse('constant_y')
             wake_kicks.append(ConstantWakeKickY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('longitudinal'):
             wake_function = self.function_longitudinal()
             wake_kicks.append(ConstantWakeKickZ(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Dipolar wake kicks.
         if self._is_provided('dipole_x'):
             wake_function = self.function_transverse('dipole_x')
             wake_kicks.append(DipoleWakeKickX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('dipole_y'):
             wake_function = self.function_transverse('dipole_y')
             wake_kicks.append(DipoleWakeKickY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('dipole_xy'):
             wake_function = self.function_transverse('dipole_xy')
             wake_kicks.append(DipoleWakeKickXY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('dipole_yx'):
             wake_function = self.function_transverse('dipole_yx')
             wake_kicks.append(DipoleWakeKickYX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Quadrupolar wake kicks.
         if self._is_provided('quadrupole_x'):
             wake_function = self.function_transverse('quadrupole_x')
             wake_kicks.append(QuadrupoleWakeKickX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('quadrupole_y'):
             wake_function = self.function_transverse('quadrupole_y')
             wake_kicks.append(QuadrupoleWakeKickY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('quadrupole_xy'):
             wake_function = self.function_transverse('quadrupole_xy')
             self.kicks.append(QuadrupoleWakeKickXY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('quadrupole_yx'):
             wake_function = self.function_transverse('quadrupole_yx')
             wake_kicks.append(QuadrupoleWakeKickYX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         return wake_kicks
 
@@ -355,7 +355,7 @@ class Resonator(WakeSource):
         self.switch_Z = switch_Z
         self.n_turns_wake = n_turns_wake
 
-    def get_wake_kicks(self, slicer_mode):
+    def get_wake_kicks(self, slicer):
         """ Factory method. Creates instances of the appropriate
         WakeKick objects for a Resonator WakeSource with the specified
         parameters. A WakeKick object is instantiated only if the
@@ -367,31 +367,31 @@ class Resonator(WakeSource):
         if self.Yokoya_X1:
             wake_function = self.function_transverse(self.Yokoya_X1)
             wake_kicks.append(DipoleWakeKickX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Quadrupole wake kick x.
         if self.Yokoya_X2:
             wake_function = self.function_transverse(self.Yokoya_X2)
             wake_kicks.append(QuadrupoleWakeKickX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Dipole wake kick y.
         if self.Yokoya_Y1:
             wake_function = self.function_transverse(self.Yokoya_Y1)
             wake_kicks.append(DipoleWakeKickY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Quadrupole wake kick y.
         if self.Yokoya_Y2:
             wake_function = self.function_transverse(self.Yokoya_Y2)
             wake_kicks.append(QuadrupoleWakeKickY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Constant wake kick z.
         if self.switch_Z:
             wake_function = self.function_longitudinal()
             wake_kicks.append(ConstantWakeKickZ(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         return wake_kicks
 
@@ -498,7 +498,7 @@ class ResistiveWall(WakeSource):
         self.Yokoya_Y2 = Yokoya_Y2
         self.n_turns_wake = n_turns_wake
 
-    def get_wake_kicks(self, slicer_mode):
+    def get_wake_kicks(self, slicer):
         """ Factory method. Creates instances of the appropriate
         WakeKick objects for the ResistiveWall WakeSource with the
         specified parameters. A WakeKick object is instantiated only if
@@ -510,25 +510,25 @@ class ResistiveWall(WakeSource):
         if self.Yokoya_X1:
             wake_function = self.function_transverse(self.Yokoya_X1)
             wake_kicks.append(DipoleWakeKickX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Quadrupole wake kick x.
         if self.Yokoya_X2:
             wake_function = self.function_transverse(self.Yokoya_X2)
             wake_kicks.append(QuadrupoleWakeKickX(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Dipole wake kick y.
         if self.Yokoya_Y1:
             wake_function = self.function_transverse(self.Yokoya_Y1)
             wake_kicks.append(DipoleWakeKickY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         # Quadrupole wake kick y.
         if self.Yokoya_Y2:
             wake_function = self.function_transverse(self.Yokoya_Y2)
             wake_kicks.append(QuadrupoleWakeKickY(
-                wake_function, slicer_mode, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake))
 
         return wake_kicks
 
