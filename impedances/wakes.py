@@ -1,6 +1,6 @@
 """
-This module includes the description of a WakeField as well as the
-implementation of the WakeSource objects.
+This module includes the description of a (multiturn) WakeField as well
+as the implementation of the WakeSource objects.
 
 A WakeField is defined as a composition of the elementary WakeKick
 objects (see .wake_kicks module). They originate from WakeSources,
@@ -11,7 +11,7 @@ to generate its WakeKick objects via the factory method
 WakeSource.get_wake_kicks(..). The collection of WakeKicks from all the
 WakeSources define the WakeField and are the elementary objects that are
 stored, (i.e. the WakeField forgets about the origin of the WakeKicks
-once the latter have been created).
+once they have been created).
 
 @author Hannes Bartosik, Kevin Li, Giovanni Rumolo, Michael Schenk
 @date March 2014
@@ -22,6 +22,7 @@ once the latter have been created).
 from __future__ import division
 
 import numpy as np
+from collections import deque
 from scipy.constants import c, physical_constants
 from scipy.interpolate import interp1d
 from abc import ABCMeta, abstractmethod
@@ -40,7 +41,10 @@ class WakeField(Element):
     WakeField class in a simulation - except if one wants to use
     different slicing configurations (one WakeField object is allowed
     to have exactly one slicing configuration, i.e. only one instance
-    of the Slicer class). """
+    of the Slicer class). A WakeField also is able to calculate the wake
+    forces coming from earlier turns (multiturn wakes) by archiving the
+    longitudinal bunch distribution (SliceSet instances) a number of
+    turns back. """
 
     def __init__(self, slicer, *wake_sources):
         """ Accepts a list of WakeSource objects. Each WakeSource object
@@ -56,13 +60,22 @@ class WakeField(Element):
         Exactly one instance of the Slicer class must be passed to the
         WakeField constructor. All the wake field components (kicks)
         hence use the same slicing and thus the same slice_set to
-        calculate the strength of the kicks. """
+        calculate the strength of the kicks.
+        To calculate the contributions from multiturn wakes, the
+        longitudinal beam distributions (SliceSet instances) are
+        archived in a deque. In parallel to the slice_set_deque,
+        there is a slice_set_age_deque to keep track of the age of
+        each of the SliceSet instances."""
         self.slicer = slicer
-
         self.wake_kicks = []
         for source in wake_sources:
             kicks = source.get_wake_kicks(self.slicer.mode)
             self.wake_kicks.extend(kicks)
+
+        n_turns_wake_max = max([ source.n_turns_wake
+                                 for source in wake_sources ])
+        self.slice_set_deque = deque([], maxlen=n_turns_wake_max)
+        self.slice_set_age_deque = deque([], maxlen=n_turns_wake_max)
 
     def track(self, bunch):
         """ Calls the WakeKick.apply(bunch, slice_set) method of each of
@@ -72,11 +85,22 @@ class WakeField(Element):
         Particles.get_slices(self.slicer) method, where self.slicer is
         the instance of the Slicer class used for this particluar
         WakeField object. A slice_set is returned according to the
-        self.slicer configuration. """
-        slice_set = bunch.get_slices(self.slicer)
+        self.slicer configuration. The statistics mean_x and mean_y are
+        requested to be calculated and saved in the SliceSet instance,
+        too, s.t. the first moments x, y can be calculated by the
+        WakeKick instances. """
+
+        # Update ages of stored SliceSet instances.
+        for slice_set_age in self.slice_set_age_deque:
+            slice_set_age += bunch.circumference / (bunch.beta * c)
+
+        slice_set = bunch.get_slices(self.slicer,
+                                     statistics=['mean_x', 'mean_y'])
+        self.slice_set_deque.append(slice_set)
+        self.slice_set_age_deque.append(0.)
 
         for kick in self.wake_kicks:
-            kick.apply(bunch, slice_set)
+            kick.apply(bunch, self.slice_set_deque, self.slice_set_age_deque)
 
 
 ''' WakeSource classes. '''
@@ -100,10 +124,11 @@ class WakeSource(Printing):
 
 
 class WakeTable(WakeSource):
-    """ Class to define wake functions and WakeKick objects using data
-    from a table. """
+    """ Class to define wake functions and WakeKick objects using wake
+    data from a table. """
 
-    def __init__(self, wake_file, wake_file_columns, *args, **kwargs):
+    def __init__(self, wake_file, wake_file_columns, n_turns_wake=1,
+                 *args, **kwargs):
         """ Load data from the wake_file and store them in a dictionary
         self.wake_table. Keys are the names specified by the user in
         wake_file_columns and describe the names of the wake field
@@ -127,7 +152,11 @@ class WakeTable(WakeSource):
         the HEADTAIL conventions, i.e.
           time: [ns]
           transverse wake components: [V/pC/mm]
-          longitudinal wake component: [V/pC]. """
+          longitudinal wake component: [V/pC].
+
+        The parameter 'n_turns_wake' defines how many turns are
+        considered for the multiturn wakes. It is 1 by default, i.e.
+        multiturn wakes are off. """
         self.wake_table = {}
 
         wake_data = np.loadtxt(wake_file)
@@ -138,9 +167,10 @@ class WakeTable(WakeSource):
         if 'time' not in wake_file_columns:
             raise ValueError("No wake_file_column with name 'time' has" +
                              " been specified. \n")
-
         for i, column_name in enumerate(wake_file_columns):
             self.wake_table.update({ column_name : wake_data[:,i] })
+
+        self.n_turns_wake = n_turns_wake
 
     def get_wake_kicks(self, slicer_mode):
         """ Factory method. Creates instances of the appropriate
@@ -152,49 +182,60 @@ class WakeTable(WakeSource):
         # Constant wake kicks.
         if self._is_provided('constant_x'):
             wake_function = self.function_transverse('constant_x')
-            wake_kicks.append(ConstantWakeKickX(wake_function, slicer_mode))
+            wake_kicks.append(ConstantWakeKickX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         if self._is_provided('constant_y'):
             wake_function = self.function_transverse('constant_y')
-            wake_kicks.append(ConstantWakeKickY(wake_function, slicer_mode))
+            wake_kicks.append(ConstantWakeKickY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         if self._is_provided('longitudinal'):
             wake_function = self.function_longitudinal()
-            wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
+            wake_kicks.append(ConstantWakeKickZ(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Dipolar wake kicks.
         if self._is_provided('dipole_x'):
             wake_function = self.function_transverse('dipole_x')
-            wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
+            wake_kicks.append(DipoleWakeKickX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         if self._is_provided('dipole_y'):
             wake_function = self.function_transverse('dipole_y')
-            wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
+            wake_kicks.append(DipoleWakeKickY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         if self._is_provided('dipole_xy'):
             wake_function = self.function_transverse('dipole_xy')
-            wake_kicks.append(DipoleWakeKickXY(wake_function, slicer_mode))
+            wake_kicks.append(DipoleWakeKickXY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         if self._is_provided('dipole_yx'):
             wake_function = self.function_transverse('dipole_yx')
-            wake_kicks.append(DipoleWakeKickYX(wake_function, slicer_mode))
+            wake_kicks.append(DipoleWakeKickYX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Quadrupolar wake kicks.
         if self._is_provided('quadrupole_x'):
             wake_function = self.function_transverse('quadrupole_x')
-            wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
+            wake_kicks.append(QuadrupoleWakeKickX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         if self._is_provided('quadrupole_y'):
             wake_function = self.function_transverse('quadrupole_y')
-            wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
+            wake_kicks.append(QuadrupoleWakeKickY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         if self._is_provided('quadrupole_xy'):
             wake_function = self.function_transverse('quadrupole_xy')
-            self.kicks.append(QuadrupoleWakeKickXY(wake_function, slicer_mode))
+            self.kicks.append(QuadrupoleWakeKickXY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         if self._is_provided('quadrupole_yx'):
             wake_function = self.function_transverse('quadrupole_yx')
-            wake_kicks.append(QuadrupoleWakeKickYX(wake_function, slicer_mode))
+            wake_kicks.append(QuadrupoleWakeKickYX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         return wake_kicks
 
@@ -218,14 +259,14 @@ class WakeTable(WakeSource):
         [V/pC/mm]. Sign conventions are applied (HEADTAIL conventions).
         dz is related to wake table time data by dz = beta c dt (dz < 0
         for the ultrarelativistic case).
-        The wake(beta, dz) uses the scipy.interpolate.interp1d linear
+        The wake(dt) uses the scipy.interpolate.interp1d linear
         interpolation to calculate the wake strength at an arbitrary
-        value of dz (provided it is in the valid range). The valid range
-        of dz is given by the time range from the wake table. If values
-        of wake(beta, dz) are requested for dz outside the valid range,
-        a ValueError is raised by interp1d.
+        value of dt (provided it is in the valid range). The valid range
+        of dt is given by the time range from the wake table. If values
+        of wake(dt) are requested for dt outside the valid range, a
+        ValueError is raised by interp1d.
         Very basic conformity checks for the wake table data are already
-        performed at definition time of the wake(beta, dz) method. E.g.
+        performed at definition time of the wake(dt) method. E.g.
         whether the specified wake is valid only for ultrarelativistic
         cases or low beta cases. In the former case, the wake strength
         at time 0 must be defined by the user! """
@@ -236,15 +277,15 @@ class WakeTable(WakeSource):
         wake_strength = -convert_to_V_per_Cm * self.wake_table[wake_component]
 
         if (time[0] == 0) and (wake_strength[0] == 0):
-            def wake(beta, dz):
-                dz = dz.clip(max=0)
-                return interp1d(time, wake_strength)(- dz / (beta * c))
+            def wake(dt):
+                dt = dt.clip(max=0)
+                return interp1d(time, wake_strength)(-dt)
             self.warns(wake_component +
                   ' Assuming ultrarelativistic wake.')
 
         elif (time[0] < 0):
-            def wake(beta, dz):
-                return interp1d(time, wake_strength)(- dz / (beta * c))
+            def wake(dt):
+                return interp1d(time, wake_strength)(-dt)
             self.warns(wake_component +  ' Found low beta wake.')
 
         else:
@@ -253,32 +294,30 @@ class WakeTable(WakeSource):
         return wake
 
     def function_longitudinal(self):
-        """ Defines and returns the wake(beta, dz) function for the
-        given wake_component (longitudinal). Data from the wake table
-        are used, but first converted to SI units assuming that time is
+        """ Defines and returns the wake(dt) function for the given
+        wake_component (longitudinal). Data from the wake table are
+        used, but first converted to SI units assuming that time is
         specified in [ns] and longitudinal wake field strength in
-        [V/pC]. Sign conventions are applied (HEADTAIL conventions). dz
-        is related to wake table time data by dz = -beta c dt (dz < 0
-        for the ultrarelativistic case).
-        The wake(beta, dz) uses the scipy.interpolate.interp1d linear
+        [V/pC]. Sign conventions are applied (HEADTAIL conventions).
+        The wake(dt) uses the scipy.interpolate.interp1d linear
         interpolation to calculate the wake strength at an arbitrary
-        value of dz (provided it is in the valid range). The valid range
-        of dz is given by the time range from the wake table. If values
-        of wake(beta, dz) are requested for dz outside the valid range,
-        a ValueError is raised by interp1d.
-        The beam loading theorem is respected and applied for dz=0. """
+        value of dt (provided it is in the valid range). The valid range
+        of dt is given by the time range from the wake table. If values
+        of wake(dt) are requested for dt outside the valid range, a
+        ValueError is raised by interp1d.
+        The beam loading theorem is respected and applied for dt=0. """
         convert_to_s = 1e-9
         convert_to_V_per_C = 1e12
 
         time = convert_to_s * self.wake_table['time']
         wake_strength = -convert_to_V_per_C * self.wake_table['longitudinal']
 
-        def wake(beta, dz):
-            wake_interpolated = interp1d(time, wake_strength)(-dz / (beta * c))
+        def wake(dt):
+            wake_interpolated = interp1d(time, wake_strength)(-dt)
             if time[0] == 0:
                 # Beam loading theorem: Half value of wake strength at
-                # dz = 0.
-                return (np.sign(-dz) + 1) / 2 * wake_interpolated
+                # dt = 0.
+                return (np.sign(-dt) + 1.) / 2. * wake_interpolated
             elif time[0] < 0:
                 return wake_interpolated
             else:
@@ -294,7 +333,7 @@ class Resonator(WakeSource):
 
     def __init__(self, R_shunt, frequency, Q,
                  Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, switch_Z,
-                 *args, **kwargs):
+                 n_turns_wake=1, *args, **kwargs):
         """ General constructor to create a Resonator WakeSource object
         describing the wake functions of a resonator impedance. Alex
         Chao's resonator model (Eq. 2.82) is used as well as definitions
@@ -302,7 +341,10 @@ class Resonator(WakeSource):
         Note that it is no longer allowed to pass a LIST of parameters
         to generate a number of resonators with different parameters
         within the same Resonator object. Instead, create the Resonator
-        objects and pass all of them to the WakeField constructor. """
+        objects and pass all of them to the WakeField constructor.
+        The parameter 'n_turns_wake' defines how many turns are
+        considered for the multiturn wakes. It is 1 by default, i.e.
+        multiturn wakes are off. """
         self.R_shunt = R_shunt
         self.frequency = frequency
         self.Q = Q
@@ -310,7 +352,8 @@ class Resonator(WakeSource):
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_Y2 = Yokoya_Y2
-        self.switch_Z  = switch_Z
+        self.switch_Z = switch_Z
+        self.n_turns_wake = n_turns_wake
 
     def get_wake_kicks(self, slicer_mode):
         """ Factory method. Creates instances of the appropriate
@@ -323,27 +366,32 @@ class Resonator(WakeSource):
         # Dipole wake kick x.
         if self.Yokoya_X1:
             wake_function = self.function_transverse(self.Yokoya_X1)
-            wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
+            wake_kicks.append(DipoleWakeKickX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Quadrupole wake kick x.
         if self.Yokoya_X2:
             wake_function = self.function_transverse(self.Yokoya_X2)
-            wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
+            wake_kicks.append(QuadrupoleWakeKickX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Dipole wake kick y.
         if self.Yokoya_Y1:
             wake_function = self.function_transverse(self.Yokoya_Y1)
-            wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
+            wake_kicks.append(DipoleWakeKickY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Quadrupole wake kick y.
         if self.Yokoya_Y2:
             wake_function = self.function_transverse(self.Yokoya_Y2)
-            wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
+            wake_kicks.append(QuadrupoleWakeKickY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Constant wake kick z.
         if self.switch_Z:
             wake_function = self.function_longitudinal()
-            wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
+            wake_kicks.append(ConstantWakeKickZ(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         return wake_kicks
 
@@ -355,8 +403,8 @@ class Resonator(WakeSource):
         alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
-        def wake(beta, dz):
-            dt = dz.clip(max=0) / (beta * c)
+        def wake(dt):
+            dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
                      omegabar) * np.exp(alpha*dt) * sin(omegabar*dt))
@@ -377,8 +425,8 @@ class Resonator(WakeSource):
         alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
-        def wake(beta, dz):
-            dt = dz.clip(max=0) / (beta * c)
+        def wake(dt):
+            dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (-(np.sign(dz) - 1) * self.R_shunt * alpha *
                      np.exp(alpha * dt) * (cos(omegabar * dt) +
@@ -396,7 +444,8 @@ class Resonator(WakeSource):
 
 class CircularResonator(Resonator):
     '''Circular Resonator.'''
-    def __init__(self, R_shunt, frequency, Q, *args, **kwargs):
+    def __init__(self, R_shunt, frequency, Q, n_turns_wake=1,
+                 *args, **kwargs):
         """ Special case of circular resonator. """
         Yokoya_X1 = 1.
         Yokoya_Y1 = 1.
@@ -406,12 +455,13 @@ class CircularResonator(Resonator):
 
         super(CircularResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, switch_Z)
+            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake)
 
 
 class ParallelPlatesResonator(Resonator):
     '''Parallel Plate Resonator.'''
-    def __init__(self, R_shunt, frequency, Q, *args, **kwargs):
+    def __init__(self, R_shunt, frequency, Q, n_turns_wake=1,
+                 *args, **kwargs):
         """ Special case of parallel plate resonator. """
         Yokoya_X1 = np.pi**2 / 24.
         Yokoya_Y1 = np.pi**2 / 12.
@@ -421,7 +471,7 @@ class ParallelPlatesResonator(Resonator):
 
         super(ParallelPlatesResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, switch_Z)
+            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake)
 
 
 class ResistiveWall(WakeSource):
@@ -429,20 +479,24 @@ class ResistiveWall(WakeSource):
     resistive wall impedance. """
 
     def __init__(self, pipe_radius, resistive_wall_length, conductivity,
-                 dz_min, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
-                 *args, **kwargs):
+                 dt_min, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
+                 n_turns_wake=1, *args, **kwargs):
         """ General constructor to create a ResistiveWall WakeSource
         object describing the wake functions of a resistive wall
-        impedance. """
+        impedance.
+        The parameter 'n_turns_wake' defines how many turns are
+        considered for the multiturn wakes. It is 1 by default, i.e.
+        multiturn wakes are off. """
         self.pipe_radius = np.array([pipe_radius]).flatten()
         self.resistive_wall_length = resistive_wall_length
         self.conductivity = conductivity
-        self.dz_min = dz_min
+        self.dt_min = dt_min
 
         self.Yokoya_X1 = Yokoya_X1
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y2 = Yokoya_Y2
+        self.n_turns_wake = n_turns_wake
 
     def get_wake_kicks(self, slicer_mode):
         """ Factory method. Creates instances of the appropriate
@@ -455,22 +509,26 @@ class ResistiveWall(WakeSource):
         # Dipole wake kick x.
         if self.Yokoya_X1:
             wake_function = self.function_transverse(self.Yokoya_X1)
-            wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
+            wake_kicks.append(DipoleWakeKickX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Quadrupole wake kick x.
         if self.Yokoya_X2:
             wake_function = self.function_transverse(self.Yokoya_X2)
-            wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
+            wake_kicks.append(QuadrupoleWakeKickX(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Dipole wake kick y.
         if self.Yokoya_Y1:
             wake_function = self.function_transverse(self.Yokoya_Y1)
-            wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
+            wake_kicks.append(DipoleWakeKickY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         # Quadrupole wake kick y.
         if self.Yokoya_Y2:
             wake_function = self.function_transverse(self.Yokoya_Y2)
-            wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
+            wake_kicks.append(QuadrupoleWakeKickY(
+                wake_function, slicer_mode, self.n_turns_wake))
 
         return wake_kicks
 
@@ -481,19 +539,19 @@ class ResistiveWall(WakeSource):
         lambda_s = 1. / (Z0 * self.conductivity)
         mu_r = 1
 
-        def wake(beta, dz):
-            y = (Yokoya_factor * (np.sign(dz + np.abs(self.dz_min)) - 1) / 2 *
+        def wake(dt):
+            y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
                  beta * c * Z0 * self.resistive_wall_length / np.pi /
                  self.pipe_radius**3 * np.sqrt(-lambda_s * mu_r / np.pi /
-                 dz.clip(max=-abs(self.dz_min))))
+                 dt.clip(max=-abs(self.dt_min))))
             return y
         return wake
 
 
 class CircularResistiveWall(ResistiveWall):
     '''Circular resistive wall.'''
-    def __init__(self, pipe_radius, resistive_wall_length,
-                 conductivity, dz_min, *args, **kwargs):
+    def __init__(self, pipe_radius, resistive_wall_length, conductivity,
+                 dt_min, n_turns_wake=1, *args, **kwargs):
         """ Special case of a circular resistive wall. """
         Yokoya_X1 = 1.
         Yokoya_Y1 = 1.
@@ -501,14 +559,14 @@ class CircularResistiveWall(ResistiveWall):
         Yokoya_Y2 = 0.
 
         super(CircularResistiveWall, self).__init__(
-            pipe_radius, resistive_wall_length, conductivity, dz_min,
-            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2)
+            pipe_radius, resistive_wall_length, conductivity, dt_min,
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake)
 
 
 class ParallelPlatesResistiveWall(ResistiveWall):
     '''Parallel plates resistive wall.'''
-    def __init__(self, pipe_radius, resistive_wall_length,
-                 conductivity, dz_min, *args, **kwargs):
+    def __init__(self, pipe_radius, resistive_wall_length, conductivity,
+                 dt_min, n_turns_wake=1, *args, **kwargs):
         """ Special case of a parallel plates resistive wall. """
         Yokoya_X1 = np.pi**2 / 24.
         Yokoya_Y1 = np.pi**2 / 12.
@@ -516,5 +574,5 @@ class ParallelPlatesResistiveWall(ResistiveWall):
         Yokoya_Y2 = np.pi**2 / 24.
 
         super(ParallelPlatesResistiveWall, self).__init__(
-            pipe_radius, resistive_wall_length, conductivity, dz_min,
-            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2)
+            pipe_radius, resistive_wall_length, conductivity, dt_min,
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake)
