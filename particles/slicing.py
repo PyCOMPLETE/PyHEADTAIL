@@ -202,48 +202,6 @@ class SliceSet(object):
 
         return self.particle_indices_by_slice[pos:next_pos]
 
-    # Get statistics. Can only be returned if they have been calculated
-    # beforehand.
-    # Do we need all these methods really?
-    def mean_x(self):
-        return self._mean_x
-
-    def mean_y(self):
-        return self._mean_y
-
-    def mean_z(self):
-        return self._mean_z
-
-    def mean_xp(self):
-        return self._mean_xp
-
-    def mean_yp(self):
-        return self._mean_yp
-
-    def mean_dp(self):
-        return self._mean_dp
-
-    def sigma_x(self):
-        return self._sigma_x
-
-    def sigma_y(self):
-        return self._sigma_x
-
-    def sigma_z(self):
-        return self._sigma_x
-
-    def sigma_dp(self):
-        return self._sigma_x
-
-    def epsn_x(self):
-        return self._epsn_x
-
-    def epsn_y(self):
-        return self._epsn_y
-
-    def epsn_z(self):
-        return self._epsn_z
-
 
 class Slicer(object):
     '''Slicer class that controls longitudinal discretization of a beam.
@@ -330,9 +288,8 @@ class Slicer(object):
             sigma_y, sigma_z, sigma_dp, epsn_x, epsn_y, epsn_z.
         '''
         for stat in statistics:
-            stat = '_' + stat
             if not hasattr(slice_set, stat):
-                values = getattr(self, stat)(slice_set, beam)
+                values = getattr(self, '_'+stat)(slice_set, beam)
                 setattr(slice_set, stat, values)
 
     def _mean_x(self, slice_set, beam):
