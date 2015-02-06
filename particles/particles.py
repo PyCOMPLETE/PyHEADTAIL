@@ -140,14 +140,24 @@ class Particles(object):
         '''
         return {coord: getattr(self, coord) for coord in self.coords_n_momenta}
 
-    def get_slices(self, slicer):
+    def get_slices(self, slicer, *args, **kwargs):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
         state has changed), a new SliceSet is requested from the Slicer
-        via Slicer.slice(self) and stored for future reference.
+        via Slicer.slice(self) and stored for future reference. To save
+        the statistics in the SliceSet, a kwarg 'statistics' can be
+        passed containing a list of valid names (strings) for statistics
+        quantities. E.g.: statistics=['mean_x', 'sigma_dp', 'epsn_z'].
+        Note that if the SliceSet to a certain Slicer configuration
+        already exists, but more statistics quantities are requested to
+        be saved, they are simply added to the existing SliceSet
+        instance.
         '''
         if slicer not in self._slice_sets:
-            self._slice_sets[slicer] = slicer.slice(self)
+            self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
+        elif 'statistics' in kwargs:
+            slicer.add_statistics(self._slice_sets[slicer], self,
+                                  kwargs['statistics'])
         return self._slice_sets[slicer]
 
     def clean_slices(self):
