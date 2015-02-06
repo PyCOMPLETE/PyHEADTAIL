@@ -87,7 +87,7 @@ class WakeKick(object):
         target_times = times_list[0]
         accumulated_signal = 0
         for i in range(n_turns):
-            source_times = times_list[i]
+            source_times = times_list[i] + ages_list[i]
             source_moments = moments_list[i]
             accumulated_signal += self._convolution(target_times, source_times, source_moments)
             ages_list[i] += bunch.circumference/(bunch.beta*c)
