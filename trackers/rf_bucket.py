@@ -1,23 +1,25 @@
 from __future__ import division
 
-
 import numpy as np
 
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
 from scipy.integrate import dblquad
 
+from . import Printing
 
-class RFBucket(object):
+class RFBucket(Printing):
 
-    def __init__(self, get_circumference, get_gamma, alpha_0,
+    def __init__(self, get_circumference, get_gamma, alpha_array,
                  p_increment, harmonic_list, voltage_list,
                  phi_offset_list, phase_lock=True):
+        '''Implements only the leading order momentum compaction factor.
+        '''
 
         self.circumference = get_circumference
         self.gamma_reference = get_gamma
 
-        self.alpha0 = alpha_0
+        self.alpha0 = alpha[0]
         self.p_increment = p_increment
 
         self.h = harmonic_list
@@ -172,7 +174,7 @@ class RFBucket(object):
         deltaE = self.p_increment*self.beta_reference*c
 
         if deltaE < 0:
-            print ('*** WARNING! Deceleration is not implemented properly!')
+            self.warns('Deceleration is not implemented properly!')
             exit(-1)
         else:
             if np.sign(self.eta0) < 0:

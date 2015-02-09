@@ -113,26 +113,18 @@ class Drift(LongitudinalMap):
 class Kick(LongitudinalMap):
     """
     The Kick class represents the kick by a single RF element
-    in a ring! The kick (i.e. Delta dp) of the particle's dp
+    in a ring! The kick (i.e. dp_{n+1} - dp_n) of the particle's dp
     coordinate is given by the (separable) Hamiltonian derived
     by z, i.e. the force.
 
-    self.p_increment is the momentum step per turn of the
-    synchronous particle, it can be continuously adjusted externally
+    self.p_increment is the momentum step per turn added by this Kick,
+    it can be continuously adjusted externally
     by the user to reflect different slopes in the dipole field ramp.
 
     self.phi_offset reflects an offset of the cavity's reference system,
     this can be tweaked externally by the user for simulating RF system
-    ripple and the like. Include the pi offset for the right RF voltage
-    gradient here.
-
-    (self._phi_lock adds to the offset as well but should
-    be used internally in the module (e.g. by RFSystems) for
-    acceleration purposes. It may be used for synchronisation with the
-    momentum updating by self.p_increment via self.calc_phi_0(beam),
-    thus readjusting the zero-crossing of this sinosoidal kick.
-    This requires a convention how to mutually displace the Kick
-    phases to each other w.r.t. to their contribution to acceleration.)
+    ripple and the like. Include the change of flank of the sine curve
+    here, explicitely.
     """
 
     def __init__(self, alpha_array, circumference, harmonic, voltage,
@@ -143,65 +135,72 @@ class Kick(LongitudinalMap):
         self.voltage = voltage
         self.phi_offset = phi_offset
         self.p_increment = p_increment
-        self._phi_lock = 0
+
+    @property
+    def parameters(self):
+        return (self.harmonic, self.voltage, self.phi_offset, self.p_increment)
+    @parameters.setter
+    def parameters(self, value):
+        self.harmonic = value[0]
+        self.voltage = value[1]
+        self.phi_offset = value[2]
+        self.p_increment = value[3]
 
     def track(self, beam):
         amplitude = e*self.voltage / (beam.beta*c)
-        phi = self._phi(2*np.pi*beam.z/self.circumference)
+        phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
+               + self.phi_offset)
 
         delta_p = beam.dp * beam.p0
         delta_p += amplitude * sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
 
-    def Qs(self, gamma):
-        '''
-        Synchrotron tune derived from the linearized Hamiltonian
+    # def Qs(self, gamma):
+    #     '''
+    #     Synchrotron tune derived from the linearized Hamiltonian
 
-        .. math::
-        H = -1/2*eta*beta*c * delta ** 2 + e*V /(p0*2*np.pi*h)
-          * ( np.cos(phi)-np.cos(dphi) + (phi-dphi) * np.sin(dphi) )
-        NOTE: This function only returns the synchroton tune effectuated
-        by this single Kick instance, any contribution from other Kick
-        objects is not taken into account! (I.e. in general, this
-        calculated value is wrong for multi-harmonic RF systems.)
-        '''
-        beta = np.sqrt(1 - 1/gamma**2)
-        p0 = m_p * np.sqrt(gamma**2 - 1) * c
-        return np.sqrt( e * self.voltage * np.abs(self.eta(0, gamma)) * self.harmonic
-                     / (2*np.pi*p0*beta*c) )
+    #     .. math::
+    #     H = -1/2*eta*beta*c * delta ** 2 + e*V /(p0*2*np.pi*h)
+    #       * ( np.cos(phi)-np.cos(dphi) + (phi-dphi) * np.sin(dphi) )
+    #     NOTE: This function only returns the synchroton tune effectuated
+    #     by this single Kick instance, any contribution from other Kick
+    #     objects is not taken into account! (I.e. in general, this
+    #     calculated value is wrong for multi-harmonic RF systems.)
+    #     '''
+    #     beta = np.sqrt(1 - gamma**-2)
+    #     p0 = m_p * np.sqrt(gamma**2 - 1) * c
+    #     return np.sqrt( e * self.voltage * np.abs(self.eta(0, gamma))
+    #                    * self.harmonic / (2*np.pi*p0*beta*c) )
 
-    def phi_s(self, gamma):
-        """The phase deviation from the unaccelerated case
-        calculated via the momentum step self.p_increment
-        per turn. It includes the jump in the e.o.m.
-        (via sign(eta)) at transition energy:
-            gamma < gamma_transition <==> phi_0 ~ pi
-            gamma > gamma_transition <==> phi_0 ~ 0
-        In the case of only one Kick element in the ring, this phase
-        deviation coincides with the synchronous phase!
-        """
-        if self.p_increment == 0 and self.voltage == 0:
-            return 0
-        beta = np.sqrt(1 - gamma**-2)
-        deltaE = self.p_increment * beta * c
-        phi_rel = np.arcsin(deltaE / (e * self.voltage))
+    # def phi_s(self, gamma):
+    #     """The phase deviation from the unaccelerated case
+    #     calculated via the momentum step self.p_increment
+    #     per turn. It includes the jump in the e.o.m.
+    #     (via sign(eta)) at transition energy:
+    #         gamma < gamma_transition <==> phi_0 ~ pi
+    #         gamma > gamma_transition <==> phi_0 ~ 0
+    #     In the case of only one Kick element in the ring, this phase
+    #     deviation coincides with the synchronous phase!
+    #     """
+    #     if self.p_increment == 0 and self.voltage == 0:
+    #         return 0
+    #     beta = np.sqrt(1 - gamma**-2)
+    #     deltaE = self.p_increment * beta * c
+    #     phi_rel = np.arcsin(deltaE / (e * self.voltage))
 
-        if self.eta(0, gamma)<0:
-            # return np.sign(deltaE) * np.pi - phi_rel
-            return np.pi - phi_rel
-        else:
-            return phi_rel
-
-    def _phi(self, theta):
-        return self.harmonic*theta + self.phi_offset + self._phi_lock
+    #     if self.eta(0, gamma)<0:
+    #         # return np.sign(deltaE) * np.pi - phi_rel
+    #         return np.pi - phi_rel
+    #     else:
+    #         return phi_rel
 
 
 class LongitudinalOneTurnMap(LongitudinalMap):
     """
     A longitudinal one turn map tracks over a complete turn.
-    Any inheriting classes guarantee to provide a self.track(beam) method that
-    tracks around the whole ring!
+    Any inheriting classes guarantee to provide a self.track(beam)
+    method that tracks around the whole ring!
 
     LongitudinalOneTurnMap classes possibly comprise several
     LongitudinalMap objects.
@@ -299,15 +298,37 @@ class RFSystems(LongitudinalOneTurnMap):
         self.p_increment = p_increment
 
         if phase_lock:
-            try:
-                self._phaselock(gamma_reference())
-            except TypeError:
-                self._phaselock(gamma_reference)
+            self._phaselock(gamma_reference)
 
-        self.rfbucket = RFBucket(circumference, gamma_reference, alpha_array[0],
-                                 p_increment, harmonic_list, voltage_list,
-                                 phi_offset_list)
+        self._rfbucket = {}
 
+    @property
+    def rfbucket(self):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the get_bucket(gamma_reference) method ' +
+                           'to obtain the current state of the ' +
+                           'longitudinal RF configuration.')
+
+    def get_bucket(self, gamma, *args, **kwargs):
+        '''Return an RFBucket instance which contains all information
+        and all physical parameters of the current longitudinal RF
+        configuration.
+
+        Use for plotting or obtaining the Hamiltonian etc.
+        '''
+        if gamma not in self._rfbucket:
+            self._rfbucket[gamma] = RFBucket(
+                self.circumference, gamma, self.alpha_array, self.p_increment,
+                self.harmonic_list, self.voltage_list, self.phi_offset_list)
+        return self._rfbucket[gamma]
+
+    def clean_buckets(self):
+        '''Erases all RFBucket records of this RFSystems instance.
+        Any change of the Kick parameters should entail calling
+        clean_buckets in order to update the Hamiltonian etc.
+        '''
+        self._rfbucket = {}
 
     @property
     def p_increment(self):
@@ -319,7 +340,7 @@ class RFSystems(LongitudinalOneTurnMap):
             self.elements[-1].shrinkage_p_increment = value
 
     def Qs(self, gamma):
-        beta = np.sqrt(1 - 1/gamma**2)
+        beta = np.sqrt(1 - gamma**-2)
         p0 = m_p*np.sqrt(gama**2 - 1)*c
         eta0 = self.eta(0, gamma)
 
@@ -366,7 +387,6 @@ class RFSystems(LongitudinalOneTurnMap):
                 self.track = self.track_transverse_shrinking
             except AttributeError:
                 self.track = self.track_no_transverse_shrinking
-            # self.p0_reference += self.p_increment
 
     @clean_slices
     def track_transverse_shrinking(self, beam):
@@ -376,34 +396,30 @@ class RFSystems(LongitudinalOneTurnMap):
             longMap.track(beam)
         if self.p_increment:
             self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
-            # self.p0_reference += self.p_increment
 
     @clean_slices
     def track_no_transverse_shrinking(self, beam):
         for longMap in self.elements:
             longMap.track(beam)
-        # if self.p_increment:
-            # self.p0_reference += self.p_increment
 
     # DYNAMICAL LIST SETTERS
     # ======================
     def set_voltage_list(self, voltage_list):
         for i, V in enumerate(voltage_list):
             self.kicks[i].voltage = V
-        # self._get_bucket_boundaries()
 
     def set_harmonic_list(self, harmonic_list):
         for i, h in enumerate(harmonic_list):
-            self.kicks[i].harmonic_list = h
-        # self._get_bucket_boundaries()
+            self.kicks[i].harmonic = h
 
     def set_phi_offset_list(self, phi_offset_list):
         for i, dphi in enumerate(phi_offset_list):
             self.kicks[i].phi_offset = dphi
-        # self._get_bucket_boundaries()
 
     def _phaselock(self, gamma):
-
+        '''Put all kicks other than the fundamental kick to zero phase
+        difference w.r.t. the fundamental kick.
+        '''
         fc = self.fundamental_kick
         cavities = [k for k in self.kicks if k is not fc]
 
