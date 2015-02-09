@@ -178,6 +178,33 @@ class CircularApertureXY(Aperture):
         return cytag_lost_circular(
             beam.x, beam.y, beam.alive, self.radius_square)
 
+class EllipticalApertureXY(Aperture):
+    ''' Mark particles with transverse spatial coords (x, y) outside a
+    ellipse of specified radius, i.e. (x/x_aper)**2 + (y/y_aper)**2 > 1., as lost.
+    '''
+
+    def __init__(self, x_aper, y_aper, apply_losses_here=True, *args, **kwargs):
+        ''' The argument apply_losses_here specifies
+        whether the Particles.update_losses(beam) method should be
+        called after tagging lost particles to relocate them to the end
+        of the bunch.u_all arrays (u = x, y, z, ...), remove them from
+        the views bunch.u and leave them in an untracked state. In case
+        there are several Aperture elements placed at a segment boundary
+        of the accelerator ring, apply_losses_here should only be set to
+        True for the last one to increase performance. '''
+        self.x_aper = x_aper
+        self.y_aper = y_aper
+        super(EllipticalApertureXY, self).__init__(apply_losses_here)
+
+    def tag_lost_particles(self, beam):
+        ''' This method is called by Aperture.track(beam) to identify
+        particles not passing through the aperture and set their
+        bunch.alive state to 0 (false) to mark them as lost. The search
+        for lost particles is done using a cython function. Return
+        whether or not any lost particles were found. '''
+        return cytag_lost_ellipse(
+            beam.x, beam.y, beam.alive, self.x_aper, self.y_aper)
+
 
 class RFBucketAperture(Aperture):
     ''' Mark particles with longitudinal phase space coords (z, dp)
@@ -254,6 +281,25 @@ cpdef cytag_lost_circular(
     cdef int i
     for i in xrange(n):
         if (u[i]*u[i] + v[i]*v[i]) > radius_square:
+            alive[i] = 0
+            losses = 1
+    return losses
+    
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef cytag_lost_ellipse(
+    double[::1] u, double[::1] v, int[::1] alive,
+    double u_aper, double v_aper):
+    ''' Cython function for fast identification and tagging of particles
+    lost at a elliptical transverse aperture element lost. Returns
+    whether or not any lost particles were found. '''
+    cdef int n = alive.shape[0]
+    cdef int losses = 0
+    cdef int i
+    cdef double u_aper_sq_rec = 1./(u_aper*u_aper)
+    cdef double v_aper_sq_rec = 1./(v_aper*v_aper)
+    for i in xrange(n):
+        if (u[i]*u[i]*u_aper_sq_rec + v[i]*v[i]*v_aper_sq_rec) > 1.:
             alive[i] = 0
             losses = 1
     return losses
