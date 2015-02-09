@@ -63,7 +63,7 @@ class Printing(object):
 
         >>> print ("Example message to console.")
         '''
-        self._warningprinter.prints(output)
+        self._warningprinter.prints("*** PyHEADTAIL WARNING! " + output)
 
 
 class Element(Printing):
