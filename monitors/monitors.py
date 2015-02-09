@@ -341,10 +341,10 @@ class ParticleMonitor(Monitor):
 
         self._create_file_structure(parameters_dict)
 
-    def dump(self, bunch):
+    def dump(self, bunch, arrays_dict=None):
         """ Write particle data to file. See docstring of method
         self._write_data_to_file . """
-        self._write_data_to_file(bunch)
+        self._write_data_to_file(bunch, arrays_dict)
         self.i_steps += 1
 
     def _create_file_structure(self, parameters_dict):
@@ -362,22 +362,33 @@ class ParticleMonitor(Monitor):
                         self.filename + 'failed. \n')
             raise
 
-    def _write_data_to_file(self, bunch):
+    def _write_data_to_file(self, bunch, arrays_dict):
         """ Write macroparticle data (x, xp, y, yp, z, dp, id) of a
-        selection of particles to the HDF5 file. The file is opened and
-        closed every time to prevent from loss of data in case of a
-        crash.
+        selection of particles to the HDF5 file. Optionally, data in
+        additional_quantities can also be added if provided in the
+        constructor. The file is opened and closed every time to prevent
+        from loss of data in case of a crash.
         For each simulation step, a new group with name 'Step#..' is
         created. It contains one dataset for each of the quantities
         given in self.quantities_to_store. """
         h5file = hp.File(self.filename + '.h5part', 'a')
         h5group = h5file.create_group('Step#' + str(self.i_steps))
         dims = (bunch.macroparticlenumber // self.stride,)
+        dims = bunch.get_coords_n_momenta_dict().values()[0][::self.stride].shape # more robust implementation
 
         # resorting_indices = np.argsort(bunch.id)[::self.stride]
+        all_quantities = {}
         for quant in self.quantities_to_store:
             quant_values = getattr(bunch, quant)
+            all_quantities[quant] = quant_values
+
+        if arrays_dict is not None:
+            all_quantities.update(arrays_dict)
+
+        for quant in all_quantities.keys():
+            quant_values = all_quantities[quant]
             h5group.create_dataset(quant, shape=dims, compression='gzip',
                 compression_opts=9, dtype=quant_values.dtype)
             h5group[quant][:] = quant_values[::self.stride]
+
         h5file.close()

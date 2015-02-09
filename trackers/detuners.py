@@ -68,7 +68,7 @@ class AmplitudeDetuningSegment(SegmentDetuner):
     """ Detuning object for a segment of the accelerator ring to
     describe amplitude detuning (introduced by octupoles). """
 
-    def __init__(self, dapp_x, dapp_y, dapp_xy, beta_x, beta_y):
+    def __init__(self, dapp_x, dapp_y, dapp_xy, alpha_x, beta_x, alpha_y, beta_y):
         """ Return an instance of an AmplitudeDetuningSegment by passing
         the coefficients of detuning strength dapp_x, dapp_y, dapp_xy
         (scaled to the segment length. NOT normalized to Beam.p0 yet).
@@ -76,8 +76,10 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         transverse actions J_{x,y}. Although they have an influence on
         the strength of detuning, they have no actual effect on the
         strength of the octupoles (dapp_x, dapp_y, dapp_xy). """
-        self.beta_x = beta_x
-        self.beta_y = beta_y
+        self.alpha_x = alpha_x
+        self.beta_x  = beta_x
+        self.alpha_y = alpha_y
+        self.beta_y  = beta_y
 
         self.dapp_x = dapp_x
         self.dapp_y = dapp_y
@@ -90,8 +92,17 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         documentation of AmplitudeDetuning class).
         J_x and J_y resp. denote the horizontal and vertical action of
         a specific particle. """
-        Jx = (beam.x**2 + (self.beta_x * beam.xp)**2) / (2.*self.beta_x)
-        Jy = (beam.y**2 + (self.beta_y * beam.yp)**2) / (2.*self.beta_y)
+        # Jx = (beam.x**2 + (self.beta_x * beam.xp)**2) / (2.*self.beta_x)
+        # Jy = (beam.y**2 + (self.beta_y * beam.yp)**2) / (2.*self.beta_y)
+
+        Jx = 1/2 * (
+            (1 + self.alpha_x**2)/self.beta_x * beam.x**2
+            + 2*self.alpha_x * beam.x*beam.xp
+            + self.beta_x * beam.xp**2)
+        Jy = 1/2 * (
+            (1 + self.alpha_y**2)/self.beta_y * beam.y**2
+            + 2*self.alpha_y * beam.y*beam.yp
+            + self.beta_y * beam.yp**2)
 
         dQ_x = (self.dapp_x * Jx + self.dapp_xy * Jy) / beam.p0
         dQ_y = (self.dapp_y * Jy + self.dapp_xy * Jx) / beam.p0

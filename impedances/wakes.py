@@ -130,14 +130,14 @@ class WakeTable(WakeSource):
           longitudinal wake component: [V/pC]. """
         self.wake_table = {}
 
-        wake_data = np.loadtxt(wake_file, delimiter="\t")
+        wake_data = np.loadtxt(wake_file)
         if len(wake_file_columns) != wake_data.shape[1]:
-            raise ValueError('Length of wake_file_columns list does not \n' +
-                             'correspond to the number of columns in \n' +
-                             'the specified wake_file. \n')
+            raise ValueError("Length of wake_file_columns list does not" +
+                             " correspond to the number of columns in the" +
+                             " specified wake_file. \n")
         if 'time' not in wake_file_columns:
-            raise ValueError("No wake_file_column with name 'time' has \n" +
-                             "been specified. \n")
+            raise ValueError("No wake_file_column with name 'time' has" +
+                             " been specified. \n")
 
         for i, column_name in enumerate(wake_file_columns):
             self.wake_table.update({ column_name : wake_data[:,i] })
@@ -151,49 +151,49 @@ class WakeTable(WakeSource):
 
         # Constant wake kicks.
         if self._is_provided('constant_x'):
-            wake_function = self._function_transverse('constant_x')
+            wake_function = self.function_transverse('constant_x')
             wake_kicks.append(ConstantWakeKickX(wake_function, slicer_mode))
 
         if self._is_provided('constant_y'):
-            wake_function = self._function_transverse('constant_y')
+            wake_function = self.function_transverse('constant_y')
             wake_kicks.append(ConstantWakeKickY(wake_function, slicer_mode))
 
         if self._is_provided('longitudinal'):
-            wake_function = self._function_longitudinal('longitudinal')
+            wake_function = self.function_longitudinal()
             wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
 
         # Dipolar wake kicks.
         if self._is_provided('dipole_x'):
-            wake_function = self._function_transverse('dipole_x')
+            wake_function = self.function_transverse('dipole_x')
             wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
 
         if self._is_provided('dipole_y'):
-            wake_function = self._function_transverse('dipole_y')
+            wake_function = self.function_transverse('dipole_y')
             wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
 
         if self._is_provided('dipole_xy'):
-            wake_function = self._function_transverse('dipole_xy')
+            wake_function = self.function_transverse('dipole_xy')
             wake_kicks.append(DipoleWakeKickXY(wake_function, slicer_mode))
 
         if self._is_provided('dipole_yx'):
-            wake_function = self._function_transverse('dipole_yx')
+            wake_function = self.function_transverse('dipole_yx')
             wake_kicks.append(DipoleWakeKickYX(wake_function, slicer_mode))
 
         # Quadrupolar wake kicks.
         if self._is_provided('quadrupole_x'):
-            wake_function = self._function_transverse('quadrupole_x')
+            wake_function = self.function_transverse('quadrupole_x')
             wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
 
         if self._is_provided('quadrupole_y'):
-            wake_function = self._function_transverse('quadrupole_y')
+            wake_function = self.function_transverse('quadrupole_y')
             wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
 
         if self._is_provided('quadrupole_xy'):
-            wake_function = self._function_transverse('quadrupole_xy')
+            wake_function = self.function_transverse('quadrupole_xy')
             self.kicks.append(QuadrupoleWakeKickXY(wake_function, slicer_mode))
 
         if self._is_provided('quadrupole_yx'):
-            wake_function = self._function_transverse('quadrupole_yx')
+            wake_function = self.function_transverse('quadrupole_yx')
             wake_kicks.append(QuadrupoleWakeKickYX(wake_function, slicer_mode))
 
         return wake_kicks
@@ -204,13 +204,13 @@ class WakeTable(WakeSource):
         if wake_component in self.wake_table.keys():
             return True
         else:
-            self.warns(wake_component + ' \n' +
-                  'Wake component is either not provided or does not \n'+
-                  'use correct nomenclature. See docstring of WakeTable \n' +
-                  'constructor to display valid names. \n')
+            # self.warns(wake_component + ' \n' +
+            #       'Wake component is either not provided or does not \n'+
+            #       'use correct nomenclature. See docstring of WakeTable \n' +
+            #       'constructor to display valid names. \n')
             return False
 
-    def _function_transverse(self, wake_component):
+    def function_transverse(self, wake_component):
         """ Defines and returns the wake(beta, dz) function for the
         given wake_component (transverse). Data from the wake table are
         used, but first converted to SI units assuming that time is
@@ -242,17 +242,17 @@ class WakeTable(WakeSource):
             self.warns(wake_component +
                   ' Assuming ultrarelativistic wake.')
 
-        elif (time[0] < 0) and (wake_strength[0] != 0):
+        elif (time[0] < 0):
             def wake(beta, dz):
                 return interp1d(time, wake_strength)(- dz / (beta * c))
             self.warns(wake_component +  ' Found low beta wake.')
 
-        elif (time[0] > 0) and (wake_strength[0] != 0):
+        else:
             raise ValueError(wake_component +
                              ' does not meet requirements.')
         return wake
 
-    def _function_longitudinal(self, wake_component):
+    def function_longitudinal(self):
         """ Defines and returns the wake(beta, dz) function for the
         given wake_component (longitudinal). Data from the wake table
         are used, but first converted to SI units assuming that time is
@@ -271,7 +271,7 @@ class WakeTable(WakeSource):
         convert_to_V_per_C = 1e12
 
         time = convert_to_s * self.wake_table['time']
-        wake_strength = -convert_to_V_per_C * self.wake_table[wake_component]
+        wake_strength = -convert_to_V_per_C * self.wake_table['longitudinal']
 
         def wake(beta, dz):
             wake_interpolated = interp1d(time, wake_strength)(-dz / (beta * c))
@@ -281,9 +281,9 @@ class WakeTable(WakeSource):
                 return (np.sign(-dz) + 1) / 2 * wake_interpolated
             elif time[0] < 0:
                 return wake_interpolated
-            elif (time[0] > 0):
-                raise ValueError(wake_component + ' \n' +
-                                 'does not meet requirements.')
+            else:
+                raise ValueError('Longitudinal wake component does not meet' +
+                                 ' requirements.')
         return wake
 
 
@@ -293,7 +293,7 @@ class Resonator(WakeSource):
     as well as the definitions from HEADTAIL. """
 
     def __init__(self, R_shunt, frequency, Q,
-                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, Yokoya_Z,
+                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, switch_Z,
                  *args, **kwargs):
         """ General constructor to create a Resonator WakeSource object
         describing the wake functions of a resonator impedance. Alex
@@ -310,7 +310,7 @@ class Resonator(WakeSource):
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_Y2 = Yokoya_Y2
-        self.Yokoya_Z = Yokoya_Z
+        self.switch_Z  = switch_Z
 
     def get_wake_kicks(self, slicer_mode):
         """ Factory method. Creates instances of the appropriate
@@ -322,77 +322,72 @@ class Resonator(WakeSource):
 
         # Dipole wake kick x.
         if self.Yokoya_X1:
-            wake_function = self._function_transverse(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_X1)
+            wake_function = self.function_transverse(self.Yokoya_X1)
             wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
 
         # Quadrupole wake kick x.
         if self.Yokoya_X2:
-            wake_function = self._function_transverse(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_X2)
+            wake_function = self.function_transverse(self.Yokoya_X2)
             wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
 
         # Dipole wake kick y.
         if self.Yokoya_Y1:
-            wake_function = self._function_transverse(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_Y1)
+            wake_function = self.function_transverse(self.Yokoya_Y1)
             wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
 
         # Quadrupole wake kick y.
         if self.Yokoya_Y2:
-            wake_function = self._function_transverse(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_Y2)
+            wake_function = self.function_transverse(self.Yokoya_Y2)
             wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
 
         # Constant wake kick z.
-        if self.Yokoya_Z:
-            wake_function = self._function_longitudinal(
-                self.R_shunt, self.frequency, self.Q, self.Yokoya_Z)
+        if self.switch_Z:
+            wake_function = self.function_longitudinal()
             wake_kicks.append(ConstantWakeKickZ(wake_function, slicer_mode))
 
         return wake_kicks
 
-    def _function_transverse(self, R_shunt, frequency, Q, Yokoya_factor):
+    def function_transverse(self, Yokoya_factor):
         """ Define the wake function (transverse) of a resonator with
         the given parameters according to Alex Chao's resonator model
         (Eq. 2.82) and definitions of the resonator in HEADTAIL. """
-        omega = 2 * np.pi * frequency
-        alpha = omega / (2 * Q)
+        omega = 2 * np.pi * self.frequency
+        alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         def wake(beta, dz):
             dt = dz.clip(max=0) / (beta * c)
-            if Q > 0.5:
-                y = (Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) *
-                      np.exp(alpha*dt) * sin(omegabar*dt))
-            elif Q == 0.5:
-                y = (Yokoya_factor * R_shunt * omega**2 / Q *
+            if self.Q > 0.5:
+                y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
+                     omegabar) * np.exp(alpha*dt) * sin(omegabar*dt))
+            elif self.Q == 0.5:
+                y = (Yokoya_factor * self.R_shunt * omega**2 / self.Q *
                       np.exp(alpha*dt) * dt)
             else:
-                y = (Yokoya_factor * R_shunt * omega**2 / (Q*omegabar) *
-                     np.exp(alpha*dt) * np.sinh(omegabar*dt))
+                y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
+                     omegabar) * np.exp(alpha*dt) * np.sinh(omegabar*dt))
             return y
         return wake
 
-    def _function_longitudinal(self, R_shunt, frequency, Q, Yokoya_factor):
+    def function_longitudinal(self):
         """ Define the wake function (longitudinal) of a resonator with
         the given parameters according to Alex Chao's resonator model
         (Eq. 2.82) and definitions of the resonator in HEADTAIL. """
-        omega = 2 * np.pi * frequency
-        alpha = omega / (2 * Q)
-        omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
+        omega = 2 * np.pi * self.frequency
+        alpha = omega / (2 * self.Q)
+        omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         def wake(beta, dz):
             dt = dz.clip(max=0) / (beta * c)
-            if Q > 0.5:
-                y = (-Yokoya_factor * (np.sign(dt) - 1) * R_shunt * alpha *
-                      np.exp(alpha * dt) * (cos(omegabar * dt) +
-                      alpha / omegabar * sin(omegabar*dt)))
-            elif Q == 0.5:
-                y = (-Yokoya_factor * (np.sign(dt) - 1) * R_shunt * alpha *
-                      np.exp(alpha * dt) * (1. + alpha * dt))
-            elif Q < 0.5:
-                y = (-Yokoya_factor * (np.sign(dt) - 1) * R_shunt * alpha *
+            if self.Q > 0.5:
+                y = (-(np.sign(dz) - 1) * self.R_shunt * alpha *
+                     np.exp(alpha * dt) * (cos(omegabar * dt) +
+                     alpha / omegabar * sin(omegabar*dt)))
+            elif self.Q == 0.5:
+                y = (-(np.sign(dz) - 1) * self.R_shunt * alpha *
+                     np.exp(alpha * dt) * (1. + alpha * dt))
+            elif self.Q < 0.5:
+                y = (-(np.sign(dz) - 1) * self.R_shunt * alpha *
                      np.exp(alpha * dt) * (np.cosh(omegabar * dt) +
                      alpha / omegabar * np.sinh(omegabar * dt)))
             return y
@@ -407,11 +402,11 @@ class CircularResonator(Resonator):
         Yokoya_Y1 = 1.
         Yokoya_X2 = 0.
         Yokoya_Y2 = 0.
-        Yokoya_Z = 0.
+        switch_Z  = False
 
         super(CircularResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, Yokoya_Z)
+            Yokoya_X2, Yokoya_Y2, switch_Z)
 
 
 class ParallelPlatesResonator(Resonator):
@@ -422,11 +417,11 @@ class ParallelPlatesResonator(Resonator):
         Yokoya_Y1 = np.pi**2 / 12.
         Yokoya_X2 = -np.pi**2 / 24.
         Yokoya_Y2 = np.pi**2 / 24.
-        Yokoya_Z = 0
+        switch_Z  = False
 
         super(ParallelPlatesResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, Yokoya_Z)
+            Yokoya_X2, Yokoya_Y2, switch_Z)
 
 
 class ResistiveWall(WakeSource):
@@ -459,27 +454,27 @@ class ResistiveWall(WakeSource):
 
         # Dipole wake kick x.
         if self.Yokoya_X1:
-            wake_function = self._function_transverse(self.Yokoya_X1)
+            wake_function = self.function_transverse(self.Yokoya_X1)
             wake_kicks.append(DipoleWakeKickX(wake_function, slicer_mode))
 
         # Quadrupole wake kick x.
         if self.Yokoya_X2:
-            wake_function = self._function_transverse(self.Yokoya_X2)
+            wake_function = self.function_transverse(self.Yokoya_X2)
             wake_kicks.append(QuadrupoleWakeKickX(wake_function, slicer_mode))
 
         # Dipole wake kick y.
         if self.Yokoya_Y1:
-            wake_function = self._function_transverse(self.Yokoya_Y1)
+            wake_function = self.function_transverse(self.Yokoya_Y1)
             wake_kicks.append(DipoleWakeKickY(wake_function, slicer_mode))
 
         # Quadrupole wake kick y.
         if self.Yokoya_Y2:
-            wake_function = self._function_transverse(self.Yokoya_Y2)
+            wake_function = self.function_transverse(self.Yokoya_Y2)
             wake_kicks.append(QuadrupoleWakeKickY(wake_function, slicer_mode))
 
         return wake_kicks
 
-    def _function_transverse(self, Yokoya_factor):
+    def function_transverse(self, Yokoya_factor):
         """ Define the wake function (transverse) of a resistive wall
         with the given parameters. """
         Z0 = physical_constants['characteristic impedance of vacuum'][0]
