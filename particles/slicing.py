@@ -309,6 +309,9 @@ class Slicer(object):
         return z_cut_tail, z_cut_head
 
     def __hash__(self):
+        '''Identifies different instantiations of Slicer objects via
+        their configuration (instead of their instance ID).
+        '''
         return hash(self.config)
 
     def __eq__(self, other):
