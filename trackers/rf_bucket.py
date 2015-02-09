@@ -10,8 +10,9 @@ from scipy.integrate import dblquad
 
 class RFBucket(object):
 
-    def __init__(self, get_circumference, get_gamma, alpha_0, p_increment,
-                 harmonic_list, voltage_list, phi_offset_list, phase_lock=True):
+    def __init__(self, get_circumference, get_gamma, alpha_0,
+                 p_increment, harmonic_list, voltage_list,
+                 phi_offset_list, phase_lock=True):
 
         self.circumference = get_circumference
         self.gamma_reference = get_gamma
@@ -23,7 +24,8 @@ class RFBucket(object):
         self.V = voltage_list
         self.dphi = phi_offset_list
 
-        # # Reference energy and make eta0, resp. "machine gamma_tr" available for all routines
+        # # Reference energy and make eta0, resp. "machine gamma_tr"
+        # # available for all routines
         # self.gamma_reference = gamma_reference
         # self.alpha0 = alpha_array[0]
         if phase_lock:
@@ -65,7 +67,8 @@ class RFBucket(object):
         self._gamma_reference = value
         self._beta_reference= np.sqrt(1 - self.gamma_reference**-2)
         # self._betagamma_reference = np.sqrt(self.gamma_reference**2 - 1)
-        self._p0_reference = self.beta_reference * self.gamma_reference * m_p * c
+        self._p0_reference = (self.beta_reference * self.gamma_reference
+                              * m_p * c)
 
     @property
     def beta_reference(self):
@@ -105,7 +108,8 @@ class RFBucket(object):
         ix = np.argmax(self.V)
         V = self.V[ix]
         h = self.h[ix]
-        return np.sqrt( e*V*np.abs(self.eta0)*h / (2*np.pi*self.p0_reference*self.beta_reference*c) )
+        return np.sqrt( e*V*np.abs(self.eta0)*h /
+                       (2*np.pi*self.p0_reference*self.beta_reference*c) )
 
     @property
     def phi_s(self):
@@ -145,7 +149,8 @@ class RFBucket(object):
 
     def Ef(self, z):
         return reduce(lambda x, y: x + y,
-                      [self.field(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
+                      [self.field(V, h, dphi)(z) for V, h, dphi
+                       in zip(self.V, self.h, self.dphi)])
 
     def E_acc(self, z):
         deltaE  = self.p_increment*self.beta_reference*c
@@ -158,15 +163,16 @@ class RFBucket(object):
 
     def Vf(self, z):
         return reduce(lambda x, y: x + y,
-                      [self.potential(V, h, dphi)(z) for V, h, dphi in zip(self.V, self.h, self.dphi)])
+                      [self.potential(V, h, dphi)(z) for V, h, dphi
+                       in zip(self.V, self.h, self.dphi)])
 
     def V_acc(self, z):
         '''Sign makes sure we stay convex - just nicer'''
         z_extrema = self._get_zero_crossings(self.E_acc)
-        deltaE  = self.p_increment*self.beta_reference*c
+        deltaE = self.p_increment*self.beta_reference*c
 
         if deltaE < 0:
-            print '*** WARNING! Deceleration not gonna work. Please implement it correctly here in line ~355.'
+            print ('*** WARNING! Deceleration is not implemented properly!')
             exit(-1)
         else:
             if np.sign(self.eta0) < 0:
@@ -174,12 +180,16 @@ class RFBucket(object):
             else:
                 zmax, zc = z_extrema[-1], z_extrema[0]
 
-        return -np.sign(self.eta0) * ((self.Vf(z) - self.Vf(zmax)) + (z - zmax) * deltaE/self.circumference)
+        return -np.sign(self.eta0) * (
+                (self.Vf(z) - self.Vf(zmax)) +
+                (z - zmax) * deltaE/self.circumference
+            )
 
     # ROOT AND BOUNDARY FINDING ROUTINES
     # ==================================
     def get_z_left_right(self, zc):
-        z_cut = self._get_zero_crossings(lambda x: self.V_acc(x) - self.V_acc(zc))
+        z_cut = self._get_zero_crossings(
+            lambda x: self.V_acc(x) - self.V_acc(zc))
         zleft, zright = z_cut[0], z_cut[-1]
 
         return zleft, zright
@@ -249,7 +259,8 @@ class RFBucket(object):
 
     def equihamiltonian(self, zc):
         def s(z):
-            r = np.sign(self.eta0) * 2/(self.eta0*self.beta_reference*c) * (-self.Hcut(zc) - self.V_acc(z)/self.p0_reference)
+            r = (np.sign(self.eta0) * 2/(self.eta0*self.beta_reference*c)
+                 * (-self.Hcut(zc) - self.V_acc(z)/self.p0_reference))
             return np.sqrt(r.clip(min=0))
         return s
 
@@ -288,19 +299,19 @@ class RFBucket(object):
 
         return Q * 2*self.p0_reference/e
 
-    # DYNAMICAL LIST SETTERS
-    # ======================
-    def set_voltage_list(self, voltage_list):
-        for i, V in enumerate(voltage_list):
-            self.V[i] = V
-        self._get_bucket_boundaries()
+    # # DYNAMICAL LIST SETTERS
+    # # ======================
+    # def set_voltage_list(self, voltage_list):
+    #     for i, V in enumerate(voltage_list):
+    #         self.V[i] = V
+    #     self._get_bucket_boundaries()
 
-    def set_harmonic_list(self, harmonic_list):
-        for i, h in enumerate(harmonic_list):
-            self.h[i] = h
-        self._get_bucket_boundaries()
+    # def set_harmonic_list(self, harmonic_list):
+    #     for i, h in enumerate(harmonic_list):
+    #         self.h[i] = h
+    #     self._get_bucket_boundaries()
 
-    def set_phi_offset_list(self, phi_offset_list):
-        for i, dphi in enumerate(phi_offset_list):
-            self.dphi[i] = dphi
-        self._get_bucket_boundaries()
+    # def set_phi_offset_list(self, phi_offset_list):
+    #     for i, dphi in enumerate(phi_offset_list):
+    #         self.dphi[i] = dphi
+    #     self._get_bucket_boundaries()
