@@ -68,12 +68,12 @@ class Particles(object):
         '''ID of particles in order to keep track of single entries
         in the coordinate and momentum arrays.
         '''
-        self.id_all = np.arange(1, self.macroparticlenumber+1, dtype=np.uint)
+        self.id_all = np.arange(1, self.macroparticlenumber+1, dtype=np.int32)
         self.id = self.id_all.view()
 
         '''Alive flag to handle the loss of particles
         '''
-        self.alive_all = np.ones(self.macroparticlenumber, dtype=np.uint)
+        self.alive_all = np.ones(self.macroparticlenumber, dtype=np.int32)
         self.alive = self.alive_all.view()
 
         self.update(coords_n_momenta_dict)

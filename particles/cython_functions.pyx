@@ -36,12 +36,12 @@ def relocate_lost_particles(beam):
     cdef double[::1] xp = beam.xp
     cdef double[::1] yp = beam.yp
     cdef double[::1] dp = beam.dp
-    cdef unsigned int[::1] id = beam.id
-    cdef unsigned int[::1] alive = beam.alive
+    cdef int[::1] id = beam.id
+    cdef int[::1] alive = beam.alive
 
     # Temporary variables for swapping entries.
     cdef double t_x, t_xp, t_y, t_yp, t_z, t_dp
-    cdef unsigned int t_alive, t_id
+    cdef int t_alive, t_id
 
     # Find last_alive index.
     cdef int n_alive_pri = alive.shape[0]

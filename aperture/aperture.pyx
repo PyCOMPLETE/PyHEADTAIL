@@ -223,16 +223,16 @@ class RFBucketAperture(Aperture):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cytag_lost_rectangular(double[::1] u, unsigned int[::1] alive,
+cpdef cytag_lost_rectangular(double[::1] u, int[::1] alive,
                            double low_lim, double high_lim):
     ''' Cython function for fast identification and tagging of particles
     lost at a rectangular aperture element, i.e. it tags particles with
     a spatial coord u (beam.x, beam.y or beam.z) lying outside the
     interval (low_lim, high_lim) as lost. Returns whether or not any
     lost particles were found. '''
-    cdef unsigned int n = alive.shape[0]
-    cdef unsigned int losses = 0
-    cdef unsigned int i
+    cdef int n = alive.shape[0]
+    cdef int losses = 0
+    cdef int i
     for i in xrange(n):
         if u[i] < low_lim or u[i] > high_lim:
             alive[i] = 0
@@ -242,16 +242,16 @@ cpdef cytag_lost_rectangular(double[::1] u, unsigned int[::1] alive,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cytag_lost_circular(
-    double[::1] u, double[::1] v, unsigned int[::1] alive,
+    double[::1] u, double[::1] v, int[::1] alive,
     double radius_square):
     ''' Cython function for fast identification and tagging of particles
     lost at a circular transverse aperture element of a given radius,
     i.e. it tags particles with spatial coords u, v (usually (beam.x,
     beam.y)) fulfilling u**2 + v**2 > radius_square as lost. Returns
     whether or not any lost particles were found. '''
-    cdef unsigned int n = alive.shape[0]
-    cdef unsigned int losses = 0
-    cdef unsigned int i
+    cdef int n = alive.shape[0]
+    cdef int losses = 0
+    cdef int i
     for i in xrange(n):
         if (u[i]*u[i] + v[i]*v[i]) > radius_square:
             alive[i] = 0
