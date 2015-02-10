@@ -13,18 +13,7 @@ from ..cobra_functions import stats as cp
 class Particles(object):
     '''Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
-    Designed to describe beams, electron clouds, ...
-    To consider particle losses during the simulation, the actual
-    particle coords and momenta data are stored in numpy arrays
-    self.u_all, where u = x, y, z, xp, yp, dp, id, alive. In addition,
-    there are self.u attributes, which are numpy array slices / views of
-    the self.u_all, i.e. they point to the same memory addresses(shallow
-    copies). In case of losses, the method Particles.update_losses() is
-    called. Particles marked as lost will then be relocated to the end
-    of the self.u (and hence of self.u_all) arrays. The views self.u are
-    updated such that they view only the first part of the self.u_all
-    where all the alive particles are located. By doing that, the lost
-    particles are set to an untracked state. '''
+    Designed to describe beams, electron clouds, ... '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma_reference,
@@ -149,10 +138,6 @@ class Particles(object):
         attributes to this Particles instance and puts the corresponding
         values. Pretty much the same as dict.update({...}) .
         Attention: overwrites existing coordinate / momentum attributes.
-        Note that in order to account for particle losses, for each
-        coord (and momentum), a shallow copy (view) self.u of the numpy
-        array is created (with u = x, y, z, ...). The actual place where
-        the data are stored are the numpy arrays self.u_all .
         '''
         if any(len(v) != self.macroparticlenumber for v in
                coords_n_momenta_dict.values()):
@@ -215,4 +200,3 @@ class Particles(object):
 
     def epsn_z(self):
         return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
-        # return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)

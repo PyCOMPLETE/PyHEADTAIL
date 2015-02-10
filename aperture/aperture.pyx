@@ -1,11 +1,17 @@
 from __future__ import division
 '''
+Aperture module to manage particle losses. An aperture is
+defined as a condition on the phase space coordinates. Particles
+not fulfilling this condition are tagged as lost and are removed
+from the beam. Parts of this module are implemented in cython for
+better performance.
+
 @date: Created on 04.12.2014
-@author: Hannes Bartosik, Michael Schenk
+@author: Hannes Bartosik, Giovanni Iadarola, Kevin Li, Michael Schenk
 
 TODO:
- - Speed up RFBucketAperture. It is currently EXTREMELY slow. Use
-   RectangularApertureZ as an alternative.
+  - Store the information on a lost particle in the corresponding
+    aperture element instance, incl. time / turn number.
 '''
 cimport cython
 import numpy as np
@@ -18,241 +24,164 @@ from abc import ABCMeta, abstractmethod
 class Aperture(Element):
     ''' Abstract base class for Aperture elements. An aperture is
     generally defined as a condition on the phase space coordinates.
-    Particles not fulfilling this condition are tagged as lost. They
-    will be removed from the tracked particles as soon as the
-    Particles.update_losses() method is called. '''
+    Particles not fulfilling this condition are tagged as lost and
+    are removed from the beam directly after. '''
+
     __metaclass__ = ABCMeta
 
     def __init__(self, *args, **kwargs):
-        ''' The boolean apply_losses_here controls whether the
-        Particles.update_losses(beam) method is called to relocate lost
-        particles to the end of the bunch.u_all arrays (u = x, y, z,
-        ...) and to actually remove them from the numpy array views
-        beam.u and leave them in an untracked state. In case there are
-        several Aperture elements placed at a segment boundary of the
-        accelerator ring, apply_losses_here should only be set to True
-        for the last one to increase performance. '''
         pass
 
     def track(self, beam):
         ''' Tag particles not passing through the aperture as lost. If
-        there are any losses and the self.apply_losses_here is set to
-        True, the method Particles.update_losses() is called to relocate
-        lost particles to the end of the beam.u_all numpy arrays (u = x,
-        y, z, ...) and to actually remove them from the numpy array
-        views beam.u and leave them in an untracked state. Also, clean
-        currently cached slice_sets of the bunch as losses change its
-        state. '''
+        there are any losses, the corresponding particles are removed
+        from the beam by updating the beam.u arrays, s.t.
+        beam.u = beam.u[:n_alive] after relocating lost particles to
+        the end of these arrays. 'n_alive' denotes the number of alive
+        particles after the given aperture element. In addition, the
+        currently cached slice_sets of the beam are cleaned since losses
+        change its (longitudinal) state. '''
         alive = self.tag_lost_particles(beam)
 
         if not np.all(alive):
-            n_alive_post = relocate_lost_particles(beam, alive)
+            # Move lost particles to the end of the beam.u arrays.
+            n_alive = relocate_lost_particles(beam, alive)
 
-            beam.macroparticlenumber = n_alive_post
-            beam.x = beam.x[:n_alive_post]
-            beam.y = beam.y[:n_alive_post]
-            beam.z = beam.z[:n_alive_post]
-            beam.xp = beam.xp[:n_alive_post]
-            beam.yp = beam.yp[:n_alive_post]
-            beam.dp = beam.dp[:n_alive_post]
-            beam.id = beam.id[:n_alive_post]
+            # Update beam.u arrays, i.e. remove lost particles.
+            beam.macroparticlenumber = n_alive
+            beam.x = beam.x[:n_alive]
+            beam.y = beam.y[:n_alive]
+            beam.z = beam.z[:n_alive]
+            beam.xp = beam.xp[:n_alive]
+            beam.yp = beam.yp[:n_alive]
+            beam.dp = beam.dp[:n_alive]
+            beam.id = beam.id[:n_alive]
 
+            # Empty slice_set cache of the beam.
             beam.clean_slices()
 
     @abstractmethod
     def tag_lost_particles(self, beam):
         ''' This method is called by Aperture.track(beam) to identify
-        particles not passing through the aperture and set their
-        bunch.alive state to 0 (false) to mark them as lost. Return
-        whether or not any lost particles were found. '''
+        particles not passing through the aperture. The aperture condition
+        on the phase space coordinates is defined by the given Aperture
+        element. Returns a np.int32 array 'alive' which contains the
+        information on whether a particle is lost (0) or not (1).
+        '''
         pass
 
 
 class RectangularApertureX(Aperture):
     ''' Mark particles with transverse spatial coord (x) outside the
-    interval (x_high, x_low) as lost. '''
+    interval (x_high, x_low) as lost and remove them from the beam.
+    '''
 
-    def __init__(self, x_low, x_high, apply_losses_here=True,
-                 *args, **kwargs):
+    def __init__(self, x_low, x_high, *args, **kwargs):
         ''' The arguments x_low and x_high define the interval of
         horizontal spatial coordinates for which particles pass through
-        the rectangular horizontal aperture. The boolean
-        apply_losses_here specifies whether the
-        Particles.update_losses(beam) method should be called after
-        tagging lost particles to relocate them to the end of the
-        bunch.u_all arrays (u = x, y, z, ...), remove them from the
-        views bunch.u and leave them in an untracked state. In case
-        there are several Aperture elements placed at a segment boundary
-        of the accelerator ring, apply_losses_here should only be set to
-        True for the last one to increase performance. '''
+        the rectangular horizontal aperture. '''
         self.x_low = x_low
         self.x_high = x_high
-        super(RectangularApertureX, self).__init__(apply_losses_here)
+        super(RectangularApertureX, self).__init__(*args, **kwargs)
 
     def tag_lost_particles(self, beam):
         ''' This method is called by Aperture.track(beam) to identify
-        particles not passing through the aperture and set their
-        bunch.alive state to 0 (false) to mark them as lost. The search
-        for lost particles is done using a cython function. Return
-        whether or not any lost particles were found. '''
-        return cytag_lost_rectangular(
-            beam.x, self.x_low, self.x_high)
+        particles not passing through the aperture. The aperture condition
+        on the phase space coordinates is defined by the given Aperture
+        element. Returns a np.int32 array 'alive' which contains the
+        information on whether a particle is lost (0) or not (1).
+        '''
+        return cytag_lost_rectangular(beam.x, self.x_low, self.x_high)
 
 
 class RectangularApertureY(Aperture):
     ''' Mark particles with transverse spatial coord (y) outside the
-    interval (y_high, y_low) as lost. '''
+    interval (y_high, y_low) as lost and remove them from the beam.
+    '''
 
-    def __init__(self, y_low, y_high, apply_losses_here=True,
-                 *args, **kwargs):
+    def __init__(self, y_low, y_high, *args, **kwargs):
         ''' The arguments y_low and y_high define the interval of
         vertical spatial coordinates for which particles pass through
-        the rectangular vertical aperture. The boolean apply_losses_here
-        specifies whether the Particles.update_losses(beam) method
-        should be called after tagging lost particles to relocate them
-        to the end of the bunch.u_all arrays (u = x, y, z, ...), remove
-        them from the views bunch.u and leave them in an untracked
-        state. In case there are several Aperture elements placed at a
-        segment boundary of the accelerator ring, apply_losses_here
-        should only be set to True for the last one to increase
-        performance. '''
+        the rectangular vertical aperture. '''
         self.y_low = y_low
         self.y_high = y_high
-        super(RectangularApertureY, self).__init__(apply_losses_here)
+        super(RectangularApertureY, self).__init__(*args, **kwargs)
 
     def tag_lost_particles(self, beam):
         ''' This method is called by Aperture.track(beam) to identify
-        particles not passing through the aperture and set their
-        bunch.alive state to 0 (false) to mark them as lost. The search
-        for lost particles is done using a cython function. Return
-        whether or not any lost particles were found. '''
-        return cytag_lost_rectangular(
-            beam.y, self.y_low, self.y_high)
+        particles not passing through the aperture. The aperture condition
+        on the phase space coordinates is defined by the given Aperture
+        element. Returns a np.int32 array 'alive' which contains the
+        information on whether a particle is lost (0) or not (1).
+        '''
+        return cytag_lost_rectangular(beam.y, self.y_low, self.y_high)
 
 
 class RectangularApertureZ(Aperture):
     ''' Mark particles with longitudinal spatial coord (z) outside the
-    interval (z_high, z_low) as lost. '''
+    interval (z_high, z_low) as lost and remove them from the beam.
+    '''
 
-    def __init__(self, z_low, z_high, apply_losses_here=True,
-                 *args, **kwargs):
+    def __init__(self, z_low, z_high, *args, **kwargs):
         ''' The arguments z_low and z_high define the interval of
         longitudinal spatial coordinates for which particles pass
-        through the rectangular longitudinal aperture. The boolean
-        apply_losses_here specifies whether the
-        Particles.update_losses(beam) method should be called after
-        tagging lost particles to relocate them to the end of the
-        bunch.u_all arrays (u = x, y, z, ...), remove them from the
-        views bunch.u and leave them in an untracked state. In case
-        there are several Aperture elements placed at a segment boundary
-        of the accelerator ring, apply_losses_here should only be set to
-        True for the last one to increase performance. '''
+        through the rectangular longitudinal aperture. '''
         self.z_low = z_low
         self.z_high = z_high
-        super(RectangularApertureZ, self).__init__(apply_losses_here)
+        super(RectangularApertureZ, self).__init__(*args, **kwargs)
 
     def tag_lost_particles(self, beam):
         ''' This method is called by Aperture.track(beam) to identify
-        particles not passing through the aperture and set their
-        bunch.alive state to 0 (false) to mark them as lost. The
-        search for lost particles is done using a cython function.
-        Return whether or not any lost particles were found. '''
-        return cytag_lost_rectangular(
-            beam.z, self.z_low, self.z_high)
+        particles not passing through the aperture. The aperture condition
+        on the phase space coordinates is defined by the given Aperture
+        element. Returns a np.int32 array 'alive' which contains the
+        information on whether a particle is lost (0) or not (1).
+        '''
+        return cytag_lost_rectangular(beam.z, self.z_low, self.z_high)
 
 
 class CircularApertureXY(Aperture):
     ''' Mark particles with transverse spatial coords (x, y) outside a
-    circle of specified radius, i.e. x**2 + y**2 > radius**2, as lost.
-    '''
+    circle of specified radius, i.e. x**2 + y**2 > radius**2, as lost
+    and remove them from the beam. '''
 
-    def __init__(self, radius, apply_losses_here=True, *args, **kwargs):
+    def __init__(self, radius, *args, **kwargs):
         ''' The argument radius defines the radius of the circular
-        (transverse) aperture. The argument apply_losses_here specifies
-        whether the Particles.update_losses(beam) method should be
-        called after tagging lost particles to relocate them to the end
-        of the bunch.u_all arrays (u = x, y, z, ...), remove them from
-        the views bunch.u and leave them in an untracked state. In case
-        there are several Aperture elements placed at a segment boundary
-        of the accelerator ring, apply_losses_here should only be set to
-        True for the last one to increase performance. '''
+        (transverse) aperture. '''
         self.radius_square = radius * radius
-        super(CircularApertureXY, self).__init__(apply_losses_here)
+        super(CircularApertureXY, self).__init__(*args, **kwargs)
 
     def tag_lost_particles(self, beam):
         ''' This method is called by Aperture.track(beam) to identify
-        particles not passing through the aperture and set their
-        bunch.alive state to 0 (false) to mark them as lost. The search
-        for lost particles is done using a cython function. Return
-        whether or not any lost particles were found. '''
-        return cytag_lost_circular(
-            beam.x, beam.y, self.radius_square)
+        particles not passing through the aperture. The aperture condition
+        on the phase space coordinates is defined by the given Aperture
+        element. Returns a np.int32 array 'alive' which contains the
+        information on whether a particle is lost (0) or not (1).
+        '''
+        return cytag_lost_circular(beam.x, beam.y, self.radius_square)
+
 
 class EllipticalApertureXY(Aperture):
     ''' Mark particles with transverse spatial coords (x, y) outside a
-    ellipse of specified radius, i.e. (x/x_aper)**2 + (y/y_aper)**2 > 1., as lost.
-    '''
+    ellipse of specified radius, i.e. (x/x_aper)**2 + (y/y_aper)**2 > 1.,
+    as lost and remove them from the beam. '''
 
-    def __init__(self, x_aper, y_aper, apply_losses_here=True, *args, **kwargs):
-        ''' The argument apply_losses_here specifies
-        whether the Particles.update_losses(beam) method should be
-        called after tagging lost particles to relocate them to the end
-        of the bunch.u_all arrays (u = x, y, z, ...), remove them from
-        the views bunch.u and leave them in an untracked state. In case
-        there are several Aperture elements placed at a segment boundary
-        of the accelerator ring, apply_losses_here should only be set to
-        True for the last one to increase performance. '''
+    def __init__(self, x_aper, y_aper, *args, **kwargs):
+
         self.x_aper = x_aper
         self.y_aper = y_aper
-        super(EllipticalApertureXY, self).__init__(apply_losses_here)
+        super(EllipticalApertureXY, self).__init__(*args, **kwargs)
 
     def tag_lost_particles(self, beam):
         ''' This method is called by Aperture.track(beam) to identify
-        particles not passing through the aperture and set their
-        bunch.alive state to 0 (false) to mark them as lost. The search
-        for lost particles is done using a cython function. Return
-        whether or not any lost particles were found. '''
-        return cytag_lost_ellipse(
-            beam.x, beam.y, self.x_aper, self.y_aper)
+        particles not passing through the aperture. The aperture condition
+        on the phase space coordinates is defined by the given Aperture
+        element. Returns a np.int32 array 'alive' which contains the
+        information on whether a particle is lost (0) or not (1).
+        '''
+        return cytag_lost_ellipse(beam.x, beam.y,
+                                  self.x_aper, self.y_aper)
 
-# class RFBucketAperture(Aperture):
-#     ''' Mark particles with longitudinal phase space coords (z, dp)
-#     outside the accepted region as lost.
-
-#     NOTE: THE CURRENT IMPLEMENTATION IS EXTREMELY SLOW! For 1e6
-#     macroparticles, executing it once takes 120ms. Hence, as an
-#     alternative, one may use the RectangularApertureZ using the z-limits
-#     of the RFBucket. Like this, particles leaking from the RFBucket will
-#     at some point be marked lost and finally removed as well. '''
-
-#     def __init__(self, is_accepted, apply_losses_here=True,
-#                  *args, **kwargs):
-#         ''' The argument is_accepted takes a reference to a function of
-#         the form is_accepted(z, dp) returning a boolean array saying
-#         whether the pair (z, dp) is in- or outside the specified region
-#         of the longitudinal phase space. Usually, is_accepted can be
-#         generated either using the RFSystems.RFBucket.make_is_accepted
-#         or using directly RFSystems.RFBucket.is_in_separatrix. The
-#         argument apply_losses_here specifies whether the
-#         Particles.update_losses(beam) method should be called after
-#         tagging lost particles to relocate them to the end of the
-#         bunch.u_all arrays (u = x, y, z, ...), remove them from the
-#         views bunch.u and leave them in an untracked state. In case
-#         there are several Aperture elements placed at a segment boundary
-#         of the accelerator ring, apply_losses_here should only be set to
-#         True for the last one to increase performance. '''
-#         self.is_accepted = is_accepted
-#         super(RFBucketAperture, self).__init__(apply_losses_here)
-
-#     def tag_lost_particles(self, beam):
-#         ''' This method is called by Aperture.track(beam) to identify
-#         particles not passing through the aperture and set their
-#         bunch.alive state to 0 (false) to mark them as lost. The
-#         search for lost particles is done using a cython function.
-#         Return whether or not any lost particles were found. '''
-#         mask_lost = ~self.is_accepted(beam.z, beam.dp)
-#         beam.alive[mask_lost] = 0
-#         return np.sum(beam.alive)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -260,13 +189,13 @@ def relocate_lost_particles(beam, int[::1] alive):
     ''' Memory efficient (and fast) cython function to relocate
     particles marked as lost to the end of the beam.u arrays (u = x, y,
     z, ...). Returns the number of alive particles n_alive_post after
-    removal of those marked as lost.
+    considering the losses.
 
     Description of the algorithm:
-    (1) Starting from the end of the numpy array view beam.alive, find
-        the index of the last particle in the array which is still
-        alive. Store its array index in last_alive.
-    (2) Loop through the alive array from there (continuing in reverse
+    (1) Starting from the end of the numpy array 'alive', find the index
+        of the last particle in the array which is still alive. Store its
+        array index in last_alive.
+    (2) Loop through the 'alive' array from there (continuing in reverse
         order). If a particle i is found for which alive[i] == 0, i.e.
         it is a lost one, swap its position (and data x, y, z, ...) with
         the one located at index last_alive.
@@ -317,6 +246,7 @@ def relocate_lost_particles(beam, int[::1] alive):
 
     return n_alive_post
 
+
 ''' Cython functions for fast id and tagging of lost particles. '''
 
 @cython.boundscheck(False)
@@ -326,10 +256,12 @@ cpdef cytag_lost_rectangular(double[::1] u,
     ''' Cython function for fast identification and tagging of particles
     lost at a rectangular aperture element, i.e. it tags particles with
     a spatial coord u (beam.x, beam.y or beam.z) lying outside the
-    interval (low_lim, high_lim) as lost. Returns whether or not any
-    lost particles were found. '''
+    interval (low_lim, high_lim) as lost. Returns a np array 'alive'
+    containing the information of alive / lost for each particle in the
+    beam after the aperture. '''
     cdef int n = u.shape[0]
     cdef int[::1] alive = np.ones(n, dtype=np.int32)
+
     cdef int i
     for i in xrange(n):
         if u[i] < low_lim or u[i] > high_lim:
@@ -344,10 +276,12 @@ cpdef cytag_lost_circular(double[::1] u, double[::1] v,
     ''' Cython function for fast identification and tagging of particles
     lost at a circular transverse aperture element of a given radius,
     i.e. it tags particles with spatial coords u, v (usually (beam.x,
-    beam.y)) fulfilling u**2 + v**2 > radius_square as lost. Returns
-    whether or not any lost particles were found. '''
+    beam.y)) fulfilling u**2 + v**2 > radius_square as lost. Returns a
+    np array 'alive' containing the information of alive / lost for
+    each particle in the beam after the aperture. '''
     cdef int n = u.shape[0]
     cdef int[::1] alive = np.ones(n, dtype=np.int32)
+
     cdef int i
     for i in xrange(n):
         if (u[i]*u[i] + v[i]*v[i]) > radius_square:
@@ -358,15 +292,17 @@ cpdef cytag_lost_circular(double[::1] u, double[::1] v,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cytag_lost_ellipse(double[::1] u, double[::1] v,
-    double u_aper, double v_aper):
+                         double u_aper, double v_aper):
     ''' Cython function for fast identification and tagging of particles
-    lost at a elliptical transverse aperture element lost. Returns
-    whether or not any lost particles were found. '''
+    lost at a elliptical transverse aperture element lost. Returns a
+    np array 'alive' containing the information of alive / lost for
+    each particle in the beam after the aperture. '''
     cdef int n = u.shape[0]
     cdef int[::1] alive = np.ones(n, dtype=np.int32)
-    cdef int i
     cdef double u_aper_sq_rec = 1./(u_aper*u_aper)
     cdef double v_aper_sq_rec = 1./(v_aper*v_aper)
+
+    cdef int i
     for i in xrange(n):
         if (u[i]*u[i]*u_aper_sq_rec + v[i]*v[i]*v_aper_sq_rec) > 1.:
             alive[i] = 0
