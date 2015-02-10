@@ -12,7 +12,7 @@ import numpy as np
 from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
 
-from . import Element, clean_slices
+from . import Element, clean_slices, utils
 from rf_bucket import RFBucket
 
 sin = np.sin
@@ -110,6 +110,15 @@ class Drift(LongitudinalMap):
                   self.eta(beam.dp, beam.gamma) * beam.dp * self.length)
 
 
+# def referise(self, name, value):
+#     pname = "_" + name
+#     setattr(self, pname, [value])
+#     def getter(s):
+#         return getattr(s, pname)[0]
+#     def setter(s):
+#         getattr(s, pname)[0] = s
+#     return property(getter, setter)
+
 class Kick(LongitudinalMap):
     """
     The Kick class represents the kick by a single RF element
@@ -124,7 +133,15 @@ class Kick(LongitudinalMap):
     self.phi_offset reflects an offset of the cavity's reference system,
     this can be tweaked externally by the user for simulating RF system
     ripple and the like. Include the change of flank of the sine curve
-    here, explicitely.
+    here, explicitely (i.e. pi below transition and 0 above transition).
+
+    (self._phi_lock adds to the offset as well but should
+    be used internally in the module (e.g. by RFSystems) for
+    acceleration purposes. It may be used for synchronisation with the
+    momentum updating by self.p_increment via self.calc_phi_0(beam),
+    thus readjusting the zero-crossing of this sinosoidal kick.
+    This requires a convention how to mutually displace the Kick
+    phases to each other w.r.t. to their contribution to acceleration.)
     """
 
     def __init__(self, alpha_array, circumference, harmonic, voltage,
@@ -135,26 +152,27 @@ class Kick(LongitudinalMap):
         self.voltage = voltage
         self.phi_offset = phi_offset
         self.p_increment = p_increment
-
-    @property
-    def parameters(self):
-        return (self.harmonic, self.voltage, self.phi_offset, self.p_increment)
-    @parameters.setter
-    def parameters(self, value):
-        self.harmonic = value[0]
-        self.voltage = value[1]
-        self.phi_offset = value[2]
-        self.p_increment = value[3]
+        self._phi_lock = 0
 
     def track(self, beam):
         amplitude = e*self.voltage / (beam.beta*c)
         phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
-               + self.phi_offset)
+               + self.phi_offset + self._phi_lock)
 
         delta_p = beam.dp * beam.p0
         delta_p += amplitude * sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
+
+    # @property
+    # def parameters(self):
+    #     return (self.harmonic, self.voltage, self.phi_offset, self.p_increment)
+    # @parameters.setter
+    # def parameters(self, value):
+    #     self.harmonic = value[0]
+    #     self.voltage = value[1]
+    #     self.phi_offset = value[2]
+    #     self.p_increment = value[3]
 
     # def Qs(self, gamma):
     #     '''
@@ -268,14 +286,11 @@ class RFSystems(LongitudinalOneTurnMap):
         synchronous particle, it can be continuously adjusted to
         reflect different slopes in the dipole magnet strength ramp.
         (See the Kick class for further details.)
-        - self.kicks is a list of the Kick objects (defined by the
-        respective lists in the constructor)
-        - self.accelerating_kick returns the first Kick object in
-        self.kicks which carries the only p_increment != 0
-        - self.elements is comprised of a half turn Drift, self.kicks,
-        and another half turn Drift
         - self.fundamental_kick returns the Kick object with the lowest
         harmonic of the revolution frequency
+        - phase_lock == True means all phi_offsets are given w.r.t. the
+        fundamental kick.
+        - phase_lock == False means all phi_offsets are absolute.
         """
 
         super(RFSystems, self).__init__(alpha_array, circumference)
@@ -287,14 +302,14 @@ class RFSystems(LongitudinalOneTurnMap):
         self._shrinking = shrink_longitudinal
         self._shrink_transverse = shrink_transverse
 
-        self.kicks = [Kick(alpha_array, self.circumference, h, V, dphi)
+        self._kicks = [Kick(alpha_array, self.circumference, h, V, dphi)
                       for h, V, dphi in
                       zip(harmonic_list, voltage_list, phi_offset_list)]
-        self.elements = ( [Drift(alpha_array, self.circumference / 2)]
-                        + self.kicks
-                        + [Drift(alpha_array, self.circumference / 2)]
+        self._elements = ( [Drift(alpha_array, 0.5 * self.circumference)]
+                        + self._kicks
+                        + [Drift(alpha_array, 0.5 * self.circumference)]
                         )
-        self.fundamental_kick = min(self.kicks, key=lambda kick: kick.harmonic)
+        self.fundamental_kick = min(self._kicks, key=lambda kick: kick.harmonic)
         self.p_increment = p_increment
 
         if phase_lock:
@@ -303,12 +318,37 @@ class RFSystems(LongitudinalOneTurnMap):
         self._rfbucket = {}
 
     @property
-    def rfbucket(self):
-        '''non-existent anymore!'''
-        raise RuntimeError('Interface change: ' +
-                           'Use the get_bucket(gamma_reference) method ' +
-                           'to obtain the current state of the ' +
-                           'longitudinal RF configuration.')
+    def voltages(self):
+        """List of Kick voltages, use this interface in RFSystems to
+        access and modify any Kick voltage.
+        """
+        return utils.ListProxy(self._kicks, "voltage")
+    @voltages.setter
+    def voltages(self, value):
+        for k, v in zip(self._kicks, value):
+            k.voltage = v]
+
+    @property
+    def harmonics(self):
+        """List of Kick harmonics, use this interface in RFSystems to
+        access and modify any Kick harmonic.
+        """
+        return utils.ListProxy(self._kicks, "harmonic")
+    @harmonics.setter
+    def harmonics(self, value):
+        for k, v in zip(self._kicks, value):
+            k.harmonic = v
+
+    @property
+    def phi_offsets(self):
+        """List of Kick phi_offsets, use this interface in RFSystems to
+        access and modify any Kick phi_offset.
+        """
+        return utils.ListProxy(self._kicks, "phi_offset")
+    @phi_offsets.setter
+    def phi_offsets(self, value):
+        for k, v in zip(self._kicks, value):
+            k.phi_offset = v
 
     def get_bucket(self, gamma, *args, **kwargs):
         '''Return an RFBucket instance which contains all information
@@ -332,26 +372,30 @@ class RFSystems(LongitudinalOneTurnMap):
 
     @property
     def p_increment(self):
+        """The increment in momentum of the fundamental Kick, i.e.
+        the lowest harmonic.
+        """
         return self.fundamental_kick.p_increment
     @p_increment.setter
     def p_increment(self, value):
         self.fundamental_kick.p_increment = value
         if self._shrinking:
-            self.elements[-1].shrinkage_p_increment = value
+            self._elements[-1].shrinkage_p_increment = value
 
     def Qs(self, gamma):
         beta = np.sqrt(1 - gamma**-2)
-        p0 = m_p*np.sqrt(gama**2 - 1)*c
+        p0 = m_p*np.sqrt(gamma**2 - 1)*c
         eta0 = self.eta(0, gamma)
 
         fc = self.fundamental_kick
         V = fc.voltage
         h = fc.harmonic
 
-        return np.sqrt( e*V*np.abs(eta0)*h / (2*np.pi*self.p0_reference*self.beta_reference*c) )
+        return np.sqrt( e*V*np.abs(eta0)*h /
+                       (2*np.pi*self.p0_reference*self.beta_reference*c) )
 
     def phi_s(self, gamma):
-        beta = np.sqrt(1 - 1/gamma**2)
+        beta = np.sqrt(1 - gamma**-2)
         eta0 = self.eta(0, gamma)
 
         V = self.fundamental_kick.voltage
@@ -362,15 +406,16 @@ class RFSystems(LongitudinalOneTurnMap):
         deltaE = self.p_increment * beta * c
         phi_rel = np.arcsin(deltaE / (e * V))
 
-        if eta0<0:
-            # return np.sign(deltaE) * np.pi - phi_rel
-            return np.pi - phi_rel
-        else:
-            return phi_rel
+        # if eta0<0:
+        #     # return np.sign(deltaE) * np.pi - phi_rel
+        #     return np.pi - phi_rel
+        # else:
+        #     return phi_rel
 
     @staticmethod
     def _shrink_transverse_emittance(beam, geo_emittance_factor):
-        """accounts for the transverse geometrical emittance shrinking"""
+        """Account for the transverse geometrical emittance shrinking.
+        """
         beam.x *= geo_emittance_factor
         beam.xp *= geo_emittance_factor
         beam.y *= geo_emittance_factor
@@ -379,11 +424,12 @@ class RFSystems(LongitudinalOneTurnMap):
     def track(self, beam):
         if self.p_increment:
             betagamma_old = beam.betagamma
-        for longMap in self.elements:
+        for longMap in self._elements:
             longMap.track(beam)
         if self.p_increment:
             try:
-                self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
+                self._shrink_transverse_emittance(
+                    beam, np.sqrt(betagamma_old / beam.betagamma))
                 self.track = self.track_transverse_shrinking
             except AttributeError:
                 self.track = self.track_no_transverse_shrinking
@@ -392,39 +438,67 @@ class RFSystems(LongitudinalOneTurnMap):
     def track_transverse_shrinking(self, beam):
         if self.p_increment:
             betagamma_old = beam.betagamma
-        for longMap in self.elements:
+        for longMap in self._elements:
             longMap.track(beam)
         if self.p_increment:
-            self._shrink_transverse_emittance(beam, np.sqrt(betagamma_old / beam.betagamma))
+            self._shrink_transverse_emittance(
+                beam, np.sqrt(betagamma_old / beam.betagamma))
 
     @clean_slices
     def track_no_transverse_shrinking(self, beam):
-        for longMap in self.elements:
+        for longMap in self._elements:
             longMap.track(beam)
 
-    # DYNAMICAL LIST SETTERS
-    # ======================
-    def set_voltage_list(self, voltage_list):
-        for i, V in enumerate(voltage_list):
-            self.kicks[i].voltage = V
-
-    def set_harmonic_list(self, harmonic_list):
-        for i, h in enumerate(harmonic_list):
-            self.kicks[i].harmonic = h
-
-    def set_phi_offset_list(self, phi_offset_list):
-        for i, dphi in enumerate(phi_offset_list):
-            self.kicks[i].phi_offset = dphi
-
     def _phaselock(self, gamma):
-        '''Put all kicks other than the fundamental kick to zero phase
+        '''Put all _kicks other than the fundamental kick to zero phase
         difference w.r.t. the fundamental kick.
+        Attention: Make sure the p_increment of each non-fundamental
+        kick is set to 0 (assuming phi_offset == 0, otherwise adapt!).
         '''
         fc = self.fundamental_kick
-        cavities = [k for k in self.kicks if k is not fc]
+        cavities = [k for k in self._kicks if k is not fc]
 
         for c in cavities:
             c._phi_lock -= c.harmonic/fc.harmonic * self.phi_s(gamma)
+
+    # --- INTERFACE CHANGE notifications to update users of previous versions
+    # --- to use the right new methods
+    @property
+    def rfbucket(self):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the get_bucket(gamma_reference) method ' +
+                           'to obtain the current state of the ' +
+                           'longitudinal RF configuration.')
+
+    @property
+    def kicks(self):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the voltages, harmonics or phi_offsets' +
+                           'lists of RFSystems to access the kick parameters.')
+
+    @property
+    def elements(self):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the voltages, harmonics or phi_offsets' +
+                           'lists of RFSystems to access the kick parameters.')
+
+    def set_voltage_list(self, voltage_list):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the list RFSystems.voltages .')
+
+    def set_harmonic_list(self, harmonic_list):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the list RFSystems.harmonics .')
+
+    def set_phi_offset_list(self, phi_offset_list):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the list RFSystems.phi_offsets .')
 
 
 class LinearMap(LongitudinalOneTurnMap):
