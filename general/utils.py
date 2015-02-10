@@ -27,3 +27,6 @@ class ListProxy(object):
 
     def __repr__(self):
         return repr(list(self))
+
+    def __len__(self):
+        return len(self._list_of_objects)
