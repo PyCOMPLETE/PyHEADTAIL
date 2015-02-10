@@ -1,3 +1,9 @@
+'''
+@authors: Adrian Oeftiger
+@date:    02/10/2014
+
+Provide useful decorators for PyHEADTAIL.
+'''
 
 from functools import wraps
 
