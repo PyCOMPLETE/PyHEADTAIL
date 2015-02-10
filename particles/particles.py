@@ -4,13 +4,11 @@ Created on 17.10.2014
 '''
 
 from abc import ABCMeta, abstractmethod
-# import itertools
 
 import numpy as np
 from scipy.constants import c, e
 
 from ..cobra_functions import stats as cp
-from . import cython_functions as cyfunc
 
 class Particles(object):
     '''Contains the basic properties of a particle ensemble with
@@ -37,7 +35,6 @@ class Particles(object):
         e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
         '''
         self.macroparticlenumber = macroparticlenumber
-        self.macroparticlenumber_all = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
@@ -68,13 +65,7 @@ class Particles(object):
         '''ID of particles in order to keep track of single entries
         in the coordinate and momentum arrays.
         '''
-        self.id_all = np.arange(1, self.macroparticlenumber+1, dtype=np.int32)
-        self.id = self.id_all.view()
-
-        '''Alive flag to handle the loss of particles
-        '''
-        self.alive_all = np.ones(self.macroparticlenumber, dtype=np.int32)
-        self.alive = self.alive_all.view()
+        self.id = np.arange(1, self.macroparticlenumber+1, dtype=np.int32)
 
         self.update(coords_n_momenta_dict)
 
@@ -116,23 +107,19 @@ class Particles(object):
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
 
+    # @property
+    # def theta(self):
+    #     return self.z/self.ring_radius
+    # @theta.setter
+    # def theta(self, value):
+    #     self.z = value*self.ring_radius
 
-    @property
-    def theta(self):
-        return self.z/self.ring_radius
-    @theta.setter
-    def theta(self, value):
-        self.z = value*self.ring_radius
-
-    @property
-    def delta_E(self):
-        return self.dp * self.beta*c*self.p0
-    @delta_E.setter
-    def delta_E(self, value):
-        self.dp = value / (self.beta*c*self.p0)
-
-    def get_circumference(self): return self.circumference
-    def get_gamma_reference(self): return self.gamma
+    # @property
+    # def delta_E(self):
+    #     return self.dp * self.beta*c*self.p0
+    # @delta_E.setter
+    # def delta_E(self, value):
+    #     self.dp = value / (self.beta*c*self.p0)
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -172,8 +159,7 @@ class Particles(object):
             raise ValueError("lengths of given phase space coordinate arrays" +
                              " do not coincide with self.macroparticlenumber.")
         for coord, array in coords_n_momenta_dict.items():
-            setattr(self, coord+'_all', array.copy())
-            setattr(self, coord, getattr(self, coord+'_all').view())
+            setattr(self, coord, array.copy())
         self.coords_n_momenta.update(coords_n_momenta_dict.keys())
 
     def add(self, coords_n_momenta_dict):
@@ -188,30 +174,6 @@ class Particles(object):
                              " momenta already exist and cannot be added." +
                              " Use self.update(...) for this purpose.")
         self.update(coords_n_momenta_dict)
-
-    def update_losses(self):
-        ''' Rearrange coords_n_momenta arrays self.u_all (with u = z, y,
-        z, ...) such that lost particles are relocated to the end of the
-        arrays. Re-set the self.u, which are shallow copies (views) of
-        the numpy arrays self.u_all. They view only the first part of
-        self.u_all containing the alive particles, i.e.
-        self.u = self.u_all[:n_alive_post]. They point to the same
-        locations in memory. Hence, by rearranging the self.u arrays,
-        what is actually sorted are the bunch.u_all. Update the number
-        of macroparticles which are still alive, i.e.
-        self.macroparticlenumber. '''
-        n_alive_post = cyfunc.relocate_lost_particles(self)
-
-        self.macroparticlenumber = n_alive_post
-        self.x = self.x_all[:n_alive_post]
-        self.y = self.y_all[:n_alive_post]
-        self.z = self.z_all[:n_alive_post]
-        self.xp = self.xp_all[:n_alive_post]
-        self.yp = self.yp_all[:n_alive_post]
-        self.dp = self.dp_all[:n_alive_post]
-        self.id = self.id_all[:n_alive_post]
-        self.alive = self.alive_all[:n_alive_post]
-
 
     # Statistics methods
 
