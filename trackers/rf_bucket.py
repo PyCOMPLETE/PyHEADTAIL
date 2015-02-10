@@ -19,7 +19,7 @@ class RFBucket(Printing):
         self.circumference = get_circumference
         self.gamma_reference = get_gamma
 
-        self.alpha0 = alpha[0]
+        self.alpha0 = alpha_array[0]
         self.p_increment = p_increment
 
         self.h = harmonic_list
