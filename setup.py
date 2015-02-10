@@ -115,14 +115,6 @@ cy_ext = [
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
                  ),
-        Extension("particles.cython_functions",
-                 ["particles/cython_functions.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 #extra_compile_args=["-fopenmp"],
-                 #extra_link_args=["-fopenmp"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
-                 ),
         Extension("aperture.aperture",
                  ["aperture/aperture.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
@@ -142,8 +134,3 @@ setup(
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
     )
-
-# setup(
-#     name="libBunch",
-#     ext_modules=cythonize(extensions),
-# )
