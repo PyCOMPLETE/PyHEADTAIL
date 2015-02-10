@@ -186,7 +186,7 @@ class CircularApertureXY(Aperture):
         for lost particles is done using a cython function. Return
         whether or not any lost particles were found. '''
         return cytag_lost_circular(
-            beam.x, beam.y, beam.alive, self.radius_square)
+            beam.x, beam.y, self.radius_square)
 
 class EllipticalApertureXY(Aperture):
     ''' Mark particles with transverse spatial coords (x, y) outside a
@@ -213,47 +213,46 @@ class EllipticalApertureXY(Aperture):
         for lost particles is done using a cython function. Return
         whether or not any lost particles were found. '''
         return cytag_lost_ellipse(
-            beam.x, beam.y, beam.alive, self.x_aper, self.y_aper)
+            beam.x, beam.y, self.x_aper, self.y_aper)
 
+# class RFBucketAperture(Aperture):
+#     ''' Mark particles with longitudinal phase space coords (z, dp)
+#     outside the accepted region as lost.
 
-class RFBucketAperture(Aperture):
-    ''' Mark particles with longitudinal phase space coords (z, dp)
-    outside the accepted region as lost.
+#     NOTE: THE CURRENT IMPLEMENTATION IS EXTREMELY SLOW! For 1e6
+#     macroparticles, executing it once takes 120ms. Hence, as an
+#     alternative, one may use the RectangularApertureZ using the z-limits
+#     of the RFBucket. Like this, particles leaking from the RFBucket will
+#     at some point be marked lost and finally removed as well. '''
 
-    NOTE: THE CURRENT IMPLEMENTATION IS EXTREMELY SLOW! For 1e6
-    macroparticles, executing it once takes 120ms. Hence, as an
-    alternative, one may use the RectangularApertureZ using the z-limits
-    of the RFBucket. Like this, particles leaking from the RFBucket will
-    at some point be marked lost and finally removed as well. '''
+#     def __init__(self, is_accepted, apply_losses_here=True,
+#                  *args, **kwargs):
+#         ''' The argument is_accepted takes a reference to a function of
+#         the form is_accepted(z, dp) returning a boolean array saying
+#         whether the pair (z, dp) is in- or outside the specified region
+#         of the longitudinal phase space. Usually, is_accepted can be
+#         generated either using the RFSystems.RFBucket.make_is_accepted
+#         or using directly RFSystems.RFBucket.is_in_separatrix. The
+#         argument apply_losses_here specifies whether the
+#         Particles.update_losses(beam) method should be called after
+#         tagging lost particles to relocate them to the end of the
+#         bunch.u_all arrays (u = x, y, z, ...), remove them from the
+#         views bunch.u and leave them in an untracked state. In case
+#         there are several Aperture elements placed at a segment boundary
+#         of the accelerator ring, apply_losses_here should only be set to
+#         True for the last one to increase performance. '''
+#         self.is_accepted = is_accepted
+#         super(RFBucketAperture, self).__init__(apply_losses_here)
 
-    def __init__(self, is_accepted, apply_losses_here=True,
-                 *args, **kwargs):
-        ''' The argument is_accepted takes a reference to a function of
-        the form is_accepted(z, dp) returning a boolean array saying
-        whether the pair (z, dp) is in- or outside the specified region
-        of the longitudinal phase space. Usually, is_accepted can be
-        generated either using the RFSystems.RFBucket.make_is_accepted
-        or using directly RFSystems.RFBucket.is_in_separatrix. The
-        argument apply_losses_here specifies whether the
-        Particles.update_losses(beam) method should be called after
-        tagging lost particles to relocate them to the end of the
-        bunch.u_all arrays (u = x, y, z, ...), remove them from the
-        views bunch.u and leave them in an untracked state. In case
-        there are several Aperture elements placed at a segment boundary
-        of the accelerator ring, apply_losses_here should only be set to
-        True for the last one to increase performance. '''
-        self.is_accepted = is_accepted
-        super(RFBucketAperture, self).__init__(apply_losses_here)
-
-    def tag_lost_particles(self, beam):
-        ''' This method is called by Aperture.track(beam) to identify
-        particles not passing through the aperture and set their
-        bunch.alive state to 0 (false) to mark them as lost. The
-        search for lost particles is done using a cython function.
-        Return whether or not any lost particles were found. '''
-        mask_lost = ~self.is_accepted(beam.z, beam.dp)
-        beam.alive[mask_lost] = 0
-        return np.sum(beam.alive)
+#     def tag_lost_particles(self, beam):
+#         ''' This method is called by Aperture.track(beam) to identify
+#         particles not passing through the aperture and set their
+#         bunch.alive state to 0 (false) to mark them as lost. The
+#         search for lost particles is done using a cython function.
+#         Return whether or not any lost particles were found. '''
+#         mask_lost = ~self.is_accepted(beam.z, beam.dp)
+#         beam.alive[mask_lost] = 0
+#         return np.sum(beam.alive)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
