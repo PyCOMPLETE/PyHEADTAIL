@@ -356,11 +356,15 @@ class RFSystems(LongitudinalOneTurnMap):
         configuration.
 
         Use for plotting or obtaining the Hamiltonian etc.
+
+        Attention: For the moment it is assumed that only the
+        fundamental kick has a non-zero p_increment.
+        (see RFSystems.p_increment)
         '''
         if gamma not in self._rfbucket:
             self._rfbucket[gamma] = RFBucket(
                 self.circumference, gamma, self.alpha_array, self.p_increment,
-                self.harmonic_list, self.voltage_list, self.phi_offset_list)
+                self.harmonics, self.voltages, self.phi_offsets)
         return self._rfbucket[gamma]
 
     def clean_buckets(self):
@@ -410,7 +414,7 @@ class RFSystems(LongitudinalOneTurnMap):
         #     # return np.sign(deltaE) * np.pi - phi_rel
         #     return np.pi - phi_rel
         # else:
-        #     return phi_rel
+        return phi_rel
 
     @staticmethod
     def _shrink_transverse_emittance(beam, geo_emittance_factor):
