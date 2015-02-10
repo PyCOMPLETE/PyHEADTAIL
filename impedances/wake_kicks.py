@@ -65,25 +65,27 @@ class WakeKick(Printing):
 
     def _convolution_dot_product(self, target_times, source_times,
                                  source_moments):
-        """ Implementation of the convolution of wake_field and
-        beam_profile using the numpy dot product. To be used with the
+        """ Implementation of the convolution of wake and source_moments
+        (beam profile) using the numpy dot product. To be used with the
         'uniform_charge' slicer mode. """
-        dt_to_target_slice = ([target_times] - ([source_times]).T
+        dt_to_target_slice = [target_times] - ([source_times]).T
         wake = self.wake_function(dt_to_target_slice)
 
-        return np.dot(beam_profile, wake)
+        return np.dot(source_moments, wake)
 
     def _convolution_numpy(self, target_times, source_times, source_moments):
-        """ Implementation of the convolution of wake_field and
-        beam_profile using the numpy built-in numpy.convolve method.
-        Recommended use with the 'uniform_bin' slicer mode for higher
-        performance. """
+        """ Implementation of the convolution of wake and source_moments
+        (longitudinal beam profile) using the numpy built-in
+        numpy.convolve method. Recommended use with the 'uniform_bin'
+        slicer mode (in case of multiturn wakes, additional conditions
+        must be fulfilled: fixed z_cuts and no acceleration!) for
+        higher performance. """
         dt_to_target_slice = np.concatenate(
             (target_times - source_times[-1],
             (target_times - source_times[0])[1:]))
         wake = self.wake_function(dt_to_target_slice)
 
-        return np.convolve(beam_profile, wake, 'valid')
+        return np.convolve(source_moments, wake, 'valid')
 
     def _accumulate_source_signal(self, bunch, times_list, moments_list,
                                   ages_list):
