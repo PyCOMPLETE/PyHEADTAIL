@@ -326,7 +326,7 @@ class RFSystems(LongitudinalOneTurnMap):
     @voltages.setter
     def voltages(self, value):
         for k, v in zip(self._kicks, value):
-            k.voltage = v]
+            k.voltage = v
 
     @property
     def harmonics(self):
