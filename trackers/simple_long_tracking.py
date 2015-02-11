@@ -386,17 +386,17 @@ class RFSystems(LongitudinalOneTurnMap):
         if self._shrinking:
             self._elements[-1].shrinkage_p_increment = value
 
-    def Qs(self, gamma):
-        beta = np.sqrt(1 - gamma**-2)
-        p0 = m_p*np.sqrt(gamma**2 - 1)*c
-        eta0 = self.eta(0, gamma)
+    # def Qs(self, gamma):
+    #     beta = np.sqrt(1 - gamma**-2)
+    #     p0 = m_p*np.sqrt(gamma**2 - 1)*c
+    #     eta0 = self.eta(0, gamma)
 
-        fc = self.fundamental_kick
-        V = fc.voltage
-        h = fc.harmonic
+    #     fc = self.fundamental_kick
+    #     V = fc.voltage
+    #     h = fc.harmonic
 
-        return np.sqrt( e*V*np.abs(eta0)*h /
-                       (2*np.pi*self.p0_reference*self.beta_reference*c) )
+    #     return np.sqrt( e*V*np.abs(eta0)*h /
+    #                    (2*np.pi*self.p0_reference*self.beta_reference*c) )
 
     def phi_s(self, gamma):
         beta = np.sqrt(1 - gamma**-2)
@@ -418,7 +418,8 @@ class RFSystems(LongitudinalOneTurnMap):
 
     @staticmethod
     def _shrink_transverse_emittance(beam, geo_emittance_factor):
-        """Account for the transverse geometrical emittance shrinking.
+        """Account for the transverse geometrical emittance shrinking
+        due to acceleration cooling.
         """
         beam.x *= geo_emittance_factor
         beam.xp *= geo_emittance_factor
@@ -435,7 +436,11 @@ class RFSystems(LongitudinalOneTurnMap):
                 self._shrink_transverse_emittance(
                     beam, np.sqrt(betagamma_old / beam.betagamma))
                 self.track = self.track_transverse_shrinking
-            except AttributeError:
+            except AttributeError as e:
+                self.warns("Failed to apply transverse acceleration " +
+                           "cooling. Caught AttributeError: \n" +
+                           e + "\nContinue without shrinking " +
+                           "transverse emittance...")
                 self.track = self.track_no_transverse_shrinking
 
     @clean_slices
