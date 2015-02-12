@@ -7,7 +7,7 @@ from __future__ import division
 from . import Element, clean_slices
 
 import numpy as np
-from scipy.constants import m_p, c, e, epsilon_0
+from scipy.constants import m_p, c, e, epsilon_0, pi
 
 class LongSpaceCharge(Element):
     '''
@@ -19,6 +19,9 @@ class LongSpaceCharge(Element):
     '''
 
     def __init__(self, slicer, pipe_radius, time_step, *args, **kwargs):
+        """Attention: Do not forget to adapt time_step during
+        acceleration, as the revolution period changes.
+        """
         self.slicer = slicer
         self.pipe_radius = pipe_radius
         self.time_step = time_step
@@ -30,9 +33,10 @@ class LongSpaceCharge(Element):
         Add the longitudinal space charge contribution to the beam's
         dp kick.
         '''
+        charge = beam.particlenumber_per_mp * beam.charge
         slices = beam.get_slices(self.slicer)
         lambda_prime = (slices.line_density_derivative_gauss(sigma=3) *
-                        beam.particlenumber_per_mp)
+                        charge)
         slice_kicks = (self._prefactor(beam) * self._gfactor(beam) *
                        lambda_prime) * self.time_step
 
