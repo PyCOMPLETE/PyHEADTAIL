@@ -91,8 +91,9 @@ class WakeField(Element):
         WakeKick instances. """
 
         # Update ages of stored SliceSet instances.
-        for slice_set_age in self.slice_set_age_deque:
-            slice_set_age += bunch.circumference / (bunch.beta * c)
+        for i in xrange(len(self.slice_set_age_deque)):
+            self.slice_set_age_deque[i] += (
+                bunch.circumference / (bunch.beta * c))
 
         slice_set = bunch.get_slices(self.slicer,
                                      statistics=['mean_x', 'mean_y'])
