@@ -132,8 +132,12 @@ class Particles(object):
         if slicer not in self._slice_sets:
             self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
         elif 'statistics' in kwargs:
-            slicer.add_statistics(self._slice_sets[slicer], self,
-                                  kwargs['statistics'])
+            if (any([ '_x' in stats for stats in kwargs['statistics']]) or
+                    any([ '_y' in stats for stats in kwargs['statistics']])):
+                self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
+            else:
+                slicer.add_statistics(self._slice_sets[slicer], self,
+                                      kwargs['statistics'])
         return self._slice_sets[slicer]
 
     def clean_slices(self):
