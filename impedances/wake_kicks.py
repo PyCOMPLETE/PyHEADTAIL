@@ -68,7 +68,8 @@ class WakeKick(Printing):
         """ Implementation of the convolution of wake and source_moments
         (beam profile) using the numpy dot product. To be used with the
         'uniform_charge' slicer mode. """
-        dt_to_target_slice = [target_times] - ([source_times]).T
+        dt_to_target_slice = (
+            [target_times] - np.transpose([source_times]))
         wake = self.wake_function(dt_to_target_slice)
 
         return np.dot(source_moments, wake)
@@ -95,7 +96,13 @@ class WakeKick(Printing):
         the age of each slice set."""
         target_times = times_list[0]
         accumulated_signal = 0
-        for i in range(self.n_turns_wake):
+
+        if len(ages_list) < self.n_turns_wake:
+            n_turns = len(ages_list)
+        else:
+            n_turns = self.n_turns_wake
+
+        for i in range(n_turns):
             source_times = times_list[i] + ages_list[i]
             source_moments = moments_list[i]
             accumulated_signal += self._convolution(target_times, source_times,
@@ -119,8 +126,8 @@ class ConstantWakeKickX(WakeKick):
         constant_kick = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.xp[p_idx] += constant_kick.take(s_idx)
 
 
@@ -137,8 +144,8 @@ class ConstantWakeKickY(WakeKick):
         constant_kick = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.yp[p_idx] += constant_kick.take(s_idx)
 
 
@@ -155,8 +162,8 @@ class ConstantWakeKickZ(WakeKick):
         constant_kick = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.dp[p_idx] += constant_kick.take(s_idx)
 
 
@@ -175,8 +182,8 @@ class DipoleWakeKickX(WakeKick):
         dipole_kick_x = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.xp[p_idx] += dipole_kick_x.take(s_idx)
 
 
@@ -193,8 +200,8 @@ class DipoleWakeKickXY(WakeKick):
         dipole_kick_xy = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.xp[p_idx] += dipole_kick_xy.take(s_idx)
 
 
@@ -211,8 +218,8 @@ class DipoleWakeKickY(WakeKick):
         dipole_kick_y = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.yp[p_idx] += dipole_kick_y.take(s_idx)
 
 
@@ -229,8 +236,8 @@ class DipoleWakeKickYX(WakeKick):
         dipole_kick_yx = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.yp[p_idx] += dipole_kick_yx.take(s_idx)
 
 
@@ -249,8 +256,8 @@ class QuadrupoleWakeKickX(WakeKick):
         quadrupole_kick_x = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.xp[p_idx] += quadrupole_kick_x.take(s_idx) * bunch.x.take(p_idx)
 
 
@@ -267,8 +274,8 @@ class QuadrupoleWakeKickXY(WakeKick):
         quadrupole_kick_xy = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.xp[p_idx] += quadrupole_kick_xy.take(s_idx) * bunch.y.take(p_idx)
 
 
@@ -285,8 +292,8 @@ class QuadrupoleWakeKickY(WakeKick):
         quadrupole_kick_y = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.yp[p_idx] += quadrupole_kick_y.take(s_idx) * bunch.y.take(p_idx)
 
 
@@ -303,6 +310,6 @@ class QuadrupoleWakeKickYX(WakeKick):
         quadrupole_kick_yx = self._accumulate_source_signal(
             bunch, times_list, moments_list, slice_set_age_list)
 
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        p_idx = slice_set_list[0].particles_within_cuts
+        s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.yp[p_idx] += quadrupole_kick_yx.take(s_idx) * bunch.x.take(p_idx)
