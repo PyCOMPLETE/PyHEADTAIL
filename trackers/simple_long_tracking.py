@@ -13,7 +13,7 @@ from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
 
 from . import Element, clean_slices, utils
-from rf_bucket import RFBucket, clean_buckets
+from rf_bucket import RFBucket, attach_clean_buckets
 
 from types import MethodType
 import weakref
