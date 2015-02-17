@@ -37,7 +37,7 @@ class LongSpaceCharge(Element):
         slices = beam.get_slices(self.slicer)
         lambda_prime = (slices.line_density_derivative_gauss(sigma=3) *
                         charge)
-        slice_kicks = (self._prefactor(beam) * self._gfactor(beam) *
+        slice_kicks = (self._prefactor(beam) * self._gfactor0(beam) *
                        lambda_prime) * self.time_step
 
         p_id = slices.particles_within_cuts
@@ -47,8 +47,9 @@ class LongSpaceCharge(Element):
 
     @staticmethod
     def _prefactor(beam):
-        return e**2 / (2 * np.pi * epsilon_0 * beam.gamma**2 * beam.p0)
+        return e**2 / (4. * np.pi * epsilon_0 * beam.gamma**2 * beam.p0)
 
-    def _gfactor(self, beam):
+    def _gfactor0(self, beam):
+        """Giovanni Rumolo has put 0.67 into HEADTAIL instead of 0.5."""
         beam_radius = (beam.sigma_x() + beam.sigma_y()) / 2
-        return 1. / 3 + np.log(self.pipe_radius / beam_radius)
+        return 0.5 + 2. * np.log(self.pipe_radius / beam_radius)
