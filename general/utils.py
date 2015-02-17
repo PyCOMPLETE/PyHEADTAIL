@@ -52,6 +52,10 @@ class ListProxy(Printing):
             # in analogy to the numpy view method
 
     def __setitem__(self, index, value):
+        self._rewritable_setitem(index, value)
+
+    def _rewritable_setitem(self, index, value):
+        """This setter method may be overwritten."""
         subject = self._list_of_objects[index]
         try:
             setattr(subject, self._attr_name, value)
