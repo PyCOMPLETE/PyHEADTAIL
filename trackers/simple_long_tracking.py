@@ -291,6 +291,8 @@ class RFSystems(LongitudinalOneTurnMap):
         - phase_lock == True means all phi_offsets are given w.r.t. the
         fundamental kick.
         - phase_lock == False means all phi_offsets are absolute.
+        In this case take care about all Kick.p_increment attributes --
+        highly non-trivial, take care! :-)
         """
 
         super(RFSystems, self).__init__(alpha_array, circumference)
