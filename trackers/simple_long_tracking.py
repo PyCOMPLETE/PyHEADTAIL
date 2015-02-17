@@ -296,7 +296,8 @@ class RFSystems(LongitudinalOneTurnMap):
         fundamental kick.
         - phase_lock == False means all phi_offsets are absolute.
         In this case take care about all Kick.p_increment attributes --
-        highly non-trivial, take care! :-)
+        highly non-trivial, as all other p_increment functionality
+        in RFSystems is broken. So take care, you're on your own! :-)
         """
 
         super(RFSystems, self).__init__(alpha_array, circumference)
@@ -321,12 +322,11 @@ class RFSystems(LongitudinalOneTurnMap):
         if phase_lock:
             self._phaselock(gamma_reference)
 
-        '''Only retain (strongly) referenced RFBucket instances.
-        All RFBucket instances that are only kept in the
-        RFSystems._rfbucket list should be garbage collected
-        as they might jam the memory during acceleration simulations.
+        '''Take care of possible memory leakage when accessing with many
+        different gamma values without tracking while setting
+        RFSystems.p_increment != 0.
         '''
-        self._rfbucket = weakref.WeakValueDictionary()
+        self._rfbuckets = {}
 
         self._voltages = utils.ListProxy(self._kicks, "voltage")
         self._harmonics = utils.ListProxy(self._kicks, "harmonic")
@@ -406,7 +406,7 @@ class RFSystems(LongitudinalOneTurnMap):
     def get_bucket(self, gamma, *args, **kwargs):
         '''Return an RFBucket instance which contains all information
         and all physical parameters of the current longitudinal RF
-        configuration.
+        configuration. (Factory method)
 
         Use for plotting or obtaining the Hamiltonian etc.
 
@@ -414,18 +414,19 @@ class RFSystems(LongitudinalOneTurnMap):
         fundamental kick has a non-zero p_increment.
         (see RFSystems.p_increment)
         '''
-        if gamma not in self._rfbucket:
-            self._rfbucket[gamma] = RFBucket(
-                self.circumference, gamma, self.alpha_array, self.p_increment,
-                self.harmonics, self.voltages, self.phi_offsets)
-        return self._rfbucket[gamma]
+        if gamma not in self._rfbuckets:
+            self._rfbuckets[gamma] = RFBucket(
+                self.circumference, gamma, self.alpha_array,
+                self.p_increment, list(self.harmonics),
+                list(self.voltages), list(self.phi_offsets))
+        return self._rfbuckets[gamma]
 
     def clean_buckets(self):
         '''Erases all RFBucket records of this RFSystems instance.
         Any change of the Kick parameters should entail calling
         clean_buckets in order to update the Hamiltonian etc.
         '''
-        self._rfbucket = weakref.WeakValueDictionary()
+        self._rfbuckets = {}
 
     # def Qs(self, gamma):
     #     beta = np.sqrt(1 - gamma**-2)
@@ -468,34 +469,30 @@ class RFSystems(LongitudinalOneTurnMap):
         beam.yp *= geo_emittance_factor
 
     def track(self, beam):
-        if self.p_increment:
-            betagamma_old = beam.betagamma
-        for longMap in self._elements:
-            longMap.track(beam)
-        if self.p_increment:
-            try:
-                self._shrink_transverse_emittance(
-                    beam, np.sqrt(betagamma_old / beam.betagamma))
-                self.track = self.track_transverse_shrinking
-            except AttributeError as e:
-                self.warns("Failed to apply transverse acceleration " +
-                           "cooling. Caught AttributeError: \n" +
-                           e + "\nContinue without shrinking " +
-                           "transverse emittance...")
-                self.track = self.track_no_transverse_shrinking
+        try:
+            self.track_transverse_shrinking(beam)
+            self.track = self.track_transverse_shrinking
+        except AttributeError as e:
+            self.warns("Failed to apply transverse acceleration " +
+                       "cooling. Caught AttributeError: \n" +
+                       e.message + "\nContinue without shrinking " +
+                       "transverse emittance...")
+            self.track = self.track_no_transverse_shrinking
 
     def track_transverse_shrinking(self, beam):
-        if self.p_increment:
-            betagamma_old = beam.betagamma
+        betagamma_old = beam.betagamma
         for longMap in self._elements:
             longMap.track(beam)
         if self.p_increment:
             self._shrink_transverse_emittance(
                 beam, np.sqrt(betagamma_old / beam.betagamma))
+            self.clean_buckets()
 
     def track_no_transverse_shrinking(self, beam):
         for longMap in self._elements:
             longMap.track(beam)
+        if self.p_increment:
+            self.clean_buckets()
 
     def _phaselock(self, gamma):
         '''Put all _kicks other than the fundamental kick to zero phase
@@ -509,6 +506,7 @@ class RFSystems(LongitudinalOneTurnMap):
         for c in cavities:
             c._phi_lock -= c.harmonic/fc.harmonic * self.phi_s(gamma)
 
+
     # --- INTERFACE CHANGE notifications to update users of previous versions
     # --- to use the right new methods
     @property
@@ -516,7 +514,8 @@ class RFSystems(LongitudinalOneTurnMap):
         '''non-existent anymore!'''
         raise RuntimeError('Interface change: ' +
                            'Use the get_bucket(gamma_reference) method ' +
-                           'to obtain the current state of the ' +
+                           'to obtain a (constant) blueprint of the ' +
+                           'current state of the ' +
                            'longitudinal RF configuration.')
 
     @property
