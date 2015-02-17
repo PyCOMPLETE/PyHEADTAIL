@@ -13,7 +13,10 @@ from scipy.optimize import brentq
 from scipy.constants import c, e, m_p
 
 from . import Element, clean_slices, utils
-from rf_bucket import RFBucket
+from rf_bucket import RFBucket, clean_buckets
+
+from types import MethodType
+import weakref
 
 sin = np.sin
 cos = np.cos
@@ -257,6 +260,7 @@ class RFSystems(LongitudinalOneTurnMap):
         The first entry in harmonic_list, voltage_list and
         phi_offset_list defines the parameters for the one
         accelerating Kick object (i.e. the accelerating RF system).
+
         For several accelerating Kick objects one would have to
         extend this class and settle for the relative phases
         between the Kick objects! (For one accelerating Kick object,
@@ -317,40 +321,87 @@ class RFSystems(LongitudinalOneTurnMap):
         if phase_lock:
             self._phaselock(gamma_reference)
 
-        self._rfbucket = {}
+        '''Only retain (strongly) referenced RFBucket instances.
+        All RFBucket instances that are only kept in the
+        RFSystems._rfbucket list should be garbage collected
+        as they might jam the memory during acceleration simulations.
+        '''
+        self._rfbucket = weakref.WeakValueDictionary()
+
+        self._voltages = utils.ListProxy(self._kicks, "voltage")
+        self._harmonics = utils.ListProxy(self._kicks, "harmonic")
+        self._phi_offsets = utils.ListProxy(self._kicks, "phi_offset")
+        # SORRY FOR THE FOLLOWING CODE!
+        # any write access to the above ListProxy instances changes
+        # Kick parameters and should therefore result in
+        # discarding all saved RFBucket instances:
+        voltages_setitem = attach_clean_buckets(
+            self._voltages._rewritable_setitem, self)
+        harmonics_setitem = attach_clean_buckets(
+            self._harmonics._rewritable_setitem, self)
+        phi_offsets_setitem = attach_clean_buckets(
+            self._phi_offsets._rewritable_setitem, self)
+
+        self._voltages._rewritable_setitem = MethodType(
+            voltages_setitem, self._voltages)
+        self._harmonics._rewritable_setitem = MethodType(
+            harmonics_setitem, self._harmonics)
+        self._phi_offsets._rewritable_setitem = MethodType(
+            phi_offsets_setitem, self._phi_offsets)
+        # any suggestions to improve readibility highly appreciated :-)
 
     @property
     def voltages(self):
-        """List of Kick voltages, use this interface in RFSystems to
-        access and modify any Kick voltage.
+        """List of Kick voltages, ONLY use this interface in RFSystems
+        to access and modify any Kick voltage.
+        (Otherwise the get_bucket functionality is broken,
+         clean_buckets will not be called if not using this interface.)
         """
-        return utils.ListProxy(self._kicks, "voltage")
+        return self._voltages
     @voltages.setter
     def voltages(self, value):
-        for k, v in zip(self._kicks, value):
-            k.voltage = v
+        self.voltages[:] = value
 
     @property
     def harmonics(self):
-        """List of Kick harmonics, use this interface in RFSystems to
-        access and modify any Kick harmonic.
+        """List of Kick harmonics, ONLY use this interface in RFSystems
+        to access and modify any Kick harmonic.
+        (Otherwise the get_bucket functionality is broken,
+        clean_buckets will not be called if not using this interface.)
         """
-        return utils.ListProxy(self._kicks, "harmonic")
+        return self._harmonics
     @harmonics.setter
     def harmonics(self, value):
-        for k, v in zip(self._kicks, value):
-            k.harmonic = v
+        self.harmonics[:] = value
 
     @property
     def phi_offsets(self):
-        """List of Kick phi_offsets, use this interface in RFSystems to
-        access and modify any Kick phi_offset.
+        """List of Kick phi_offsets, ONLY use this interface in
+        RFSystems to access and modify any Kick phi_offset.
+        (Otherwise the get_bucket functionality is broken,
+        clean_buckets will not be called if not using this interface.)
         """
-        return utils.ListProxy(self._kicks, "phi_offset")
+        return self._phi_offsets
     @phi_offsets.setter
     def phi_offsets(self, value):
-        for k, v in zip(self._kicks, value):
-            k.phi_offset = v
+        self.phi_offsets[:] = value
+
+    @property
+    def p_increment(self):
+        """The increment in momentum of the fundamental Kick, i.e.
+        the lowest harmonic.
+        ONLY use this interface in RFSystems to access and modify
+        the accelerating Kick.p_increment.
+        (Otherwise the get_bucket functionality is broken,
+         clean_buckets will not be called if not using this interface.)
+        """
+        return self.fundamental_kick.p_increment
+    @p_increment.setter
+    def p_increment(self, value):
+        self.clean_buckets()
+        self.fundamental_kick.p_increment = value
+        if self._shrinking:
+            self._elements[-1].shrinkage_p_increment = value
 
     def get_bucket(self, gamma, *args, **kwargs):
         '''Return an RFBucket instance which contains all information
@@ -374,19 +425,7 @@ class RFSystems(LongitudinalOneTurnMap):
         Any change of the Kick parameters should entail calling
         clean_buckets in order to update the Hamiltonian etc.
         '''
-        self._rfbucket = {}
-
-    @property
-    def p_increment(self):
-        """The increment in momentum of the fundamental Kick, i.e.
-        the lowest harmonic.
-        """
-        return self.fundamental_kick.p_increment
-    @p_increment.setter
-    def p_increment(self, value):
-        self.fundamental_kick.p_increment = value
-        if self._shrinking:
-            self._elements[-1].shrinkage_p_increment = value
+        self._rfbucket = weakref.WeakValueDictionary()
 
     # def Qs(self, gamma):
     #     beta = np.sqrt(1 - gamma**-2)

@@ -8,8 +8,31 @@ from scipy.integrate import dblquad
 
 from . import Printing
 
-class RFBucket(Printing):
+from functools import wraps
 
+def attach_clean_buckets(rf_parameter_changing_method, rfsystems_instance):
+    '''Wrap an rf_parameter_changing_method (that changes relevant RF
+    parameters, i.e. Kick attributes). Needs to be an instance method,
+    presumably an RFSystems instance.
+    In detail, attaches a call to the rfsystems_instance.clean_buckets
+    method after calling the wrapped function.
+    '''
+    @wraps(rf_parameter_changing_method)
+    def cleaned_rf_parameter_changing_method(self, *args, **kwargs):
+        res = rf_parameter_changing_method(*args, **kwargs)
+        rfsystems_instance.clean_buckets()
+        return res
+    return cleaned_rf_parameter_changing_method
+
+class RFBucket(Printing):
+    """Holds a blueprint of the current RF bucket configuration.
+    Should be requested via RFSystems.get_bucket(gamma).
+
+    Contains all information and all physical parameters of the
+    current longitudinal RF configuration.
+
+    Use for plotting or obtaining the Hamiltonian etc.
+    """
     def __init__(self, circumference, gamma_reference, alpha_array,
                  p_increment, harmonic_list, voltage_list,
                  phi_offset_list, *args, **kwargs):
@@ -17,8 +40,8 @@ class RFBucket(Printing):
         '''
 
         self.circumference = circumference
-        self.gamma_reference = gamma_reference
         self.mass = m_p
+        self.gamma_reference = gamma_reference
 
         self.alpha0 = alpha_array[0]
         self.p_increment = p_increment
