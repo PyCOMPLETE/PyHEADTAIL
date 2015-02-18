@@ -25,7 +25,7 @@ cos = np.cos
 # think about flexible design to separate numerical methods
 # and physical parameters (as before for the libintegrators.py)
 # while satisfying this design layout.
-# currently: only Euler Cromer supported in RFSystems
+# currently: only Velocity Verlet algorithm hard coded in RFSystems
 
 
 class LongitudinalMap(Element):
@@ -58,7 +58,7 @@ class LongitudinalMap(Element):
     @abstractmethod
     def track(self, beam):
         '''Should be decorated by @clean_slices for any inheriting
-        classes.
+        classes changing beam.z .
         '''
         pass
 
@@ -112,15 +112,6 @@ class Drift(LongitudinalMap):
         beam.z = (beta_ratio * beam.z -
                   self.eta(beam.dp, beam.gamma) * beam.dp * self.length)
 
-
-# def referise(self, name, value):
-#     pname = "_" + name
-#     setattr(self, pname, [value])
-#     def getter(s):
-#         return getattr(s, pname)[0]
-#     def setter(s):
-#         getattr(s, pname)[0] = s
-#     return property(getter, setter)
 
 class Kick(LongitudinalMap):
     """
@@ -290,10 +281,8 @@ class RFSystems(LongitudinalOneTurnMap):
         synchronous particle, it can be continuously adjusted to
         reflect different slopes in the dipole magnet strength ramp.
         (See the Kick class for further details.)
-        - self.fundamental_kick returns the Kick object with the lowest
-        harmonic of the revolution frequency
         - phase_lock == True means all phi_offsets are given w.r.t. the
-        fundamental kick.
+        fundamental kick, adjusted at set-up time.
         - phase_lock == False means all phi_offsets are absolute.
         In this case take care about all Kick.p_increment attributes --
         highly non-trivial, as all other p_increment functionality
@@ -316,7 +305,9 @@ class RFSystems(LongitudinalOneTurnMap):
                         + self._kicks
                         + [Drift(alpha_array, 0.5 * self.circumference)]
                         )
-        self.fundamental_kick = min(self._kicks, key=lambda kick: kick.harmonic)
+        self._accelerating_kick = self._kicks[0]
+        self._shrinking_drift = self._elements[-1]
+
         self.p_increment = p_increment
 
         if phase_lock:
@@ -388,20 +379,20 @@ class RFSystems(LongitudinalOneTurnMap):
 
     @property
     def p_increment(self):
-        """The increment in momentum of the fundamental Kick, i.e.
-        the lowest harmonic.
+        """The increment in momentum of the accelerating Kick, i.e.
+        defined by the first entry in the RF parameter lists.
         ONLY use this interface in RFSystems to access and modify
         the accelerating Kick.p_increment.
         (Otherwise the get_bucket functionality is broken,
          clean_buckets will not be called if not using this interface.)
         """
-        return self.fundamental_kick.p_increment
+        return self._accelerating_kick.p_increment
     @p_increment.setter
     def p_increment(self, value):
         self.clean_buckets()
-        self.fundamental_kick.p_increment = value
+        self._accelerating_kick.p_increment = value
         if self._shrinking:
-            self._elements[-1].shrinkage_p_increment = value
+            self._shrinking_drift.shrinkage_p_increment = value
 
     def get_bucket(self, gamma, *args, **kwargs):
         '''Return an RFBucket instance which contains all information
@@ -411,7 +402,8 @@ class RFSystems(LongitudinalOneTurnMap):
         Use for plotting or obtaining the Hamiltonian etc.
 
         Attention: For the moment it is assumed that only the
-        fundamental kick has a non-zero p_increment.
+        accelerating kick (defined by the first entry in the
+        parameter lists) has a non-zero p_increment.
         (see RFSystems.p_increment)
         '''
         if gamma not in self._rfbuckets:
@@ -428,23 +420,11 @@ class RFSystems(LongitudinalOneTurnMap):
         '''
         self._rfbuckets = {}
 
-    # def Qs(self, gamma):
-    #     beta = np.sqrt(1 - gamma**-2)
-    #     p0 = m_p*np.sqrt(gamma**2 - 1)*c
-    #     eta0 = self.eta(0, gamma)
-
-    #     fc = self.fundamental_kick
-    #     V = fc.voltage
-    #     h = fc.harmonic
-
-    #     return np.sqrt( e*V*np.abs(eta0)*h /
-    #                    (2*np.pi*self.p0_reference*self.beta_reference*c) )
-
     def phi_s(self, gamma):
         beta = np.sqrt(1 - gamma**-2)
         eta0 = self.eta(0, gamma)
 
-        V = self.fundamental_kick.voltage
+        V = self._accelerating_kick.voltage
 
         if self.p_increment == 0 and V == 0:
             return 0
@@ -495,16 +475,16 @@ class RFSystems(LongitudinalOneTurnMap):
             self.clean_buckets()
 
     def _phaselock(self, gamma):
-        '''Put all _kicks other than the fundamental kick to zero phase
-        difference w.r.t. the fundamental kick.
-        Attention: Make sure the p_increment of each non-fundamental
+        '''Put all _kicks other than the accelerating kick to
+        zero phase difference w.r.t. the accelerating kick.
+        Attention: Make sure the p_increment of each non-accelerating
         kick is set to 0 (assuming phi_offset == 0, otherwise adapt!).
         '''
-        fc = self.fundamental_kick
-        cavities = [k for k in self._kicks if k is not fc]
+        acc = self._accelerating_kick
+        non_accelerating_kicks = (k for k in self._kicks if k is not acc)
 
-        for c in cavities:
-            c._phi_lock -= c.harmonic/fc.harmonic * self.phi_s(gamma)
+        for kick in non_accelerating_kicks:
+            kick._phi_lock -= kick.harmonic/acc.harmonic * self.phi_s(gamma)
 
 
     # --- INTERFACE CHANGE notifications to update users of previous versions
@@ -522,15 +502,30 @@ class RFSystems(LongitudinalOneTurnMap):
     def kicks(self):
         '''non-existent anymore!'''
         raise RuntimeError('Interface change: ' +
-                           'Use the voltages, harmonics or phi_offsets' +
+                           'Use the voltages, harmonics or phi_offsets ' +
                            'lists of RFSystems to access the kick parameters.')
 
     @property
     def elements(self):
         '''non-existent anymore!'''
         raise RuntimeError('Interface change: ' +
-                           'Use the voltages, harmonics or phi_offsets' +
+                           'Use the voltages, harmonics or phi_offsets ' +
                            'lists of RFSystems to access the kick parameters.')
+
+    @property
+    def fundamental_kick(self):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the voltages, harmonics or phi_offsets ' +
+                           'lists of RFSystems to access the kick parameters.')
+
+    @property
+    def accelerating_kick(self):
+        '''non-existent anymore!'''
+        raise RuntimeError('Interface change: ' +
+                           'Use the first entries of the voltages, harmonics ' +
+                           'or phi_offsets lists of RFSystems to access the ' +
+                           'kick parameters.')
 
     def set_voltage_list(self, voltage_list):
         '''non-existent anymore!'''
@@ -546,6 +541,19 @@ class RFSystems(LongitudinalOneTurnMap):
         '''non-existent anymore!'''
         raise RuntimeError('Interface change: ' +
                            'Use the list RFSystems.phi_offsets .')
+
+    # # should be more general:
+    # def Qs(self, gamma):
+    #     beta = np.sqrt(1 - gamma**-2)
+    #     p0 = m_p*np.sqrt(gamma**2 - 1)*c
+    #     eta0 = self.eta(0, gamma)
+
+    #     fc = self.fundamental_kick
+    #     V = fc.voltage
+    #     h = fc.harmonic
+
+    #     return np.sqrt( e*V*np.abs(eta0)*h /
+    #                    (2*np.pi*self.p0_reference*self.beta_reference*c) )
 
 
 class LinearMap(LongitudinalOneTurnMap):
