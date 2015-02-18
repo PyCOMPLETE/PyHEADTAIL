@@ -542,7 +542,9 @@ class RFSystems(LongitudinalOneTurnMap):
         raise RuntimeError('Interface change: ' +
                            'Use the list RFSystems.phi_offsets .')
 
-    # # should be more general:
+    # # should be replaced by something more general:
+    # # (something along the lines of
+    # #  summing over h_i * V_i * sin(phi_i?))
     # def Qs(self, gamma):
     #     beta = np.sqrt(1 - gamma**-2)
     #     p0 = m_p*np.sqrt(gamma**2 - 1)*c

@@ -13,7 +13,8 @@ from functools import wraps
 def attach_clean_buckets(rf_parameter_changing_method, rfsystems_instance):
     '''Wrap an rf_parameter_changing_method (that changes relevant RF
     parameters, i.e. Kick attributes). Needs to be an instance method,
-    presumably an RFSystems instance.
+    presumably an RFSystems instance (hence the self argument in
+    cleaned_rf_parameter_changing_method).
     In detail, attaches a call to the rfsystems_instance.clean_buckets
     method after calling the wrapped function.
     '''
@@ -83,6 +84,7 @@ class RFBucket(Printing):
     def R(self):
         return self.circumference/(2*np.pi)
 
+    # should make use of eta functionality of LongitudinalMap at some point
     @property
     def eta0(self):
         return self.alpha0 - self.gamma_reference**-2
@@ -93,6 +95,9 @@ class RFBucket(Printing):
 
     @property
     def Qs(self):
+        """Neglects all other harmonics besides the maximum
+        voltage one.
+        """
         ix = np.argmax(self.V)
         V = self.V[ix]
         h = self.h[ix]
@@ -211,9 +216,17 @@ class RFBucket(Printing):
                 + self.V_acc(z)) / self.p0_reference)
 
     def H0_from_sigma(self, z0):
+        """Pure estimate value of H_0 starting from a bi-Gaussian bunch
+        in a linear "RF bucket". Intended for use by iterative matching
+        algorithms in the generators module.
+        """
         return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2
 
     def H0_from_epsn(self, epsn):
+        """Pure estimate value of H_0 starting from a bi-Gaussian bunch
+        in a linear "RF bucket". Intended for use by iterative matching
+        algorithms in the generators module.
+        """
         z0 = np.sqrt(epsn/(4.*np.pi) * self.beta_z * e/self.p0_reference)
         return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2
 
@@ -248,7 +261,6 @@ class RFBucket(Printing):
         the returned is_accepted(z, dp) function is equivalent to
         self.is_in_separatrix(z, dp).
         """
-
         def is_accepted(z, dp):
             """ Returns boolean whether the coordinate (z, dp) is
             located inside the equihamiltonian defined by
