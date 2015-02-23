@@ -9,6 +9,7 @@ from scipy.integrate import dblquad
 from . import Printing
 
 from functools import wraps
+import operator
 
 def attach_clean_buckets(rf_parameter_changing_method, rfsystems_instance):
     '''Wrap an rf_parameter_changing_method (that changes relevant RF
@@ -33,6 +34,10 @@ class RFBucket(Printing):
     current longitudinal RF configuration.
 
     Use for plotting or obtaining the Hamiltonian etc.
+
+    Warning: zmin and zmax do not (yet) account for phi_offset of
+    Kick objects, i.e. the left and right side of the bucket are not
+    accordingly moved w.r.t. the harmonic phase offset.
     """
     def __init__(self, circumference, gamma_reference, alpha_array,
                  p_increment, harmonic_list, voltage_list,
@@ -52,8 +57,21 @@ class RFBucket(Printing):
         self.dphi = phi_offset_list
 
         zmax = self.circumference / (2*np.amin(harmonic_list))
-        self.zmin, self.zmax = -1.01*zmax, +1.01*zmax
-        self._get_bucket_boundaries()
+
+        """Minimum z value on the left side of the stationary bucket
+        as defined by the fundamental harmonic only.
+        (Which is not necessarily the left unstable fix point
+        of the real bucket.)
+        """
+        self.zmin = -1.01*zmax
+
+        """Maximum z value on the left side of the stationary bucket
+        as defined by the fundamental harmonic only.
+        (Which is not necessarily the left unstable fix point
+        of the real bucket.)
+        """
+        self.zmax = +1.01*zmax
+        self._set_bucket_boundaries()
 
     @property
     def gamma_reference(self):
@@ -125,14 +143,16 @@ class RFBucket(Printing):
         return self.Ef(z) - deltaE/self.circumference
 
     def potential(self, V, h, dphi):
+        """Stationary potential of a single RF element.
+        """
         def v(z):
             return e*V/(2*np.pi*h) * np.cos(h*z/self.R + dphi)
         return v
 
     def Vf(self, z):
-        return reduce(lambda x, y: x + y,
-                      [self.potential(V, h, dphi)(z) for V, h, dphi
-                       in zip(self.V, self.h, self.dphi)])
+        """Stationary potential of all RF elements in this RFBucket."""
+        return sum(self.potential(V, h, dphi)(z) for V, h, dphi
+                   in zip(self.V, self.h, self.dphi))
 
     def V_acc(self, z):
         '''Sign makes sure we stay convex - just nicer'''
@@ -140,8 +160,8 @@ class RFBucket(Printing):
         deltaE = self.p_increment*self.beta_reference*c
 
         if deltaE < 0:
-            self.warns('Deceleration is not implemented properly!')
-            exit(-1)
+            self.warns('Deceleration is not implemented properly! ' +
+                       'Watch out for errors!!!')
         else:
             if np.sign(self.eta0) < 0:
                 zc, zmax = z_extrema[-1], z_extrema[0]
@@ -156,6 +176,7 @@ class RFBucket(Printing):
     # ROOT AND BOUNDARY FINDING ROUTINES
     # ==================================
     def get_z_left_right(self, zc):
+        """Determine bucket boundaries on z axis."""
         z_cut = self._get_zero_crossings(
             lambda x: self.V_acc(x) - self.V_acc(zc))
         zleft, zright = z_cut[0], z_cut[-1]
@@ -164,7 +185,7 @@ class RFBucket(Printing):
 
     def _get_zero_crossings(self, f, zedges=None):
         if zedges is None:
-            zmin, zmax = self.zmin*1.01, self.zmax*1.01
+            zmin, zmax = self.zmin, self.zmax
         else:
             zmin, zmax = zedges
 
@@ -180,7 +201,7 @@ class RFBucket(Printing):
 
         return s
 
-    def _get_bucket_boundaries(self):
+    def _set_bucket_boundaries(self):
         '''
         Treat all crazy situations here
         '''

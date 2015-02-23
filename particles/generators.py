@@ -574,7 +574,7 @@ class RFBucketMatcher(object):
         sigma = self._compute_sigma(self.H, self.psi)
         print '--> Bunch length:', sigma
 
-        self.H.emittance, self.H.sigma = emittance, sigma
+        # self.H.emittance, self.H.sigma = emittance, sigma
 
     # @profile
     def psi_for_bunchlength_newton_method(self, sigma):

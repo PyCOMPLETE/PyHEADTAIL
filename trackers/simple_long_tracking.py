@@ -221,8 +221,7 @@ class LongitudinalOneTurnMap(LongitudinalMap):
     __metaclass__ = ABCMeta
 
     def __init__(self, alpha_array, circumference):
-        """LongitudinalOneTurnMap objects know their circumference:
-        this is THE ONE place to store the circumference in the simulations!"""
+        """LongitudinalOneTurnMap objects know their circumference."""
         super(LongitudinalOneTurnMap, self).__init__(alpha_array)
         self.circumference = circumference
 
