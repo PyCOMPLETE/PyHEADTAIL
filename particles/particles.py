@@ -127,7 +127,11 @@ class Particles(object):
         Note that if the SliceSet to a certain Slicer configuration
         already exists, but more statistics quantities are requested to
         be saved, they are simply added to the existing SliceSet
-        instance.
+        instance. This is not true, however, for the transverse
+        statistics (mean_{x,y}, sigma_{x,y}, epsn_{x,y}) because these
+        may actually change without changing the longitudinal state of
+        the beam. Hence, if any of the transverse statistics are
+        requested, the SliceSet is always recreated from scratch.
         '''
         if slicer not in self._slice_sets:
             self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
