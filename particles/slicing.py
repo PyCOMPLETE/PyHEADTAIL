@@ -84,12 +84,17 @@ class SliceSet(object):
         'uniform_charge' or 'uniform_bin'.'''
         self.mode = mode
 
-        for p_name, p_value in beam_parameters.iteritems():
-            setattr(self, p_name, p_value)
-
         '''Numpy array containing the number of macroparticles in each
         slice.'''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
+
+        for p_name, p_value in beam_parameters.iteritems():
+            if hasattr(self, p_name):
+                raise ValueError('SliceSet.' + p_name + ' already exists!' +
+                                 'Do not overwrite existing SliceSet ' +
+                                 'attributes via the beam_parameters ' +
+                                 'keyword entries! ')
+            setattr(self, p_name, p_value)
 
     @property
     def z_cut_head(self):
@@ -208,7 +213,7 @@ class SliceSet(object):
 
 
 class Slicer(object):
-    '''Slicer class that controls longitudinal discretization of a beam.
+    '''Slicer class that controls longitudinal binning of a beam.
     Factory for SliceSet objects.
     '''
     __metaclass__ = ABCMeta
