@@ -120,7 +120,7 @@ class ConstantWakeKickX(WakeKick):
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         constant_kick = self._accumulate_source_signal(
@@ -138,7 +138,7 @@ class ConstantWakeKickY(WakeKick):
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         constant_kick = self._accumulate_source_signal(
@@ -156,7 +156,7 @@ class ConstantWakeKickZ(WakeKick):
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         constant_kick = self._accumulate_source_signal(
@@ -176,7 +176,7 @@ class DipoleWakeKickX(WakeKick):
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_x
                         for s in slice_set_list]
         dipole_kick_x = self._accumulate_source_signal(
@@ -194,7 +194,7 @@ class DipoleWakeKickXY(WakeKick):
         to bunch.xp using the given slice_set. Only particles within
         the slicing region, i.e particles_within_cuts (defined by the
         slice_set) experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_y
                         for s in slice_set_list]
         dipole_kick_xy = self._accumulate_source_signal(
@@ -212,7 +212,7 @@ class DipoleWakeKickY(WakeKick):
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_y
                         for s in slice_set_list]
         dipole_kick_y = self._accumulate_source_signal(
@@ -230,7 +230,7 @@ class DipoleWakeKickYX(WakeKick):
         to bunch.yp using the given slice_set. Only particles within
         the slicing region, i.e particles_within_cuts (defined by the
         slice_set) experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_x
                         for s in slice_set_list]
         dipole_kick_yx = self._accumulate_source_signal(
@@ -250,7 +250,7 @@ class QuadrupoleWakeKickX(WakeKick):
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         quadrupole_kick_x = self._accumulate_source_signal(
@@ -268,7 +268,7 @@ class QuadrupoleWakeKickXY(WakeKick):
         kick to bunch.xp using the given slice_set. Only particles
         within the slicing region, i.e particles_within_cuts (defined by
         the slice_set) experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         quadrupole_kick_xy = self._accumulate_source_signal(
@@ -286,7 +286,7 @@ class QuadrupoleWakeKickY(WakeKick):
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         quadrupole_kick_y = self._accumulate_source_signal(
@@ -304,7 +304,7 @@ class QuadrupoleWakeKickYX(WakeKick):
         kick to bunch.yp using the given slice_set. Only particles
         within the slicing region, i.e particles_within_cuts (defined by
         the slice_set) experience the kick. """
-        times_list = [s.t_centers for s in slice_set_list]
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         quadrupole_kick_yx = self._accumulate_source_signal(
