@@ -120,28 +120,31 @@ class Particles(object):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
         state has changed), a new SliceSet is requested from the Slicer
-        via Slicer.slice(self) and stored for future reference. To save
-        the statistics in the SliceSet, a kwarg 'statistics' can be
-        passed containing a list of valid names (strings) for statistics
-        quantities. E.g.: statistics=['mean_x', 'sigma_dp', 'epsn_z'].
-        Note that if the SliceSet to a certain Slicer configuration
-        already exists, but more statistics quantities are requested to
-        be saved, they are simply added to the existing SliceSet
-        instance. This is not true, however, for the transverse
-        statistics (mean_{x,y}, sigma_{x,y}, epsn_{x,y}) because these
-        may actually change without changing the longitudinal state of
-        the beam. Hence, if any of the transverse statistics are
-        requested, the SliceSet is always recreated from scratch.
+        via Slicer.slice(self) and stored for future reference. 
+
+        Arguments:
+        - statistics=True attaches mean values, standard deviations
+        and emittances to the SliceSet for all planes.
+        - statistics=['mean_x', 'sigma_dp', 'epsn_z'] only adds the
+        listed statistics values (can be used to save time).
+        Valid list entries are all statistics functions of Particles.
+
+        Note: Requesting statistics after calling get_slices w/o
+        the statistics keyword results in creating a new SliceSet!
         '''
-        if slicer not in self._slice_sets:
+        if slicer not in self._slice_sets or kwargs.get('statistics'):
             self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
-        elif 'statistics' in kwargs:
-            if (any([ '_x' in stats for stats in kwargs['statistics']]) or
-                    any([ '_y' in stats for stats in kwargs['statistics']])):
-                self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
-            else:
-                slicer.add_statistics(self._slice_sets[slicer], self,
-                                      kwargs['statistics'])
+        # # try to save time by allowing longitudinal statistics to
+        # # simply be added to the existing SliceSet:
+        # # (transverse statistics may change even if longitudinal stays
+        # # the same between two SliceSet requesting elements)
+        # elif 'statistics' in kwargs:
+        #     if (any([ '_x' in stats for stats in kwargs['statistics']]) or
+        #             any([ '_y' in stats for stats in kwargs['statistics']])):
+        #         self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
+        #     else:
+        #         slicer.add_statistics(self._slice_sets[slicer], self,
+        #                               kwargs['statistics'])
         return self._slice_sets[slicer]
 
     def clean_slices(self):

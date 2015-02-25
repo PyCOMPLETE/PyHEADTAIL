@@ -282,7 +282,7 @@ class Slicer(object):
                            'created slice snapshots. This minimises ' +
                            'computation time.')
 
-    def add_statistics(self, slice_set, beam, statistics):
+    def add_statistics(self, sliceset, beam, statistics):
         '''Calculates all the statistics quantities (strings) that are
         named in the list 'statistics' and adds a corresponding
         attribute to the SliceSet instance. The nomenclature must be
@@ -290,10 +290,15 @@ class Slicer(object):
             mean_x, mean_y, mean_z, mean_xp, mean_yp, mean_dp, sigma_x,
             sigma_y, sigma_z, sigma_dp, epsn_x, epsn_y, epsn_z.
         '''
+        if statistics is True:
+            statistics = ['mean_x', 'mean_y', 'mean_z',
+                          'mean_xp', 'mean_yp', 'mean_dp',
+                          'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp',
+                          'epsn_x', 'epsn_y', 'epsn_z']
         for stat in statistics:
-            if not hasattr(slice_set, stat):
-                values = getattr(self, '_'+stat)(slice_set, beam)
-                setattr(slice_set, stat, values)
+            if not hasattr(sliceset, stat):
+                values = getattr(self, '_'+stat)(sliceset, beam)
+                setattr(sliceset, stat, values)
 
     def _mean_x(self, slice_set, beam):
         return self._mean(slice_set, beam.x)
