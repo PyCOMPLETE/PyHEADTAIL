@@ -23,14 +23,15 @@ from functools import wraps
 
 
 class ModeIsNotUniformBin(Exception):
+    message = "This SliceSet has self.mode not set to 'uniform_bin'!"
     def __str__(self):
-        return "This SliceSet has self.mode not set to 'uniform_bin'!"
+        return self.message
 
 class ModeIsUniformCharge(Exception):
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, message):
+        self.message = message
     def __str__(self):
-        return self.value
+        return self.message
 
 # @clean_slices needs to be attached to the track methods that change
 # the longitudinal phase space. It could not be handled automatically
@@ -61,7 +62,7 @@ class SliceSet(object):
     '''
 
     def __init__(self, z_bins, slice_index_of_particle, mode,
-                 n_macroparticles_per_slice=None, 
+                 n_macroparticles_per_slice=None,
                  beam_parameters={}):
         '''Is intended to be created by the Slicer factory method.
         A SliceSet is given a set of intervals defining the slicing
@@ -238,9 +239,9 @@ class Slicer(object):
         pass
 
     def slice(self, beam, *args, **kwargs):
-        '''Return a SliceSet object according to the saved 
+        '''Return a SliceSet object according to the saved
         configuration. Generate it using the keywords of the
-        self.compute_sliceset_kwargs(beam) method. 
+        self.compute_sliceset_kwargs(beam) method.
         Defines interface to create SliceSet instances
         (factory method).
 
@@ -252,7 +253,8 @@ class Slicer(object):
         Valid list entries are all statistics functions of Particles.
         '''
         sliceset_kwargs = self.compute_sliceset_kwargs(beam)
-        sliceset_kwargs['beam_parameters'] = self.extract_beam_parameters(beam)
+        sliceset_kwargs['beam_parameters'] = (
+            self.extract_beam_parameters(beam))
         sliceset = SliceSet(**sliceset_kwargs)
         if 'statistics' in kwargs:
             self.add_statistics(sliceset, beam, kwargs['statistics'])
@@ -265,7 +267,7 @@ class Slicer(object):
         in a SliceSet instance. (such as beam.beta etc.)
         '''
         return dict(beta=beam.beta, gamma=beam.gamma,
-                    particles_per_mp=beam.particles_per_mp)
+                    particles_per_mp=beam.particlenumber_per_mp)
 
     def get_long_cuts(self, beam):
         '''Return boundaries of slicing region,
@@ -329,7 +331,8 @@ class Slicer(object):
                           'epsn_x', 'epsn_y', 'epsn_z']
         for stat in statistics:
             if not hasattr(sliceset, stat):
-                values = getattr(self, '_'+stat)(sliceset, beam)
+                stat_caller = getattr(self, '_' + stat)
+                values = stat_caller(sliceset, beam)
                 setattr(sliceset, stat, values)
 
     def _mean_x(self, sliceset, beam):
@@ -416,8 +419,8 @@ class UniformBinSlicer(Slicer):
         self.config = (mode, n_slices, n_sigma_z, z_cuts)
 
     def compute_sliceset_kwargs(self, beam):
-        '''Return argument dictionary to create a new SliceSet 
-        according to the saved configuration for 
+        '''Return argument dictionary to create a new SliceSet
+        according to the saved configuration for
         uniformly binned SliceSet objects.
         '''
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
@@ -428,8 +431,8 @@ class UniformBinSlicer(Slicer):
                 (beam.z - z_cut_tail) / slice_width
             ).astype(np.int32)
 
-        return dict(z_bins=z_bins, 
-                    slice_index_of_particle=slice_index_of_particle, 
+        return dict(z_bins=z_bins,
+                    slice_index_of_particle=slice_index_of_particle,
                     mode='uniform_bin')
 
 
@@ -452,7 +455,7 @@ class UniformChargeSlicer(Slicer):
         self.config = (mode, n_slices, n_sigma_z, z_cuts)
 
     def compute_sliceset_kwargs(self, beam):
-        '''Return argument dictionary to create a new SliceSet 
+        '''Return argument dictionary to create a new SliceSet
         according to the saved configuration for a uniform charge
         distribution along the bins.
         '''
@@ -498,7 +501,7 @@ class UniformChargeSlicer(Slicer):
         slice_index_of_particle = np.empty(n_part, dtype=np.int32)
         np.put(slice_index_of_particle, id_old, slice_index_of_particle_sorted)
 
-        return dict(z_bins=z_bins, 
-                    slice_index_of_particle=slice_index_of_particle, 
+        return dict(z_bins=z_bins,
+                    slice_index_of_particle=slice_index_of_particle,
                     mode='uniform_charge',
                     n_macroparticles_per_slice=n_part_per_slice)
