@@ -60,11 +60,16 @@ class SliceSet(object):
     distributions, rather, a new SliceSet needs to be created.
     '''
 
-    def __init__(self, z_bins, slice_index_of_particle, mode, beta,
-                 n_macroparticles_per_slice=None):
+    def __init__(self, z_bins, slice_index_of_particle, mode,
+                 n_macroparticles_per_slice=None, 
+                 beam_parameters={}):
         '''Is intended to be created by the Slicer factory method.
         A SliceSet is given a set of intervals defining the slicing
         region and the histogram over the thereby defined slices.
+
+        beam_parameters is a dictionary containing certain beam
+        parameters to be recorded with this SliceSet.
+        (e.g. beta being saved via beam_parameters['beta'] = beam.beta)
         '''
 
         '''Array of z values of each bin, goes from the left bin edge
@@ -79,9 +84,8 @@ class SliceSet(object):
         'uniform_charge' or 'uniform_bin'.'''
         self.mode = mode
 
-        '''Relativistic beta of the bunch at creation time of the
-        SliceSet.'''
-        self.beta = beta
+        for p_name, p_value in beam_parameters.iteritems():
+            setattr(self, p_name, p_value)
 
         '''Numpy array containing the number of macroparticles in each
         slice.'''
@@ -220,22 +224,43 @@ class Slicer(object):
         self.z_cuts = value[3]
 
     @abstractmethod
-    def _compute_slice_set(self, beam):
-        '''Return a SliceSet object according to the saved
-        configuration. Factory method.
+    def compute_sliceset_kwargs(self, beam):
+        '''Return argument dictionary to create a new
+        SliceSet object according to the saved configuration.
+        This method defines the slicing behaviour of inheriting
+        Slicer implementations.
         '''
         pass
 
     def slice(self, beam, *args, **kwargs):
-        '''Return a SliceSet object according to the saved
-        configuration. Generate it using the self._compute_slices(beam)
-        factory method. Furthermore, all of the requested statistics are
-        calculated and added to the SliceSet instance.
+        '''Return a SliceSet object according to the saved 
+        configuration. Generate it using the keywords of the
+        self.compute_sliceset_kwargs(beam) method. 
+        Defines interface to create SliceSet instances
+        (factory method).
+
+        Arguments:
+        - statistics=True attaches mean values, standard deviations
+        and emittances to the SliceSet for all planes.
+        - statistics=['mean_x', 'sigma_dp', 'epsn_z'] only adds the
+        listed statistics values (can be used to save time).
+        Valid list entries are all statistics functions of Particles.
         '''
-        slice_set = self._compute_slice_set(beam)
+        sliceset_kwargs = self.compute_sliceset_kwargs(beam)
+        sliceset_kwargs['beam_parameters'] = self.extract_beam_parameters(beam)
+        sliceset = SliceSet(**sliceset_kwargs)
         if 'statistics' in kwargs:
-            self.add_statistics(slice_set, beam, kwargs['statistics'])
-        return slice_set
+            self.add_statistics(sliceset, beam, kwargs['statistics'])
+        return sliceset
+
+    # generalise to extract all relevant parameters automatically?
+    @staticmethod
+    def extract_beam_parameters(beam):
+        '''Return a dictionary of beam parameters to be stored
+        in a SliceSet instance. (such as beam.beta etc.)
+        '''
+        return dict(beta=beam.beta, gamma=beam.gamma,
+                    particles_per_mp=beam.particles_per_mp)
 
     def get_long_cuts(self, beam):
         '''Return boundaries of slicing region,
@@ -283,12 +308,14 @@ class Slicer(object):
                            'computation time.')
 
     def add_statistics(self, sliceset, beam, statistics):
-        '''Calculates all the statistics quantities (strings) that are
-        named in the list 'statistics' and adds a corresponding
+        '''Calculate all the statistics quantities (strings) that are
+        named in the list 'statistics' and add a corresponding
         attribute to the SliceSet instance. The nomenclature must be
         followed. The following names are possible:
             mean_x, mean_y, mean_z, mean_xp, mean_yp, mean_dp, sigma_x,
             sigma_y, sigma_z, sigma_dp, epsn_x, epsn_y, epsn_z.
+
+        statistics=True adds all at once.
         '''
         if statistics is True:
             statistics = ['mean_x', 'mean_y', 'mean_z',
@@ -300,69 +327,69 @@ class Slicer(object):
                 values = getattr(self, '_'+stat)(sliceset, beam)
                 setattr(sliceset, stat, values)
 
-    def _mean_x(self, slice_set, beam):
-        return self._mean(slice_set, beam.x)
+    def _mean_x(self, sliceset, beam):
+        return self._mean(sliceset, beam.x)
 
-    def _mean_xp(self, slice_set, beam):
-        return self._mean(slice_set, beam.xp)
+    def _mean_xp(self, sliceset, beam):
+        return self._mean(sliceset, beam.xp)
 
-    def _mean_y(self, slice_set, beam):
-        return self._mean(slice_set, beam.y)
+    def _mean_y(self, sliceset, beam):
+        return self._mean(sliceset, beam.y)
 
-    def _mean_yp(self, slice_set, beam):
-        return self._mean(slice_set, beam.yp)
+    def _mean_yp(self, sliceset, beam):
+        return self._mean(sliceset, beam.yp)
 
-    def _mean_z(self, slice_set, beam):
-        return self._mean(slice_set, beam.z)
+    def _mean_z(self, sliceset, beam):
+        return self._mean(sliceset, beam.z)
 
-    def _mean_dp(self, slice_set, beam):
-        return self._mean(slice_set, beam.dp)
+    def _mean_dp(self, sliceset, beam):
+        return self._mean(sliceset, beam.dp)
 
-    def _sigma_x(self, slice_set, beam):
-        return self._sigma(slice_set, beam.x)
+    def _sigma_x(self, sliceset, beam):
+        return self._sigma(sliceset, beam.x)
 
-    def _sigma_y(self, slice_set, beam):
-        return self._sigma(slice_set, beam.y)
+    def _sigma_y(self, sliceset, beam):
+        return self._sigma(sliceset, beam.y)
 
-    def _sigma_z(self, slice_set, beam):
-        return self._sigma(slice_set, beam.z)
+    def _sigma_z(self, sliceset, beam):
+        return self._sigma(sliceset, beam.z)
 
-    def _sigma_dp(self, slice_set, beam):
-        return self._sigma(slice_set, beam.dp)
+    def _sigma_dp(self, sliceset, beam):
+        return self._sigma(sliceset, beam.dp)
 
-    def _epsn_x(self, slice_set, beam):
-        return self._epsn(slice_set, beam.x, beam.xp) * beam.betagamma
+    def _epsn_x(self, sliceset, beam):
+        return self._epsn(sliceset, beam.x, beam.xp) * beam.betagamma
 
-    def _epsn_y(self, slice_set, beam):
-        return self._epsn(slice_set, beam.y, beam.yp) * beam.betagamma
+    def _epsn_y(self, sliceset, beam):
+        return self._epsn(sliceset, beam.y, beam.yp) * beam.betagamma
 
-    def _epsn_z(self, slice_set, beam):
-        return (4. * np.pi * self._epsn(slice_set, beam.z, beam.dp) *
+    def _epsn_z(self, sliceset, beam):
+        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp) *
                 beam.p0 / e)
 
     # Statistics helper functions.
 
-    def _mean(self, slice_set, u):
-        mean_u = np.zeros(slice_set.n_slices)
-        cp.mean_per_slice(slice_set.slice_index_of_particle,
-                          slice_set.particles_within_cuts,
-                          slice_set.n_macroparticles_per_slice,
+    def _mean(self, sliceset, u):
+        mean_u = np.zeros(sliceset.n_slices)
+        cp.mean_per_slice(sliceset.slice_index_of_particle,
+                          sliceset.particles_within_cuts,
+                          sliceset.n_macroparticles_per_slice,
                           u, mean_u)
         return mean_u
 
-    def _sigma(self, slice_set, u):
-        sigma_u = np.zeros(slice_set.n_slices)
-        cp.std_per_slice(slice_set.slice_index_of_particle,
-                         slice_set.particles_within_cuts,
-                         slice_set.n_macroparticles_per_slice,
+    def _sigma(self, sliceset, u):
+        sigma_u = np.zeros(sliceset.n_slices)
+        cp.std_per_slice(sliceset.slice_index_of_particle,
+                         sliceset.particles_within_cuts,
+                         sliceset.n_macroparticles_per_slice,
                          u, sigma_u)
         return sigma_u
 
-    def _epsn(self, slice_set, u, up):
-        epsn_u = np.zeros(slice_set.n_slices)
-        cp.emittance_per_slice(slice_set.slice_index_of_particle,
-                               slice_set.particles_within_cuts,
-                               slice_set.n_macroparticles_per_slice,
+    def _epsn(self, sliceset, u, up):
+        epsn_u = np.zeros(sliceset.n_slices)
+        cp.emittance_per_slice(sliceset.slice_index_of_particle,
+                               sliceset.particles_within_cuts,
+                               sliceset.n_macroparticles_per_slice,
                                u, up, epsn_u)
         return epsn_u
 
@@ -383,9 +410,10 @@ class UniformBinSlicer(Slicer):
         mode = 'uniform_bin'
         self.config = (mode, n_slices, n_sigma_z, z_cuts)
 
-    def _compute_slice_set(self, beam):
-        '''Return a SliceSet according to the saved configuration.
-        Factory method for uniformly binned SliceSet objects.
+    def compute_sliceset_kwargs(self, beam):
+        '''Return argument dictionary to create a new SliceSet 
+        according to the saved configuration for 
+        uniformly binned SliceSet objects.
         '''
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
@@ -395,8 +423,9 @@ class UniformBinSlicer(Slicer):
                 (beam.z - z_cut_tail) / slice_width
             ).astype(np.int32)
 
-        return SliceSet(z_bins, slice_index_of_particle, 'uniform_bin',
-                        beam.beta)
+        return dict(z_bins=z_bins, 
+                    slice_index_of_particle=slice_index_of_particle, 
+                    mode='uniform_bin')
 
 
 class UniformChargeSlicer(Slicer):
@@ -417,9 +446,9 @@ class UniformChargeSlicer(Slicer):
         mode = 'uniform_charge'
         self.config = (mode, n_slices, n_sigma_z, z_cuts)
 
-    def _compute_slice_set(self, beam):
-        '''Return a SliceSet according to the saved configuration.
-        Factory method for SliceSet objects with a uniform charge
+    def compute_sliceset_kwargs(self, beam):
+        '''Return argument dictionary to create a new SliceSet 
+        according to the saved configuration for a uniform charge
         distribution along the bins.
         '''
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
@@ -464,5 +493,7 @@ class UniformChargeSlicer(Slicer):
         slice_index_of_particle = np.empty(n_part, dtype=np.int32)
         np.put(slice_index_of_particle, id_old, slice_index_of_particle_sorted)
 
-        return SliceSet(z_bins, slice_index_of_particle, 'uniform_charge',
-                        beam.beta, n_macroparticles_per_slice=n_part_per_slice)
+        return dict(z_bins=z_bins, 
+                    slice_index_of_particle=slice_index_of_particle, 
+                    mode='uniform_charge',
+                    n_macroparticles_per_slice=n_part_per_slice)
