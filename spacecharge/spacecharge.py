@@ -9,6 +9,8 @@ from . import Element, clean_slices
 import numpy as np
 from scipy.constants import m_p, c, e, epsilon_0
 
+from scipy.interpolate import splrep, splev
+
 class LongSpaceCharge(Element):
     '''
     Contains longitudinal space charge via Chao's expression:
@@ -30,7 +32,8 @@ class LongSpaceCharge(Element):
         Add the longitudinal space charge contribution to the beam's
         dp kick.
         '''
-        slices = beam.get_slices(self.slicer)
+        slices = beam.get_slices(self.slicer,
+                                 statistics=['sigma_x', 'sigma_y'])
         lambda_prime = (slices.line_density_derivative_gauss(sigma=3) *
                         beam.particlenumber_per_mp)
         slice_kicks = (self._prefactor(beam) * self._gfactor(beam) *
@@ -42,9 +45,32 @@ class LongSpaceCharge(Element):
         beam.dp[p_id] -= slice_kicks.take(s_id)
 
     @staticmethod
-    def _prefactor(beam):
-        return e**2 / (2 * np.pi * epsilon_0 * beam.gamma**2 * beam.p0)
+    def _prefactor(sliceset):
+        return e**2 / (4 * np.pi * epsilon_0 * sliceset.gamma**2 * sliceset.p0)
 
-    def _gfactor(self, beam):
-        beam_radius = (beam.sigma_x() + beam.sigma_y()) / 2
-        return 1. / 3 + np.log(self.pipe_radius / beam_radius)
+    def _gfactor(self, sliceset):
+        beam_radius = (sliceset.sigma_x + sliceset.sigma_y) / 2
+        return 0.5 + 2 * np.log(self.pipe_radius / beam_radius)
+
+    def make_force(self, sliceset):
+        '''Return the electric force field due to space charge
+        of the given SliceSet instance as a function of z
+        in units of Coul*Volt/metre.
+        '''
+        gfac_spline = splrep(sliceset.z_centers, self._gfactor(sliceset), s=0)
+        def force(z):
+            gfac = splev(z, gfac_spline, der=0)
+            return (self._prefactor(sliceset) * gfac *
+                    -sliceset.lambda_prime_z(z))
+        return force
+
+    def make_potential(self, sliceset):
+        '''Return the electric potential energy due to space charge
+        of the given SliceSet instance as a function of z
+        in units of Coul*Volt.
+        '''
+        gfac_spline = splrep(sliceset.z_centers, self._gfactor(sliceset), s=0)
+        def potential(z):
+            gfac = splev(z, gfac_spline, der=0)
+            return self._prefactor(sliceset) * gfac * sliceset.lambda_z(z)
+        return potential

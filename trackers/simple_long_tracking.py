@@ -271,10 +271,13 @@ class RFSystems(LongitudinalOneTurnMap):
         at the entrance or exit of the cavity / kick location!
         cf. discussions with Christian Carli).
 
-        The boolean parameter shrinking determines whether the
+        The boolean parameter shrink_longitudinal determines whether the
         shrinkage ratio \\beta_{n+1} / \\beta_n should be taken
         into account during the second Drift.
         (See the Drift class for further details.)
+
+        The boolean parameter shrink_transverse allows for transverse
+        emittance cooling from acceleration.
 
         - self.p_increment is the momentum step per turn of the
         synchronous particle, it can be continuously adjusted to
@@ -295,7 +298,8 @@ class RFSystems(LongitudinalOneTurnMap):
                        "same length!")
 
         self._shrinking = shrink_longitudinal
-        self._shrink_transverse = shrink_transverse
+        if not shrink_transverse:
+            self.track = self.track_no_transverse_shrinking
 
         self._kicks = [Kick(alpha_array, self.circumference, h, V, dphi)
                       for h, V, dphi in
