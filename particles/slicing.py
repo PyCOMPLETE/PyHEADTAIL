@@ -267,7 +267,7 @@ class Slicer(object):
         in a SliceSet instance. (such as beam.beta etc.)
         '''
         return dict(beta=beam.beta, gamma=beam.gamma,
-                    particles_per_mp=beam.particlenumber_per_mp)
+                    particlenumber_per_mp=beam.particlenumber_per_mp)
 
     def get_long_cuts(self, beam):
         '''Return boundaries of slicing region,
