@@ -14,12 +14,12 @@ from scipy.constants import c, e
 from random import sample
 
 from abc import ABCMeta, abstractmethod
-from functools import partial
+from functools import partial, wraps
 
 from ..cobra_functions import stats as cp
 # from ..general.decorators import memoize
 
-from functools import wraps
+from scipy import interpolate
 
 
 class ModeIsNotUniformBin(Exception):
@@ -169,10 +169,12 @@ class SliceSet(object):
             self.slice_positions, particle_indices_by_slice)
         return particle_indices_by_slice
 
-    def line_density_derivative(
-            self, n_macroparticles=None):
-        '''Array of length (n_slices - 1) containing
-        the derivative of the n_macroparticles array.
+    def lambda_prime_bins(self, n_macroparticles=None):
+        '''Return array of length (n_slices - 1) containing
+        the derivative of the line charge density \lambda
+        w.r.t. the slice bins.
+        (i.e. the derivative of the n_macroparticles array times
+        the macroparticle charge.)
         '''
         if self.mode is 'uniform_charge':
             raise ModeIsUniformCharge('The derivative is zero up to ' +
@@ -181,27 +183,60 @@ class SliceSet(object):
                                       'uniformly across the slices.')
         if n_macroparticles is None:
             n_macroparticles = self.n_macroparticles_per_slice
-        return np.gradient(n_macroparticles, self.slice_widths[0])
+        mp_density_derivative = np.gradient(
+            n_macroparticles, self.slice_widths[0])
+        return mp_density_derivative * self.charge * self.particlenumber_per_mp
 
-    def line_density_derivative_gauss(self, sigma=None, smoothen_before=True,
-                                      smoothen_after=True):
-        '''Calculate the derivative of the slice charge density while
-        smoothing the line density via a Gaussian filter. Return list
-        with entries of density derivative of length n_slices.
+    def lambda_prime_bins_gauss(self, sigma=None, smoothen_before=True,
+                                smoothen_after=True):
+        '''Return array of length (n_slices - 1) containing
+        the derivative of the line charge density \lambda
+        w.r.t. the slice bins while smoothing via a Gaussian filter.
+        (i.e. the smoothened derivative of the n_macroparticles array
+        times the macroparticle charge.)
         '''
         if self.mode is not 'uniform_bin':
             raise ModeIsNotUniformBin()
         if sigma is None:
             sigma = 0.02 * self.n_slices
+        line_density = self.n_macroparticles_per_slice
         smoothen = partial(ndimage.gaussian_filter1d,
                            sigma=sigma, mode='wrap')
-        line_density = self.n_macroparticles_per_slice
         if smoothen_before:
             line_density = smoothen(line_density)
-        derivative = self.line_density_derivative(line_density)
+        derivative = self.lambda_prime_bins(line_density)
         if smoothen_after:
             derivative = smoothen(derivative)
         return derivative
+
+    def lambda_z(self, z, sigma=None, smoothen_before=True,
+                 smoothen_after=True):
+        '''Line charge density with respect to z along the slices.'''
+        if sigma is None:
+            sigma = 0.02 * self.n_slices
+        lambda_of_bins = (self.n_macroparticles_per_slice
+                          * self.particlenumber_per_mp
+                          * self.charge
+                          / self.slice_widths)
+        smoothen = partial(ndimage.gaussian_filter1d,
+                           sigma=sigma, mode='wrap')
+        if smoothen_before:
+            lambda_of_bins = smoothen(lambda_of_bins)
+        tck = interpolate.splrep(self.z_centers, lambda_of_bins, s=0)
+        l_of_z = interpolate.splev(z, tck, der=0)
+        if smoothen_after:
+            l_of_z = smoothen(l_of_z)
+        return l_of_z
+
+    def lambda_prime_z(self, z, sigma=None, smoothen_before=True,
+                       smoothen_after=True):
+        '''Line charge density derivative with respect to z along
+        the slices.'''
+        lp_of_bins = self.lambda_prime_bins_gauss(
+            sigma, smoothen_before, smoothen_after) / self.slice_widths
+        tck = interpolate.splrep(self.z_centers, lp_of_bins, s=0)
+        lp_of_z = interpolate.splev(z, tck, der=0)
+        return lp_of_z
 
     def particle_indices_of_slice(self, slice_index):
         '''Return an array of particle indices which are located in the
@@ -267,7 +302,8 @@ class Slicer(object):
         in a SliceSet instance. (such as beam.beta etc.)
         '''
         return dict(beta=beam.beta, gamma=beam.gamma,
-                    particlenumber_per_mp=beam.particlenumber_per_mp)
+                    particlenumber_per_mp=beam.particlenumber_per_mp,
+                    charge=beam.charge, mass=beam.mass)
 
     def get_long_cuts(self, beam):
         '''Return boundaries of slicing region,
