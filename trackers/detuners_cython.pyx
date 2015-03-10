@@ -68,6 +68,13 @@ cdef class ChromaticitySegment(object):
         """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
         denote numpy arrays containing first, second, third, ... order
         chromaticity coefficients scaled to the segment length. """
+        if not (isinstance(dQp_x, Iterable) and isinstance(dQp_y, Iterable)):
+            raise TypeError("Scalar values are no longer accepted for dQp_x" +
+                            " and dQp_y. They must now be iterables (e.g." +
+                            " lists, tuples or numpy arrays) following the" +
+                            " correct order [Q', Q'', Q''', ...]. This is" +
+                            " true even if the only non-zero chromaticity" +
+                            " coefficient is the linear one.")
         self.order_x = dQp_x.shape[0]
         self.order_y = dQp_y.shape[0]
         self.coeffs_x = np.empty(self.order_x, dtype=np.double)
@@ -322,10 +329,12 @@ class Chromaticity(DetunerCollection):
         ... order chromaticity coefficients (one-turn values), aka.
         Q'_{x,y}, Q''_{x,y} (Q-prime, Q-double-prime), .... """
         if not (isinstance(Qp_x, Iterable) and isinstance(Qp_y, Iterable)):
-            raise TypeError("Qp_x and Qp_y must not be scalars, but lists" +
-                            " (or numpy-arrays), even if the only non-zero" +
-                            " chromaticity coefficient is the linear one," +
-                            " i.e. Q'.")
+            raise TypeError("Scalar values are no longer accepted for Qp_x" +
+                            " and Qp_y. They must now be iterables (e.g." +
+                            " lists, tuples or numpy arrays) following the" +
+                            " correct order [Q', Q'', Q''', ...]. This is" +
+                            " true even if the only non-zero chromaticity" +
+                            " coefficient is the linear one.")
         self.Qp_x = Qp_x
         self.Qp_y = Qp_y
 

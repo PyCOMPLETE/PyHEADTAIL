@@ -51,13 +51,16 @@ class ChromaticitySegment(SegmentDetuner):
 
     def __init__(self, dQp_x, dQp_y):
         """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
-        denote lists containing first, second, third, ... order
-        chromaticity coefficients scaled to the segment length."""
+        denote lists (or tuples, numpy arrays) containing first, second,
+        third, ... order chromaticity coefficients scaled to the segment
+        length."""
         if not (isinstance(dQp_x, Iterable) and isinstance(dQp_y, Iterable)):
-            raise TypeError("dQp_x and dQp_y must not be scalars, but lists" +
-                            " (or numpy-arrays), even if the only non-zero" +
-                            " chromaticity coefficient is the linear one," +
-                            " i.e. dQ'.")
+            raise TypeError("Scalar values are no longer accepted for dQp_x" +
+                            " and dQp_y. They must now be iterables (e.g." +
+                            " lists, tuples or numpy arrays) following the" +
+                            " correct order [Q', Q'', Q''', ...]. This is" +
+                            " true even if the only non-zero chromaticity" +
+                            " coefficient is the linear one.")
         self.calc_detuning_x = self._make_calc_detuning(dQp_x)
         self.calc_detuning_y = self._make_calc_detuning(dQp_y)
 
@@ -263,14 +266,17 @@ class Chromaticity(DetunerCollection):
 
     def __init__(self, Qp_x, Qp_y):
         """ Return an instance of a Chromaticity DetunerCollection
-        class. The Qp_{x,y} are lists containing first, second, third,
-        ... order chromaticity coefficients (one-turn values), aka.
-        Q'_{x,y}, Q''_{x,y} (Q-prime, Q-double-prime), .... """
+        class. The Qp_{x,y} are lists (or tuples, numpy arrays)
+        containing first, second, third, ... order chromaticity
+        coefficients (one-turn values), aka. Q'_{x,y}, Q''_{x,y}
+        (Q-prime, Q-double-prime), .... """
         if not (isinstance(Qp_x, Iterable) and isinstance(Qp_y, Iterable)):
-            raise TypeError("Qp_x and Qp_y must not be scalars, but lists" +
-                            " (or numpy-arrays), even if the only non-zero" +
-                            " chromaticity coefficient is the linear one," +
-                            " i.e. Q'.")
+            raise TypeError("Scalar values are no longer accepted for Qp_x" +
+                            " and Qp_y. They must now be iterables (e.g." +
+                            " lists, tuples or numpy arrays) following the" +
+                            " correct order [Q', Q'', Q''', ...]. This is" +
+                            " true even if the only non-zero chromaticity" +
+                            " coefficient is the linear one.")
         self.Qp_x = Qp_x
         self.Qp_y = Qp_y
 
