@@ -19,13 +19,13 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
+from PyHEADTAIL.particles.slicing import UniformBinSlicer
 
 
 
 class TestParticles(unittest.TestCase):
 
     def setUp(self):
-
         #beam parameters
         self.intensity = 1.234e9
         self.circumference = 111.
@@ -37,6 +37,7 @@ class TestParticles(unittest.TestCase):
 
         #create a bunch
         self.bunch = self.create_bunch()
+        self.slicer = self.create_slicer()
 
     def tearDown(self):
         pass
@@ -45,7 +46,6 @@ class TestParticles(unittest.TestCase):
         '''Tests whether the parameters passed to Particles()
         are initialized correctly
         '''
-        #self.macroparticlenumber = 50
         self.assertEqual(self.macroparticlenumber,
                          self.bunch.macroparticlenumber,
                          'initialisation of macroparticlenumber incorrect')
@@ -57,8 +57,7 @@ class TestParticles(unittest.TestCase):
                          'initialisation of circumference incorrect')
 
     def test_coords_dict_copy(self):
-        '''Tests whether get_coords_n_momenta() returns a copy or a reference
-        '''
+        '''Tests whether get_coords_n_momenta() returns a copy'''
         coords_n_momenta_copy = self.bunch.get_coords_n_momenta_dict()
         self.assertFalse(coords_n_momenta_copy
                          is self.bunch.coords_n_momenta,
@@ -95,8 +94,7 @@ class TestParticles(unittest.TestCase):
             self.bunch.add(duplicate_coords)
 
     def test_setters_getters(self):
-        '''Tests all setters and getters properties of the Particles class
-        '''
+        '''Tests all setters and getters properties of the Particles class'''
         properties=[prop for prop in dir(Particles)
                     if isinstance(getattr(Particles, prop), property)]
         for p in properties:
@@ -109,8 +107,14 @@ class TestParticles(unittest.TestCase):
         new_value = 0.9*getattr(self.bunch,prop)
         setattr(self.bunch,prop,new_value)
         self.assertAlmostEqual(getattr(self.bunch,prop),new_value,
-                               msg = 'getter/setter for property '
-                                     + prop + ' incorrect')
+                               msg='getter/setter for property '
+                                   + prop + ' incorrect')
+
+    def test_get_slices(self):
+        '''Tests the clean_slices() method'''
+        slice_set = self.bunch.get_slices(self.slicer)
+        self.assertEqual(slice_set,self.bunch.get_slices(self.slicer),
+                         'get_slices() incorrect')
 
     def create_bunch(self):
         x = np.random.uniform(-1,1,self.macroparticlenumber)
@@ -127,6 +131,11 @@ class TestParticles(unittest.TestCase):
             self.macroparticlenumber, self.particlenumber_per_mp, e, m_p,
             self.circumference, self.gamma, coords_n_momenta_dict
         )
+
+    def create_slicer(self):
+        n_slices = 2
+        n_sigma_z = 0.1
+        return UniformBinSlicer(n_slices,n_sigma_z)
 
 
 if __name__ == '__main__':
