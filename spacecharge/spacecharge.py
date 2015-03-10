@@ -47,7 +47,7 @@ class LongSpaceCharge(Element):
 
     @staticmethod
     def _prefactor(beam):
-        return e**2 / (4. * np.pi * epsilon_0 * beam.gamma**2 * beam.p0)
+        return e / (4. * np.pi * epsilon_0 * beam.gamma**2 * beam.p0)
 
     def _gfactor0(self, beam):
         """Giovanni Rumolo has put 0.67 into HEADTAIL instead of 0.5."""
