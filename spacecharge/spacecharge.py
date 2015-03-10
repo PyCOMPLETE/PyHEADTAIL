@@ -39,6 +39,7 @@ class LongSpaceCharge(Element):
         self.pipe_radius = pipe_radius
         self.time_step = time_step
         self.n_slice_sigma = n_slice_sigma
+        self._gfactor = self._gfactor0
 
     @clean_slices
     def track(self, beam):
@@ -49,9 +50,8 @@ class LongSpaceCharge(Element):
         charge = beam.particlenumber_per_mp * beam.charge
         slices = beam.get_slices(self.slicer,
                                  statistics=['sigma_x', 'sigma_y'])
-        lambda_prime = (slices.line_density_derivative_gauss(self.n_slice_sigma) *
-                        charge)
-        slice_kicks = (self._prefactor(slices) * self._gfactor0(slices) *
+        lambda_prime = slices.lambda_prime_bins(sigma=self.n_slice_sigma)
+        slice_kicks = (self._prefactor(slices) * self._gfactor(slices) *
                        lambda_prime) * self.time_step
 
         p_id = slices.particles_within_cuts
@@ -65,8 +65,8 @@ class LongSpaceCharge(Element):
 
     def _gfactor0(self, sliceset):
         """Giovanni Rumolo has put 0.67 into HEADTAIL instead of 0.5."""
-        beam_radius = 0.5 * (sliceset.sigma_x + beam.sigma_y)
-        return 0.5 + 2. * np.log(self.pipe_radius / beam_radius)
+        slice_radius = 0.5 * (sliceset.sigma_x + sliceset.sigma_y)
+        return 0.5 + 2. * np.log(self.pipe_radius / slice_radius)
 
     def make_force(self, sliceset):
         '''Return the electric force field due to space charge
