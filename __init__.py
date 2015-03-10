@@ -1,5 +1,6 @@
 from ._version import __version__
 from general.element import Element, Printing
+import general.utils as utils
 from particles.slicing import clean_slices
 # print '                                                                                                                             '
 # print '                                                                ;Cfttttt11111111tttt1f0f.                                    '

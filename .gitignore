@@ -13,3 +13,5 @@ scripts/
 *.h5
 *.h5part
 .ipynb_checkpoints
+.DS_Store
+*.__afs*
