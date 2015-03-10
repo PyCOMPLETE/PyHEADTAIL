@@ -260,8 +260,9 @@ class SliceMonitor(Monitor):
         them to file. The buffer is implemented as a shift register. To
         find the slice_set-specific data, a slice_set, defined by the
         slicing configuration self.slicer must be requested from the
-        bunch (instance of the Particles class). """
-        slice_set = bunch.get_slices(self.slicer)
+        bunch (instance of the Particles class), including all the
+        statistics that are to be saved. """
+        slice_set = bunch.get_slices(self.slicer, statistics=True)
 
         # Handle the different statistics quantities, which can
         # either be methods (like mean(), ...) or simply attributes
@@ -280,11 +281,7 @@ class SliceMonitor(Monitor):
 
         # slice_set-specific data.
         for stats in self.slice_stats_to_store:
-            evaluate_stats_slice = getattr(slice_set, stats)
-            try:
-                self.buffer_slice[stats][:,0] = evaluate_stats_slice(bunch)
-            except TypeError:
-                self.buffer_slice[stats][:,0] = evaluate_stats_slice
+            self.buffer_slice[stats][:,0] = getattr(slice_set, stats)
             self.buffer_slice[stats] = np.roll(self.buffer_slice[stats],
                                                shift=-1, axis=1)
 
