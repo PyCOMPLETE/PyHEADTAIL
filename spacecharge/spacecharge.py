@@ -20,11 +20,23 @@ class LongSpaceCharge(Element):
     cf. the original HEADTAIL version.
     '''
 
-    def __init__(self, slicer, pipe_radius, time_step, *args, **kwargs):
+    def __init__(self, slicer, pipe_radius, time_step, n_slice_sigma=3,
+                 *args, **kwargs):
+        '''Arguments:
+        - pipe_radius is the the radius of the vacuum pipe in metres.
+        - time_step is the time duration over which the space charge
+        should be applied. Usually you want to set this to the
+        revolution period (if longitudinal space charge is applied once
+        per turn).
+        - n_slice_sigma indicates the number of slices taken as a
+        sigma for the Gaussian kernel that smoothens the line charge
+        density derivative (see SliceSet.lambda_prime_bins for more
+        info).
+        '''
         self.slicer = slicer
         self.pipe_radius = pipe_radius
         self.time_step = time_step
-        # include slice_sigma
+        self.n_slice_sigma = n_slice_sigma
 
     @clean_slices
     def track(self, beam):
