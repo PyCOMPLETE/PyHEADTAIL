@@ -128,8 +128,8 @@ cy_ext = [
 setup(
     name='PyHEADTAIL',
     version=verstr,
-    description='CERN macroparticle tracking code for collective effects in circular accelerators.',
-    url='http://github.com/like2000/PyHEADTAIL',
+    description='CERN PyHEADTAIL numerical n-body simulation code for simulating macro-particle beam dynamics with collective effects.',
+    url='http://github.com/PyCOMPLETE/PyHEADTAIL',
     packages=['PyHEADTAIL'],
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
