@@ -14,14 +14,15 @@ from Cython.Build import cythonize
 
 
 VERSIONFILE="_version.py"
-verstrline = open(VERSIONFILE, "rt").read()
-VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    verstr = mo.group(1)
-else:
-    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
-
+#verstrline = open(VERSIONFILE, "rt").read()
+#VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+#mo = re.search(VSRE, verstrline, re.M)
+#if mo:
+#    verstr = mo.group(1)
+#else:
+#    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+execfile(VERSIONFILE)
+verstr = __version__
 
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
