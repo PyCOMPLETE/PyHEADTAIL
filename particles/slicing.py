@@ -105,10 +105,6 @@ class SliceSet(Printing):
         return self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
 
     @property
-    def t_centers(self):
-        return self.z_centers / (self.beta * c)
-
-    @property
     def n_slices(self):
         return len(self.z_bins) - 1
 
@@ -237,6 +233,12 @@ class SliceSet(Printing):
         next_pos = self.slice_positions[slice_index + 1]
 
         return self.particle_indices_by_slice[pos:next_pos]
+
+    def convert_to_time(self, z):
+        '''Convert longitudinal quantity from length to time units using
+        the relativistic beta saved at creation time of the SliceSet.
+        '''
+        return z / (self.beta * c)
 
 
 class Slicer(object):
