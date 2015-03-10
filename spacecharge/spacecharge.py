@@ -155,6 +155,8 @@ class TransverseGaussianSpaceCharge(Element):
         M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.
 
         Return (E_x / Q, E_y / Q).
+
+        Assumes sig_x > sig_y.
         '''
         # timing was ~208 us for:
         # x = np.arange(-1e-5, 1e-5, 1e-7)
@@ -177,6 +179,8 @@ class TransverseGaussianSpaceCharge(Element):
         M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.
 
         Return (E_x / Q, E_y / Q).
+
+        Assumes sig_x > sig_y.
 
         25%% slower than efieldn (for numpy vectors), uses CERN library.
         '''
