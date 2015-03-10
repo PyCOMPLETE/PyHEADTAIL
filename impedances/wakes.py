@@ -73,7 +73,8 @@ class WakeField(Element):
         the instance of the Slicer class used for this particluar
         WakeField object. A slice_set is returned according to the
         self.slicer configuration. """
-        slice_set = bunch.get_slices(self.slicer)
+        slice_set = bunch.get_slices(self.slicer,
+                                     statistics=['mean_x', 'mean_y'])
 
         for kick in self.wake_kicks:
             kick.apply(bunch, slice_set)

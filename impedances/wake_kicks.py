@@ -144,7 +144,7 @@ class DipoleWakeKickX(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         first_moment_x = (
-            slice_set.n_macroparticles_per_slice * slice_set.mean_x(bunch))
+            slice_set.n_macroparticles_per_slice * slice_set.mean_x)
         dipole_kick_x = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, first_moment_x))
 
@@ -162,7 +162,7 @@ class DipoleWakeKickXY(WakeKick):
         the slicing region, i.e particles_within_cuts (defined by the
         slice_set) experience the kick. """
         first_moment_y = (
-            slice_set.n_macroparticles_per_slice * slice_set.mean_y(bunch))
+            slice_set.n_macroparticles_per_slice * slice_set.mean_y)
         dipole_kick_xy = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, first_moment_y))
 
@@ -180,7 +180,7 @@ class DipoleWakeKickY(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         first_moment_y = (
-            slice_set.n_macroparticles_per_slice * slice_set.mean_y(bunch))
+            slice_set.n_macroparticles_per_slice * slice_set.mean_y)
         dipole_kick_y = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, first_moment_y))
 
@@ -198,7 +198,7 @@ class DipoleWakeKickYX(WakeKick):
         the slicing region, i.e particles_within_cuts (defined by the
         slice_set) experience the kick. """
         first_moment_x = (
-            slice_set.n_macroparticles_per_slice * slice_set.mean_x(bunch))
+            slice_set.n_macroparticles_per_slice * slice_set.mean_x)
         dipole_kick_yx = (WakeKick._wake_factor(bunch) *
             self._convolution(bunch, slice_set, first_moment_x))
 
