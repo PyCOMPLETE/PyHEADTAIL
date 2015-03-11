@@ -98,11 +98,11 @@ class TestSlicing(unittest.TestCase):
         z_cuts which lie outside of the bunch
         '''
         #create a bunch and a slice set encompassing the whole bunch
-        z_min, zmax = -2., 2.
-        bunch = create_bunch(zmin=z_min, zmax=z_max)
+        z_min, z_max = -2., 2.
+        bunch = self.create_bunch(zmin=z_min, zmax=z_max)
         z_cuts = (z_min-1,z_max+1)
         slice_set = UniformChargeSlicer(n_slices=self.nslices,
-                                        z_cuts=z_cuts).slicer(bunch)
+                                        z_cuts=z_cuts).slice(bunch)
         n_particles = sum(slice_set.n_macroparticles_per_slice)
         self.assertEqual(self.macroparticlenumber, n_particles,
                          'the SliceSet lost/added some particles')
