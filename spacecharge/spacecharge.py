@@ -36,10 +36,12 @@ class LongSpaceCharge(Element):
         slice_kicks = (self._prefactor(beam) * self._gfactor(beam) *
                        lambda_prime) * self.time_step
 
-        p_id = slices.particles_within_cuts
-        s_id = slices.slice_index_of_particle.take(p_id)
+        kicks = slices.convert_to_particles(slice_kicks)
+        beam.dp -= kicks
+#        p_id = slices.particles_within_cuts
+#        s_id = slices.slice_index_of_particle.take(p_id)
 
-        beam.dp[p_id] -= slice_kicks.take(s_id)
+#        beam.dp[p_id] -= slice_kicks.take(s_id)
 
     @staticmethod
     def _prefactor(beam):

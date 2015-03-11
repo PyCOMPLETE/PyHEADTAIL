@@ -22,6 +22,10 @@ from ..cobra_functions import stats as cp
 from functools import wraps
 
 
+floor = np.floor
+empty_like = np.empty_like
+
+
 class ModeIsNotUniformBin(Exception):
     message = "This SliceSet has self.mode not set to 'uniform_bin'!"
     def __str__(self):
@@ -213,6 +217,20 @@ class SliceSet(object):
         the relativistic beta saved at creation time of the SliceSet.
         '''
         return z / (self.beta * c)
+
+    def convert_to_particles(self, slice_array, empty_particles=None):
+        '''Convert slice_array with entries for each slice to a
+        particle array with the respective entry of each particle
+        given by its slice_array value via the slice that the
+        particle belongs to.
+        '''
+        if empty_particles == None:
+            empty_particles = empty_like(self.slice_index_of_particle, dtype=np.float)
+        particle_array = empty_particles
+        p_id = self.particles_within_cuts
+        s_id = self.slice_index_of_particle.take(p_id)
+        particle_array[p_id] = slice_array.take(s_id)
+        return particle_array
 
 
 class Slicer(object):
@@ -429,7 +447,7 @@ class UniformBinSlicer(Slicer):
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
 
         z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
-        slice_index_of_particle = np.floor(
+        slice_index_of_particle = floor(
                 (beam.z - z_cut_tail) / slice_width
             ).astype(np.int32)
 
