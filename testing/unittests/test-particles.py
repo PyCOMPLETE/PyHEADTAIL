@@ -117,10 +117,10 @@ class TestParticles(unittest.TestCase):
                          'get_slices() incorrect')
 
     def create_bunch(self):
-        x = np.random.uniform(-1,1,self.macroparticlenumber)
+        x = np.random.uniform(-1, 1, self.macroparticlenumber)
         y = np.copy(x)
         z = np.copy(x)
-        xp = np.random.uniform(-0.5,0.5,self.macroparticlenumber)
+        xp = np.random.uniform(-0.5, 0.5, self.macroparticlenumber)
         yp = np.copy(xp)
         dp = np.copy(xp)
         coords_n_momenta_dict = {
