@@ -300,6 +300,10 @@ class Slicer(object):
     def __eq__(self, other):
         return self.config == other.config
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
     # for notifying users of previous versions to use the right new methods
     def update_slices(self, beam):
         '''non-existent anymore!'''

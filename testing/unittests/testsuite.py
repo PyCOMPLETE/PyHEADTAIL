@@ -30,6 +30,6 @@ if __name__ == '__main__':
         test = test_load.loadTestsFromTestCase(case)
         case_list.append(test)
     test_suite = unittest.TestSuite(case_list)
-    print('Running the unittests in ' + str(test_list))
+    print('Running unit tests ' + str(test_list))
     runner = unittest.TextTestRunner()
     runner.run(test_suite)
