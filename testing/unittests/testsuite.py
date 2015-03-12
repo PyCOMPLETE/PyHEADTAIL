@@ -20,10 +20,6 @@ test_list = [TestSlicing,
 
 
 if __name__ == '__main__':
-
-
-
-
     test_load = unittest.TestLoader()
     case_list = []
     for case in test_list:

@@ -20,7 +20,7 @@ from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
-
+from PyHEADTAIL.general.printers import AccumulatorPrinter
 
 
 def check_elements_equal(np_array1d):
@@ -51,25 +51,34 @@ class TestSlicing(unittest.TestCase):
         self.z_cuts = (-20.,30.) #asymmetric to check uniform_charge_slicer
         self.n_sigma_z = 5
         self.basic_slicer = UniformBinSlicer(self.nslices,
-                                                z_cuts=self.z_cuts)
+                                             z_cuts=self.z_cuts)
         self.basic_slice_set = self.basic_slicer.slice(self.bunch)
-
-
 
     def tearDown(self):
         pass
 
-
     def test_long_cuts(self):
+        '''Tests whether the z_cuts are initialized correctly'''
         (cut_tail, cut_head) = self.basic_slicer.get_long_cuts(self.bunch)
         self.assertAlmostEqual(self.z_cuts[0], cut_tail,
                                'get_long_cuts incorrect (tail cut)')
         self.assertAlmostEqual(self.z_cuts[1], cut_head,
                                'get_long_cuts incorrect (head cut)')
 
+    def test_z_cuts_warning(self):
+        '''Tests whether a warning is raised whenever
+        z_cut_tail >= z_cut_head
+        '''
+        inverse_z_cuts = (-0.1,-0.3)
+        warnings = AccumulatorPrinter()
+        slicer = UniformBinSlicer(self.nslices, z_cuts = inverse_z_cuts,
+                                  warningprinter=warnings)
+        self.assertTrue(len(warnings.log) > 0,
+                        'no warning generated when z_cut head < z_cut tail')
+
     def test_equality(self):
         '''Tests whether two slicers with the same config are equal
-        in the sense of the == and != operator (calling __eq__)
+        in the sense of the == and != operator (calling __eq__, __ne__)
         '''
         unif_bin_slicer = UniformBinSlicer(self.nslices, z_cuts=self.z_cuts)
         unif_bin_slicer2 = UniformBinSlicer(self.nslices, z_cuts=self.z_cuts)
@@ -88,9 +97,15 @@ class TestSlicing(unittest.TestCase):
                                                  z_cuts=self.z_cuts)
         slice_set = unif_charge_slicer.slice(self.bunch)
         p_per_slice = slice_set.n_macroparticles_per_slice
-        self.assertTrue(check_elements_equal(p_per_slice),
-                        'slices in UniformChargeSlicer don\'t have' +
-                        'the same number of macroparticles in them')
+        if (self.macroparticlenumber % self.nslices == 0):
+            self.assertTrue(check_elements_equal(p_per_slice),
+                            'slices in UniformChargeSlicer don\'t have' +
+                            'the same number of macroparticles in them')
+        else :
+            print('test_unif_charge_slicer() not run because ' +
+                  'uniform charge distribution is impossible ' +
+                  '(nparticles[' + str(self.macroparticlenumber) +
+                  '] % nslices[' + str(self.nslices) + '] != 0)')
 
     def test_sliceset_macroparticles(self):
         '''Tests whether the sum of all particles per slice
@@ -116,9 +131,6 @@ class TestSlicing(unittest.TestCase):
         #print(self.basic_slice_set.slice_positions)
         self.assertTrue(self.basic_slice_set.slice_positions.size ==
                         self.nslices, 'slice_positions has wrong dimension')
-
-
-
 
     def create_bunch(self, zmin=-1., zmax=1.):
         z = np.linspace(zmin, zmax, num=self.macroparticlenumber)

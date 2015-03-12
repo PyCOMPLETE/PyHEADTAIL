@@ -22,7 +22,6 @@ from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 
 
-
 class TestParticles(unittest.TestCase):
 
     def setUp(self):
@@ -111,10 +110,17 @@ class TestParticles(unittest.TestCase):
                                    + prop + ' incorrect')
 
     def test_get_slices(self):
-        '''Tests the clean_slices() method'''
+        '''Tests the get_slices() method on consistency after multiple calls'''
         slice_set = self.bunch.get_slices(self.slicer)
         self.assertEqual(slice_set,self.bunch.get_slices(self.slicer),
                          'get_slices() incorrect')
+
+    def test_clean_slices(self):
+        '''Tests whether clean_slices() works correctly'''
+        slice_set = self.bunch.get_slices(self.slicer)
+        self.bunch.clean_slices()
+        self.assertTrue(len(self.bunch._slice_sets) == 0,
+                        'clean_slices() does not delete the slice set')
 
     def create_bunch(self):
         x = np.random.uniform(-1, 1, self.macroparticlenumber)
