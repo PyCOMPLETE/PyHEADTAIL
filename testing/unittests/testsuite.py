@@ -10,13 +10,15 @@ import unittest
 from test_slicing import TestSlicing
 from test_particles import TestParticles
 from test_generators import TestParticleGenerators
+from test_aperture import TestAperture
 
 
 
 #add your test classes here
 test_list = [TestSlicing,
              TestParticles,
-             TestParticleGenerators]
+             TestParticleGenerators,
+             TestAperture]
 
 
 if __name__ == '__main__':
