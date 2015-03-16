@@ -111,7 +111,6 @@ class TestAperture(unittest.TestCase):
                                              warningprinter=warnings)
         circxy_aperture.track(bunch)
         n_particles_after = bunch.macroparticlenumber
-        print(n_particles_after)
         self.assertTrue(n_particles_after == 0,
                         'error in CircularApertureXY: the number of ' +
                         'particles should be zero after this operation')
