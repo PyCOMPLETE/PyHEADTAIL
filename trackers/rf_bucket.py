@@ -3,12 +3,12 @@ from __future__ import division
 import numpy as np
 
 from scipy.optimize import brentq
-from scipy.constants import c, e, m_p
+from scipy.constants import c
 from scipy.integrate import dblquad
 
 from . import Printing
 
-from functools import wraps
+from functools import partial, wraps
 import operator
 
 def attach_clean_buckets(rf_parameter_changing_method, rfsystems_instance):
@@ -31,7 +31,8 @@ class RFBucket(Printing):
     Should be requested via RFSystems.get_bucket(gamma).
 
     Contains all information and all physical parameters of the
-    current longitudinal RF configuration.
+    current longitudinal RF configuration for a (real, not macro-)
+    particle.
 
     Use for plotting or obtaining the Hamiltonian etc.
 
@@ -39,13 +40,15 @@ class RFBucket(Printing):
     Kick objects, i.e. the left and right side of the bucket are not
     accordingly moved w.r.t. the harmonic phase offset.
     """
-    def __init__(self, circumference, gamma_reference, alpha_array,
-                 p_increment, harmonic_list, voltage_list,
-                 phi_offset_list, mass=m_p, charge=e, z_offset=None,
-                 *args, **kwargs):
+    def __init__(self, circumference, gamma, mass,
+                 charge, alpha_array, p_increment,
+                 harmonic_list, voltage_list, phi_offset_list,
+                 z_offset=None, *args, **kwargs):
         '''Implements only the leading order momentum compaction factor.
 
         Arguments:
+        - mass is the mass of the particle type in the beam
+        - charge is the charge of the particle type in the beam
         - z_offset determines where to start the root finding
         (of the electric force field to calibrate the separatrix
         Hamiltonian value to zero). z_offset is per default given by
@@ -56,9 +59,9 @@ class RFBucket(Printing):
         self.mass = mass
         self.charge = charge
 
-        self._gamma_reference = gamma_reference
-        self._beta_reference= np.sqrt(1 - gamma_reference**-2)
-        self._p0_reference = np.sqrt(gamma_reference**2 - 1) * mass * c
+        self._gamma = gamma
+        self._beta = np.sqrt(1 - gamma**-2)
+        self._p0 = np.sqrt(gamma**2 - 1) * mass * c
 
         self.alpha0 = alpha_array[0]
         self.p_increment = p_increment
@@ -99,20 +102,20 @@ class RFBucket(Printing):
         self.interval = (z_offset - 1.01*zmax, z_offset + 1.01*zmax)
 
     @property
-    def gamma_reference(self):
-        return self._gamma_reference
+    def gamma(self):
+        return self._gamma
 
     @property
-    def beta_reference(self):
-        return self._beta_reference
+    def beta(self):
+        return self._beta
 
     @property
-    def p0_reference(self):
-        return self._p0_reference
+    def p0(self):
+        return self._p0
 
     @property
     def deltaE(self):
-        return self.p_increment * self.beta_reference * c
+        return self.p_increment * self.beta * c
 
     @property
     def z_ufp(self):
@@ -135,6 +138,28 @@ class RFBucket(Printing):
         except AttributeError:
             self._z_sfp, self._z_ufp = self._get_zsfp_and_zufp()
             return self._z_sfp
+
+    @property
+    def z_ufp_separatrix(self):
+        '''Return the (left-most) unstable fix point at the separatrix
+        of the bucket.
+        (i.e. a bucket boundary defining unstable fix point)
+        '''
+        if self.eta0 * self.p_increment > 0:
+            # separatrix ufp right of sfp
+            return self.z_ufp[-1]
+        else:
+            # separatrix ufp left of sfp
+            return self.z_ufp[0]
+
+    @property
+    def z_sfp_extr(self):
+        '''Return the (left-most) absolute extremal stable fix point
+        within the bucket.
+        '''
+        sfp_extr_index = np.argmax(self.hamiltonian(self.z_sfp, 0,
+                                                    make_convex=True))
+        return self.z_sfp[sfp_extr_index]
 
     @property
     def zleft(self):
@@ -161,7 +186,7 @@ class RFBucket(Printing):
     # should make use of eta functionality of LongitudinalMap at some point
     @property
     def eta0(self):
-        return self.alpha0 - self.gamma_reference**-2
+        return self.alpha0 - self.gamma**-2
 
     @property
     def beta_z(self):
@@ -175,16 +200,11 @@ class RFBucket(Printing):
         ix = np.argmax(self.V)
         V = self.V[ix]
         h = self.h[ix]
-        return np.sqrt( e*V*np.abs(self.eta0)*h /
-                       (2*np.pi*self.p0_reference*self.beta_reference*c) )
+        return np.sqrt( self.charge*V*np.abs(self.eta0)*h /
+                       (2*np.pi*self.p0*self.beta*c) )
 
-    @property
-    def Hmax(self):
-        '''Hamiltonian value of the stable fix point of the bucket.'''
-        return self.hamiltonian(self.z_sfp, 0)
-
-    def add_nonRF_influences(self, add_forces, add_potentials):
-        '''Include additional non-RF effects to this RFBucket.
+    def add_fields(self, add_forces, add_potentials):
+        '''Include additional (e.g. non-RF) effects to this RFBucket.
         Use this interface for adding space charge influence etc.
         to the bucket parameters and shape.
 
@@ -288,7 +308,8 @@ class RFBucket(Printing):
                                          if not ignore_add_potentials))
         return total_potential
 
-    def acc_potential(self, z, ignore_add_potentials=False):
+    def acc_potential(self, z, ignore_add_potentials=False,
+                      make_convex=False):
         '''Return the total electric potential energy including
         - the linear acceleration slope and
         - the additional electric potential energies (provided via
@@ -302,14 +323,20 @@ class RFBucket(Printing):
         Thus the Hamiltonian value of the separatrix is calibrated
         to zero.
 
-        For plotting: to see a 'bucket structure' in the sense of
-        a local dip in the potential energy, plot
-        sign(eta)*acc_potential.
+        Arguments:
+        - make_convex: multiplies by sign(eta) for plotting etc.
+        To see a literal 'bucket structure' in the sense of a
+        local minimum in the Hamiltonian topology, set make_convex=True
+        in order to return sign(eta)*hamiltonian(z, dp).
         '''
         pot_tot = self.make_total_potential(
             ignore_add_potentials=ignore_add_potentials)
-        return (pot_tot(z) - pot_tot(self.z_ufp)
-                + self.deltaE / self.circumference * (z - self.z_ufp))
+        z_boundary = self.z_ufp_separatrix
+        v_acc = (pot_tot(z) - pot_tot(z_boundary)
+                 + self.deltaE / self.circumference * (z - z_boundary))
+        if make_convex:
+            v_acc *= np.sign(self.eta0)
+        return v_acc
 
     # ROOT AND BOUNDARY FINDING ROUTINES
     # ==================================
@@ -356,100 +383,122 @@ class RFBucket(Printing):
                              'why do you ask me for bucket boundaries ' +
                              'in this hyperbolic phase space structure?!')
 
-        z0left = np.min(z0)
-        z0right = np.max(z0)
+        z0odd = z0[::2]
+        z0even = z0[1::2]
 
-        if len(z0) == 1: # z0left == z0right
-            return z0left, z0right
+        if len(z0) == 1: # exactly zero bucket area
+            return z0, z0
 
-        if len(z0) == 2:
-            # we are de-/accelerating
-            if self.eta0 * self.p_increment > 0:
-                z_sfp, z_ufp = z0left, z0right
-            else:
-                z_sfp, z_ufp = z0right, z0left
-        elif len(z0) == 3:
-            # we are stationary
-            z_sfp, z_ufp = z0[1], z0left
+        if self.eta0 * self.p_increment > 0:
+            # separatrix ufp right of sfp
+            z_sfp, z_ufp = z0odd, z0even
         else:
-            raise ValueError('Too many zero-crossings! Might give ambiguous ' +
-                             'result (missing fix points and bucket split)! ' +
-                             'To be implemented when needed :-)')
+            # separatrix ufp left of sfp
+            z_sfp, z_ufp = z0even, z0odd
 
         return z_sfp, z_ufp
 
     # HAMILTONIANS, SEPARATRICES AND RELATED FUNCTIONS
     # ================================================
-    def hamiltonian(self, z, dp):
+    def hamiltonian(self, z, dp, make_convex=False):
         '''Return the Hamiltonian at position z and dp in units of
         Coul*Volt/p0.
 
-        For plotting: to see a 'bucket structure' in the sense of
-        a local dip in the Hamiltonian landscape, plot
-        sign(eta)*hamiltonian(z, dp).
+        Arguments:
+        - make_convex: multiplies by sign(eta) for plotting etc.
+        To see a literal 'bucket structure' in the sense of a
+        local minimum in the Hamiltonian topology, set make_convex=True
+        in order to return sign(eta)*hamiltonian(z, dp).
         '''
-        return (-0.5 * self.eta0 * self.beta_reference * c * dp**2
-                + self.acc_potential(z) / self.p0_reference)
+        h = (-0.5 * self.eta0 * self.beta * c * dp**2 +
+            self.acc_potential(z) / self.p0)
+        if make_convex:
+            h *= np.sign(self.eta0)
+        return h
 
-    def H0_from_sigma(self, z0):
+    def H0_from_sigma(self, z0, make_convex=True):
         """Pure estimate value of H_0 starting from a bi-Gaussian bunch
         in a linear "RF bucket". Intended for use by iterative matching
         algorithms in the generators module.
         """
-        return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2
+        # to be replaced with something more flexible (add_forces etc.)
+        h0 = self.beta*c * (z0/self.beta_z)**2
+        if make_convex:
+            h0 *= np.abs(self.eta0)
+        return h0
 
-    def H0_from_epsn(self, epsn):
+    def H0_from_epsn(self, epsn, make_convex=True):
         """Pure estimate value of H_0 starting from a bi-Gaussian bunch
         in a linear "RF bucket". Intended for use by iterative matching
         algorithms in the generators module.
         """
-        z0 = np.sqrt(epsn/(4.*np.pi) * self.beta_z * e/self.p0_reference)
-        return np.abs(self.eta0)*self.beta_reference*c * (z0/self.beta_z)**2
+        # to be replaced with something more flexible (add_forces etc.)
+        z0 = np.sqrt(epsn/(4.*np.pi) * self.beta_z * self.charge/self.p0)
+        h0 = self.beta*c * (z0/self.beta_z)**2
+        if make_convex:
+            h0 *= np.abs(self.eta0)
+        return h0
 
-    def Hcut(self, zc):
-        return self.hamiltonian(zc, 0)
-
-    def equihamiltonian(self, zc):
-        def s(z):
-            r = (np.sign(self.eta0) *
-                 2./(self.eta0*self.beta_reference*c)
-                 * (-self.Hcut(zc) - self.acc_potential(z)/self.p0_reference))
+    def equihamiltonian(self, zcut):
+        '''Return a function dp_at that encodes the equi-Hamiltonian
+        contour line that cuts the z axis at (zcut, 0).
+        In more detail, dp_at(z) returns the (positive) dp value at
+        its given z argument such that
+        self.hamiltonian(z, dp_at(z)) == self.hamiltonian(zcut, 0) .
+        '''
+        def dp_at(z):
+            hcut = self.hamiltonian(zcut, 0)
+            r = np.abs(2./(self.eta0*self.beta*c) *
+                 (-hcut - self.acc_potential(z)/self.p0))
             return np.sqrt(r.clip(min=0))
-        return s
+        return dp_at
 
     def separatrix(self, z):
-        f = self.equihamiltonian(self.z_ufp)
-        return f(z)
+        '''Return the dp value corresponding to the separatrix
+        Hamiltonian contour line at the given z.
+        '''
+        dp_separatrix_at = self.equihamiltonian(self.z_ufp_separatrix)
+        return dp_separatrix_at(z)
 
-    def p_max(self, zc):
-        f = self.equihamiltonian(zc)
-        return np.amax(f(self.z_sfp))
+    def h_sfp(self, make_convex=False):
+        '''Return the extremal Hamiltonian value at the corresponding
+        stable fix point (self.z_sfp_extr, 0) of the bucket.
+        '''
+        return self.hamiltonian(self.z_sfp_extr, 0, make_convex)
 
-    def is_in_separatrix(self, z, dp):
+    def dp_max(self, zcut):
+        '''Return the maximal dp value along the equihamiltonian which
+        is located at (one of the) self.z_sfp .
+        '''
+        dp_at = self.equihamiltonian(zcut)
+        return np.amax(dp_at(self.z_sfp))
+
+    def is_in_separatrix(self, z, dp, margin=0):
         """Return boolean whether the coordinate (z, dp) is located
-        strictly inside the separatrix.
-        """
-        return np.logical_and(np.logical_and(self.zleft < z, z < self.zright),
-                              self.hamiltonian(z, dp) > 0)
+        strictly inside the separatrix of this bucket
+        (i.e. excluding neighbouring buckets).
 
-    def make_is_accepted(self, margin):
-        """Return the function is_accepted(z, dp) definining the
-        equihamiltonian with a value of margin*self.Hmax . For margin 0,
-        the returned is_accepted(z, dp) function is equivalent to
-        self.is_in_separatrix(z, dp).
+        If margin is different from 0, use the equihamiltonian
+        defined by margin*self.h_sfp instead of the separatrix.
+        (Use margin as a weighting factor in units of the Hamiltonian
+        value at the stable fix point to move from the separatrix
+        toward the extremal Hamiltonian value at self.z_sfp .)
         """
-        def is_accepted(z, dp):
-            """ Returns boolean whether the coordinate (z, dp) is
-            located inside the equihamiltonian defined by
-            margin*self.Hmax . """
-            return np.logical_and(
-                np.logical_and(self.zleft < z, z < self.zright),
-                self.hamiltonian(z, dp) > margin * self.Hmax)
-        return is_accepted
+        within_interval = np.logical_and(self.zleft < z, z < self.zright)
+        within_separatrix = (self.hamiltonian(z, dp, make_convex=True)
+                             > margin * self.h_sfp(make_convex=True))
+        return np.logical_and(within_interval, within_separatrix)
+
+    def make_is_accepted(self, margin=0):
+        """Return the function is_accepted(z, dp) definining the
+        equihamiltonian with a value of margin*self.h_sfp .
+        For margin 0, the returned is_accepted(z, dp) function is
+        identical to self.is_in_separatrix(z, dp).
+        """
+        return partial(self.is_in_separatrix, margin=margin)
 
     def bucket_area(self):
-        xmin, xmax = self.zleft, self.zright
-        Q, error = dblquad(lambda y, x: 1, xmin, xmax, lambda x: 0,
+        Q, error = dblquad(lambda y, x: 1, self.zleft, self.zright, lambda x: 0,
                            self.separatrix)
 
-        return Q * 2*self.p0_reference/e
+        return Q * 2*self.p0/self.charge

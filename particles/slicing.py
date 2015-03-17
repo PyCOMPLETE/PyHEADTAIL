@@ -76,7 +76,7 @@ class SliceSet(Printing):
         are the same as in beam.z .'''
         self.slice_index_of_particle = slice_index_of_particle
 
-        '''How is the slicing done? for the moment it is either
+        '''How is the slicing done? For the moment it is either
         'uniform_charge' or 'uniform_bin'.'''
         self.mode = mode
 
@@ -102,7 +102,7 @@ class SliceSet(Printing):
 
     @property
     def z_centers(self):
-        return self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
+        return self.z_bins[:-1] + 0.5 * (self.z_bins[1:] - self.z_bins[:-1])
 
     @property
     def n_slices(self):
@@ -168,9 +168,7 @@ class SliceSet(Printing):
         '''Line charge density with respect to bins along the slices.'''
         if sigma is None:
             sigma = self.smoothing_sigma
-        lambda_of_bins = (self.n_macroparticles_per_slice
-                          * self.particlenumber_per_mp
-                          * self.charge)
+        lambda_of_bins = self.n_macroparticles_per_slice * self.charge_per_mp
         if smoothen:
             lambda_of_bins = ndimage.gaussian_filter1d(
                 lambda_of_bins, sigma=sigma, mode='wrap')
@@ -204,14 +202,14 @@ class SliceSet(Printing):
         mp_density_derivative = np.gradient(line_density, self.slice_widths[0])
         if smoothen_after:
             mp_density_derivative = smoothen(mp_density_derivative)
-        return mp_density_derivative * self.charge * self.particlenumber_per_mp
+        return mp_density_derivative * self.charge_per_mp
 
     def lambda_z(self, z, sigma=None, smoothen=True):
         '''Line charge density with respect to z along the slices.'''
         lambda_along_bins = (self.lambda_bins(sigma, smoothen)
                              / self.slice_widths)
         tck = interpolate.splrep(self.z_centers, lambda_along_bins, s=0)
-        l_of_z = interpolate.splev(z, tck, der=0)
+        l_of_z = interpolate.splev(z, tck, der=0, ext=1)
         return l_of_z
 
     def lambda_prime_z(self, z, sigma=None, smoothen_before=True,
@@ -222,7 +220,7 @@ class SliceSet(Printing):
         lp_along_bins = self.lambda_prime_bins(
             sigma, smoothen_before, smoothen_after) / self.slice_widths
         tck = interpolate.splrep(self.z_centers, lp_along_bins, s=0)
-        lp_of_z = interpolate.splev(z, tck, der=0)
+        lp_of_z = interpolate.splev(z, tck, der=0, ext=1)
         return lp_of_z
 
     def particle_indices_of_slice(self, slice_index):
@@ -296,7 +294,9 @@ class Slicer(object):
         '''
         return dict(beta=beam.beta, gamma=beam.gamma, p0=beam.p0,
                     particlenumber_per_mp=beam.particlenumber_per_mp,
-                    charge=beam.charge, mass=beam.mass)
+                    charge=beam.charge, charge_per_mp=beam.charge_per_mp,
+                    mass=beam.mass, intensity=beam.intensity
+                    )
 
     def get_long_cuts(self, beam):
         '''Return boundaries of slicing region,

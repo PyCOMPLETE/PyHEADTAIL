@@ -279,6 +279,7 @@ class RFSystems(LongitudinalOneTurnMap):
         The boolean parameter shrink_transverse allows for transverse
         emittance cooling from acceleration.
 
+        Arguments:
         - self.p_increment is the momentum step per turn of the
         synchronous particle, it can be continuously adjusted to
         reflect different slopes in the dipole magnet strength ramp.
@@ -318,7 +319,7 @@ class RFSystems(LongitudinalOneTurnMap):
 
         '''Take care of possible memory leakage when accessing with many
         different gamma values without tracking while setting
-        RFSystems.p_increment != 0.
+        RFSystems.p_increment != 0. Many dict entries will be generated!
         '''
         self._rfbuckets = {}
 
@@ -397,7 +398,8 @@ class RFSystems(LongitudinalOneTurnMap):
         if self._shrinking:
             self._shrinking_drift.shrinkage_p_increment = value
 
-    def get_bucket(self, gamma, *args, **kwargs):
+    def get_bucket(self, bunch=None, gamma=None, mass=m_p, charge=e,
+                   *args, **kwargs):
         '''Return an RFBucket instance which contains all information
         and all physical parameters of the current longitudinal RF
         configuration. (Factory method)
@@ -408,13 +410,23 @@ class RFSystems(LongitudinalOneTurnMap):
         accelerating kick (defined by the first entry in the
         parameter lists) has a non-zero p_increment.
         (see RFSystems.p_increment)
+
+        Arguments:
+        Either give a bunch or the three parameters
+        (gamma, mass, charge) explicitely to return a bucket
+        defined by these.
         '''
-        if gamma not in self._rfbuckets:
-            self._rfbuckets[gamma] = RFBucket(
-                self.circumference, gamma, self.alpha_array,
-                self.p_increment, list(self.harmonics),
-                list(self.voltages), list(self.phi_offsets))
-        return self._rfbuckets[gamma]
+        try:
+            bunch_signature = (bunch.gamma, bunch.mass, bunch.charge)
+        except AttributeError:
+            bunch_signature = (gamma, mass, charge)
+        if bunch_signature not in self._rfbuckets:
+            self._rfbuckets[bunch_signature] = RFBucket(
+                self.circumference, bunch_signature[0], bunch_signature[1],
+                bunch_signature[2], self.alpha_array, self.p_increment,
+                list(self.harmonics), list(self.voltages),
+                list(self.phi_offsets))
+        return self._rfbuckets[bunch_signature]
 
     def clean_buckets(self):
         '''Erases all RFBucket records of this RFSystems instance.

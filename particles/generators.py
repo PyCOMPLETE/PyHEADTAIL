@@ -21,6 +21,7 @@ from ..trackers.rf_bucket import RFBucket
 from ..cobra_functions.pdf_integrators_2d import quad2d
 from . import Printing
 
+from functools import partial
 
 class ParticleGenerator(Printing):
     '''Factory to provide Particle instances according to certain
@@ -31,7 +32,7 @@ class ParticleGenerator(Printing):
     __metaclass__ = ABCMeta
 
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, coords_n_momenta,
+                 circumference, gamma, coords_n_momenta,
                  *args, **kwargs):
         '''coords_n_momenta is a list with the name strings of the
         coordinates and conjugate momenta.
@@ -41,7 +42,7 @@ class ParticleGenerator(Printing):
         self.charge = charge
         self.mass = mass
         self.circumference = circumference
-        self.gamma_reference = gamma_reference
+        self.gamma = gamma
         self.coords_n_momenta = coords_n_momenta
 
     @abstractmethod
@@ -59,7 +60,7 @@ class ParticleGenerator(Printing):
                          particlenumber_per_mp=self.particlenumber_per_mp,
                          charge=self.charge, mass=self.mass,
                          circumference=self.circumference,
-                         gamma_reference=self.gamma_reference,
+                         gamma=self.gamma,
                          coords_n_momenta_dict=coords_n_momenta_dict)
 
     def update(self, beam):
@@ -75,7 +76,7 @@ class ParticleGenerator(Printing):
 class ImportDistribution(ParticleGenerator):
     '''Create a Particles instance from given distributed arrays.'''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, coords_n_momenta_dict,
+                 circumference, gamma, coords_n_momenta_dict,
                  *args, **kwargs):
         '''Directly uses the given dictionary coords_n_momenta_dict
         with the coordinate and conjugate momentum names as keys
@@ -84,7 +85,7 @@ class ImportDistribution(ParticleGenerator):
         self.coords_n_momenta_dict = coords_n_momenta_dict
         super(ImportDistribution, self).__init__(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference, coords_n_momenta_dict.keys(),
+            circumference, gamma, coords_n_momenta_dict.keys(),
             *args, **kwargs)
 
     def distribute(self):
@@ -104,12 +105,12 @@ class Uniform3D(ParticleGenerator):
     All conjugate momenta (xp, yp, dp) are zero.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, xextent, yextent, zextent,
+                 circumference, gamma, xextent, yextent, zextent,
                  *args, **kwargs):
         '''Take the extents in all three spatial dimensions.'''
         super(Uniform3D, self).__init__(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference, HEADTAILcoords.coordinates,
+            circumference, gamma, HEADTAILcoords.coordinates,
             *args, **kwargs)
         self.xextent = xextent
         self.yextent = yextent
@@ -130,7 +131,7 @@ class Gaussian(ParticleGenerator):
     all coordinates and conjugate momenta.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, coords_n_momenta_with_sigmas,
+                 circumference, gamma, coords_n_momenta_with_sigmas,
                  *args, **kwargs):
         '''coords_n_momenta_with_sigmas is a dict: the keys are the
         name strings of the coordinates and conjugate momenta,
@@ -162,7 +163,7 @@ class Gaussian(ParticleGenerator):
         # coords_n_momenta = list(itertools.chain.from_iterable(coords_n_momenta))
         super(Gaussian, self).__init__(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference, coords_n_momenta, *args, **kwargs)
+            circumference, gamma, coords_n_momenta, *args, **kwargs)
         self.coords_n_momenta_with_sigmas = coords_n_momenta_with_sigmas
 
     def distribute(self):
@@ -180,7 +181,7 @@ class Gaussian6D(Gaussian):
     (x, xp, y, yp, z, dp).
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, sigma_x, sigma_xp,
+                 circumference, gamma, sigma_x, sigma_xp,
                  sigma_y, sigma_yp, sigma_z, sigma_dp, *args, **kwargs):
         '''Take the sigmas of all directions to generate the Gaussian
         phase space distribution.
@@ -191,14 +192,14 @@ class Gaussian6D(Gaussian):
             'z': sigma_z, 'dp': sigma_dp}
         super(Gaussian6D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, coords_n_momenta_with_sigmas, *args, **kwargs)
+            gamma, coords_n_momenta_with_sigmas, *args, **kwargs)
 
 
 class Gaussian2DTwiss(Gaussian):
     '''Generates a coordinate and conjugate momentum pair according
     to the TWISS '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, coords,
+                 circumference, gamma, coords,
                  alpha, beta, epsn_geo, *args, **kwargs):
         '''coords: indicate the name tuple with the strings of the
         coordinate and conjugate momentum name in this order,
@@ -215,7 +216,7 @@ class Gaussian2DTwiss(Gaussian):
         coordssig = self.coords_n_momenta_with_sigmas(coords, epsn_geo, beta)
         super(Gaussian2Dtwiss, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, coordssig, *args, **kwargs)
+            gamma, coordssig, *args, **kwargs)
 
     @staticmethod
     def coords_n_momenta_with_sigmas(coords, epsn_geo, beta):
@@ -230,13 +231,13 @@ class Gaussian6DTwiss(Gaussian):
     (x, xp, y, yp, z, dp) using the optics resp. TWISS parameters.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, alpha_x, beta_x, epsn_x,
+                 circumference, gamma, alpha_x, beta_x, epsn_x,
                  alpha_y, beta_y, epsn_y, beta_z, epsn_z, *args, **kwargs):
         '''Take the TWISS parameters at the point of injection along
         with the emittances to generate the Gaussian phase space
         distribution.
         '''
-        betagamma = np.sqrt(gamma_reference**2 - 1)
+        betagamma = np.sqrt(gamma**2 - 1)
         p0 = betagamma * mass * c
         epsn_geo_x = epsn_x / betagamma
         epsn_geo_y = epsn_y / betagamma
@@ -244,7 +245,7 @@ class Gaussian6DTwiss(Gaussian):
 
         # super(Gaussian6Dtwiss, self).__init__(
         #     macroparticlenumber, intensity, charge, mass,
-        #     circumference, gamma_reference,
+        #     circumference, gamma,
         #     epsn_geo_x * beta_x, epsn_geo_x / beta_x,
         #     epsn_geo_y * beta_y, epsn_geo_y / beta_y,
         #     epsn_geo_z * beta_z, epsn_geo_z / beta_z)
@@ -258,7 +259,7 @@ class Gaussian6DTwiss(Gaussian):
 
         super(Gaussian6DTwiss, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, coordssig, *args, **kwargs)
+            gamma, coordssig, *args, **kwargs)
 
 
 class MatchTransverseMap(Gaussian):
@@ -266,10 +267,10 @@ class MatchTransverseMap(Gaussian):
     optics resp. TWISS parameters taken from a TransverseMap instance.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, transverse_map,
+                 circumference, gamma, transverse_map,
                  epsn_x, epsn_y, *args, **kwargs):
         '''Uses the transverse_map to extract the optics parameters.'''
-        betagamma = np.sqrt(gamma_reference**2 - 1)
+        betagamma = np.sqrt(gamma**2 - 1)
         epsn_geo_x = epsn_x / betagamma
         epsn_geo_y = epsn_y / betagamma
         alpha_x, beta_x, alpha_y, beta_y = transverse_map.get_injection_optics()
@@ -284,7 +285,7 @@ class MatchTransverseMap(Gaussian):
         coordssig.update(get_sigmas(('y', 'yp'), epsn_geo_y, beta_y))
         super(MatchTransverseMap, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, coordssig, *args, **kwargs)
+            gamma, coordssig, *args, **kwargs)
 
 
 class MatchLinearLongMap(Gaussian):
@@ -293,14 +294,14 @@ class MatchLinearLongMap(Gaussian):
     from a LongitudinalMap instance.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, longitudinal_map,
+                 circumference, gamma, longitudinal_map,
                  epsn_z=None, sigma_z=None, *args, **kwargs):
         '''Uses the longitudinal_map to extract the Qs and eta for the
         beta_z.
         '''
         self.check_long_input(epsn_z, sigma_z)
-        p0 = np.sqrt(gamma_reference**2 - 1) * mass * c
-        eta = longitudinal_map.eta(0, gamma_reference)
+        p0 = np.sqrt(gamma**2 - 1) * mass * c
+        eta = longitudinal_map.eta(0, gamma)
         try:
             Qs = longitudinal_map.Qs
         except AttributeError as exc:
@@ -315,7 +316,7 @@ class MatchLinearLongMap(Gaussian):
         sigma_dp = sigma_z / beta_z
         super(MatchLinearLongMap, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, {'z': sigma_z, 'dp': sigma_dp}, *args, **kwargs
+            gamma, {'z': sigma_z, 'dp': sigma_dp}, *args, **kwargs
             )
 
     @staticmethod
@@ -335,7 +336,7 @@ class MatchGaussian6D(ParticleGenerator):
     taken from a TransverseMap instance and a LongitudinalMap instance.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference,
+                 circumference, gamma,
                  transverse_map, epsn_x, epsn_y,
                  longitudinal_map, epsn_z=None, sigma_z=None,
                  *args, **kwargs):
@@ -345,15 +346,15 @@ class MatchGaussian6D(ParticleGenerator):
         '''
         self._transverse_matcher = MatchTransverseMap(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference, transverse_map,
+            circumference, gamma, transverse_map,
             epsn_x, epsn_y, *args, **kwargs)
         self._longitudinal_matcher = MatchLinearLongMap(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference, longitudinal_map,
+            circumference, gamma, longitudinal_map,
             epsn_z, sigma_z, *args, **kwargs)
         super(MatchGaussian6D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, HEADTAILcoords.coordinates, *args, **kwargs)
+            gamma, HEADTAILcoords.coordinates, *args, **kwargs)
 
     def distribute(self):
         '''Create the Gaussian distribution for all 6D HEADTAIL
@@ -373,7 +374,7 @@ class MatchRFBucket6D(ParticleGenerator):
     RFBucket instance.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference,
+                 circumference, gamma,
                  transverse_map, epsn_x, epsn_y,
                  rf_bucket, epsn_z=None, sigma_z=None,
                  *args, **kwargs):
@@ -382,15 +383,15 @@ class MatchRFBucket6D(ParticleGenerator):
         '''
         self._transverse_matcher = MatchTransverseMap(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference, transverse_map,
+            circumference, gamma, transverse_map,
             epsn_x, epsn_y, *args, **kwargs)
         self._rf_bucket_matcher = MatchRFBucket2D(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference, rf_bucket,
+            circumference, gamma, rf_bucket,
             epsn_z, sigma_z, *args, **kwargs)
         super(MatchRFBucket6D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, HEADTAILcoords.coordinates, *args, **kwargs)
+            gamma, HEADTAILcoords.coordinates, *args, **kwargs)
 
     def distribute(self):
         '''Create the Gaussian distribution for all 6D HEADTAIL
@@ -419,10 +420,10 @@ class CutRFBucket6D(ParticleGenerator):
     occur as a consequence of the unmatched initialisation. The
     RFBucket.is_accepted method must be created first however, by
     calling the RFBucket.make_is_accepted(margin) method with a certain
-    value for the margin (in % of RFBucket.Hmax, 5% by default).
+    value for the margin.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference,
+                 circumference, gamma,
                  transverse_map, epsn_x, epsn_y,
                  sigma_z, sigma_dp, is_accepted,
                  *args, **kwargs):
@@ -431,15 +432,15 @@ class CutRFBucket6D(ParticleGenerator):
         '''
         self._transverse_matcher = MatchTransverseMap(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference, transverse_map,
+            circumference, gamma, transverse_map,
             epsn_x, epsn_y, *args, **kwargs)
         self._rf_bucket_matcher = CutRFBucket2D(
             macroparticlenumber, intensity, charge, mass,
-            circumference, gamma_reference,
+            circumference, gamma,
             sigma_z, sigma_dp, is_accepted, *args, **kwargs)
         super(CutRFBucket6D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, HEADTAILcoords.coordinates, *args, **kwargs)
+            gamma, HEADTAILcoords.coordinates, *args, **kwargs)
 
     def distribute(self):
         '''Create the Gaussian distribution for all 6D HEADTAIL
@@ -457,7 +458,7 @@ class MatchRFBucket2D(ParticleGenerator):
     or sigma_z and the Hamiltonian from the given RFBucket instance..
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, rf_bucket,
+                 circumference, gamma, rf_bucket,
                  epsn_z=None, sigma_z=None, *args, **kwargs):
         '''Uses the RFBucket rf_bucket to match the longitudinal
         distribution.
@@ -468,7 +469,7 @@ class MatchRFBucket2D(ParticleGenerator):
         MatchLinearLongMap.check_long_input(epsn_z, sigma_z)
         super(MatchRFBucket2D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, HEADTAILcoords.longitudinal, *args, **kwargs)
+            gamma, HEADTAILcoords.longitudinal, *args, **kwargs)
 
     def distribute(self):
         '''Create the longitudinal distribution from an RFBucketMatcher
@@ -493,12 +494,12 @@ class CutRFBucket2D(ParticleGenerator):
     occur as a consequence of the unmatched initialisation.
     The RFBucket.is_accepted method must be created first however, by
     calling the RFBucket.make_is_accepted(margin) method with a certain
-    value for the margin (in % of RFBucket.Hmax, 5% by default).
+    value for the margin.
 
     BY KEVIN: NEEDS TO BE CLEANED UP BY ADRIAN!
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma_reference, sigma_z, sigma_dp,
+                 circumference, gamma, sigma_z, sigma_dp,
                  is_accepted, *args, **kwargs):
 
         self.sigma_z = sigma_z
@@ -507,7 +508,7 @@ class CutRFBucket2D(ParticleGenerator):
 
         super(CutRFBucket2D, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
-            gamma_reference, HEADTAILcoords.longitudinal, *args, **kwargs)
+            gamma, HEADTAILcoords.longitudinal, *args, **kwargs)
 
     def distribute(self):
 
@@ -528,12 +529,14 @@ class CutRFBucket2D(ParticleGenerator):
             self.prints('Reiterate on non-accepted particles')
 
 
-class RFBucketMatcher(object):
+class RFBucketMatcher(Printing):
 
     def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None):
 
-        self.H = rfbucket
-        self.psi_object = psi(rfbucket.hamiltonian, rfbucket.Hmax)
+        self.rfbucket = rfbucket
+        hamiltonian = partial(rfbucket.hamiltonian, make_convex=True)
+        hmax = rfbucket.h_sfp()
+        self.psi_object = psi(hamiltonian, hmax)
         self.psi = self.psi_object.function
 
         if sigma_z and not epsn_z:
@@ -548,71 +551,76 @@ class RFBucketMatcher(object):
     def psi_for_emittance_newton_method(self, epsn_z):
 
         # Maximum emittance
-        self._set_psi_sigma(self.H.circumference)
-        epsn_max = self._compute_emittance(self.H, self.psi)
+        self._set_psi_sigma(self.rfbucket.circumference)
+        epsn_max = self._compute_emittance(self.rfbucket, self.psi)
         if epsn_z > epsn_max:
-            print '\n*** RMS emittance larger than bucket; using full bucket emittance', epsn_max, ' [eV s].'
+            self.warns('Given RMS emittance does not fit into bucket. ' +
+                       'Using (maximum) full bucket emittance ' +
+                       str(epsn_max*0.99) + 'eV s instead.')
             epsn_z = epsn_max*0.99
-        print '\n*** Maximum RMS emittance', epsn_max, 'eV s.'
+        self.prints('*** Maximum RMS emittance ' + str(epsn_max) + 'eV s.')
 
         def get_zc_for_epsn_z(ec):
             self._set_psi_epsn(ec)
-            emittance = self._compute_emittance(self.H, self.psi)
+            emittance = self._compute_emittance(self.rfbucket, self.psi)
 
-            print '... distance to target emittance: {:.2e}'.format(emittance-epsn_z)
+            self.prints('... distance to target emittance: ' +
+                        '{:.2e}'.format(emittance-epsn_z))
             return emittance-epsn_z
 
         try:
             ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4)
         except RuntimeError:
-            print '*** WARNING: failed to converge using Newton-Raphson method. Trying classic Brent method...'
+            self.warns('RFBucketMatcher -- failed to converge while ' +
+                       'using Newton-Raphson method. ' +
+                       'Instead trying classic Brent method...')
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
 
         self._set_psi_epsn(ec_bar)
-        emittance = self._compute_emittance(self.H, self.psi)
-        print '\n--> Emittance:', emittance
-        sigma = self._compute_sigma(self.H, self.psi)
-        print '--> Bunch length:', sigma
-
-        # self.H.emittance, self.H.sigma = emittance, sigma
+        emittance = self._compute_emittance(self.rfbucket, self.psi)
+        self.prints('--> Emittance: ' + str(emittance))
+        sigma = self._compute_sigma(self.rfbucket, self.psi)
+        self.prints('--> Bunch length:' + str(sigma))
 
     # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
 
         # Maximum bunch length
-        self._set_psi_sigma(self.H.circumference)
-        sigma_max = self._compute_sigma(self.H, self.psi)
+        self._set_psi_sigma(self.rfbucket.circumference)
+        sigma_max = self._compute_sigma(self.rfbucket, self.psi)
         if sigma > sigma_max:
-            print '\n*** RMS bunch larger than bucket; using full bucket rms length', sigma_max, ' m.'
+            self.warns('Given RMS bunch length does not fit into bucket. ' +
+                       'Using (maximum) full bucket RMS bunch length ' +
+                       str(sigma_max*0.99) + 'm instead.')
             sigma = sigma_max*0.99
-        print '\n*** Maximum RMS bunch length', sigma_max, 'm.'
+        self.prints('*** Maximum RMS bunch length ' + str(sigma_max) + 'm.')
 
         def get_zc_for_sigma(zc):
             '''Width for bunch length'''
             self._set_psi_sigma(zc)
-            length = self._compute_sigma(self.H, self.psi)
+            length = self._compute_sigma(self.rfbucket, self.psi)
 
             if np.isnan(length): raise ValueError
 
-            print '... distance to target bunchlength:', length-sigma
+            self.prints('... distance to target bunch length: ' +
+                        '{:.4e}'.format(length-sigma))
             return length-sigma
 
         zc_bar = newton(get_zc_for_sigma, sigma)
 
         self._set_psi_sigma(zc_bar)
-        sigma = self._compute_sigma(self.H, self.psi)
-        print '--> Bunch length:', sigma
-        emittance = self._compute_emittance(self.H, self.psi)
-        print '\n--> Emittance:', emittance
-
-        self.H.emittance, self.H.sigma = emittance, sigma
+        sigma = self._compute_sigma(self.rfbucket, self.psi)
+        self.prints('--> Bunch length: ' + str(sigma))
+        emittance = self._compute_emittance(self.rfbucket, self.psi)
+        self.prints('--> Emittance: ' + str(emittance))
 
     def linedensity(self, xx):
         quad_type = fixed_quad
 
         L = []
         try:
-            L = np.array([quad_type(lambda y: self.psi(x, y), 0, self.p_limits(x))[0] for x in xx])
+            L = np.array([quad_type(lambda y: self.psi(x, y), 0,
+                                    self.p_limits(x))[0] for x in xx])
         except TypeError:
             L = quad_type(lambda y: self.psi(xx, y), 0, self.p_limits(xx))[0]
         L = np.array(L)
@@ -627,8 +635,9 @@ class RFBucketMatcher(object):
         '''
         self.psi_for_variable(self.variable)
 
-        xmin, xmax = self.H.zleft, self.H.zright
-        ymin, ymax = -self.H.p_max(self.H.zright), self.H.p_max(self.H.zright)
+        xmin, xmax = self.rfbucket.zleft, self.rfbucket.zright
+        ymin = -self.rfbucket.dp_max(self.rfbucket.zright)
+        ymax = -ymin
         lx = (xmax - xmin)
         ly = (ymax - ymin)
 
@@ -648,10 +657,10 @@ class RFBucketMatcher(object):
         return u, v, self.psi, self.linedensity
 
     def _set_psi_sigma(self, sigma):
-        self.psi_object.H0 = self.H.H0_from_sigma(sigma)
+        self.psi_object.H0 = self.rfbucket.H0_from_sigma(sigma)
 
     def _set_psi_epsn(self, epsn):
-        self.psi_object.H0 = self.H.H0_from_epsn(epsn)
+        self.psi_object.H0 = self.rfbucket.H0_from_epsn(epsn)
 
     def _compute_sigma(self, H, psi):
 
@@ -688,20 +697,8 @@ class RFBucketMatcher(object):
         M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
         mean_xy = M
 
-        return np.sqrt(var_x*var_y - mean_xy**2) * 4*np.pi*H.p0_reference/e
-
-    # # @profile
-    # def _get_edges_for_cut(self, h_cut):
-    #     zz = np.linspace(self.H.zmin, self.H.zmax, 128)
-    #     ll = self.linedensity(zz)
-    #     lmax = np.amax(ll)
-    #     # plt.plot(zz, linedensity(zz)/lmax, 'r', lw=2)
-    #     # plt.plot(zz, psi(zz, 0))
-    #     # plt.axhline(h_cut)
-    #     # plt.axvline(zcut_bar)
-    #     # plt.show()
-    #     return self.H._get_zero_crossings(
-    #         lambda x: self.linedensity(x) - h_cut*lmax)
+        return (np.sqrt(var_x*var_y - mean_xy**2) *
+                4*np.pi*H.p0/H.charge)
 
 class StationaryExponential(object):
 
