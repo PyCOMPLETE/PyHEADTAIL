@@ -11,6 +11,7 @@ from test_slicing import TestSlicing
 from test_particles import TestParticles
 from test_generators import TestParticleGenerators
 from test_aperture import TestAperture
+from test_simple_long_tracking import TestSimpleLongTracking
 
 
 
@@ -18,7 +19,8 @@ from test_aperture import TestAperture
 test_list = [TestSlicing,
              TestParticles,
              TestParticleGenerators,
-             TestAperture]
+             TestAperture,
+             TestSimpleLongTracking]
 
 
 if __name__ == '__main__':
