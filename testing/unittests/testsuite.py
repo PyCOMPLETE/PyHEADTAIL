@@ -13,6 +13,7 @@ from test_generators import TestParticleGenerators
 from test_aperture import TestAperture
 from test_simple_long_tracking import TestSimpleLongTracking
 from test_transverse_tracking import TestTransverseTracking
+from test_listproxy import TestListProxy
 
 
 
@@ -22,6 +23,7 @@ test_list = [TestSlicing,
              TestParticleGenerators,
              TestAperture,
              TestSimpleLongTracking,
+             TestListProxy,
              TestTransverseTracking]
 
 
