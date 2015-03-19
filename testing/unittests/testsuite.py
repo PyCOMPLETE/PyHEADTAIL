@@ -14,7 +14,7 @@ from test_aperture import TestAperture
 from test_simple_long_tracking import TestSimpleLongTracking
 from test_transverse_tracking import TestTransverseTracking
 from test_listproxy import TestListProxy
-
+from test_detuners import TestDetuner
 
 
 #add your test classes here
@@ -24,6 +24,7 @@ test_list = [TestSlicing,
              TestAperture,
              TestSimpleLongTracking,
              TestListProxy,
+             TestDetuner,
              TestTransverseTracking]
 
 
