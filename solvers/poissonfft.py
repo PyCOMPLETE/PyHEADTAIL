@@ -10,8 +10,8 @@ import numpy as np
 
 
 import copy
-from solvers.grid import *
-from solvers.compute_potential_fgreenm2m import compute_potential_fgreenm2m, compute_potential_fgreenp2m
+from grid import UniformGrid
+from compute_potential_fgreenm2m import compute_potential_fgreenm2m, compute_potential_fgreenp2m
 
 
 class PoissonFFT(UniformGrid):
