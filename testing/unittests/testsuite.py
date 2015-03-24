@@ -15,7 +15,7 @@ from test_simple_long_tracking import TestSimpleLongTracking
 from test_transverse_tracking import TestTransverseTracking
 from test_listproxy import TestListProxy
 from test_detuners import TestDetuner
-
+from test_itest_autorun import TestAutoRun
 
 #add your test classes here
 test_list = [TestSlicing,
@@ -25,7 +25,8 @@ test_list = [TestSlicing,
              TestSimpleLongTracking,
              TestListProxy,
              TestDetuner,
-             TestTransverseTracking]
+             TestTransverseTracking,
+             TestAutoRun]
 
 
 if __name__ == '__main__':
