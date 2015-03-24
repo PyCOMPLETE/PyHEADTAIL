@@ -4,7 +4,7 @@
 This script runs all the unit tests specified in test_list
 '''
 
-
+import sys
 import unittest
 
 from test_slicing import TestSlicing
@@ -38,4 +38,5 @@ if __name__ == '__main__':
     test_suite = unittest.TestSuite(case_list)
     print('Running unit tests ' + str(test_list))
     runner = unittest.TextTestRunner()
-    runner.run(test_suite)
+    ret = not runner.run(test_suite).wasSuccessful()
+    sys.exit(ret)
