@@ -3,7 +3,7 @@ from __future__ import division
 
 import numpy as np
 
-from solvers.grid_functions import gather_from, scatter_to
+from grid_functions import gather_from, scatter_to
 
 from . import Element
 
