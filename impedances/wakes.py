@@ -131,7 +131,10 @@ class WakeTable(WakeSource):
           longitudinal wake component: [V/pC]. """
         self.wake_table = {}
 
-        wake_data = np.loadtxt(wake_file)
+        delimiter = None
+        if 'delimiter' in kwargs:
+            delimiter = kwargs['delimiter']
+        wake_data = np.loadtxt(wake_file, delimiter=delimiter)
         if len(wake_file_columns) != wake_data.shape[1]:
             raise ValueError("Length of wake_file_columns list does not" +
                              " correspond to the number of columns in the" +
