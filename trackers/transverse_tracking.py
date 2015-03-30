@@ -44,14 +44,12 @@ class TransverseSegmentMap(Element):
         list via the keyword argument 'segment_detuners'.
         The matrices self.I and self.J are constant and are calculated
         only once at instantiation of the TransverseSegmentMap. """
+        self.D_x_s0 = D_x_s0
+        self.D_x_s1 = D_x_s1
+        self.D_y_s0 = D_y_s0
+        self.D_y_s1 = D_y_s1
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
-
-        if not np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
-                           [0., 0., 0., 0.], atol=1e-15):
-            raise NotImplementedError('Non-zero values have been \n' +
-                'specified for the dispersion coefficients D_{x,y}.\n' +
-                'But, the effects of dispersion are not yet implemented. \n')
 
         self._build_segment_map(alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                                 alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
@@ -131,8 +129,14 @@ class TransverseSegmentMap(Element):
         M32 = self.I[3,2] * c_dphi_y + self.J[3,2] * s_dphi_y
         M33 = self.I[3,3] * c_dphi_y + self.J[3,3] * s_dphi_y
 
+        beam.x += -self.D_x_s0 * beam.dp
+        beam.y += -self.D_y_s0 * beam.dp
+
         beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
         beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
+
+        beam.x += self.D_x_s1 * beam.dp
+        beam.y += self.D_y_s1 * beam.dp
 
 
 class TransverseMap(object):

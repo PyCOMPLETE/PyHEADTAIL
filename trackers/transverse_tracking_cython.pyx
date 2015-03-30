@@ -79,14 +79,12 @@ class TransverseSegmentMap(object):
         individually. The self.track(self, beam) method is bound to
         self.track_with_detuners(self, beam) which calls the
         corresponding Cython function. """
+        self.D_x_s0 = D_x_s0
+        self.D_x_s1 = D_x_s1
+        self.D_y_s0 = D_y_s0
+        self.D_y_s1 = D_y_s1
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
-
-        if not np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
-                           [0., 0., 0., 0.], atol=1e-15):
-            raise NotImplementedError('Non-zero values have been \n' +
-                'specified for the dispersion coefficients D_{x,y}.\n' +
-                'But, the effects of dispersion are not yet implemented. \n')
 
         self._build_segment_map(alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                                 alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
@@ -181,8 +179,14 @@ class TransverseSegmentMap(object):
         dphi_y *= 2. * np.pi
 
         # Call Cython method to do the tracking.
+        beam.x += -self.D_x_s0 * beam.dp
+        beam.y += -self.D_y_s0 * beam.dp
+
         cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                               dphi_x, dphi_y, self.I, self.J)
+
+        beam.x += self.D_x_s1 * beam.dp
+        beam.y += self.D_y_s1 * beam.dp
 
     def track_without_detuners(self, beam):
         """ This method is bound to the self.track(self, beam) method
@@ -191,8 +195,14 @@ class TransverseSegmentMap(object):
         used. """
 
         # Call Cython method to do the tracking.
+        beam.x += -self.D_x_s0 * beam.dp
+        beam.y += -self.D_y_s0 * beam.dp
+
         cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                  self.M)
+
+        beam.x += self.D_x_s1 * beam.dp
+        beam.y += self.D_y_s1 * beam.dp
 
 
 @cython.boundscheck(False)
