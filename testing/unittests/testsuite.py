@@ -25,8 +25,8 @@ test_list = [TestSlicing,
              TestSimpleLongTracking,
              TestListProxy,
              TestDetuner,
-             TestTransverseTracking,
-             TestAutoRun]
+             #TestAutoRun, #uncomment to run full test suite (~ 1 min)
+             TestTransverseTracking]
 
 
 if __name__ == '__main__':
