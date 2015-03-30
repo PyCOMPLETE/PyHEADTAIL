@@ -51,3 +51,14 @@ class SilentPrinter(Printer):
         Accepts output and does nothing.
         '''
         pass
+
+class AccumulatorPrinter(Printer):
+    '''
+    Accumulates all calls to prints in a list 'log'
+    '''
+    def __init__(self, *args, **kwargs):
+        self.log = []
+
+    def prints(self,output):
+        '''Stores warnings in list log'''
+        self.log.append(output)

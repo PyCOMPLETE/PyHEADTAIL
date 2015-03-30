@@ -43,10 +43,16 @@ class Aperture(Element):
         change its (longitudinal) state. '''
         alive = self.tag_lost_particles(beam)
 
-        if not np.all(alive):
-            # Move lost particles to the end of the beam.u arrays.
-            n_alive = relocate_lost_particles(beam, alive)
 
+        if not np.all(alive):
+            # check whether all particles are lost, it's not safe to call
+            # relocate_all_particles in this case
+            if not np.any(alive):
+                self.warns('ALL particles were lost')
+                n_alive = 0
+            else :
+                # Move lost particles to the end of the beam.u arrays.
+                n_alive = relocate_lost_particles(beam, alive)
             # Update beam.u arrays, i.e. remove lost particles.
             beam.macroparticlenumber = n_alive
             beam.x = beam.x[:n_alive]
@@ -190,6 +196,10 @@ def relocate_lost_particles(beam, int[::1] alive):
     particles marked as lost to the end of the beam.u arrays (u = x, y,
     z, ...). Returns the number of alive particles n_alive_post after
     considering the losses.
+
+    Precondition:
+    - At least one particle must be tagged as alive, otherwise bad things
+      might happen...
 
     Description of the algorithm:
     (1) Starting from the end of the numpy array 'alive', find the index
