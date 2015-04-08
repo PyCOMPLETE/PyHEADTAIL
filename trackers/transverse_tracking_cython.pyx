@@ -93,15 +93,12 @@ class TransverseSegmentMap(object):
                                 alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
 
         self.segment_detuners = kwargs.pop('segment_detuners', [])
+
         if self.segment_detuners:
             self.track = self.track_with_detuners
         else:
             self._calculate_transport_matrix()
             self.track = self.track_without_detuners
-
-        if self.D_x.any() or self.D_y.any():
-            self.warns('Non-zero dispersion; ensure the beam has been "blown-up"
-            accordingly upon creation!')
 
     def _build_segment_map(self, alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                            alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1):
@@ -359,6 +356,10 @@ class TransverseMap(object):
         # List to store TransverseSegmentMap objects.
         self.segment_maps = []
         self._generate_segment_maps()
+
+        if self.D_x.any() or self.D_y.any():
+            self.warns('Non-zero dispersion; ensure the beam has been "blown-up" ' +
+                       'accordingly upon creation!')
 
     def _generate_segment_maps(self):
         """ This method is called at instantiation of a TransverseMap
