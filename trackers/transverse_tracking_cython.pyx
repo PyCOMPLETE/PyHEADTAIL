@@ -27,6 +27,13 @@ class TransverseSegmentMap(object):
     amplitude detuning or chromaticity effects (see trackers.detuners
     module).
 
+    Dispersion is added in the horizontal and vertical planes. Care
+    needs to be taken, that dispersive effects were taken into account
+    upon beam creation. Then, before each linear tracking step, the
+    dispersion is removed, linear tracking is performed via the linear
+    periodic map and dispersion is added back so that any subsequent
+    collective effect has dispersion taken into account.
+
     For this implementation of the class, which uses Cython functions,
     two different cases must be considered.
 
@@ -43,10 +50,6 @@ class TransverseSegmentMap(object):
         calls the corresponding Cython function.
 
     TODO
-    Implement dispersion effects, i.e. the change of a particle's
-    transverse phase space coordinates on its relative momentum offset.
-    For the moment, a NotImplementedError is raised if dispersion
-    coefficients are non-zero.
     Improve the interface between the TransverseSegmentMap class and the
     Cython tracking functions. Think of a way to make the whole
     TransverseSegmentMap class a Cython class.
@@ -95,6 +98,10 @@ class TransverseSegmentMap(object):
         else:
             self._calculate_transport_matrix()
             self.track = self.track_without_detuners
+
+        if self.D_x.any() or self.D_y.any():
+            self.warns('Non-zero dispersion; ensure the beam has been "blown-up"
+            accordingly upon creation!')
 
     def _build_segment_map(self, alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                            alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1):
