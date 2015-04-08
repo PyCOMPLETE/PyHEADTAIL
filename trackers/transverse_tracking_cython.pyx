@@ -358,8 +358,9 @@ class TransverseMap(object):
         self._generate_segment_maps()
 
         if self.D_x.any() or self.D_y.any():
-            self.warns('Non-zero dispersion; ensure the beam has been "blown-up" ' +
-                       'accordingly upon creation!')
+            print '\n*** PyHEADTAIL WARNING: Non-zero dispersion; ' +\
+                  'ensure the beam has been "blown-up" ' +\
+                  'accordingly upon creation!'
 
     def _generate_segment_maps(self):
         """ This method is called at instantiation of a TransverseMap
