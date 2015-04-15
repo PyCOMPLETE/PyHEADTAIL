@@ -1,5 +1,5 @@
 """
-@author Kevin Li, Michael Schenk
+@author Kevin Li, Michael Schenk, Stefan Hegglin
 @date 31. January 2014
 @brief Collection of cython functions to calculate statistics
        of bunch and slice_set data.
@@ -14,6 +14,7 @@ cimport cython.cdivision
 
 
 @cython.boundscheck(False)
+@cython.cdivision(True)
 cpdef double mean(double[::1] u):
     """ Cython function to calculate the mean value of dataset u. """
     cdef double mean_u = 0
@@ -28,6 +29,7 @@ cpdef double mean(double[::1] u):
     return mean_u
 
 @cython.boundscheck(False)
+@cython.cdivision(True)
 cpdef double std(double[::1] u):
     """ Cython function to calculate the standard deviation of
     dataset u. The dataset must consist of at least 2 samples
@@ -47,10 +49,67 @@ cpdef double std(double[::1] u):
     return cmath.sqrt(std_u)
 
 @cython.boundscheck(False)
-cpdef double emittance(double[::1] u, double[::1] up):
-    """ Cython function to calculate the emittance of datasets
-    u and up, i.e. a coordinate-momentum pair. To calculate the
-    emittance, one needs the mean values of quantities u and
+@cython.cdivision(True)
+cpdef double cov(double[::1] a, double[::1] b):
+    """ Cython function which calculates the covariance
+    (not the covariance matrix!) of two data sets
+    a and b using a two pass algorithm (computing the means first)
+    definition: cov(a,b) = E[(A - E[A])*(B - E[B])]
+    implementation: cov(a,b) = 1/(n-1) \sum_{i=1}^n (a_i -<a>)*(b_i -<b>)
+    a and b do not necessarily have to reference different data -> var
+    Args:
+        a: numpy array, a.shape[0] defines n. n must be > 1
+        b: numpy array, at least with length a.shape[0]
+    """
+    cdef double mean_a = mean(a)
+    cdef double mean_b = mean(b)
+
+    cdef double cov = 0.
+    cdef unsigned int n = a.shape[0]
+    if n < 2:
+        return 0.
+    cdef unsigned int i
+    for i in xrange(n):
+        cov += (a[i] - mean_a)*(b[i] - mean_b)/n
+    return cov
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double cov_onepass(double[::1] a, double[::1] b):
+    """ Cython function which calculates the covariance
+    (not the covariance matrix!) of two data sets
+    a and b using a shifted single pass algorithm
+    definition: cov(a,b) = E[(A - E[A])*(B - E[B])]
+    implementation: cov(a,b) = 1/(n-1) \sum_{i=1}^n (a_i -<a>)*(b_i -<b>)
+    a and b do not necessarily have to reference different data -> var
+    shifts are for makeing the algorithm more stable against cancellation
+    Args:
+        a: numpy array, a.shape[0] defines n. n must be > 1
+        b: numpy array, at least with length a.shape[0]
+
+    ~ 3 times faster than cov() for n > 1e5 (timed using %timeit)
+    """
+    cdef unsigned int n = a.shape[0]
+    if n < 2:
+        return 0.
+    cdef double shift_a = a[0]
+    cdef double shift_b = b[0]
+    cdef double a_sum = 0.
+    cdef double b_sum = 0.
+    cdef double ab_sum = 0.
+    cdef unsigned int i
+    for i in xrange(n):
+        a_sum += a[i] - shift_a
+        b_sum += b[i] - shift_b
+        ab_sum += (a[i] - shift_a) * (b[i] - shift_b)
+    return (ab_sum - a_sum * b_sum / n) / n
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double emittance_old(double[::1] u, double[::1] up):
+    """ Cython function to calculate the effective (neglecting dispersion)
+    emittance of datasets u and up, i.e. a coordinate-momentum pair.
+    To calculate the emittance, one needs the mean values of quantities u and
     up. """
     cdef double mean_u = mean(u)
     cdef double mean_up = mean(up)
@@ -76,6 +135,165 @@ cpdef double emittance(double[::1] u, double[::1] up):
         uup /= n
 
     return cmath.sqrt(u2*up2 - uup*uup)
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double dispersion(double[::1] u, double[::1] dp):
+    """Cython function to compute the statistial dispersion:
+    disp = <x*dp>/<dp**2>
+    Args:
+        u a coordinate array, typically x or y spatial coordinates
+          it is also possible to pass xp or yp
+    """
+    cdef double mean_u_dp = mean(np.multiply(u, dp))
+    cdef double mean_dp2 = mean(np.multiply(dp, dp))
+    if mean_dp2 > 0: # can never be smaller than 0
+        return mean_u_dp / mean_dp2
+    else:
+        return 0
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double _det_beam_matrix(double u2, double u_up, double up2, double disp_u,
+                             double disp_up, double mean_dp2):
+    """Function which computes the determinant of the 2x2 beam matrix as defined
+    in F.Loehl 2005
+    Args:
+        u2: cov(u,u)
+        u_up: cov(u,up)
+        up2: cov(up, up)
+        disp_u: (statistical) dispersion of u
+        disp_up: (statistical) dispersion uf up
+        mean_dp2: <dp*dp>
+    """
+    return (((u2 - disp_u * disp_u * mean_dp2)
+            *(up2 - disp_up * disp_up * mean_dp2))
+            - (u_up - disp_u * disp_up * mean_dp2)
+             *(u_up - disp_u * disp_up * mean_dp2))
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double effective_emittance(double[::1] u, double[::1] up):
+    """Cython function to calculate the effective emittance
+    (assuming zero dispersion) of the beam specified by the spatial and
+    momentum coordinates u, up
+    """
+    covariance = cov_onepass
+    cdef double cov_u2 = covariance(u,u)
+    cdef double cov_u_up = covariance(u, up)
+    cdef double cov_up2 = covariance(up, up)
+    cdef double disp_u = 0.
+    cdef double disp_up = 0.
+    cdef double mean_dp2 = 0.
+    cdef double result = _det_beam_matrix(cov_u2, cov_u_up, cov_up2, disp_u,
+                                          disp_up, mean_dp2)
+    return cmath.sqrt(result)
+
+
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
+    """ Cython function to calculate the effective (neglecting dispersion)
+    emittance of datasets u and up, i.e. a coordinate-momentum pair.
+    To calculate the emittance, one needs the mean values of quantities u and
+    up.
+    Args:
+        u spatial coordinate array
+        up momentum coordinate array
+        dp momentum deviation array: (p-p_0)/p_0"""
+    covariance = cov_onepass
+    cdef double cov_u2 = covariance(u, u)
+    cdef double cov_u_up = covariance(u, up)
+    cdef double cov_up2 = covariance(up, up)
+    cdef double disp_u = dispersion(u, dp)
+    cdef double disp_up = dispersion(up, dp)
+    cdef double mean_dp2 = mean(np.multiply(dp, dp))
+
+    # the following can be optimized by not doing disp_u*disp_u*mean_dp2
+    # but mean(u*dp)*mean(u*dp)*mean_dp2 inside of this function directly
+    # currently mean_dp2 is computed here and in dispersion()
+    cdef double result = _det_beam_matrix(cov_u2, cov_u_up, cov_up2, disp_u,
+                                          disp_up, mean_dp2)
+    return cmath.sqrt(result)
+
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double get_alpha(double[::1] u, double[::1] up, double[::1] dp):
+    """Cython function to calculate the statistical alpha (Twiss) of
+    the beam specified by the spatial coordinate u, momentum up and
+    dp=(p-p0)/p0. Not optimized yet
+    """
+    covariance = cov_onepass
+    cdef double cov_u_up = covariance(u,up)
+    cdef double disp_u = dispersion(u, dp)
+    cdef double disp_up = dispersion(up, dp)
+    cdef double mean_dp2 = mean(np.multiply(dp, dp))
+    return -(cov_u_up - disp_u*disp_up*mean_dp2) / emittance(u, up, dp)
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double get_alpha_effective(double[::1] u, double[::1] up):
+    """Cython function to calculate the statistical effective alpha (Twiss) of
+    the beam specified by the spatial coordinate u, momentum up
+    Not optimized yet. Effective means dispersion is assumed to
+    be 0.
+    """
+    covariance = cov_onepass
+    cdef double cov_u_up = covariance(u,up)
+    return -(cov_u_up) / effective_emittance(u, up)
+
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double get_beta(double[::1] u, double[::1] up, double[::1] dp):
+    """Cython function to calculate the statistical beta (Twiss) of the
+    beam specified by the spatial coordinate u, momentum up and
+    dp = (p-p0)/p0. Not optimized yet
+    """
+    covariance = cov_onepass
+    cdef double cov_u2 = covariance(u, u)
+    cdef double disp_u = dispersion(u, dp)
+    cdef double mean_dp2 = mean(np.multiply(dp, dp))
+    return (cov_u2 - disp_u*disp_u*mean_dp2) / emittance(u, up, dp)
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double get_beta_effective(double[::1] u, double[::1] up):
+    """Cython function to compute the effective statistical beta (Twiss) of the
+    beam specified by the spatial coordinate u, momentum up 
+    Not optimized yet. Effective means the dispersion is assumed to be 0.
+    """
+    covariance = cov_onepass
+    cdef double cov_u2 = covariance(u, u)
+    return (cov_u2) / effective_emittance(u, up)
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double get_gamma(double[::1] u, double[::1] up, double[::1] dp):
+    """ Cython function to calculate the statistial gamma (Twiss) of the
+    beam specified by the spatial coordinate u, momentum up and
+    dp = (p-p0)/p0. Not optimized yet
+    """
+    covariance = cov_onepass
+    cdef double cov_up2 = covariance(up, up)
+    cdef double disp_up = dispersion(up, dp)
+    cdef double mean_dp2 = mean(np.multiply(dp, dp))
+    return (cov_up2 - disp_up*disp_up*mean_dp2) / emittance(u, up, dp)
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double get_gamma_effective(double[::1] u, double[::1] up):
+    """ Cython function to compute the effective statistical gamma (Twiss) of
+    the beam specified by the spatial coordinate u, momentum up 
+    Not optimized yet. effective means the dispersion is assumed to be 0
+    """
+    covariance = cov_onepass
+    cdef double cov_up2 = covariance(up, up)
+    return (cov_up2) / effective_emittance(u, up)
+
+
 
 
 '''

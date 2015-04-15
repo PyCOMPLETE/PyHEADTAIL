@@ -213,11 +213,71 @@ class Particles(object):
     def sigma_dp(self):
         return cp.std(self.dp)
 
+    def effective_normalized_emittance_x(self):
+        return cp.effective_emittance(self.x, self.xp) * self.betagamma
+
+    def effective_normalized_emittance_y(self):
+        return cp.effective_emittance(self.y, self.yp) * self.betagamma
+
+    def effective_normalized_emittance_z(self):
+        return(4*np.pi * cp.effective_emittance(self.z, self.dp) * self.p0/e)
+
     def epsn_x(self):
-        return cp.emittance(self.x, self.xp) * self.betagamma
+        try:
+            return cp.emittance(self.x, self.xp, self.dp) * self.betagamma
+        except AttributeError: #if no dp -> no dispersion -> call eff_eps
+            return effective_normalized_emittance_x()
 
     def epsn_y(self):
-        return cp.emittance(self.y, self.yp) * self.betagamma
+        try:
+            return cp.emittance(self.y, self.yp, self.dp) * self.betagamma
+        except AttributeError:
+            return effective_normalized_emittance_y()
 
     def epsn_z(self):
-        return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
+        try:
+            return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
+        except AttributeError:
+            return effective_normalized_emittance_z()
+
+    def dispersion_x(self):
+        return cp.dispersion(self.x, self.dp)
+
+    def dispersion_y(self):
+        return cp.dispersion(self.y, self.dp)
+
+    def alpha_Twiss_x(self):
+        try:
+            return cp.get_alpha(self.x, self.xp, self.dp)
+        except AttributeError:
+            return cp.get_alpha_effective(self.x, self.xp)
+
+    def alpha_Twiss_y(self):
+        try:
+            return cp.get_alpha(self.y, self.yp, self.dp)
+        except AttributError:
+            return cp.get_alpha_effective(self.y, self.yp)
+
+    def beta_Twiss_x(self):
+        try:
+            return cp.get_beta(self.x, self.xp, self.dp)
+        except AttributeError:
+            return cp.get_beta_effective(self.x, self.xp)
+
+    def beta_Twiss_y(self):
+        try:
+            return cp.get_beta(self.y, self.yp, self.dp)
+        except AttributError:
+            return cp.get_beta_effective(self.y, self.yp)
+
+    def gamma_Twiss_x(self):
+        try:
+            return cp.get_gamma(self.x, self.xp, self.dp)
+        except AttributeError:
+            return cp.get_gamma_effective(self.x, self.xp)
+
+    def gamma_Twiss_y(self):
+        try:
+            return cp.get_gamma(self.y, self.yp, self.dp)
+        except AttributError:
+            return cp.get_gamma_effective(self.y, self.yp)
