@@ -14,12 +14,13 @@ from scipy.constants import c, e
 from random import sample
 
 from abc import ABCMeta, abstractmethod
-from functools import partial
+from functools import partial, wraps
 
 from ..cobra_functions import stats as cp
 # from ..general.decorators import memoize
+from . import Printing
 
-from functools import wraps
+from scipy import interpolate
 
 
 floor = np.floor
@@ -27,12 +28,6 @@ empty_like = np.empty_like
 def make_int32(array):
     # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
-
-
-class ModeIsNotUniformBin(Exception):
-    message = "This SliceSet has self.mode not set to 'uniform_bin'!"
-    def __str__(self):
-        return self.message
 
 class ModeIsUniformCharge(Exception):
     def __init__(self, message):
@@ -59,7 +54,7 @@ def clean_slices(long_track_method):
     return cleaned_long_track_method
 
 
-class SliceSet(object):
+class SliceSet(Printing):
     '''Defines a set of longitudinal slices. It's a blueprint or photo
     of a beam's longitudinal profile. It knows where the slices are
     located, how many and which particles there are in which slice. All
@@ -88,7 +83,7 @@ class SliceSet(object):
         are the same as in beam.z .'''
         self.slice_index_of_particle = slice_index_of_particle
 
-        '''How is the slicing done? for the moment it is either
+        '''How is the slicing done? For the moment it is either
         'uniform_charge' or 'uniform_bin'.'''
         self.mode = mode
 
@@ -114,11 +109,15 @@ class SliceSet(object):
 
     @property
     def z_centers(self):
-        return self.z_bins[:-1] + (self.z_bins[1:] - self.z_bins[:-1]) / 2.
+        return self.z_bins[:-1] + 0.5 * (self.z_bins[1:] - self.z_bins[:-1])
 
     @property
     def n_slices(self):
         return len(self.z_bins) - 1
+
+    @property
+    def smoothing_sigma(self):
+        return 0.02 * self.n_slices
 
     @property
     def slice_widths(self):
@@ -153,10 +152,10 @@ class SliceSet(object):
     def particles_within_cuts(self):
         '''All particle indices which are situated within the slicing
         region defined by [z_cut_tail, z_cut_head).'''
-        particles_within_cuts_ = make_int32(np.where(np.bitwise_and(
-                (self.slice_index_of_particle > -1), # &
+        particles_within_cuts_ = make_int32(np.where(
+                (self.slice_index_of_particle > -1) &
                 (self.slice_index_of_particle < self.n_slices)
-            ))[0])
+            )[0])
         return particles_within_cuts_
 
     @property
@@ -172,39 +171,65 @@ class SliceSet(object):
             self.slice_positions, particle_indices_by_slice)
         return particle_indices_by_slice
 
-    def line_density_derivative(
-            self, n_macroparticles=None):
-        '''Array of length (n_slices - 1) containing
-        the derivative of the n_macroparticles array.
+    def lambda_bins(self, sigma=None, smoothen=True):
+        '''Line charge density with respect to bins along the slices.'''
+        if sigma is None:
+            sigma = self.smoothing_sigma
+        lambda_of_bins = self.n_macroparticles_per_slice * self.charge_per_mp
+        if smoothen:
+            lambda_of_bins = ndimage.gaussian_filter1d(
+                lambda_of_bins, sigma=sigma, mode='wrap')
+        return lambda_of_bins
+
+    def lambda_prime_bins(self, sigma=None, smoothen_before=True,
+                                smoothen_after=True):
+        '''Return array of length (n_slices - 1) containing
+        the derivative of the line charge density \lambda
+        w.r.t. the slice bins while smoothing via a Gaussian filter.
+        (i.e. the smoothened derivative of the n_macroparticles array
+        times the macroparticle charge.)
         '''
         if self.mode is 'uniform_charge':
+            # self.warns('The line charge density derivative is zero up to ' +
+            #            'numerical fluctuations w.r.t. bins because the ' +
+            #            'charges have been distributed uniformly across ' +
+            #            'the slices.')
             raise ModeIsUniformCharge('The derivative is zero up to ' +
                                       'numerical fluctuations because the ' +
                                       'charges have been distributed ' +
                                       'uniformly across the slices.')
-        if n_macroparticles is None:
-            n_macroparticles = self.n_macroparticles_per_slice
-        return np.gradient(n_macroparticles, self.slice_widths[0])
-
-    def line_density_derivative_gauss(self, sigma=None, smoothen_before=True,
-                                      smoothen_after=True):
-        '''Calculate the derivative of the slice charge density while
-        smoothing the line density via a Gaussian filter. Return list
-        with entries of density derivative of length n_slices.
-        '''
-        if self.mode is not 'uniform_bin':
-            raise ModeIsNotUniformBin()
         if sigma is None:
-            sigma = 0.02 * self.n_slices
+            sigma = self.smoothing_sigma
         smoothen = partial(ndimage.gaussian_filter1d,
                            sigma=sigma, mode='wrap')
         line_density = self.n_macroparticles_per_slice
         if smoothen_before:
             line_density = smoothen(line_density)
-        derivative = self.line_density_derivative(line_density)
+        # not compatible with uniform_charge:
+        # (perhaps use gaussian_filter1d for derivative!)
+        mp_density_derivative = np.gradient(line_density, self.slice_widths[0])
         if smoothen_after:
-            derivative = smoothen(derivative)
-        return derivative
+            mp_density_derivative = smoothen(mp_density_derivative)
+        return mp_density_derivative * self.charge_per_mp
+
+    def lambda_z(self, z, sigma=None, smoothen=True):
+        '''Line charge density with respect to z along the slices.'''
+        lambda_along_bins = (self.lambda_bins(sigma, smoothen)
+                             / self.slice_widths)
+        tck = interpolate.splrep(self.z_centers, lambda_along_bins, s=0)
+        l_of_z = interpolate.splev(z, tck, der=0, ext=1)
+        return l_of_z
+
+    def lambda_prime_z(self, z, sigma=None, smoothen_before=True,
+                       smoothen_after=True):
+        '''Line charge density derivative with respect to z along
+        the slices.
+        '''
+        lp_along_bins = self.lambda_prime_bins(
+            sigma, smoothen_before, smoothen_after) / self.slice_widths
+        tck = interpolate.splrep(self.z_centers, lp_along_bins, s=0)
+        lp_of_z = interpolate.splev(z, tck, der=0, ext=1)
+        return lp_of_z
 
     def particle_indices_of_slice(self, slice_index):
         '''Return an array of particle indices which are located in the
@@ -235,8 +260,7 @@ class SliceSet(object):
         particle_array[p_id] = slice_array.take(s_id)
         return particle_array
 
-
-class Slicer(object):
+class Slicer(Printing):
     '''Slicer class that controls longitudinal binning of a beam.
     Factory for SliceSet objects.
     '''
@@ -251,6 +275,10 @@ class Slicer(object):
         self.n_slices = value[1]
         self.n_sigma_z = value[2]
         self.z_cuts = value[3]
+        if(self.z_cuts != None and self.z_cuts[0] >= self.z_cuts[1]):
+            self.warns('Slicer.config: z_cut_tail >= z_cut_head,'+
+                       ' this leads to negative ' +
+                       'bin sizes and particle indices starting at the head')
 
     @abstractmethod
     def compute_sliceset_kwargs(self, beam):
@@ -289,8 +317,11 @@ class Slicer(object):
         '''Return a dictionary of beam parameters to be stored
         in a SliceSet instance. (such as beam.beta etc.)
         '''
-        return dict(beta=beam.beta, gamma=beam.gamma,
-                    particlenumber_per_mp=beam.particlenumber_per_mp)
+        return dict(beta=beam.beta, gamma=beam.gamma, p0=beam.p0,
+                    particlenumber_per_mp=beam.particlenumber_per_mp,
+                    charge=beam.charge, charge_per_mp=beam.charge_per_mp,
+                    mass=beam.mass, intensity=beam.intensity
+                    )
 
     def get_long_cuts(self, beam):
         '''Return boundaries of slicing region,
@@ -320,6 +351,9 @@ class Slicer(object):
 
     def __eq__(self, other):
         return self.config == other.config
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     # for notifying users of previous versions to use the right new methods
     def update_slices(self, beam):
@@ -428,7 +462,8 @@ class Slicer(object):
 class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
 
-    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None):
+    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
+                 *args, **kwargs):
         '''
         Return a UniformBinSlicer object. Set and store the
         corresponding slicing configuration in self.config .
@@ -464,7 +499,7 @@ class UniformChargeSlicer(Slicer):
     slicing region.
     '''
 
-    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None):
+    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None, *args, **kwargs):
         '''
         Return a UniformChargeSlicer object. Set and store the
         corresponding slicing configuration in self.config .

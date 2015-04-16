@@ -73,7 +73,8 @@ class WakeField(Element):
         the instance of the Slicer class used for this particluar
         WakeField object. A slice_set is returned according to the
         self.slicer configuration. """
-        slice_set = bunch.get_slices(self.slicer)
+        slice_set = bunch.get_slices(self.slicer,
+                                     statistics=['mean_x', 'mean_y'])
 
         for kick in self.wake_kicks:
             kick.apply(bunch, slice_set)
@@ -130,11 +131,14 @@ class WakeTable(WakeSource):
           longitudinal wake component: [V/pC]. """
         self.wake_table = {}
 
-        wake_data = np.loadtxt(wake_file)
-        if len(wake_file_columns) != wake_data.shape[1]:
-            raise ValueError("Length of wake_file_columns list does not" +
-                             " correspond to the number of columns in the" +
-                             " specified wake_file. \n")
+        delimiter = None
+        if 'delimiter' in kwargs:
+            delimiter = kwargs['delimiter']
+        wake_data = np.loadtxt(wake_file, delimiter=delimiter)
+        if len(wake_file_columns) > wake_data.shape[1]:
+            raise ValueError("Wake_file does not contain enough columns" +
+                             " to provide the neccessary information to" +
+                             " fill the wake_file_columns list. \n")
         if 'time' not in wake_file_columns:
             raise ValueError("No wake_file_column with name 'time' has" +
                              " been specified. \n")
