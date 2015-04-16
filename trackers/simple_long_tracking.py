@@ -48,11 +48,12 @@ class LongitudinalMap(Element):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, alpha_array):
+    def __init__(self, alpha_array, *args, **kwargs):
         """
         The length of the momentum compaction factor array /alpha_array/
         defines the order of the slippage factor expansion.
         """
+        super(LongitudinalMap, self).__init__(*args, **kwargs)
         self.alpha_array = alpha_array
 
     @abstractmethod
@@ -101,8 +102,9 @@ class Drift(LongitudinalMap):
     since p_increment = \gamma * m * c / \beta * \Delta gamma .
     """
 
-    def __init__(self, alpha_array, length, shrinkage_p_increment=0):
-        super(Drift, self).__init__(alpha_array)
+    def __init__(self, alpha_array, length, shrinkage_p_increment=0,
+                 *args, **kwargs):
+        super(Drift, self).__init__(alpha_array, *args, **kwargs)
         self.length = length
         self.shrinkage_p_increment = shrinkage_p_increment
 
@@ -139,8 +141,8 @@ class Kick(LongitudinalMap):
     """
 
     def __init__(self, alpha_array, circumference, harmonic, voltage,
-                 phi_offset=0, p_increment=0):
-        super(Kick, self).__init__(alpha_array)
+                 phi_offset=0, p_increment=0, *args, **kwargs):
+        super(Kick, self).__init__(alpha_array, *args, **kwargs)
         self.circumference = circumference
         self.harmonic = harmonic
         self.voltage = voltage
@@ -220,9 +222,10 @@ class LongitudinalOneTurnMap(LongitudinalMap):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, alpha_array, circumference):
+    def __init__(self, alpha_array, circumference, *args, **kwargs):
         """LongitudinalOneTurnMap objects know their circumference."""
-        super(LongitudinalOneTurnMap, self).__init__(alpha_array)
+        super(LongitudinalOneTurnMap, self).__init__(
+			alpha_array, *args, **kwargs)
         self.circumference = circumference
 
     @abstractmethod
@@ -245,7 +248,8 @@ class RFSystems(LongitudinalOneTurnMap):
     def __init__(self, circumference, harmonic_list, voltage_list,
                  phi_offset_list, alpha_array, gamma_reference,
                  p_increment=0, phase_lock=True,
-                 shrink_transverse=True, shrink_longitudinal=False):
+                 shrink_transverse=True, shrink_longitudinal=False,
+                 *args, **kwargs):
         """
         The first entry in harmonic_list, voltage_list and
         phi_offset_list defines the parameters for the one
@@ -292,7 +296,8 @@ class RFSystems(LongitudinalOneTurnMap):
         in RFSystems is broken. So take care, you're on your own! :-)
         """
 
-        super(RFSystems, self).__init__(alpha_array, circumference)
+        super(RFSystems, self).__init__(
+			alpha_array, circumference, *args, **kwargs)
 
         if not len(harmonic_list) == len(voltage_list) == len(phi_offset_list):
             self.warns("Parameter lists for RFSystems do not have the " +
@@ -419,6 +424,13 @@ class RFSystems(LongitudinalOneTurnMap):
         try:
             bunch_signature = (bunch.gamma, bunch.mass, bunch.charge)
         except AttributeError:
+            if gamma is None and bunch is not None:
+                # probably someone is still using the old interface
+                gamma = bunch
+                self.warns('Are you trying RFSystems.get_bucket(gamma)? ' +
+                           'Either give a bunch to the first argument slot ' +
+                           'or use a keyword: get_bucket(gamma=gamma) . ' +
+                           "I'm helping you out for now with bunch = gamma.")
             bunch_signature = (gamma, mass, charge)
         if bunch_signature not in self._rfbuckets:
             self._rfbuckets[bunch_signature] = RFBucket(

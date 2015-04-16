@@ -535,7 +535,7 @@ class RFBucketMatcher(Printing):
 
         self.rfbucket = rfbucket
         hamiltonian = partial(rfbucket.hamiltonian, make_convex=True)
-        hmax = rfbucket.h_sfp()
+        hmax = rfbucket.h_sfp(make_convex=True)
         self.psi_object = psi(hamiltonian, hmax)
         self.psi = self.psi_object.function
 
@@ -653,7 +653,7 @@ class RFBucketMatcher(Printing):
             v[mask_out] = ymin + ly * uniform(size=n_gen)
             s[mask_out] = uniform(size=n_gen)
             mask_out = ~(s<self.psi(u, v))
-            # print 'regenerating '+str(n_gen)+' macroparticles...'
+            # self.prints('regenerating '+str(n_gen)+' macroparticles...')
 
         return u, v, self.psi, self.linedensity
 

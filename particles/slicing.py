@@ -16,6 +16,7 @@ from random import sample
 from abc import ABCMeta, abstractmethod
 from functools import partial, wraps
 
+from ..general.element import Printing
 from ..cobra_functions import stats as cp
 # from ..general.decorators import memoize
 from . import Printing
@@ -239,7 +240,7 @@ class SliceSet(Printing):
         return z / (self.beta * c)
 
 
-class Slicer(object):
+class Slicer(Printing):
     '''Slicer class that controls longitudinal binning of a beam.
     Factory for SliceSet objects.
     '''
@@ -254,6 +255,10 @@ class Slicer(object):
         self.n_slices = value[1]
         self.n_sigma_z = value[2]
         self.z_cuts = value[3]
+        if(self.z_cuts != None and self.z_cuts[0] >= self.z_cuts[1]):
+            self.warns('Slicer.config: z_cut_tail >= z_cut_head,'+
+                       ' this leads to negative ' +
+                       'bin sizes and particle indices starting at the head')
 
     @abstractmethod
     def compute_sliceset_kwargs(self, beam):
@@ -326,6 +331,9 @@ class Slicer(object):
 
     def __eq__(self, other):
         return self.config == other.config
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     # for notifying users of previous versions to use the right new methods
     def update_slices(self, beam):
@@ -434,7 +442,8 @@ class Slicer(object):
 class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
 
-    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None):
+    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
+                 *args, **kwargs):
         '''
         Return a UniformBinSlicer object. Set and store the
         corresponding slicing configuration in self.config .
@@ -470,7 +479,7 @@ class UniformChargeSlicer(Slicer):
     slicing region.
     '''
 
-    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None):
+    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None, *args, **kwargs):
         '''
         Return a UniformChargeSlicer object. Set and store the
         corresponding slicing configuration in self.config .
