@@ -24,6 +24,9 @@ from functools import wraps
 
 floor = np.floor
 empty_like = np.empty_like
+def make_int32(array):
+    # return np.array(array, dtype=np.int32)
+    return array.astype(np.int32)
 
 
 class ModeIsNotUniformBin(Exception):
@@ -150,10 +153,10 @@ class SliceSet(object):
     def particles_within_cuts(self):
         '''All particle indices which are situated within the slicing
         region defined by [z_cut_tail, z_cut_head).'''
-        particles_within_cuts_ = np.where(
-                (self.slice_index_of_particle > -1) &
+        particles_within_cuts_ = make_int32(np.where(np.bitwise_and(
+                (self.slice_index_of_particle > -1), # &
                 (self.slice_index_of_particle < self.n_slices)
-            )[0].astype(np.int32)
+            ))[0])
         return particles_within_cuts_
 
     @property
@@ -447,9 +450,9 @@ class UniformBinSlicer(Slicer):
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
 
         z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
-        slice_index_of_particle = floor(
+        slice_index_of_particle = make_int32(floor(
                 (beam.z - z_cut_tail) / slice_width
-            ).astype(np.int32)
+            ))
 
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
