@@ -546,7 +546,9 @@ class RFBucketMatcher(Printing):
             self.variable = epsn_z
             self.psi_for_variable = self.psi_for_emittance_newton_method
         else:
-            raise ValueError("Can not generate mismatched matched distribution!")
+            raise ValueError("Can not generate mismatched matched " +
+                             "distribution! (Don't provide both sigma_z " +
+                             "and epsn_z!)")
 
     def psi_for_emittance_newton_method(self, epsn_z):
 
@@ -628,8 +630,7 @@ class RFBucketMatcher(Printing):
         return 2*L
 
     def generate(self, macroparticlenumber):
-        '''
-        Generate a 2d phase space of n_particles particles randomly distributed
+        '''Generate a 2d phase space of n_particles particles randomly distributed
         according to the particle distribution function psi within the region
         [xmin, xmax, ymin, ymax].
         '''
@@ -662,43 +663,43 @@ class RFBucketMatcher(Printing):
     def _set_psi_epsn(self, epsn):
         self.psi_object.H0 = self.rfbucket.H0_from_epsn(epsn)
 
-    def _compute_sigma(self, H, psi):
+    def _compute_sigma(self, rfbucket, psi):
 
         f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, H.separatrix, H.zleft, H.zright)
+        Q = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         var_x = V
 
         return np.sqrt(var_x)
 
-    def _compute_emittance(self, H, psi):
+    def _compute_emittance(self, rfbucket, psi):
 
         f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, H.separatrix, H.zleft, H.zright)
+        Q = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)
 
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         mean_x = M
         var_x  = V
 
         f = lambda x, y: psi(x, y)*y
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         f = lambda x, y: psi(x, y)*(y-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         mean_y = M
         var_y  = V
 
         f = lambda x, y: psi(x, y)*(x-mean_x)*(y-mean_y)
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         mean_xy = M
 
         return (np.sqrt(var_x*var_y - mean_xy**2) *
-                4*np.pi*H.p0/H.charge)
+                4*np.pi*rfbucket.p0/rfbucket.charge)
 
 class StationaryExponential(object):
 

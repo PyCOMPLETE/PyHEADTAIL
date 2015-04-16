@@ -15,8 +15,7 @@ log = np.log
 exp = np.exp
 
 class LongSpaceCharge(Element):
-    '''
-    Contains longitudinal space charge via Chao's expression:
+    '''Contains longitudinal space charge (SC) via Chao's expression:
 
     dp' = - e^2 * g * lambda'(z) / (2 * pi * eps_0 * gamma^2 * p_0)
 
@@ -27,8 +26,8 @@ class LongSpaceCharge(Element):
                  *args, **kwargs):
         '''Arguments:
         - pipe_radius is the the radius of the vacuum pipe in metres.
-        - length is an s interval along which the space charge force
-        is integrated. Usually you want to set this to the circumference
+        - length is an s interval (in metres) along which the SC force
+        is integrated. Usually you want to set this to circumference
         in conjunction with the LongitudinalOneTurnMap RFSystems.
         - n_slice_sigma indicates the number of slices taken as a
         sigma for the Gaussian kernel that smoothens the line charge
@@ -43,8 +42,7 @@ class LongSpaceCharge(Element):
 
     @clean_slices
     def track(self, beam):
-        '''
-        Add the longitudinal space charge contribution to the beam's
+        '''Add the longitudinal space charge contribution to the beam's
         dp kick.
         '''
         slices = beam.get_slices(self.slicer,
@@ -63,11 +61,30 @@ class LongSpaceCharge(Element):
         return (sliceset.charge /
                 (4.*np.pi*epsilon_0 * sliceset.gamma**2 * sliceset.p0))
 
-    def _gfactor0(self, sliceset):
-        """Giovanni Rumolo has put 0.67 into HEADTAIL instead of 0.5."""
+    def _gfactor0(self, sliceset, directSC=0.67):
+        """Geometry factor for long bunched bunches.
+        Involved approximations:
+        - transversely round beam
+        - finite wall resistivity (perfectly conducting boundary)
+        - geometry factor averaged along z 
+        (considering equivalent linear longitudinal electric field)
+        
+        use directSC = 0.67 for further assumptions:
+        - ellipsoidally bunched beam of uniform density
+        - bunch length > 3/2 pipe radius
+        
+        use directSC = 0.5 for further assumptions:
+        - continuous beam
+        - low frequency disturbance (displacement currents neglected)
+        - emittance dominated beam
+        
+        cf. Martin Reiser's discussion in 
+        'Theory and Design of Charged Particle Beams'.
+        """
         slice_radius = 0.5 * (sliceset.sigma_x + sliceset.sigma_y)
+        # the following line prevents ZeroDivisionError for pencil slices
         slice_radius[slice_radius == 0] = exp(-0.25) * self.pipe_radius
-        return 0.5 + 2. * log(self.pipe_radius / slice_radius)
+        return directSC + 2. * log(self.pipe_radius / slice_radius)
 
     def make_force(self, sliceset):
         '''Return the electric force field due to space charge
