@@ -25,7 +25,7 @@ import PyHEADTAIL.cobra_functions.stats as cf
 class TestCobra(unittest.TestCase):
     def setUp(self):
         np.random.seed(0)
-        self.tolerance = 5
+        self.tolerance = 6
         self.n_samples = 1000000
         self.data1_var = 0.001
         #some random data to use for cov/eps/... computations
@@ -61,10 +61,9 @@ class TestCobra(unittest.TestCase):
     def test_consistency_effective_emittance(self):
         """ Test whether effective_emittance and emittance_old return the
         same values """
-        eps1 = cf.effective_emittance(self.data1, self.data3)
-        eps2 = cf.emittance_old(self.data1, self.data3)
-        print(eps1)
-        print(eps2)
+        #eps1 = cf.effective_emittance(self.data1, self.data3)
+        eps1 = cf.emittance(self.data2, self.data3, None)
+        eps2 = cf.emittance_old(self.data2, self.data3)
         self.assertAlmostEquals(eps1, eps2, places=self.tolerance,
                                 msg='the new effective emittance computation' +
                                 'yields different results than the old one')

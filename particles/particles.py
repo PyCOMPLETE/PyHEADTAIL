@@ -214,31 +214,26 @@ class Particles(object):
         return cp.std(self.dp)
 
     def effective_normalized_emittance_x(self):
-        return cp.effective_emittance(self.x, self.xp) * self.betagamma
+        return cp.emittance(self.x, self.xp, None) * self.betagamma
 
     def effective_normalized_emittance_y(self):
-        return cp.effective_emittance(self.y, self.yp) * self.betagamma
+        return cp.emittance(self.y, self.yp, None) * self.betagamma
 
     def effective_normalized_emittance_z(self):
-        return(4*np.pi * cp.effective_emittance(self.z, self.dp) * self.p0/e)
+        return(4*np.pi * cp.effective_emittance(self.z, self.dp, None) * self.p0/e)
 
     def epsn_x(self):
-        try:
-            return cp.emittance(self.x, self.xp, self.dp) * self.betagamma
-        except AttributeError: #if no dp -> no dispersion -> call eff_eps
-            return effective_normalized_emittance_x()
+        return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
+               * self.betagamma)
 
     def epsn_y(self):
-        try:
-            return cp.emittance(self.y, self.yp, self.dp) * self.betagamma
-        except AttributeError:
-            return effective_normalized_emittance_y()
+        return (cp.emittance(self.y, self.yp, getattr(self, 'dp', None))
+               * self.betagamma)
 
     def epsn_z(self):
-        try:
-            return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
-        except AttributeError:
-            return effective_normalized_emittance_z()
+        # TODO: special case: if dp is not defined, no emittance can be computed
+        # anyway: does this mean that dispersion is always present?
+        return (4*np.pi * cp.emittance(self.z, self.dp, self.dp) * self.p0/e)
 
     def dispersion_x(self):
         return cp.dispersion(self.x, self.dp)

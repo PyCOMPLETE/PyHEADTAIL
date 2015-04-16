@@ -154,7 +154,7 @@ cpdef double dispersion(double[::1] u, double[::1] dp):
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef double _det_beam_matrix(double u2, double u_up, double up2, double disp_u,
+cdef double _det_beam_matrix(double u2, double u_up, double up2, double disp_u,
                              double disp_up, double mean_dp2):
     """Function which computes the determinant of the 2x2 beam matrix as defined
     in F.Loehl 2005
@@ -201,16 +201,23 @@ cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
     Args:
         u spatial coordinate array
         up momentum coordinate array
-        dp momentum deviation array: (p-p_0)/p_0"""
+        dp momentum deviation array: (p-p_0)/p_0. If None, the effective
+           emittance is computed instead (dispersion is set to 0)
+    """
+
     covariance = cov_onepass
     cdef double cov_u2 = covariance(u, u)
     cdef double cov_u_up = covariance(u, up)
     cdef double cov_up2 = covariance(up, up)
-    cdef double disp_u = dispersion(u, dp)
-    cdef double disp_up = dispersion(up, dp)
-    cdef double mean_dp2 = mean(np.multiply(dp, dp))
+    cdef double disp_u = 0.
+    cdef double disp_up = 0.
+    cdef double mean_dp2 = 0.
+    if dp != None: # 'if dp:' doesn't work
+        disp_u = dispersion(u, dp)
+        disp_up = dispersion(up, dp)
+        mean_dp2 = mean(np.multiply(dp, dp))
 
-    # the following can be optimized by not doing disp_u*disp_u*mean_dp2
+    # this can be optimized by not doing disp_u*disp_u*mean_dp2
     # but mean(u*dp)*mean(u*dp)*mean_dp2 inside of this function directly
     # currently mean_dp2 is computed here and in dispersion()
     cdef double result = _det_beam_matrix(cov_u2, cov_u_up, cov_up2, disp_u,
@@ -398,13 +405,47 @@ cpdef std_per_slice(int[::1] slice_index_of_particle,
 
         std_u[i] = cmath.sqrt(std_u[i])
 
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef cov_per_slice(int[::1] slice_index_of_particle,
+                    int[::1] particles_within_cuts,
+                    int[::1] n_macroparticles,
+                    double[::1] a, double[::1] b, double[::1] cov_ab):
+    """Cov per slice. Cannot make use of cov() because the particles
+    per slice are not contiguous in memory 
+    The result gets !added! to the cov_ab array"""
+    #TODO: write single pass version of this algorithm
+    cdef unsigned int n_part_in_cuts = particles_within_cuts.shape[0]
+    cdef unsigned int n_slices = cov_ab.shape[0]
+    cdef unsigned int p_idx, s_idx, i
+    cdef double du
+
+    cdef double[::1] mean_a = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] mean_b = np.zeros(n_slices, dtype=np.double)
+
+    mean_per_slice(slice_index_of_particle, particles_within_cuts,
+                   n_macroparticles, a, mean_a)
+    mean_per_slice(slice_index_of_particle, particles_within_cuts,
+                   n_macroparticles, b, mean_b)
+
+    for i in xrange(n_part_in_cuts):
+        p_idx = particles_within_cuts[i]
+        s_idx = slice_index_of_particle[p_idx]
+        cov_ab[s_idx] += (a[p_idx] - mean_a[s_idx])*(b[p_idx] - mean_b[s_idx])
+
+    for i in xrange(n_slices):
+        if n_macroparticles[i]:
+            cov_ab[i] /= n_macroparticles[i]
+        cov_ab[i] = cmath.sqrt(cov_ab[i])
+ 
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef emittance_per_slice(int[::1] slice_index_of_particle,
+cpdef emittance_per_slice_old(int[::1] slice_index_of_particle,
                           int[::1] particles_within_cuts,
                           int[::1] n_macroparticles,
-                          double[::1] u, double[::1] up, double[::1] epsn_u):
+                          double[::1] u, double[::1] up,
+                          double[::1] epsn_u):
     """ Iterate once through all the particles within the
     slicing region and calculate simultaneously the emittance
     of quantities u and up, i.e. a coordinate-momentum pair,
@@ -446,3 +487,73 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
             uup[i] /= n_macroparticles[i]
 
         epsn_u[i] = cmath.sqrt(u2[i]*up2[i] - uup[i]*uup[i])
+
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef dispersion_per_slice(int[::1] slice_index_of_particle,
+                           int[::1] particles_within_cuts,
+                           int[::1] n_macroparticles,
+                           double[::1] u, double[::1] dp, double[::1] disp):
+    """ Compute the dispersion per slice via mean_per_slice
+    The result gets stored in the disp array
+    """
+    cdef unsigned int n_slices = disp.shape[0]
+    cdef double[::1] mean_u_dp = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] mean_dp2 = np.zeros(n_slices, dtype=np.double)
+    mean_per_slice(slice_index_of_particle, particles_within_cuts,
+                   n_macroparticles, np.multiply(u, dp), mean_u_dp)
+    mean_per_slice(slice_index_of_particle, particles_within_cuts,
+                   n_macroparticles, np.multiply(dp, dp), mean_dp2)
+
+    cdef unsigned int i
+    for i in xrange(n_slices):
+        if mean_dp2[i] > 0:
+            disp[i] = mean_u_dp[i] / mean_dp2[i]
+        else:
+            disp[i] = 0.
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef emittance_per_slice(int[::1] slice_index_of_particle,
+                          int[::1] particles_within_cuts,
+                          int[::1] n_macroparticles,
+                          double[::1] u, double[::1] up, double[::1] dp,
+                          double[::1] emittance):
+    """ Iterate once through all the particles within the
+    slicing region and calculate simultaneously the emittance
+    of quantities u and up, i.e. a coordinate-momentum pair,
+    for each slice separately. To calculate the emittance per
+    slice, one needs the mean values of quantities u and up
+    for each slice. """
+    #TODO: Clean up, optimize (time & space) if necessary
+    cdef unsigned int n_slices = emittance.shape[0]
+    # allocate arrays for covariances, means and dispersions 
+    cdef double[::1] u2 = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] up2 = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] uup = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] disp_u = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] disp_up = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] mean_dp2 = np.zeros(n_slices, dtype=np.double)
+
+    # compute the covariances
+    cov_per_slice(slice_index_of_particle, particles_within_cuts,
+                  n_macroparticles, u, u, u2)
+    cov_per_slice(slice_index_of_particle, particles_within_cuts,
+                  n_macroparticles, u, up, uup)
+    cov_per_slice(slice_index_of_particle, particles_within_cuts,
+                  n_macroparticles, up, up, up2)
+    if dp != None:
+        # compute the necessary params (mean of dp2, dispersions)
+        mean_per_slice(slice_index_of_particle, particles_within_cuts,
+                       n_macroparticles, np.multiply(dp,dp), mean_dp2)
+        dispersion_per_slice(slice_index_of_particle, particles_within_cuts,
+                             n_macroparticles, u, dp, disp_u)
+        dispersion_per_slice(slice_index_of_particle, particles_within_cuts,
+                             n_macroparticles, up, dp, disp_up)
+    # compute the emittance per slice
+    cdef unsigned int i
+    for i in xrange(n_slices):
+        emittance[i] = cmath.sqrt(_det_beam_matrix(u2[i], uup[i], up2[i],
+                                  disp_u[i], disp_up[i], mean_dp2[i]))
+

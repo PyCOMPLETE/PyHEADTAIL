@@ -376,13 +376,15 @@ class Slicer(Printing):
         return self._sigma(sliceset, beam.dp)
 
     def _epsn_x(self, sliceset, beam):
-        return self._epsn(sliceset, beam.x, beam.xp) * beam.betagamma
+        return (self._epsn(sliceset, beam.x, beam.xp, getattr(beam, 'dp', None))
+                * beam.betagamma)
 
     def _epsn_y(self, sliceset, beam):
-        return self._epsn(sliceset, beam.y, beam.yp) * beam.betagamma
+        return (self._epsn(sliceset, beam.y, beam.yp, getattr(beam, 'dp', None))
+                * beam.betagamma)
 
     def _epsn_z(self, sliceset, beam):
-        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp) *
+        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp, beam.dp) *
                 beam.p0 / e)
 
     # Statistics helper functions.
@@ -403,12 +405,12 @@ class Slicer(Printing):
                          u, sigma_u)
         return sigma_u
 
-    def _epsn(self, sliceset, u, up):
+    def _epsn(self, sliceset, u, up, dp):
         epsn_u = np.zeros(sliceset.n_slices)
         cp.emittance_per_slice(sliceset.slice_index_of_particle,
                                sliceset.particles_within_cuts,
                                sliceset.n_macroparticles_per_slice,
-                               u, up, epsn_u)
+                               u, up, dp, epsn_u)
         return epsn_u
 
 
