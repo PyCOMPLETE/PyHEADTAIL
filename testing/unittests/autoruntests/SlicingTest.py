@@ -16,7 +16,7 @@ from scipy.constants import e as ee
 
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
-from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer, ModeIsNotUniformBin, ModeIsUniformCharge
+from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer, ModeIsUniformCharge
 
 
 # In[3]:

@@ -6,18 +6,18 @@ Created on 17.10.2014
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-from scipy.constants import c, e
+from scipy.constants import c, e, m_p
 
 from ..cobra_functions import stats as cp
+from . import Printing
 
-class Particles(object):
+class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
     Designed to describe beams, electron clouds, ... '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma_reference,
-                 coords_n_momenta_dict={}):
+                 mass, circumference, gamma, coords_n_momenta_dict={}):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
@@ -27,15 +27,19 @@ class Particles(object):
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
-        if not np.allclose(self.charge, e, atol=1e-24):
-            raise NotImplementedError('PyHEADTAIL currently features many "e" '
-                                      + 'all over the place, these need to be '
-                                      + 'consistently replaced by '
-                                      + '"self.charge"!')
+        if not np.allclose(self.charge, e): #, atol=1e-24):
+            self.warns('PyHEADTAIL currently features many "e" ' +
+                       'in the various modules, these need to be ' +
+                       'consistently replaced by "beam.charge"!')
+        self.charge_per_mp = particlenumber_per_mp * charge
         self.mass = mass
+        if not np.allclose(self.charge, m_p): #, atol=1e-24):
+            self.warns('PyHEADTAIL currently features many "m_p" ' +
+                       'in the various modules, these need to be ' +
+                       'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
-        self.gamma = gamma_reference
+        self.gamma = gamma
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded
@@ -120,7 +124,7 @@ class Particles(object):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
         state has changed), a new SliceSet is requested from the Slicer
-        via Slicer.slice(self) and stored for future reference. 
+        via Slicer.slice(self) and stored for future reference.
 
         Arguments:
         - statistics=True attaches mean values, standard deviations
