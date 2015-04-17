@@ -18,8 +18,11 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
+from PyHEADTAIL.particles.generators import Gaussian6DTwiss
 from PyHEADTAIL.general.printers import AccumulatorPrinter
 import PyHEADTAIL.cobra_functions.stats as cf
+from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
+
 
 
 class TestCobra(unittest.TestCase):
@@ -67,6 +70,52 @@ class TestCobra(unittest.TestCase):
         self.assertAlmostEquals(eps1, eps2, places=self.tolerance,
                                 msg='the new effective emittance computation' +
                                 'yields different results than the old one')
+
+    def test_eta_prime_is_zero(self):
+        """ Test whether computing eta_prime of a beam generated using
+        Gaussian6dTwiss is 0 """
+        bunch = self.generate_gaussian6dBunch(1000, 1, 1, 2, 1, 5, 100)
+        eta_prime_x = cf.dispersion(bunch.xp, bunch.dp)
+        self.assertAlmostEquals(eta_prime_x, 0., places=self.tolerance,
+                                msg='eta_prime_x is not zero but ' + str(eta_prime_x))
+        eta_prime_y = cf.dispersion(bunch.yp, bunch.dp)
+        self.assertAlmostEquals(eta_prime_y, 0., places=self.tolerance,
+                                msg='eta_prime_y is not zero but ' + str(eta_prime_y))
+
+
+
+
+    def generate_gaussian6dBunch(self,n_macroparticles, alpha_x, alpha_y, beta_x,
+                                  beta_y, dispx, dispy,
+                                  gamma = 3730.27):
+        Q_s = 0.0020443
+        C = 26658.883
+        alpha_0 = [0.0003225]
+        linear_map = LinearMap(alpha_0, C, Q_s)
+
+        intensity = 1.05e11
+        sigma_z = 0.0059958
+        gamma_t = 1. / np.sqrt(alpha_0)
+        p0 = np.sqrt(gamma**2 - 1) * m_p * c
+        beta_z = (linear_map.eta(dp=0, gamma=gamma) * linear_map.circumference /
+              (2 * np.pi * linear_map.Qs))
+        epsn_x = 3.75e-6 # [m rad]
+        epsn_y = 3.75e-6 # [m rad]
+        epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e)
+        bunch = Gaussian6DTwiss(
+            macroparticlenumber=n_macroparticles, intensity=intensity, charge=e,
+            gamma_reference=gamma, mass=m_p, circumference=C,
+            alpha_x=0., beta_x=1., epsn_x=epsn_x,
+            alpha_y=0., beta_y=1., epsn_y=epsn_y,
+            beta_z=beta_z, epsn_z=epsn_z).generate()
+        # Scale to correct beta and alpha
+        bunch.x *= np.sqrt(beta_x)
+        bunch.xp = -alpha_x/np.sqrt(beta_x) * bunch.x + 1./np.sqrt(beta_x) * bunch.xp
+        bunch.y = np.sqrt(beta_y)*bunch.y
+        bunch.yp = -alpha_y/np.sqrt(beta_y) * bunch.y + 1./np.sqrt(beta_y) * bunch.yp
+        bunch.x += dispx * bunch.dp
+        bunch.y += dispy * bunch.dp
+        return bunch
 
 if __name__ == '__main__':
     unittest.main()

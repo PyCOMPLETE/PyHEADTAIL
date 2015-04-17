@@ -233,11 +233,12 @@ cpdef double get_alpha(double[::1] u, double[::1] up, double[::1] dp):
     dp=(p-p0)/p0. Not optimized yet
     """
     covariance = cov_onepass
-    cdef double cov_u_up = covariance(u,up)
+    cdef double cov_u_up = covariance(u, up)
     cdef double disp_u = dispersion(u, dp)
     cdef double disp_up = dispersion(up, dp)
     cdef double mean_dp2 = mean(np.multiply(dp, dp))
     return -(cov_u_up - disp_u*disp_up*mean_dp2) / emittance(u, up, dp)
+    
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -269,7 +270,7 @@ cpdef double get_beta(double[::1] u, double[::1] up, double[::1] dp):
 @cython.cdivision(True)
 cpdef double get_beta_effective(double[::1] u, double[::1] up):
     """Cython function to compute the effective statistical beta (Twiss) of the
-    beam specified by the spatial coordinate u, momentum up 
+    beam specified by the spatial coordinate u, momentum up
     Not optimized yet. Effective means the dispersion is assumed to be 0.
     """
     covariance = cov_onepass

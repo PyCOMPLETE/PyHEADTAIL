@@ -232,8 +232,8 @@ class Particles(object):
 
     def epsn_z(self):
         # TODO: special case: if dp is not defined, no emittance can be computed
-        # anyway: does this mean that dispersion is always present?
-        return (4*np.pi * cp.emittance(self.z, self.dp, self.dp) * self.p0/e)
+        # always use the effective emittance
+        return (4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
 
     def dispersion_x(self):
         return cp.dispersion(self.x, self.dp)
