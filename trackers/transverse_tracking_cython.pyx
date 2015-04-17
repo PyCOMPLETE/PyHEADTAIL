@@ -27,6 +27,13 @@ class TransverseSegmentMap(object):
     amplitude detuning or chromaticity effects (see trackers.detuners
     module).
 
+    Dispersion is added in the horizontal and vertical planes. Care
+    needs to be taken, that dispersive effects were taken into account
+    upon beam creation. Then, before each linear tracking step, the
+    dispersion is removed, linear tracking is performed via the linear
+    periodic map and dispersion is added back so that any subsequent
+    collective effect has dispersion taken into account.
+
     For this implementation of the class, which uses Cython functions,
     two different cases must be considered.
 
@@ -43,10 +50,6 @@ class TransverseSegmentMap(object):
         calls the corresponding Cython function.
 
     TODO
-    Implement dispersion effects, i.e. the change of a particle's
-    transverse phase space coordinates on its relative momentum offset.
-    For the moment, a NotImplementedError is raised if dispersion
-    coefficients are non-zero.
     Improve the interface between the TransverseSegmentMap class and the
     Cython tracking functions. Think of a way to make the whole
     TransverseSegmentMap class a Cython class.
@@ -79,19 +82,18 @@ class TransverseSegmentMap(object):
         individually. The self.track(self, beam) method is bound to
         self.track_with_detuners(self, beam) which calls the
         corresponding Cython function. """
+        self.D_x_s0 = D_x_s0
+        self.D_x_s1 = D_x_s1
+        self.D_y_s0 = D_y_s0
+        self.D_y_s1 = D_y_s1
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
-
-        if not np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
-                           [0., 0., 0., 0.], atol=1e-15):
-            raise NotImplementedError('Non-zero values have been \n' +
-                'specified for the dispersion coefficients D_{x,y}.\n' +
-                'But, the effects of dispersion are not yet implemented. \n')
 
         self._build_segment_map(alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                                 alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
 
         self.segment_detuners = kwargs.pop('segment_detuners', [])
+
         if self.segment_detuners:
             self.track = self.track_with_detuners
         else:
@@ -181,8 +183,14 @@ class TransverseSegmentMap(object):
         dphi_y *= 2. * np.pi
 
         # Call Cython method to do the tracking.
+        beam.x += -self.D_x_s0 * beam.dp
+        beam.y += -self.D_y_s0 * beam.dp
+
         cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                               dphi_x, dphi_y, self.I, self.J)
+
+        beam.x += self.D_x_s1 * beam.dp
+        beam.y += self.D_y_s1 * beam.dp
 
     def track_without_detuners(self, beam):
         """ This method is bound to the self.track(self, beam) method
@@ -191,8 +199,14 @@ class TransverseSegmentMap(object):
         used. """
 
         # Call Cython method to do the tracking.
+        beam.x += -self.D_x_s0 * beam.dp
+        beam.y += -self.D_y_s0 * beam.dp
+
         cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                  self.M)
+
+        beam.x += self.D_x_s1 * beam.dp
+        beam.y += self.D_y_s1 * beam.dp
 
 
 @cython.boundscheck(False)
@@ -343,6 +357,11 @@ class TransverseMap(object):
         self.segment_maps = []
         self._generate_segment_maps()
 
+        if self.D_x.any() or self.D_y.any():
+            print '\n*** PyHEADTAIL WARNING: Non-zero dispersion; ' +\
+                  'ensure the beam has been "blown-up" ' +\
+                  'accordingly upon creation!'
+
     def _generate_segment_maps(self):
         """ This method is called at instantiation of a TransverseMap
         object. For each segment of the accelerator ring (defined by the
@@ -371,6 +390,7 @@ class TransverseMap(object):
             # Instantiate SegmentDetuner objects.
             for detuner in self.detuner_collections:
                 detuner.generate_segment_detuner(segment_length[s0],
+                    alpha_x=self.alpha_x[s0], alpha_y=self.alpha_y[s0],
                     beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
 
             # Instantiate TransverseSegmentMap objects.

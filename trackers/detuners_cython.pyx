@@ -41,7 +41,7 @@ The number of threads num_threads in the cython.parallel.prange for loops
 is hard-coded to 1 for the moment. Find a good way to make it controllable
 by the user.
 
-@author Kevin Li, Michael Schenk
+@author Kevin Li, Michael Schenk, Stefan Hegglin
 @date 12. October 2014
 @brief Cython implementation of the detuners module to describe the
        elements/effects in an accelerator ring leading to an incoherent
@@ -138,8 +138,10 @@ cdef class AmplitudeDetuningSegment(object):
 
     cdef double dapp_x, dapp_y, dapp_xy
     cdef double beta_x, beta_y
+    cdef double alpha_x, alpha_y
 
-    def __init__(self, dapp_x, dapp_y, dapp_xy, beta_x, beta_y):
+    def __init__(self, dapp_x, dapp_y, dapp_xy, alpha_x, beta_x,
+                 alpha_y, beta_y):
         """ Return an instance of an AmplitudeDetuningSegment by passing
         the coefficients of detuning strength dapp_x, dapp_y, dapp_xy
         (scaled to the segment length. NOT normalized to Beam.p0 yet).
@@ -147,6 +149,9 @@ cdef class AmplitudeDetuningSegment(object):
         transverse actions J_{x,y}. Although they have an influence on
         the strength of detuning, they have no actual effect on the
         strength of the octupoles (dapp_x, dapp_y, dapp_xy). """
+        self.alpha_x = alpha_x
+        self.alpha_y = alpha_y
+
         self.beta_x = beta_x
         self.beta_y = beta_y
 
@@ -174,15 +179,19 @@ cdef class AmplitudeDetuningSegment(object):
         cdef double[::1] dQ_x = np.empty(n_particles, dtype=np.double)
         cdef double[::1] dQ_y = np.empty(n_particles, dtype=np.double)
 
-        cdef double xp_floquet, yp_floquet, Jx, Jy
+        cdef double alpha_x2 = self.alpha_x * self.alpha_x
+        cdef double alpha_y2 = self.alpha_y * self.alpha_y
+        cdef double Jx, Jy
         cdef unsigned int i
         for i in prange(n_particles, nogil=True, num_threads=1):
-            xp_floquet = self.beta_x * xp[i]
-            yp_floquet = self.beta_y * yp[i]
-
-            Jx = (x[i]*x[i] + xp_floquet*xp_floquet) / (2.*self.beta_x)
-            Jy = (y[i]*y[i] + yp_floquet*yp_floquet) / (2.*self.beta_y)
-
+            Jx = 0.5 * ((1 + alpha_x2) / self.beta_x * x[i]*x[i]
+                        + 2*self.alpha_x * x[i] * xp[i]
+                        + self.beta_x * xp[i]*xp[i]
+                       )
+            Jy = 0.5 * ((1 + alpha_y2) / self.beta_y * y[i]*y[i]
+                        + 2*self.alpha_y * y[i] * yp[i]
+                        + self.beta_y * yp[i]*yp[i]
+                       )
             dQ_x[i] = (self.dapp_x*Jx + self.dapp_xy*Jy) / p0
             dQ_y[i] = (self.dapp_y*Jy + self.dapp_xy*Jx) / p0
 

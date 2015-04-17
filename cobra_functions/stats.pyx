@@ -31,7 +31,8 @@ cpdef double mean(double[::1] u):
 @cython.boundscheck(False)
 cpdef double std(double[::1] u):
     """ Cython function to calculate the standard deviation of
-    dataset u. """
+    dataset u. The dataset must consist of at least 2 samples
+    """
     cdef double mean_u = mean(u)
     cdef double std_u = 0
     cdef double du = 0
@@ -41,8 +42,8 @@ cpdef double std(double[::1] u):
     for i in xrange(n):
         du = u[i] - mean_u
         std_u += du * du
-    if n:
-        std_u /= n
+    if n > 1:
+        std_u /= (n-1) # divide by n-1: unbiased estimator for var
 
     return cmath.sqrt(std_u)
 
