@@ -68,9 +68,9 @@ def run():
         slice_set.particle_indices_by_slice
 
 
-        if line_density_testing:
-            slice_set.line_density_derivative_gauss()
-            slice_set.line_density_derivative()
+        # if line_density_testing:
+        #     slice_set.line_density_derivative_gauss()
+        #     slice_set.line_density_derivative()
 
 
     def call_slicer_attributes():
