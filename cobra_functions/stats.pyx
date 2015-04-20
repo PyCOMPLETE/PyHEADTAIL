@@ -70,7 +70,7 @@ cpdef double cov(double[::1] a, double[::1] b):
         return 0.
     cdef unsigned int i
     for i in xrange(n):
-        cov += (a[i] - mean_a)*(b[i] - mean_b)/n
+        cov += (a[i] - mean_a)*(b[i] - mean_b)/(n-1)
     return cov
 
 @cython.boundscheck(False)
@@ -102,7 +102,7 @@ cpdef double cov_onepass(double[::1] a, double[::1] b):
         a_sum += a[i] - shift_a
         b_sum += b[i] - shift_b
         ab_sum += (a[i] - shift_a) * (b[i] - shift_b)
-    return (ab_sum - a_sum * b_sum / n) / n
+    return (ab_sum - a_sum * b_sum / n) / (n - 1)
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
