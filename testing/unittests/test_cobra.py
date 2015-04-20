@@ -53,13 +53,16 @@ class TestCobra(unittest.TestCase):
                                'the variance of a dataset')
 
     def test_consistency_covariance(self):
-        """ Test whether cov_onepass, cov return the same covariance for a
-        simulated data set
+        """ Test whether cov_onepass, cov and np.cov return the same covariance
+        for a simulated data set
         """
         v1 = cf.cov(self.data1, self.data2)
         v2 = cf.cov_onepass(self.data1, self.data2)
+        v3 = np.cov(self.data1, self.data2)[0,1]
         self.assertAlmostEquals(v1, v2, places=self.tolerance,
                                 msg='cov, cov_onepass results differ')
+        self.assertAlmostEquals(v1, v3, places=self.tolerance,
+                                msg='cov, np.cov results differ')
 
     def test_consistency_effective_emittance(self):
         """ Test whether effective_emittance and emittance_old return the
@@ -73,14 +76,51 @@ class TestCobra(unittest.TestCase):
 
     def test_eta_prime_is_zero(self):
         """ Test whether computing eta_prime of a beam generated using
-        Gaussian6dTwiss is 0 """
-        bunch = self.generate_gaussian6dBunch(1000, 1, 1, 2, 1, 5, 100)
+        Gaussian6dTwiss is 0. This should be true for alphax, alphay = 0.
+        Otherwise a correlation will be present. The error decreases with
+        increasing number of particles"""
+        #TODO: decide on tolerance / nparticles...
+        bunch = self.generate_gaussian6dBunch(1000000, 0, 0, 1, 1, 5, 100)
         eta_prime_x = cf.dispersion(bunch.xp, bunch.dp)
-        self.assertAlmostEquals(eta_prime_x, 0., places=self.tolerance,
+        weak_tol = 2
+        self.assertAlmostEquals(eta_prime_x, 0., places=weak_tol,
                                 msg='eta_prime_x is not zero but ' + str(eta_prime_x))
         eta_prime_y = cf.dispersion(bunch.yp, bunch.dp)
-        self.assertAlmostEquals(eta_prime_y, 0., places=self.tolerance,
+        self.assertAlmostEquals(eta_prime_y, 0., places=weak_tol,
                                 msg='eta_prime_y is not zero but ' + str(eta_prime_y))
+
+
+    def test_cov_of_uncorrelated_data_is_zero(self):
+        """ Test whether the covariance of two uncorrelated normally distributed
+        data vectors is zero. Only works for big sample sizes / big tolerance
+        """
+        #TODO: transform into real unit test, decide on tolerance
+        N = 10000
+        d1 = np.random.normal(100, 2., N)
+        d2 = np.random.normal(200, 0.2, N)
+        print(cf.cov_onepass(d1,d2))
+
+
+    def test_dispersion_of_normals(self):
+        """ Testing the dispersion function. will be removed later on/ adapted """
+        #TODO: transform into real unit test, tolerances tbd
+        x, y = np.random.multivariate_normal([0, 0], [[1, 1e-3], [1e-3, 1]], 100000).T
+        disp = cf.dispersion(np.ascontiguousarray(x),np.ascontiguousarray(y))
+        print(disp)
+        # disp should be <xy>/<y**2> = cov(x,y)/cov(y,y) because centered
+        # 0.5/1 = 0.5
+
+    def test_alpha_alpha_old(self):
+        """ Test the two versions of get_alpha. Will be removed later on,
+        during development only
+        """
+        alpha = cf.get_alpha_old(self.data1, self.data2, self.data1)
+        alpha2 = cf.get_alpha(self.data1, self.data2, self.data1)
+        print(cf.emittance_old(self.data1, self.data2))
+        print(alpha)
+        print(alpha2)
+
+
 
 
 

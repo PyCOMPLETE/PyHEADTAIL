@@ -6,6 +6,7 @@
 @copyright CERN
 """
 import numpy as np
+import math as m
 cimport numpy as np
 cimport libc.math as cmath
 
@@ -88,6 +89,7 @@ cpdef double cov_onepass(double[::1] a, double[::1] b):
         b: numpy array, at least with length a.shape[0]
 
     ~ 3 times faster than cov() for n > 1e5 (timed using %timeit)
+    Faster than np.cov() because it does not compute the whole cov matrix
     """
     cdef unsigned int n = a.shape[0]
     if n < 2:
@@ -151,6 +153,27 @@ cpdef double dispersion(double[::1] u, double[::1] dp):
         return mean_u_dp / mean_dp2
     else:
         return 0
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double dispersion__(double[::1] u, double[::1] dp):
+    """Cython function to compute the statistial dispersion:
+    disp = <x*dp>/<dp**2>
+    This version computes exp(log(<xdp>) - log(<dp**2>))
+    Args:
+        u a coordinate array, typically x or y spatial coordinates
+          it is also possible to pass xp or yp
+    """
+    cdef double log_sum_u_dp = cmath.log(np.sum((np.multiply(u, dp))))
+    cdef double log_sum_dp2 = cmath.log(np.sum(np.multiply(dp, dp)))
+    print(log_sum_u_dp)
+    print(log_sum_dp2)
+    if 1 > 0: # can never be smaller than 0
+        return cmath.exp((log_sum_u_dp) - (log_sum_dp2))
+    else:
+        return 0
+
+
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -227,7 +250,7 @@ cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef double get_alpha(double[::1] u, double[::1] up, double[::1] dp):
+cpdef double get_alpha_old(double[::1] u, double[::1] up, double[::1] dp):
     """Cython function to calculate the statistical alpha (Twiss) of
     the beam specified by the spatial coordinate u, momentum up and
     dp=(p-p0)/p0. Not optimized yet
@@ -238,7 +261,20 @@ cpdef double get_alpha(double[::1] u, double[::1] up, double[::1] dp):
     cdef double disp_up = dispersion(up, dp)
     cdef double mean_dp2 = mean(np.multiply(dp, dp))
     return -(cov_u_up - disp_u*disp_up*mean_dp2) / emittance(u, up, dp)
-    
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cpdef double get_alpha(double[::1] u, double[::1] up, double[::1] dp):
+    """Cython function to calculate the statistical alpha (Twiss) of
+    the beam specified by the spatial coordinate u, momentum up and
+    dp=(p-p0)/p0. Not optimized yet
+    """
+    covariance = cov_onepass
+    cdef double cov_u_up = covariance(u, up)
+    return -(cov_u_up - mean(np.multiply(u, dp))*mean(np.multiply(up, dp))
+             / mean(np.multiply(dp, dp))) / emittance(u, up, dp)
+
+
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
