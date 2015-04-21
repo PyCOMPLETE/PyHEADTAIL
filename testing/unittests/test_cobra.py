@@ -114,11 +114,19 @@ class TestCobra(unittest.TestCase):
         """ Test the two versions of get_alpha. Will be removed later on,
         during development only
         """
+        print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
         alpha = cf.get_alpha_old(self.data1, self.data2, self.data1)
         alpha2 = cf.get_alpha(self.data1, self.data2, self.data1)
-        print(cf.emittance_old(self.data1, self.data2))
+        print('\nemittance: ' + str(cf.emittance(self.data1, self.data2, self.data1)))
+        print('cov(x,x\'): ' + str(cf.cov_onepass(self.data1, self.data2)))
+        print('eta: ' + str(cf.dispersion(self.data1, self.data1)))
+        print('eta\': ' + str(cf.dispersion(self.data2, self.data1)) + ' = ' +
+              str(cf.mean(np.multiply(self.data1, self.data2))) + ' / ' +
+              str(cf.mean(np.multiply(self.data1, self.data1))))
+        print('<d^2>: ' + str(cf.mean(np.multiply(self.data1, self.data1))))
         print(alpha)
         print(alpha2)
+        print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
 
 
 

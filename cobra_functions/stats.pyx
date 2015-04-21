@@ -239,6 +239,25 @@ cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
         disp_u = dispersion(u, dp)
         disp_up = dispersion(up, dp)
         mean_dp2 = mean(np.multiply(dp, dp))
+        assert(mean_dp2 > 0.)
+
+   # print('\ncomputing emittance:')
+   # print('cov_u2: ' + str(cov_u2))
+   # print('cov_uup: ' + str(cov_u_up))
+   # print('cov_up2: ' + str(cov_up2))
+   # print('eta: ' + str(disp_u))
+   # print('eta:\' ' + str(disp_up))
+   # print('<dp2>: ' + str(mean_dp2))
+   # cdef double sigma11 = cov_u2 - disp_u*disp_u*mean_dp2
+   # cdef double sigma12 = cov_u_up - disp_u*disp_up*mean_dp2
+   # cdef double sigma22 = cov_up2 - disp_up*disp_up*mean_dp2
+   # print('sigma11: ' + str(sigma11))
+   # print('sigma12: ' + str(sigma12))
+   # print('sigma22: ' + str(sigma22))
+   # cdef double em2 = sigma11*sigma22 - sigma12*sigma12
+
+    # print('em**2 should be: ' + str(em2))
+    # print('em should be: ' + str(np.sqrt(em2)))
 
     # this can be optimized by not doing disp_u*disp_u*mean_dp2
     # but mean(u*dp)*mean(u*dp)*mean_dp2 inside of this function directly
@@ -260,6 +279,12 @@ cpdef double get_alpha_old(double[::1] u, double[::1] up, double[::1] dp):
     cdef double disp_u = dispersion(u, dp)
     cdef double disp_up = dispersion(up, dp)
     cdef double mean_dp2 = mean(np.multiply(dp, dp))
+   # print('\ncomputing alpha:')
+   # print('cov: ' + str(cov_u_up))
+   # print('eta: ' + str(disp_u))
+   # print('etap: ' + str(disp_up))
+   # print('mdp2: ' + str(mean_dp2))
+   # print('emitt: ' + str(emittance(u, up, dp)))
     return -(cov_u_up - disp_u*disp_up*mean_dp2) / emittance(u, up, dp)
 
 @cython.boundscheck(False)
@@ -273,7 +298,6 @@ cpdef double get_alpha(double[::1] u, double[::1] up, double[::1] dp):
     cdef double cov_u_up = covariance(u, up)
     return -(cov_u_up - mean(np.multiply(u, dp))*mean(np.multiply(up, dp))
              / mean(np.multiply(dp, dp))) / emittance(u, up, dp)
-
 
 
 @cython.boundscheck(False)
@@ -301,6 +325,13 @@ cpdef double get_beta(double[::1] u, double[::1] up, double[::1] dp):
     cdef double disp_u = dispersion(u, dp)
     cdef double mean_dp2 = mean(np.multiply(dp, dp))
     return (cov_u2 - disp_u*disp_u*mean_dp2) / emittance(u, up, dp)
+
+cpdef double get_beta_new(double[::1] u, double[::1] up, double[::1] dp):
+    covariance = cov_onepass
+    cdef double cov_u2 = covariance(u, u)
+    cdef double mean_dp2 = mean(np.multiply(dp, dp))
+    cdef double mean_u_dp = mean(np.multiply(u, dp))
+    return (cov_u2 - mean_u_dp*mean_u_dp/mean_dp2)/emittance(u,up,dp)
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
