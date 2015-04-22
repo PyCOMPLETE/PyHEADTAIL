@@ -28,12 +28,12 @@ from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
 class TestCobra(unittest.TestCase):
     def setUp(self):
         np.random.seed(0)
-        self.tolerance = 6
-        self.n_samples = 1000000
-        self.data1_var = 0.001
+        self.tolerance = 1
+        self.n_samples = 100000
+        self.data1_var = 1.0
         #some random data to use for cov/eps/... computations
         self.data1 = np.random.normal(0, np.sqrt(self.data1_var), self.n_samples)
-        self.data2 = np.random.normal(5., 0.1, self.n_samples)
+        self.data2 = np.random.normal(5., 2.1, self.n_samples)
         self.data3 = np.random.laplace(loc=-2., scale=0.5, size=self.n_samples)
 
     def tearDown(self):
@@ -45,6 +45,9 @@ class TestCobra(unittest.TestCase):
         v1 = cf.cov(self.data1, self.data1)
         v2 = cf.cov_onepass(self.data1, self.data1)
         v3 = cf.std(self.data1)
+        # print(v1)
+        # print(v2)
+        # print(v3)
         self.assertAlmostEqual(v1, self.data1_var, places=self.tolerance,
                                msg='stats.cov() is wrong when computing' +
                                'the variance of a dataset')
@@ -79,7 +82,6 @@ class TestCobra(unittest.TestCase):
         Gaussian6dTwiss is 0. This should be true for alphax, alphay = 0.
         Otherwise a correlation will be present. The error decreases with
         increasing number of particles"""
-        #TODO: decide on tolerance / nparticles...
         bunch = self.generate_gaussian6dBunch(1000000, 0, 0, 1, 1, 5, 100)
         eta_prime_x = cf.dispersion(bunch.xp, bunch.dp)
         weak_tol = 2
@@ -94,44 +96,22 @@ class TestCobra(unittest.TestCase):
         """ Test whether the covariance of two uncorrelated normally distributed
         data vectors is zero. Only works for big sample sizes / big tolerance
         """
-        #TODO: transform into real unit test, decide on tolerance
-        N = 10000
-        d1 = np.random.normal(100, 2., N)
-        d2 = np.random.normal(200, 0.2, N)
-        print(cf.cov_onepass(d1,d2))
-
-
-    def test_dispersion_of_normals(self):
-        """ Testing the dispersion function. will be removed later on/ adapted """
-        #TODO: transform into real unit test, tolerances tbd
-        x, y = np.random.multivariate_normal([0, 0], [[1, 1e-3], [1e-3, 1]], 100000).T
-        disp = cf.dispersion(np.ascontiguousarray(x),np.ascontiguousarray(y))
-        print(disp)
-        # disp should be <xy>/<y**2> = cov(x,y)/cov(y,y) because centered
-        # 0.5/1 = 0.5
+        d1 = np.random.normal(100, 2., self.n_samples)
+        d2 = np.random.normal(200, 0.2, self.n_samples)
+        self.assertAlmostEquals(cf.cov_onepass(d1, d2), 0.0,
+                                places=self.tolerance,
+                                msg='cov_onepass of two uncorr Gaussians != 0')
 
     def test_alpha_alpha_old(self):
         """ Test the two versions of get_alpha. Will be removed later on,
         during development only
         """
-        print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-        alpha = cf.get_alpha_old(self.data1, self.data2, self.data1)
-        alpha2 = cf.get_alpha(self.data1, self.data2, self.data1)
-        print('\nemittance: ' + str(cf.emittance(self.data1, self.data2, self.data1)))
-        print('cov(x,x\'): ' + str(cf.cov_onepass(self.data1, self.data2)))
-        print('eta: ' + str(cf.dispersion(self.data1, self.data1)))
-        print('eta\': ' + str(cf.dispersion(self.data2, self.data1)) + ' = ' +
-              str(cf.mean(np.multiply(self.data1, self.data2))) + ' / ' +
-              str(cf.mean(np.multiply(self.data1, self.data1))))
-        print('<d^2>: ' + str(cf.mean(np.multiply(self.data1, self.data1))))
-        print(alpha)
-        print(alpha2)
-        print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-
-
-
-
-
+        dp = np.random.normal(0., 1.3, self.n_samples)
+        alpha = cf.get_alpha_old(self.data1, self.data2, dp)
+        alpha2 = cf.get_alpha(self.data1, self.data2, dp)
+        self.assertAlmostEquals(alpha, alpha2, self.tolerance,
+                                msg='alpha and alpha_old yield different ' +
+                                'results')
 
     def generate_gaussian6dBunch(self,n_macroparticles, alpha_x, alpha_y, beta_x,
                                   beta_y, dispx, dispy,
