@@ -19,7 +19,6 @@ from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.generators import Gaussian6DTwiss
-from PyHEADTAIL.general.printers import AccumulatorPrinter
 import PyHEADTAIL.cobra_functions.stats as cf
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
 
@@ -28,7 +27,7 @@ from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
 class TestCobra(unittest.TestCase):
     def setUp(self):
         np.random.seed(0)
-        self.tolerance = 1
+        self.tolerance = 3
         self.n_samples = 100000
         self.data1_var = 1.0
         #some random data to use for cov/eps/... computations
@@ -38,44 +37,26 @@ class TestCobra(unittest.TestCase):
 
     def tearDown(self):
         pass
-    def test_covariance_for_variance(self):
-        """ Test whether the cov_onepass, std, cov return the correct variance
+
+    def test_consistency_for_std(self):
+        """ Test whether the cf.std, np.std return the correct std
         for a simulated data set
         """
-        v1 = cf.cov(self.data1, self.data1)
-        v2 = cf.cov_onepass(self.data1, self.data1)
-        v3 = cf.std(self.data1)
-        # print(v1)
-        # print(v2)
-        # print(v3)
-        self.assertAlmostEqual(v1, self.data1_var, places=self.tolerance,
-                               msg='stats.cov() is wrong when computing' +
-                               'the variance of a dataset')
-        self.assertAlmostEqual(v2, self.data1_var, places=self.tolerance,
-                               msg='stats.cov_onepass is wrong when computing' +
-                               'the variance of a dataset')
+        s_cobra = cf.std(self.data1)
+        s_numpy = cf.std(self.data1)
+        self.assertAlmostEqual(s_cobra, s_numpy, places=self.tolerance,
+                               msg='cobra std() yields a different result ' +
+                               'than numpy.std()')
 
     def test_consistency_covariance(self):
-        """ Test whether cov_onepass, cov and np.cov return the same covariance
+        """ Test whether cov and np.cov return the same covariance
         for a simulated data set
         """
-        v1 = cf.cov(self.data1, self.data2)
-        v2 = cf.cov_onepass(self.data1, self.data2)
-        v3 = np.cov(self.data1, self.data2)[0,1]
-        self.assertAlmostEquals(v1, v2, places=self.tolerance,
-                                msg='cov, cov_onepass results differ')
-        self.assertAlmostEquals(v1, v3, places=self.tolerance,
-                                msg='cov, np.cov results differ')
-
-    def test_consistency_effective_emittance(self):
-        """ Test whether effective_emittance and emittance_old return the
-        same values """
-        #eps1 = cf.effective_emittance(self.data1, self.data3)
-        eps1 = cf.emittance(self.data2, self.data3, None)
-        eps2 = cf.emittance_old(self.data2, self.data3)
-        self.assertAlmostEquals(eps1, eps2, places=self.tolerance,
-                                msg='the new effective emittance computation' +
-                                'yields different results than the old one')
+        v_cobra = cf.cov(self.data1, self.data2)
+        v_numpy = np.cov(self.data1, self.data2)[0,1]
+        self.assertAlmostEquals(v_cobra, v_numpy, places=self.tolerance,
+                                msg='cobra cov() yields a different result ' +
+                                'than numpy.cov()')
 
     def test_eta_prime_is_zero(self):
         """ Test whether computing eta_prime of a beam generated using
@@ -98,20 +79,10 @@ class TestCobra(unittest.TestCase):
         """
         d1 = np.random.normal(100, 2., self.n_samples)
         d2 = np.random.normal(200, 0.2, self.n_samples)
-        self.assertAlmostEquals(cf.cov_onepass(d1, d2), 0.0,
+        self.assertAlmostEquals(cf.cov(d1, d2), 0.0,
                                 places=self.tolerance,
-                                msg='cov_onepass of two uncorr Gaussians != 0')
-
-    def test_alpha_alpha_old(self):
-        """ Test the two versions of get_alpha. Will be removed later on,
-        during development only
-        """
-        dp = np.random.normal(0., 1.3, self.n_samples)
-        alpha = cf.get_alpha_old(self.data1, self.data2, dp)
-        alpha2 = cf.get_alpha(self.data1, self.data2, dp)
-        self.assertAlmostEquals(alpha, alpha2, self.tolerance,
-                                msg='alpha and alpha_old yield different ' +
-                                'results')
+                                msg='cobra cov() of two uncorrelated ' +
+                                'Gaussians != 0')
 
     def generate_gaussian6dBunch(self,n_macroparticles, alpha_x, alpha_y, beta_x,
                                   beta_y, dispx, dispy,

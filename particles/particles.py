@@ -121,7 +121,7 @@ class Particles(Printing):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
         state has changed), a new SliceSet is requested from the Slicer
-        via Slicer.slice(self) and stored for future reference. 
+        via Slicer.slice(self) and stored for future reference.
 
         Arguments:
         - statistics=True attaches mean values, standard deviations
@@ -185,22 +185,22 @@ class Particles(Printing):
     # Statistics methods
 
     def mean_x(self):
-        return cp.mean(self.x)
+        return np.mean(self.x)
 
     def mean_xp(self):
-        return cp.mean(self.xp)
+        return np.mean(self.xp)
 
     def mean_y(self):
-        return cp.mean(self.y)
+        return np.mean(self.y)
 
     def mean_yp(self):
-        return cp.mean(self.yp)
+        return np.mean(self.yp)
 
     def mean_z(self):
-        return cp.mean(self.z)
+        return np.mean(self.z)
 
     def mean_dp(self):
-        return cp.mean(self.dp)
+        return np.mean(self.dp)
 
     def sigma_x(self):
         return cp.std(self.x)
@@ -221,7 +221,7 @@ class Particles(Printing):
         return cp.emittance(self.y, self.yp, None) * self.betagamma
 
     def effective_normalized_emittance_z(self):
-        return(4*np.pi * cp.effective_emittance(self.z, self.dp, None) * self.p0/e)
+        return(4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
 
     def epsn_x(self):
         return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
@@ -232,64 +232,43 @@ class Particles(Printing):
                * self.betagamma)
 
     def epsn_z(self):
-        # TODO: special case: if dp is not defined, no emittance can be computed
         # always use the effective emittance
-        return (4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
+        return self.effective_normalized_emittance_z()
 
     def dispersion_x(self):
-        if self.gamma < 20:
-            #self.warns('Computing dispersion effects is unstable for small ' +
-            #           'gamma')
-            pass
+        if self.gamma < 10:
+            self.warns('Computing dispersion effects is unstable for small ' +
+                       'gamma')
         return cp.dispersion(self.x, self.dp)
 
     def dispersion_y(self):
-        if self.gamma < 20:
-            #self.warns('Computing dispersion effects is unstable for small ' +
-            # 'gamma')
-            pass
+        if self.gamma < 10:
+            self.warns('Computing dispersion effects is unstable for small ' +
+             'gamma')
         return cp.dispersion(self.y, self.dp)
 
     def alpha_Twiss_x(self):
-        try:
-            return cp.get_alpha(self.x, self.xp, self.dp)
-        except AttributeError:
-            return cp.get_alpha_effective(self.x, self.xp)
+        return cp.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
 
     def alpha_Twiss_y(self):
-        try:
-            return cp.get_alpha(self.y, self.yp, self.dp)
-        except AttributeError:
-            return cp.get_alpha_effective(self.y, self.yp)
+        return cp.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
 
     def beta_Twiss_x(self):
-        try:
-            return cp.get_beta(self.x, self.xp, self.dp)
-        except AttributeError:
-            return cp.get_beta_effective(self.x, self.xp)
+        return cp.get_beta(self.x, self.xp, getattr(self, 'dp', None))
 
     def beta_Twiss_y(self):
-        try:
-            return cp.get_beta(self.y, self.yp, self.dp)
-        except AttributeError:
-            return cp.get_beta_effective(self.y, self.yp)
+        return cp.get_beta(self.y, self.yp, getattr(self, 'dp', None))
 
     def gamma_Twiss_x(self):
-        try:
-            return cp.get_gamma(self.x, self.xp, self.dp)
-        except AttributeError:
-            return cp.get_gamma_effective(self.x, self.xp)
+        return cp.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
 
     def gamma_Twiss_y(self):
-        try:
-            return cp.get_gamma(self.y, self.yp, self.dp)
-        except AttributeError:
-            return cp.get_gamma_effective(self.y, self.yp)
+        return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
 
 ########### beam optics implemented using dE (as in PyOrbit) ##########
 
     def _dE(self):
-        E0 = self.gamma*self.mass*c*c#*1.602176565e19 
+        E0 = self.gamma*self.mass*c*c
         dE = self.dp * self.beta*self.beta*E0
         return dE
 
@@ -344,8 +323,7 @@ def dispersion(u, dE, beta, momentum):
     covariance = cp.cov
     u_dE = covariance(u,dE)
     dE2 = covariance(dE, dE)
-    return u_dE/dE2 * beta * momentum *c#PyOrbit mult. by c
-    #return u_dE/dE2 * beta * momentum #FORMULA IN PYORBIT
+    return u_dE/dE2 * beta * momentum *c #PyOrbit mult. by c
 
 
 def emittance(u, up, dE):
@@ -355,20 +333,9 @@ def emittance(u, up, dE):
     cov_u_dE = cp.cov(u, dE)
     cov_up_dE = cp.cov(up, dE)
     cov_dE2 = abs(cp.cov(dE, dE))
-   # print('\nemittance dE: ')
-   # print('cov_dE2: ' + str(cov_dE2))
-   # print('mean_dE2: ' + str(np.mean(np.multiply(dE, dE))))
-   # print('cov_u2: ' + str(cov_u2))
-   # print('cov_u_dE: ' + str(cov_u_dE))
-   # print('mean_u_dE: ' + str(np.mean(np.multiply(u,dE))))
-   # print('sigma11 dE: ' + str(cov_u2-cov_u_dE*cov_u_dE/cov_dE2))
-   # print('sigma22 dE: ' + str(cov_up2 - cov_up_dE*cov_up_dE/cov_dE2))
-   # print('sigma12 dE: ' + str(cov_u_up - cov_u_dE*cov_up_dE/cov_dE2))
-   # print('<udE>**2/<dE2>: ' + str(cov_u_dE*cov_u_dE/cov_dE2))
     em2 = abs((cov_u2 - cov_u_dE*cov_u_dE/cov_dE2)
               *(cov_up2 - cov_up_dE*cov_up_dE/cov_dE2)
               -(cov_u_up - cov_u_dE*cov_up_dE/cov_dE2)**2)
-   # print('emittance: ' + str(np.sqrt(em2)))
     return np.sqrt(em2)
 
 def getAlpha(u, up, dE):
@@ -383,9 +350,6 @@ def getBeta(u,up, dE):
     cov_u_dE = cp.cov(u,dE)
     cov_dE2 = (cp.cov(dE,dE)) #abs
     cov_u2 = (cp.cov(u, u)) #abs
-    #print('cov_u_dE: ' + str(cov_u_dE))
-    #print('cov_dE2: ' + str(cov_dE2))
-    #print('cov_u2: ' + str(cov_u2))
     beta = (cov_u2 - cov_u_dE*cov_u_dE/cov_dE2)/emittance(u, up, dE)
     return beta
 
