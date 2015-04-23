@@ -236,15 +236,9 @@ class Particles(Printing):
         return self.effective_normalized_emittance_z()
 
     def dispersion_x(self):
-        if self.gamma < 10:
-            self.warns('Computing dispersion effects is unstable for small ' +
-                       'gamma')
         return cp.dispersion(self.x, self.dp)
 
     def dispersion_y(self):
-        if self.gamma < 10:
-            self.warns('Computing dispersion effects is unstable for small ' +
-             'gamma')
         return cp.dispersion(self.y, self.dp)
 
     def alpha_Twiss_x(self):
