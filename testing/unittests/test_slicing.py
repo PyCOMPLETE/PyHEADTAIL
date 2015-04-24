@@ -125,7 +125,6 @@ class TestSlicing(unittest.TestCase):
         self.assertEqual(self.macroparticlenumber, n_particles,
                          'the SliceSet lost/added some particles')
 
-
     def test_add_statistics(self):
         """ Tests whether any error gets thrown when calling the statistics
         functions of the slicer. Does not do any specific tests
@@ -147,7 +146,6 @@ class TestSlicing(unittest.TestCase):
                                    places=4,
                                    msg='The effective emittance is not the ' +
                                    'same as the emittance for no dispersion')
-
 
 
     # exclude this test for now, fails at the moment but not clear whether

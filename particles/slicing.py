@@ -3,7 +3,8 @@
           Kevin Li,
           Michael Schenk,
           Giovanni Iadarola,
-          Adrian Oeftiger
+          Adrian Oeftiger,
+          Stefan Hegglin
 @date:    01/10/2014
 '''
 from __future__ import division
