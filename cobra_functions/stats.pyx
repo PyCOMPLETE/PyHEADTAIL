@@ -268,6 +268,7 @@ cpdef mean_per_slice(int[::1] slice_index_of_particle,
             mean_u[i] /= n_macroparticles[i]
 
 
+
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef std_per_slice(int[::1] slice_index_of_particle,
@@ -295,8 +296,8 @@ cpdef std_per_slice(int[::1] slice_index_of_particle,
         std_u[s_idx] += du * du
 
     for i in xrange(n_slices):
-        if n_macroparticles[i]:
-            std_u[i] /= n_macroparticles[i]
+        if n_macroparticles[i] > 1:
+            std_u[i] /= (n_macroparticles[i] -1)
 
         std_u[i] = cmath.sqrt(std_u[i])
 
@@ -305,18 +306,18 @@ cpdef std_per_slice(int[::1] slice_index_of_particle,
 cpdef cov_per_slice(int[::1] slice_index_of_particle,
                     int[::1] particles_within_cuts,
                     int[::1] n_macroparticles,
-                    double[::1] a, double[::1] b, double[::1] cov_ab):
+                    double[::1] a, double[::1] b, double[::1] result):
     """Cov per slice. Cannot make use of cov() because the particles
-    per slice are not contiguous in memory
-    The result gets !added! to the cov_ab array"""
+    per slice are not contiguous in memory"""
     #TODO: write single pass version of this algorithm
     cdef unsigned int n_part_in_cuts = particles_within_cuts.shape[0]
-    cdef unsigned int n_slices = cov_ab.shape[0]
+    cdef unsigned int n_slices = result.shape[0]
     cdef unsigned int p_idx, s_idx, i
     cdef double du
 
     cdef double[::1] mean_a = np.zeros(n_slices, dtype=np.double)
     cdef double[::1] mean_b = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] cov_ab = np.zeros(n_slices, dtype=np.double)
 
     mean_per_slice(slice_index_of_particle, particles_within_cuts,
                    n_macroparticles, a, mean_a)
@@ -329,9 +330,9 @@ cpdef cov_per_slice(int[::1] slice_index_of_particle,
         cov_ab[s_idx] += (a[p_idx] - mean_a[s_idx])*(b[p_idx] - mean_b[s_idx])
 
     for i in xrange(n_slices):
-        if n_macroparticles[i]:
-            cov_ab[i] /= n_macroparticles[i]
-        cov_ab[i] = cmath.sqrt(cov_ab[i])
+        if n_macroparticles[i] > 1:
+            cov_ab[i] /= (n_macroparticles[i] -1)
+        result[i] = cov_ab[i]
 
 
 @cython.boundscheck(False)
@@ -386,30 +387,6 @@ cpdef emittance_per_slice_old(int[::1] slice_index_of_particle,
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef dispersion_per_slice(int[::1] slice_index_of_particle,
-                           int[::1] particles_within_cuts,
-                           int[::1] n_macroparticles,
-                           double[::1] u, double[::1] dp, double[::1] disp):
-    """ Compute the dispersion per slice via mean_per_slice
-    The result gets stored in the disp array
-    """
-    cdef unsigned int n_slices = disp.shape[0]
-    cdef double[::1] mean_u_dp = np.zeros(n_slices, dtype=np.double)
-    cdef double[::1] mean_dp2 = np.zeros(n_slices, dtype=np.double)
-    mean_per_slice(slice_index_of_particle, particles_within_cuts,
-                   n_macroparticles, np.multiply(u, dp), mean_u_dp)
-    mean_per_slice(slice_index_of_particle, particles_within_cuts,
-                   n_macroparticles, np.multiply(dp, dp), mean_dp2)
-
-    cdef unsigned int i
-    for i in xrange(n_slices):
-        if mean_dp2[i] > 0:
-            disp[i] = mean_u_dp[i] / mean_dp2[i]
-        else:
-            disp[i] = 0.
-
-@cython.boundscheck(False)
-@cython.cdivision(True)
 cpdef emittance_per_slice(int[::1] slice_index_of_particle,
                           int[::1] particles_within_cuts,
                           int[::1] n_macroparticles,
@@ -424,33 +401,45 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
     DO NOT USE, HAS TO BE CHANGED TO GET STABLE (AS IN emittance())"""
     #TODO: Clean up, optimize (time & space) if necessary
     cdef unsigned int n_slices = emittance.shape[0]
-    # allocate arrays for covariances, means and dispersions 
-    cdef double[::1] u2 = np.zeros(n_slices, dtype=np.double)
-    cdef double[::1] up2 = np.zeros(n_slices, dtype=np.double)
-    cdef double[::1] uup = np.zeros(n_slices, dtype=np.double)
-    cdef double[::1] disp_u = np.zeros(n_slices, dtype=np.double)
-    cdef double[::1] disp_up = np.zeros(n_slices, dtype=np.double)
-    cdef double[::1] mean_dp2 = np.zeros(n_slices, dtype=np.double)
+    # allocate arrays for covariances 
+    cdef double[::1] cov_u2 = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] cov_up2 = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] cov_u_up = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] cov_u_dp = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] cov_up_dp = np.zeros(n_slices, dtype=np.double)
+    cdef double[::1] cov_dp2 = np.ones(n_slices, dtype=np.double)
 
     # compute the covariances
     cov_per_slice(slice_index_of_particle, particles_within_cuts,
-                  n_macroparticles, u, u, u2)
+                  n_macroparticles, u, u, cov_u2)
     cov_per_slice(slice_index_of_particle, particles_within_cuts,
-                  n_macroparticles, u, up, uup)
+                  n_macroparticles, u, up, cov_u_up)
     cov_per_slice(slice_index_of_particle, particles_within_cuts,
-                  n_macroparticles, up, up, up2)
+                  n_macroparticles, up, up, cov_up2)
     if dp != None:
-        # compute the necessary params (mean of dp2, dispersions)
-        mean_per_slice(slice_index_of_particle, particles_within_cuts,
-                       n_macroparticles, np.multiply(dp,dp), mean_dp2)
-        dispersion_per_slice(slice_index_of_particle, particles_within_cuts,
-                             n_macroparticles, u, dp, disp_u)
-        dispersion_per_slice(slice_index_of_particle, particles_within_cuts,
-                             n_macroparticles, up, dp, disp_up)
-    # compute the emittance per slice
+        cov_per_slice(slice_index_of_particle, particles_within_cuts,
+                      n_macroparticles, u, dp, cov_u_dp)
+        cov_per_slice(slice_index_of_particle, particles_within_cuts,
+                      n_macroparticles, up, dp, cov_up_dp)
+        cov_per_slice(slice_index_of_particle, particles_within_cuts,
+                      n_macroparticles, dp, dp, cov_dp2)
+
+   # print('cov_u2: ' + str(np.asarray(cov_u2)))
+   # print('cov_up2: ' + str(np.asarray(cov_up2)))
+   # print('cov_u_up: ' + str(np.asarray(cov_u_up)))
+   # print('cov_u_dp: ' + str(np.asarray(cov_u_dp)))
+   # print('cov_up_dp: ' + str(np.asarray(cov_up_dp)))
+   # print('cov_dp2: ' + str(np.asarray(cov_dp2)))
+
+
+    cdef double sigma11, sigma12, sigma22
+
     cdef unsigned int i
     for i in xrange(n_slices):
-        pass
-        #emittance[i] = cmath.sqrt(_det_beam_matrix(u2[i], uup[i], up2[i],
-        #                          disp_u[i], disp_up[i], mean_dp2[i]))
-
+        if n_macroparticles[i] > 1:
+            sigma11 = cov_u2[i] - cov_u_dp[i]*cov_u_dp[i]/cov_dp2[i]
+            sigma12 = cov_u_up[i] - cov_u_dp[i]*cov_up_dp[i]/cov_dp2[i]
+            sigma22 = cov_up2[i] - cov_up_dp[i]*cov_up_dp[i]/cov_dp2[i]
+            emittance[i] = cmath.sqrt(_det_beam_matrix(sigma11, sigma12, sigma22))
+        else:
+            emittance[i] = 0.

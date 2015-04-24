@@ -338,7 +338,8 @@ class Slicer(Printing):
             statistics = ['mean_x', 'mean_y', 'mean_z',
                           'mean_xp', 'mean_yp', 'mean_dp',
                           'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp',
-                          'epsn_x', 'epsn_y', 'epsn_z']
+                          'epsn_x', 'epsn_y', 'epsn_z',
+                          'eff_epsn_x', 'eff_epsn_y']
         for stat in statistics:
             if not hasattr(sliceset, stat):
                 stat_caller = getattr(self, '_' + stat)
@@ -375,16 +376,22 @@ class Slicer(Printing):
     def _sigma_dp(self, sliceset, beam):
         return self._sigma(sliceset, beam.dp)
 
-    def _epsn_x(self, sliceset, beam):
-        return (self._epsn(sliceset, beam.x, beam.xp, getattr(beam, 'dp', None))
-                * beam.betagamma)
+    def _epsn_x(self, sliceset, beam): # dp will always be resent in a sliced beam
+        return self._epsn(sliceset, beam.x, beam.xp, beam.dp) * beam.betagamma
+
+    def _eff_epsn_x(self, sliceset, beam):
+        return self._epsn(sliceset, beam.x, beam.xp, None) * beam.betagamma
 
     def _epsn_y(self, sliceset, beam):
-        return (self._epsn(sliceset, beam.y, beam.yp, getattr(beam, 'dp', None))
-                * beam.betagamma)
+        return self._epsn(sliceset, beam.y, beam.yp, beam.dp) * beam.betagamma
+
+    def _eff_epsn_y(self, sliceset, beam):
+        return self._epsn(sliceset, beam.y, beam.yp, None) * beam.betagamma
+
 
     def _epsn_z(self, sliceset, beam):
-        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp, beam.dp) *
+        # Always use the effective emittance --> pass None as second dp param
+        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp, None) *
                 beam.p0 / e)
 
     # Statistics helper functions.

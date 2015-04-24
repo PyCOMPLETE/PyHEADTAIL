@@ -43,7 +43,7 @@ class TestCobra(unittest.TestCase):
         for a simulated data set
         """
         s_cobra = cf.std(self.data1)
-        s_numpy = cf.std(self.data1)
+        s_numpy = np.std(self.data1)
         self.assertAlmostEqual(s_cobra, s_numpy, places=self.tolerance,
                                msg='cobra std() yields a different result ' +
                                'than numpy.std()')
@@ -83,6 +83,39 @@ class TestCobra(unittest.TestCase):
                                 places=self.tolerance,
                                 msg='cobra cov() of two uncorrelated ' +
                                 'Gaussians != 0')
+
+
+    def test_cov_per_slice_consistency(self):
+        """ Test whether cov_per_slice yields the same results as np.cov.
+        The data is split into two slices (via its mean), then the covariance
+        per slice gets computed via cov_per_slice and numpy.cov
+        """
+        n_slices = 2
+        cf_cov = np.zeros(n_slices)
+        slice_index_of_particle = np.zeros(len(self.data1),dtype=np.int32)
+        # all coordinates < mean() belong to slice 0, all > to slice 1
+        slice_index_of_particle[self.data1 > np.mean(self.data1)] = 1
+        # all particles are in between the cuts
+        particles_within_cuts = np.arange(len(self.data1), dtype=np.int32)
+        n_macroparticles = np.asarray([np.sum(slice_index_of_particle == 0),
+                                       np.sum(slice_index_of_particle == 1)],
+                                       dtype=np.int32)
+        cf.cov_per_slice(slice_index_of_particle, particles_within_cuts,
+                         n_macroparticles, self.data1, self.data2, cf_cov)
+        # numpy slice 0
+        np_cov_0 = np.cov(self.data1[slice_index_of_particle == 0],
+                        self.data2[slice_index_of_particle == 0])[0,1]
+        # numpy slice 1
+        np_cov_1 = np.cov(self.data1[slice_index_of_particle == 1],
+                          self.data2[slice_index_of_particle == 1])[0,1]
+
+        self.assertAlmostEqual(cf_cov[0], np_cov_0, places=self.tolerance,
+                               msg='cov_per_slice yields different results ' +
+                               'than np.cov')
+
+        self.assertAlmostEqual(cf_cov[1], np_cov_1, places=self.tolerance,
+                               msg='cov_per_slice yields different results ' +
+                               'than np.cov')
 
     def generate_gaussian6dBunch(self,n_macroparticles, alpha_x, alpha_y, beta_x,
                                   beta_y, dispx, dispy,
