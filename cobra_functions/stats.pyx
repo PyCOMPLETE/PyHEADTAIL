@@ -54,7 +54,6 @@ cpdef double std(double[::1] u):
     """
     return cmath.sqrt(cov(u, u))
 
-
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef double dispersion(double[::1] u, double[::1] dp):
@@ -71,7 +70,6 @@ cpdef double dispersion(double[::1] u, double[::1] dp):
     else:
         return 0
 
-
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cdef double _det_beam_matrix(double sigma11, double sigma12, double sigma22):
@@ -82,7 +80,6 @@ cdef double _det_beam_matrix(double sigma11, double sigma12, double sigma22):
         sigma12: cov(u,up) - disp(u)*disp(up)*cov(dp,dp)
     """
     return sigma11 * sigma22 - sigma12 * sigma12
-    #return np.linalg.det([[sigma11, sigma12],[sigma12, sigma22]])
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -141,21 +138,6 @@ cpdef double get_alpha(double[::1] u, double[::1] up, double[::1] dp):
     cdef double sigma12 = cov_u_up - cov_u_dp * cov_up_dp / cov_dp2
     return - sigma12 / emittance(u, up, dp)
 
-
-@cython.boundscheck(False)
-@cython.cdivision(True)
-cpdef double get_beta_broken(double[::1] u, double[::1] up, double[::1] dp):
-    """Cython function to calculate the statistical beta (Twiss) of the
-    beam specified by the spatial coordinate u, momentum up and
-    dp = (p-p0)/p0. Not optimized yet
-    UNSTABLE, DO NOT USE
-    """
-    covariance = cov
-    cdef double cov_u2 = covariance(u, u)
-    cdef double disp_u = dispersion(u, dp)
-    cdef double mean_dp2 = np.mean(np.multiply(dp, dp))
-    return ((cov_u2 - disp_u*disp_u*mean_dp2)) / emittance(u, up, dp)
-
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef double get_beta(double[::1] u, double[::1] up, double[::1] dp):
@@ -196,8 +178,6 @@ cpdef double get_gamma(double[::1] u, double[::1] up, double[::1] dp):
     cdef double sigma22 = cov_up2 - cov_up_dp * cov_up_dp / cov_dp2
     return sigma22 / emittance(u, up, dp)
 
-
-
 '''
 Cython statistics functions for an instance of a SliceSet class.
 '''
@@ -215,7 +195,6 @@ cpdef count_macroparticles_per_slice(int[::1] slice_index_of_particle,
     for i in xrange(n_particles_within_cuts):
         s_idx = slice_index_of_particle[particles_within_cuts[i]]
         n_macroparticles[s_idx] += 1
-
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -244,7 +223,6 @@ cpdef sort_particle_indices_by_slice(int[::1] slice_index_of_particle,
         particle_indices_by_slice[pos] = p_idx
         pos_ctr[s_idx] += 1
 
-
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef mean_per_slice(int[::1] slice_index_of_particle,
@@ -266,8 +244,6 @@ cpdef mean_per_slice(int[::1] slice_index_of_particle,
     for i in xrange(n_slices):
         if n_macroparticles[i]:
             mean_u[i] /= n_macroparticles[i]
-
-
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -384,7 +360,6 @@ cpdef emittance_per_slice_old(int[::1] slice_index_of_particle,
 
         epsn_u[i] = cmath.sqrt(u2[i]*up2[i] - uup[i]*uup[i])
 
-
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef emittance_per_slice(int[::1] slice_index_of_particle,
@@ -398,8 +373,7 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
     for each slice separately. To calculate the emittance per
     slice, one needs the mean values of quantities u and up
     for each slice.
-    DO NOT USE, HAS TO BE CHANGED TO GET STABLE (AS IN emittance())"""
-    #TODO: Clean up, optimize (time & space) if necessary
+    """
     cdef unsigned int n_slices = emittance.shape[0]
     # allocate arrays for covariances 
     cdef double[::1] cov_u2 = np.zeros(n_slices, dtype=np.double)
@@ -423,14 +397,6 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
                       n_macroparticles, up, dp, cov_up_dp)
         cov_per_slice(slice_index_of_particle, particles_within_cuts,
                       n_macroparticles, dp, dp, cov_dp2)
-
-   # print('cov_u2: ' + str(np.asarray(cov_u2)))
-   # print('cov_up2: ' + str(np.asarray(cov_up2)))
-   # print('cov_u_up: ' + str(np.asarray(cov_u_up)))
-   # print('cov_u_dp: ' + str(np.asarray(cov_u_dp)))
-   # print('cov_up_dp: ' + str(np.asarray(cov_up_dp)))
-   # print('cov_dp2: ' + str(np.asarray(cov_dp2)))
-
 
     cdef double sigma11, sigma12, sigma22
 
