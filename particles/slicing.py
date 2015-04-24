@@ -29,6 +29,7 @@ def make_int32(array):
     # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
 
+
 class ModeIsUniformCharge(Exception):
     def __init__(self, message):
         self.message = message
@@ -487,6 +488,27 @@ class UniformBinSlicer(Slicer):
                              " given while only one is accepted!")
         mode = 'uniform_bin'
         self.config = (mode, n_slices, n_sigma_z, z_cuts)
+
+    @classmethod
+    def from_z_sample_points(cls, z_sample_points, z_cuts=None):
+
+        dz = np.diff(z_sample_points)[0]
+        if not np.allclose(np.diff(z_sample_points)-dz, 1e-15):
+            raise TypeError("Irregular sampling of wakes. " +
+                            "Check sampling points.")
+
+        n_slices = len(z_sample_points)
+        aa, bb = z_sample_points[0]-dz/2., z_sample_points[-1]+dz/2.
+
+        if z_cuts:
+            while aa>z_cuts[0]:
+                aa -= dz
+                n_slices += 1
+            while bb<z_cuts[1]:
+                bb += dz
+                n_slices +=1
+
+        return cls(n_slices, z_cuts=(aa, bb))
 
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
