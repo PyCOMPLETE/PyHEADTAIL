@@ -72,7 +72,8 @@ class WakeKick(object):
         """ Implementation of the convolution of wake_field and
         beam_profile using the numpy built-in numpy.convolve method.
         Recommended use with the 'uniform_bin' slicer mode for higher
-        performance. """
+        performance. Question: how about interpolation to avoid
+        expensive dot product in most cases? """
         dz_to_target_slice = np.concatenate(
             (slice_set.z_centers - slice_set.z_centers[-1],
             (slice_set.z_centers - slice_set.z_centers[0])[1:]))

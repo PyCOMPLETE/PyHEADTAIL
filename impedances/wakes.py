@@ -34,7 +34,10 @@ cos = np.cos
 
 
 def check_wake_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=False):
-
+    '''
+    Handy function for quick visual check of sampling of the wake functions.
+    For now only implemented for wake table type wakes.
+    '''
     from scipy.constants import c
     import matplotlib.pyplot as plt
 

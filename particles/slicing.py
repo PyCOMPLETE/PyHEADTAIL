@@ -491,22 +491,32 @@ class UniformBinSlicer(Slicer):
 
     @classmethod
     def from_z_sample_points(cls, z_sample_points, z_cuts=None):
-
+        '''
+        Alternative UniformBinSlicer constructor. The constructor
+        takes a given array of sampling points and ensures that the
+        slice centers lie at those sampling points. If z_cuts is
+        given and beyond the sampling points, it furthermore extends
+        the given sampling points at the same sampling frequency to
+        include the range given by z_cuts. Very useful if one wants
+        to ensure that certain points or regions of a wakefield are
+        included or correctl sampled.
+        '''
         dz = np.diff(z_sample_points)[0]
         if not np.allclose(np.diff(z_sample_points)-dz, 1e-15):
             raise TypeError("Irregular sampling of wakes. " +
                             "Check sampling points.")
-
         n_slices = len(z_sample_points)
         aa, bb = z_sample_points[0]-dz/2., z_sample_points[-1]+dz/2.
 
         if z_cuts:
-            while aa>z_cuts[0]:
-                aa -= dz
-                n_slices += 1
-            while bb<z_cuts[1]:
-                bb += dz
-                n_slices +=1
+            if aa>z_cuts[0]:
+                while aa>z_cuts[0]:
+                    aa -= dz
+                    n_slices += 1
+            if bb<z_cuts[1]:
+                while bb<z_cuts[1]:
+                    bb += dz
+                    n_slices +=1
 
         return cls(n_slices, z_cuts=(aa, bb))
 
