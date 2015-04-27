@@ -44,21 +44,26 @@ def check_wake_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=Fal
     ss = bunch.get_slices(slicer).z_centers
     zz = bunch.get_slices(slicer).z_bins
     ss = ss[:-1]
+    ll = bunch.get_slices(slicer).lambda_z(ss, sigma=100)
     # ss = np.concatenate((s.z_centers-s.z_centers[-1], (s.z_centers-s.z_centers[0])[1:]))
 
     A = [wakes.wake_table['time'] * beta*c*1e-9, wakes.wake_table[wake_column] * 1e15]
     W = [ss[::-1], wakes.function_transverse(wake_column)(beta, ss)]
 
 
-    fig, ((ax1)) = plt.subplots(1, figsize=(16,12), sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, figsize=(16,12), sharex=True)
 
-    ax1.plot(A[0], (A[1]), 'b-+', ms=12)
-    ax1.plot(W[0][:-1], (-1*W[1][1:]), 'r-x')
+    ax1.plot(ss, ll)
+
+    ax2.plot(A[0], (A[1]), 'b-+', ms=12)
+    ax2.plot(W[0][:-1], (-1*W[1][1:]), 'r-x')
     if bins:
-        [ax1.axvline(z, color='g') for z in zz]
+        [ax2.axvline(z, color='g') for z in zz]
 
-    ax1.grid()
-    ax1.legend(['Table', 'Interpolated'])
+    ax2.grid()
+    ax2.legend(['Table', 'Interpolated'])
+
+    print '\n--> Rsulting number of slices: {:g}'.format(len(ss))
 
     return ax1
 
