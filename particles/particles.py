@@ -17,7 +17,7 @@ class Particles(Printing):
     Designed to describe beams, electron clouds, ... '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma_reference,
+                 mass, circumference, gamma,
                  coords_n_momenta_dict={}):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
@@ -36,7 +36,7 @@ class Particles(Printing):
         self.mass = mass
 
         self.circumference = circumference
-        self.gamma = gamma_reference
+        self.gamma = gamma
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded
