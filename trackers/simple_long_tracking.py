@@ -520,7 +520,7 @@ class RFSystems(LongitudinalOneTurnMap):
     def rfbucket(self):
         '''non-existent anymore!'''
         raise RuntimeError('Interface change: ' +
-                           'Use the get_bucket(gamma_reference) method ' +
+                           'Use the get_bucket(beam) method ' +
                            'to obtain a (constant) blueprint of the ' +
                            'current state of the ' +
                            'longitudinal RF configuration.')
