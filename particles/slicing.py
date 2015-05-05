@@ -378,13 +378,13 @@ class Slicer(Printing):
         return self._sigma(sliceset, beam.dp)
 
     def _epsn_x(self, sliceset, beam): # dp will always be resent in a sliced beam
-        return self._epsn(sliceset, beam.x, beam.xp, beam.dp) * beam.betagamma
+        return self._epsn(sliceset, beam.x, beam.xp, beam.dp_of_dispersion) * beam.betagamma
 
     def _eff_epsn_x(self, sliceset, beam):
         return self._epsn(sliceset, beam.x, beam.xp, None) * beam.betagamma
 
     def _epsn_y(self, sliceset, beam):
-        return self._epsn(sliceset, beam.y, beam.yp, beam.dp) * beam.betagamma
+        return self._epsn(sliceset, beam.y, beam.yp, beam.dp_of_dispersion) * beam.betagamma
 
     def _eff_epsn_y(self, sliceset, beam):
         return self._epsn(sliceset, beam.y, beam.yp, None) * beam.betagamma
