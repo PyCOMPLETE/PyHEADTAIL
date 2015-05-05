@@ -59,6 +59,15 @@ class Particles(Printing):
 
         self.update(coords_n_momenta_dict)
 
+        # additional array specifying which dp was used to compute the
+        # dispersion effects in the most recent transverse tracker
+        # (or during the generation of the beam)
+        # this attribute is used/transformed in transverse trackers including
+        # dispersion only!
+        if hasattr(self, 'dp'): # only if there is a longitudinal phase space
+            self.add({'dp_of_dispersion': self.dp}) # self.dp gets copied in add
+
+
     @property
     def intensity(self):
         return self.particlenumber_per_mp * self.macroparticlenumber
@@ -224,11 +233,11 @@ class Particles(Printing):
         return(4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
 
     def epsn_x(self):
-        return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
+        return (cp.emittance(self.x, self.xp, getattr(self, 'dp_of_dispersion', None))
                * self.betagamma)
 
     def epsn_y(self):
-        return (cp.emittance(self.y, self.yp, getattr(self, 'dp', None))
+        return (cp.emittance(self.y, self.yp, getattr(self, 'dp_of_dispersion', None))
                * self.betagamma)
 
     def epsn_z(self):
@@ -236,27 +245,27 @@ class Particles(Printing):
         return self.effective_normalized_emittance_z()
 
     def dispersion_x(self):
-        return cp.dispersion(self.x, self.dp)
+        return cp.dispersion(self.x, self.dp_of_dispersion)
 
     def dispersion_y(self):
-        return cp.dispersion(self.y, self.dp)
+        return cp.dispersion(self.y, self.dp_of_dispersion)
 
     def alpha_Twiss_x(self):
-        return cp.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
+        return cp.get_alpha(self.x, self.xp, getattr(self, 'dp_of_dispersion', None))
 
     def alpha_Twiss_y(self):
-        return cp.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
+        return cp.get_alpha(self.y, self.yp, getattr(self, 'dp_of_dispersion', None))
 
     def beta_Twiss_x(self):
-        return cp.get_beta(self.x, self.xp, getattr(self, 'dp', None))
+        return cp.get_beta(self.x, self.xp, getattr(self, 'dp_of_dispersion', None))
 
     def beta_Twiss_y(self):
-        return cp.get_beta(self.y, self.yp, getattr(self, 'dp', None))
+        return cp.get_beta(self.y, self.yp, getattr(self, 'dp_of_dispersion', None))
 
     def gamma_Twiss_x(self):
-        return cp.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
+        return cp.get_gamma(self.x, self.xp, getattr(self, 'dp_of_dispersion', None))
 
     def gamma_Twiss_y(self):
-        return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
+        return cp.get_gamma(self.y, self.yp, getattr(self, 'dp_of_dispersion', None))
 
 

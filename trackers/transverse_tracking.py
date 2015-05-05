@@ -1,5 +1,5 @@
 """
-@author Kevin Li, Michael Schenk
+@author Kevin Li, Michael Schenk, Stefan Hegglin
 @date 07. January 2014
 @brief Description of the transport of transverse phase spaces.
 @copyright CERN
@@ -32,6 +32,16 @@ class TransverseSegmentMap(Element):
     dispersion is removed, linear tracking is performed via the linear
     periodic map and dispersion is added back so that any subsequent
     collective effect has dispersion taken into account.
+
+    NOTE for developers: When removing the dispersive effect, we cannot simply
+    subtract D*beam.dp since beam.dp might have changed due to some
+    longitudinal tracking elements since the dispersion has been introduced.
+    We therefore need to save a copy of the beam.dp which is used to add
+    dispersive effects such that any following transverse map is able to
+    subtract the same amount. This is why a beam.dp_of_dispersion member has
+    been introduced. It is initialized to beam.dp.copy() in the constructor
+    of the Particles class.
+
     """
     def __init__(self,
             alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
@@ -58,6 +68,16 @@ class TransverseSegmentMap(Element):
                                 alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
 
         self.segment_detuners = kwargs.pop('segment_detuners', [])
+
+        # bind the implementation of the tracking depending on whether
+        # the all dispersion parameters are close to 0 or not
+        if np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
+                       np.zeros(4), atol=1e-3):
+            self._track = self._track_without_dispersion
+        else:
+            self._track = self._track_with_dispersion
+
+
 
     def _build_segment_map(self, alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                            alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1):
@@ -92,6 +112,45 @@ class TransverseSegmentMap(Element):
         self.J[3,2] = -(np.sqrt(1. / (beta_y_s0 * beta_y_s1)) *
                       (1. + alpha_y_s0 * alpha_y_s1))
         self.J[3,3] = -np.sqrt(beta_y_s0 / beta_y_s1) * alpha_y_s1
+
+    def _track_with_dispersion(self, beam, M00, M01, M10, M11, M22, M23,
+                               M32, M33):
+        """This method gets bound to the self._track() method if
+        there are dispersion effects, i.e. any of the 4 dispersion parameters
+        is != 0
+        It computes the transverse tracking given the matrix elements Mij.
+        1) Subtract the dispersion using the dp used when the last dispersion
+           has been introduced -> use beam.dp_of_dispersion
+        2) Change the positions and momenta using the matrix elements
+        3) Add the dispersion effects using the current dp
+        4) Store the dps used for the dispersion in beam.dp_of_dispersion
+        """
+
+        #subtract the dispersion added with the old dp!
+        beam.x -= self.D_x_s0 * beam.dp_of_dispersion
+        beam.y -= self.D_y_s0 * beam.dp_of_dispersion
+
+        beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
+        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
+
+        #add the new dispersion effect and update dp_of_dispersion
+        beam.x += self.D_x_s1 * beam.dp
+        beam.y += self.D_y_s1 * beam.dp
+
+        #update dp_of_dispersion --> copy()!
+        beam.dp_of_dispersion = beam.dp.copy()
+
+
+    def _track_without_dispersion(self, beam, M00, M01, M10, M11, M22, M23,
+                                  M32, M33):
+        """This method gets bound to the self._track() method if there are
+        no dispersive effects, i.e. all of the 4 dispersion parameters
+        are close to (1e-3) 0.
+        It computes the transverse tracking given the matrix elements Mij
+        """
+
+        beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
+        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
 
     def track(self, beam):
         """ The dphi_{x,y} denote the phase advance in the horizontal
@@ -132,15 +191,8 @@ class TransverseSegmentMap(Element):
         M32 = self.I[3,2] * c_dphi_y + self.J[3,2] * s_dphi_y
         M33 = self.I[3,3] * c_dphi_y + self.J[3,3] * s_dphi_y
 
-        beam.x += -self.D_x_s0 * beam.dp
-        beam.y += -self.D_y_s0 * beam.dp
-
-        beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
-        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
-
-        beam.x += self.D_x_s1 * beam.dp
-        beam.y += self.D_y_s1 * beam.dp
-
+        # bound to _track_with_dispersion or _track_without_dispersion
+        self._track(beam, M00, M01, M10, M11, M22, M23, M32, M33)
 
 class TransverseMap(object):
     """ Collection class for TransverseSegmentMap objects. This class is

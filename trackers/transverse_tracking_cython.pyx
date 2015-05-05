@@ -1,5 +1,5 @@
 """
-@author Kevin Li, Michael Schenk
+@author Kevin Li, Michael Schenk, Stefan Hegglin
 @date 07. January 2014
 @brief Description of the transport of transverse phase spaces using
        Cython functions (prepared for OpenMP).
@@ -88,6 +88,13 @@ class TransverseSegmentMap(object):
         self.D_y_s1 = D_y_s1
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
+        
+        # HACK: flag to check for dispersion
+        if np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
+                       np.zeros(4), atol=1e-3):
+            self.has_dispersion = False
+        else:
+            self.has_dispersion = True
 
         self._build_segment_map(alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                                 alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
@@ -183,14 +190,25 @@ class TransverseSegmentMap(object):
         dphi_y *= 2. * np.pi
 
         # Call Cython method to do the tracking.
-        beam.x += -self.D_x_s0 * beam.dp
-        beam.y += -self.D_y_s0 * beam.dp
 
-        cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
+        # HACK continue...
+        if self.has_dispersion:
+
+            beam.x += -self.D_x_s0 * beam.dp_of_dispersion
+            beam.y += -self.D_y_s0 * beam.dp_of_dispersion
+
+            cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                               dphi_x, dphi_y, self.I, self.J)
 
-        beam.x += self.D_x_s1 * beam.dp
-        beam.y += self.D_y_s1 * beam.dp
+            beam.x += self.D_x_s1 * beam.dp
+            beam.y += self.D_y_s1 * beam.dp
+
+            beam.dp_of_dispersion = beam.dp.copy()
+        else :
+            cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
+                                  dphi_x, dphi_y, self.I, self.J)
+
+ 
 
     def track_without_detuners(self, beam):
         """ This method is bound to the self.track(self, beam) method
@@ -198,15 +216,23 @@ class TransverseSegmentMap(object):
         the transport matrix self.M is a constant and can be directly
         used. """
 
-        # Call Cython method to do the tracking.
-        beam.x += -self.D_x_s0 * beam.dp
-        beam.y += -self.D_y_s0 * beam.dp
+        # HACK continue...
 
-        cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
+        if self.has_dispersion:
+
+            beam.x += -self.D_x_s0 * beam.dp_of_dispersion
+            beam.y += -self.D_y_s0 * beam.dp_of_dispersion
+
+            cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                  self.M)
 
-        beam.x += self.D_x_s1 * beam.dp
-        beam.y += self.D_y_s1 * beam.dp
+            beam.x += self.D_x_s1 * beam.dp
+            beam.y += self.D_y_s1 * beam.dp
+
+            beam.dp_of_dispersion = beam.dp.copy()
+        else :
+            cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
+                                 self.M)
 
 
 @cython.boundscheck(False)
