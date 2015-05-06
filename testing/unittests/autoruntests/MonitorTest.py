@@ -106,7 +106,7 @@ def run():
 
         bunch = generators.Gaussian6DTwiss(
             macroparticlenumber=n_macroparticles, intensity=intensity, charge=e,
-            gamma_reference=gamma, mass=m_p, circumference=C,
+            gamma=gamma, mass=m_p, circumference=C,
             alpha_x=alpha_x, beta_x=beta_x, epsn_x=epsn_x,
             alpha_y=alpha_y, beta_y=beta_y, epsn_y=epsn_y,
             beta_z=beta_z, epsn_z=epsn_z).generate()

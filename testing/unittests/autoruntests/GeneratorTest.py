@@ -133,7 +133,7 @@ def run():
 
     bunch = generators.MatchRFBucket6D( # implicitly tests MatchRFBucket2D and MatchTransverseMap
         n_particles, intensity, e, m_p, circumference, gamma,
-        transverse, epsn_x, epsn_y, rfsystems.get_bucket(gamma), epsn_z
+        transverse, epsn_x, epsn_y, rfsystems.get_bucket(gamma=gamma), epsn_z
         ).generate()
 
 
@@ -146,7 +146,7 @@ def run():
         ).generate()
     generators.MatchRFBucket2D(
         n_particles, intensity, e, m_p, circumference, gamma,
-        rfsystems.get_bucket(gamma), epsn_z=epsn_z
+        rfsystems.get_bucket(gamma=gamma), epsn_z=epsn_z
         ).update(bunch)
 
 
@@ -158,7 +158,7 @@ def run():
     bunch = generators.CutRFBucket6D( # implicitly tests CutRFBucket2D as well.
         n_particles, intensity, e, m_p, circumference, gamma,
         transverse, epsn_x, epsn_y, sigma_z, sigma_dp,
-        rfsystems.get_bucket(gamma).make_is_accepted(0.6)
+        rfsystems.get_bucket(gamma=gamma).make_is_accepted(0.6)
         ).generate()
 
 
