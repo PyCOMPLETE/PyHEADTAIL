@@ -200,7 +200,7 @@ class TestSlicing(unittest.TestCase):
         #print ('epsn_z: ' + str(epsn_z))
         bunch = Gaussian6DTwiss(
             macroparticlenumber=10000, intensity=intensity, charge=e,
-            gamma_reference=gamma, mass=m_p, circumference=linear_map.circumference,
+            gamma=gamma, mass=m_p, circumference=linear_map.circumference,
             alpha_x=0., beta_x=1., epsn_x=epsn_x,
             alpha_y=0., beta_y=1., epsn_y=epsn_y,
             beta_z=beta_z, epsn_z=epsn_z).generate()

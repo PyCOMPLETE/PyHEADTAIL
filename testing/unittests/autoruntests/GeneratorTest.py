@@ -3,8 +3,15 @@
 
 # In[1]:
 
-import sys
-sys.path.append("../../../../")
+import sys, os
+BIN = os.path.dirname(__file__) # ./PyHEADTAIL/testing/unittests/
+BIN = os.path.abspath( BIN ) # absolute path to unittests
+BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/testing/
+BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/
+BIN = os.path.dirname( BIN ) # ../ -->  ./
+BIN = os.path.dirname( BIN ) # ../ -->  ./
+
+sys.path.append(BIN)
 
 
 # In[2]:

@@ -67,8 +67,11 @@ class Particles(Printing):
         # (or during the generation of the beam)
         # this attribute is used/transformed in transverse trackers including
         # dispersion only!
-        if hasattr(self, 'dp'): # only if there is a longitudinal phase space
-            self.add({'dp_of_dispersion': self.dp}) # self.dp gets copied in add
+        # only update the dictionary if dp_of_dispersion is not yet a member,
+        # which might happen if ImportDistribution was used ...
+        if not hasattr(self, 'dp_of_dispersion'):
+            if hasattr(self, 'dp'): # only if there is a longitudinal phase space
+                self.update({'dp_of_dispersion': self.dp})
 
 
     @property
