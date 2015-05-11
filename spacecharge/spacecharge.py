@@ -14,6 +14,7 @@ from functools import wraps
 
 log = np.log
 exp = np.exp
+take = np.take
 
 try:
     from errfff import errf as errf_f
@@ -181,8 +182,8 @@ class TransverseGaussianSpaceCharge(Element):
                 continue
 
             en_x, en_y = self.get_efieldn(
-                beam.x[p_id], beam.y[p_id], mean_x, mean_y,
-                sig_x, sig_y)
+                take(beam.x, p_id), take(beam.y, p_id),
+                mean_x, mean_y, sig_x, sig_y)
 
             beam.xp[p_id] += prefactor * (Q_sl * en_x)
             beam.yp[p_id] += prefactor * (Q_sl * en_y)
