@@ -12,6 +12,8 @@ from cython.parallel cimport prange
 import numpy as np
 cimport numpy as np
 from libc.math cimport cos, sin
+diff = np.diff
+ndim = np.ndim
 
 
 class TransverseSegmentMap(object):
@@ -315,7 +317,7 @@ class TransverseMap(object):
     TransverseMap(...)[i] (with i the index of the accelerator
     segment). """
     def __init__(self, C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
-                 Q_x, Q_y, *detuner_collections):
+                 accQ_x, accQ_y, *detuner_collections):
         """ Create a one-turn map that manages the transverse tracking
         for each of the accelerator segments defined by s.
           - s is the array of positions defining the boundaries of the
@@ -326,13 +328,17 @@ class TransverseMap(object):
             beta. They are arrays of size len(s) as these parameters
             must be defined at every segment boundary of the
             accelerator.
+          - accQ_{x,y} are arrays with the accumulating phase advance
+            in units of 2 \pi (i.e. mu_{x,y} / 2 \pi) at each segment
+            boundary. The respective last entry gives the betatron tune
+            Q_{x,y} .
+            Note: instead of arrays of length len(s) it is possible
+            to provide solely the scalar one-turn betatron tune Q_{x,y}
+            directly. Then the phase advances are smoothly distributed
+            over the segments (proportional to the respective s length).
           - D_{x,y} are the dispersion coefficients. They are arrays of
             size len(s) as these parameters must be defined at every
             segment boundary of the accelerator.
-            WARNING: Dispersion effects are not yet implemented.
-          - Q_{x,y} are scalar values and define the betatron tunes
-            (i.e. the number of betatron oscillations in one complete
-            turn).
           - detuner_collections is a list of DetunerCollection objects
             that are present in the accelerator. Each DetunerCollection
             knows how to generate and store its SegmentDetuner objects
@@ -349,8 +355,8 @@ class TransverseMap(object):
         self.alpha_y = alpha_y
         self.beta_y = beta_y
         self.D_y = D_y
-        self.Q_x = Q_x
-        self.Q_y = Q_y
+        self.accQ_x = accQ_x
+        self.accQ_y = accQ_y
         self.detuner_collections = detuner_collections
 
         # List to store TransverseSegmentMap objects.
@@ -378,9 +384,16 @@ class TransverseMap(object):
         the accelerator circumference s[-1]). """
         segment_length = np.diff(self.s) / self.s[-1]
 
-        # Betatron motion normalized to this particular segment.
-        dQ_x = self.Q_x * segment_length
-        dQ_y = self.Q_y * segment_length
+        if ndim(self.accQ_x) == 0:
+            # smooth approximation for phase advance (proportional to s)
+            dQ_x = self.accQ_x * segment_length
+        else:
+            dQ_x = diff(self.accQ_x)
+        if ndim(self.accQ_y) == 0:
+            # smooth approximation for phase advance (proportional to s)
+            dQ_y = self.accQ_y * segment_length
+        else:
+            dQ_y = diff(self.accQ_y)
 
         n_segments = len(self.s) - 1
         for seg in range(n_segments):
