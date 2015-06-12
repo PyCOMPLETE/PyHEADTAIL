@@ -32,16 +32,6 @@ class TransverseSegmentMap(Element):
     dispersion is removed, linear tracking is performed via the linear
     periodic map and dispersion is added back so that any subsequent
     collective effect has dispersion taken into account.
-
-    NOTE for developers: When removing the dispersive effect, we cannot simply
-    subtract D*beam.dp since beam.dp might have changed due to some
-    longitudinal tracking elements since the dispersion has been introduced.
-    We therefore need to save a copy of the beam.dp which is used to add
-    dispersive effects such that any following transverse map is able to
-    subtract the same amount. This is why a beam.dp_of_dispersion member has
-    been introduced. It is initialized to beam.dp.copy() in the constructor
-    of the Particles class.
-
     """
     def __init__(self,
             alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
@@ -119,26 +109,22 @@ class TransverseSegmentMap(Element):
         there are dispersion effects, i.e. any of the 4 dispersion parameters
         is != 0
         It computes the transverse tracking given the matrix elements Mij.
-        1) Subtract the dispersion using the dp used when the last dispersion
-           has been introduced -> use beam.dp_of_dispersion
+        1) Subtract the dispersion using dp 
         2) Change the positions and momenta using the matrix elements
-        3) Add the dispersion effects using the current dp
-        4) Store the dps used for the dispersion in beam.dp_of_dispersion
+        3) Add the dispersion effects using dp
         """
 
-        #subtract the dispersion added with the old dp!
-        beam.x -= self.D_x_s0 * beam.dp_of_dispersion
-        beam.y -= self.D_y_s0 * beam.dp_of_dispersion
+        #subtract the dispersion
+        beam.x -= self.D_x_s0 * beam.dp
+        beam.y -= self.D_y_s0 * beam.dp
 
         beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
         beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
 
-        #add the new dispersion effect and update dp_of_dispersion
+        #add the new dispersion effect
         beam.x += self.D_x_s1 * beam.dp
         beam.y += self.D_y_s1 * beam.dp
 
-        #update dp_of_dispersion --> copy()!
-        beam.dp_of_dispersion = beam.dp.copy()
 
 
     def _track_without_dispersion(self, beam, M00, M01, M10, M11, M22, M23,

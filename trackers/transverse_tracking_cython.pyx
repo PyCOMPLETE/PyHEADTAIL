@@ -194,8 +194,8 @@ class TransverseSegmentMap(object):
         # HACK continue...
         if self.has_dispersion:
 
-            beam.x += -self.D_x_s0 * beam.dp_of_dispersion
-            beam.y += -self.D_y_s0 * beam.dp_of_dispersion
+            beam.x += -self.D_x_s0 * beam.dp
+            beam.y += -self.D_y_s0 * beam.dp
 
             cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                               dphi_x, dphi_y, self.I, self.J)
@@ -203,7 +203,6 @@ class TransverseSegmentMap(object):
             beam.x += self.D_x_s1 * beam.dp
             beam.y += self.D_y_s1 * beam.dp
 
-            beam.dp_of_dispersion = beam.dp.copy()
         else :
             cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                   dphi_x, dphi_y, self.I, self.J)
@@ -220,8 +219,8 @@ class TransverseSegmentMap(object):
 
         if self.has_dispersion:
 
-            beam.x += -self.D_x_s0 * beam.dp_of_dispersion
-            beam.y += -self.D_y_s0 * beam.dp_of_dispersion
+            beam.x += -self.D_x_s0 * beam.dp
+            beam.y += -self.D_y_s0 * beam.dp
 
             cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                  self.M)
@@ -229,7 +228,6 @@ class TransverseSegmentMap(object):
             beam.x += self.D_x_s1 * beam.dp
             beam.y += self.D_y_s1 * beam.dp
 
-            beam.dp_of_dispersion = beam.dp.copy()
         else :
             cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                  self.M)
