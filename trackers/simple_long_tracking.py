@@ -141,7 +141,26 @@ class Kick(LongitudinalMap):
     """
 
     def __init__(self, alpha_array, circumference, harmonic, voltage,
-                 phi_offset=0, p_increment=0, *args, **kwargs):
+                 phi_offset=0, p_increment=0, D_x=0, D_y=0, *args, **kwargs):
+        '''D_x, D_y: horizontal and vertical dispersion
+
+        !! Attention !!
+        The user is responsible of making sure the dispersions match the
+        dispersions of the beam which were added in the track() of the last map.
+        This corresponds to the dispersion of the transverse/longitudinal map
+        !following! this Kick (D_x_s1 of the preceding transverse map)
+        Example:
+        dx = np.array([1, 2., 5]) #the dispersions at the TransverseSegmentMaps
+        trans_map = TransverseMap(C, segments, ax, bx, dx, ay, by, Q_x, Q_y)
+        map_ = [m for m in trans_map] + [LinearMap(alpha_0, C, Q_s, D_x=???)]
+        D_x = 1. # if we place the LinearMap after the transverse maps, we
+                 # need to make sure the dispersion matches the dispersion
+                 # added in this transverse map. This corresponds to the
+                 # dispersion of the first segment of the transverse map!
+
+        Or simply: Match the dispersion of this Element with the dispersion
+        of the following transverse element.
+        '''
         super(Kick, self).__init__(alpha_array, *args, **kwargs)
         self.circumference = circumference
         self.harmonic = harmonic
@@ -149,16 +168,29 @@ class Kick(LongitudinalMap):
         self.phi_offset = phi_offset
         self.p_increment = p_increment
         self._phi_lock = 0
+        self.D_x = D_x
+        self.D_y = D_y
 
     def track(self, beam):
+        ''' Subtract the dispersion before computing a new dp, then add
+        the dispersion using the new dp
+        '''
         amplitude = e*self.voltage / (beam.beta*c)
         phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
                + self.phi_offset + self._phi_lock)
+
+        beam.x -= self.D_x*beam.dp
+        beam.y -= self.D_y*beam.dp
 
         delta_p = beam.dp * beam.p0
         delta_p += amplitude * sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
+
+        beam.x += self.D_x*beam.dp
+        beam.y += self.D_y*beam.dp
+
+
 
     # @property
     # def parameters(self):
@@ -578,17 +610,42 @@ class LinearMap(LongitudinalOneTurnMap):
     \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
-    def __init__(self, alpha_array, circumference, Qs, *args, **kwargs):
-        '''Qs is the synchrotron tune.'''
+    def __init__(self, alpha_array, circumference, Qs, D_x=0, D_y=0,*args, **kwargs):
+        '''Qs is the synchrotron tune.
+        D_x, D_y are the dispersions in horizontal and vertical direction.
+
+        !! Attention !!
+        The user is responsible of making sure the dispersions match the
+        dispersions of the beam which were added in the track() of the last map.
+        This corresponds to the dispersion of the transverse/longitudinal map
+        !following! this LinearMap (D_x_s1 of the preceding transverse map)
+        Example:
+        dx = np.array([1, 2., 5]) #the dispersions at the TransverseSegmentMaps
+        trans_map = TransverseMap(C, segments, ax, bx, dx, ay, by, Q_x, Q_y)
+        map_ = [m for m in trans_map] + [LinearMap(alpha_0, C, Q_s, D_x=???)]
+        D_x = 1. # if we place the LinearMap after the transverse maps, we
+                 # need to make sure the dispersion matches the dispersion
+                 # added in this transverse map. This corresponds to the
+                 # dispersion of the first segment of the transverse map!
+
+        Or simply: Match the dispersion of this Element with the dispersion
+        of the following transverse element.
+
+        '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
         self.Qs = Qs
+        self.D_x = D_x
+        self.D_y = D_y
         if len(alpha_array) > 1:
             self.warns('The higher orders in the given alpha_array are ' +
                        'manifestly neglected.')
 
     @clean_slices
     def track(self, beam):
+        ''' Subtract the dispersion before computing a new dp, then add
+        the dispersion using the new dp
+        '''
         omega_0 = 2 * np.pi * beam.beta * c / self.circumference
         omega_s = self.Qs * omega_0
 
@@ -602,5 +659,11 @@ class LinearMap(LongitudinalOneTurnMap):
         # self.eta(0, beam.gamma) is identical to using first order eta!
         beam.z = (z0 * cosdQs - self.eta(0, beam.gamma) * beam.beta * c /
                   omega_s * dp0 * sindQs)
+
+
+        beam.x -= self.D_x*beam.dp
+        beam.y -= self.D_y*beam.dp
         beam.dp = (dp0 * cosdQs + omega_s / self.eta(0, beam.gamma) /
                    (beam.beta * c) * z0 * sindQs)
+        beam.x += self.D_x*beam.dp
+        beam.y += self.D_y*beam.dp

@@ -160,7 +160,7 @@ class TestCobra(unittest.TestCase):
         epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e)
         bunch = Gaussian6DTwiss(
             macroparticlenumber=n_macroparticles, intensity=intensity, charge=e,
-            gamma_reference=gamma, mass=m_p, circumference=C,
+            gamma=gamma, mass=m_p, circumference=C,
             alpha_x=0., beta_x=1., epsn_x=epsn_x,
             alpha_y=0., beta_y=1., epsn_y=epsn_y,
             beta_z=beta_z, epsn_z=epsn_z).generate()
