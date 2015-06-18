@@ -14,14 +14,15 @@ from Cython.Build import cythonize
 
 
 VERSIONFILE="_version.py"
-verstrline = open(VERSIONFILE, "rt").read()
-VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    verstr = mo.group(1)
-else:
-    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
-
+#verstrline = open(VERSIONFILE, "rt").read()
+#VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+#mo = re.search(VSRE, verstrline, re.M)
+#if mo:
+#    verstr = mo.group(1)
+#else:
+#    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+execfile(VERSIONFILE)
+verstr = __version__
 
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
@@ -115,14 +116,6 @@ cy_ext = [
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
                  ),
-        Extension("particles.cython_functions",
-                 ["particles/cython_functions.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 #extra_compile_args=["-fopenmp"],
-                 #extra_link_args=["-fopenmp"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
-                 ),
         Extension("aperture.aperture",
                  ["aperture/aperture.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
@@ -136,14 +129,9 @@ cy_ext = [
 setup(
     name='PyHEADTAIL',
     version=verstr,
-    description='CERN macroparticle tracking code for collective effects in circular accelerators.',
-    url='http://github.com/like2000/PyHEADTAIL',
+    description='CERN PyHEADTAIL numerical n-body simulation code for simulating macro-particle beam dynamics with collective effects.',
+    url='http://github.com/PyCOMPLETE/PyHEADTAIL',
     packages=['PyHEADTAIL'],
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
     )
-
-# setup(
-#     name="libBunch",
-#     ext_modules=cythonize(extensions),
-# )

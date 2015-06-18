@@ -1,2 +1,2 @@
-from .. import Element, clean_slices
+from .. import Element, Printing, clean_slices, utils
 from .. import __version__

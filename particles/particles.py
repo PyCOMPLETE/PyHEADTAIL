@@ -4,52 +4,42 @@ Created on 17.10.2014
 '''
 
 from abc import ABCMeta, abstractmethod
-# import itertools
 
 import numpy as np
-from scipy.constants import c, e
+from scipy.constants import c, e, m_p
 
 from ..cobra_functions import stats as cp
-from . import cython_functions as cyfunc
+from . import Printing
 
-class Particles(object):
+class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
-    Designed to describe beams, electron clouds, ...
-    To consider particle losses during the simulation, the actual
-    particle coords and momenta data are stored in numpy arrays
-    self.u_all, where u = x, y, z, xp, yp, dp, id, alive. In addition,
-    there are self.u attributes, which are numpy array slices / views of
-    the self.u_all, i.e. they point to the same memory addresses(shallow
-    copies). In case of losses, the method Particles.update_losses() is
-    called. Particles marked as lost will then be relocated to the end
-    of the self.u (and hence of self.u_all) arrays. The views self.u are
-    updated such that they view only the first part of the self.u_all
-    where all the alive particles are located. By doing that, the lost
-    particles are set to an untracked state. '''
+    Designed to describe beams, electron clouds, ... '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma_reference,
-                 coords_n_momenta_dict={}):
+                 mass, circumference, gamma, coords_n_momenta_dict={}):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
         e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
         '''
         self.macroparticlenumber = macroparticlenumber
-        self.macroparticlenumber_all = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
-        if not np.allclose(self.charge, e, atol=1e-24):
-            raise NotImplementedError('PyHEADTAIL currently features many "e" '
-                                      + 'all over the place, these need to be '
-                                      + 'consistently replaced by '
-                                      + '"self.charge"!')
+        if not np.allclose(self.charge, e): #, atol=1e-24):
+            self.warns('PyHEADTAIL currently features many "e" ' +
+                       'in the various modules, these need to be ' +
+                       'consistently replaced by "beam.charge"!')
+        self.charge_per_mp = particlenumber_per_mp * charge
         self.mass = mass
+        if not np.allclose(self.charge, m_p): #, atol=1e-24):
+            self.warns('PyHEADTAIL currently features many "m_p" ' +
+                       'in the various modules, these need to be ' +
+                       'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
-        self.gamma = gamma_reference
+        self.gamma = gamma
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded
@@ -68,13 +58,7 @@ class Particles(object):
         '''ID of particles in order to keep track of single entries
         in the coordinate and momentum arrays.
         '''
-        self.id_all = np.arange(1, self.macroparticlenumber+1, dtype=np.uint)
-        self.id = self.id_all.view()
-
-        '''Alive flag to handle the loss of particles
-        '''
-        self.alive_all = np.ones(self.macroparticlenumber, dtype=np.uint)
-        self.alive = self.alive_all.view()
+        self.id = np.arange(1, self.macroparticlenumber+1, dtype=np.int32)
 
         self.update(coords_n_momenta_dict)
 
@@ -116,23 +100,19 @@ class Particles(object):
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
 
+    # @property
+    # def theta(self):
+    #     return self.z/self.ring_radius
+    # @theta.setter
+    # def theta(self, value):
+    #     self.z = value*self.ring_radius
 
-    @property
-    def theta(self):
-        return self.z/self.ring_radius
-    @theta.setter
-    def theta(self, value):
-        self.z = value*self.ring_radius
-
-    @property
-    def delta_E(self):
-        return self.dp * self.beta*c*self.p0
-    @delta_E.setter
-    def delta_E(self, value):
-        self.dp = value / (self.beta*c*self.p0)
-
-    def get_circumference(self): return self.circumference
-    def get_gamma_reference(self): return self.gamma
+    # @property
+    # def delta_E(self):
+    #     return self.dp * self.beta*c*self.p0
+    # @delta_E.setter
+    # def delta_E(self, value):
+    #     self.dp = value / (self.beta*c*self.p0)
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -144,28 +124,31 @@ class Particles(object):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
         state has changed), a new SliceSet is requested from the Slicer
-        via Slicer.slice(self) and stored for future reference. To save
-        the statistics in the SliceSet, a kwarg 'statistics' can be
-        passed containing a list of valid names (strings) for statistics
-        quantities. E.g.: statistics=['mean_x', 'sigma_dp', 'epsn_z'].
-        Note that if the SliceSet to a certain Slicer configuration
-        already exists, but more statistics quantities are requested to
-        be saved, they are simply added to the existing SliceSet
-        instance. This is not true, however, for the transverse
-        statistics (mean_{x,y}, sigma_{x,y}, epsn_{x,y}) because these
-        may actually change without changing the longitudinal state of
-        the beam. Hence, if any of the transverse statistics are
-        requested, the SliceSet is always recreated from scratch.
+        via Slicer.slice(self) and stored for future reference.
+
+        Arguments:
+        - statistics=True attaches mean values, standard deviations
+        and emittances to the SliceSet for all planes.
+        - statistics=['mean_x', 'sigma_dp', 'epsn_z'] only adds the
+        listed statistics values (can be used to save time).
+        Valid list entries are all statistics functions of Particles.
+
+        Note: Requesting statistics after calling get_slices w/o
+        the statistics keyword results in creating a new SliceSet!
         '''
-        if slicer not in self._slice_sets:
+        if slicer not in self._slice_sets or kwargs.get('statistics'):
             self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
-        elif 'statistics' in kwargs:
-            if (any([ '_x' in stats for stats in kwargs['statistics']]) or
-                    any([ '_y' in stats for stats in kwargs['statistics']])):
-                self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
-            else:
-                slicer.add_statistics(self._slice_sets[slicer], self,
-                                      kwargs['statistics'])
+        # # try to save time by allowing longitudinal statistics to
+        # # simply be added to the existing SliceSet:
+        # # (transverse statistics may change even if longitudinal stays
+        # # the same between two SliceSet requesting elements)
+        # elif 'statistics' in kwargs:
+        #     if (any([ '_x' in stats for stats in kwargs['statistics']]) or
+        #             any([ '_y' in stats for stats in kwargs['statistics']])):
+        #         self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
+        #     else:
+        #         slicer.add_statistics(self._slice_sets[slicer], self,
+        #                               kwargs['statistics'])
         return self._slice_sets[slicer]
 
     def clean_slices(self):
@@ -180,18 +163,13 @@ class Particles(object):
         attributes to this Particles instance and puts the corresponding
         values. Pretty much the same as dict.update({...}) .
         Attention: overwrites existing coordinate / momentum attributes.
-        Note that in order to account for particle losses, for each
-        coord (and momentum), a shallow copy (view) self.u of the numpy
-        array is created (with u = x, y, z, ...). The actual place where
-        the data are stored are the numpy arrays self.u_all .
         '''
         if any(len(v) != self.macroparticlenumber for v in
                coords_n_momenta_dict.values()):
             raise ValueError("lengths of given phase space coordinate arrays" +
                              " do not coincide with self.macroparticlenumber.")
         for coord, array in coords_n_momenta_dict.items():
-            setattr(self, coord+'_all', array.copy())
-            setattr(self, coord, getattr(self, coord+'_all').view())
+            setattr(self, coord, array.copy())
         self.coords_n_momenta.update(coords_n_momenta_dict.keys())
 
     def add(self, coords_n_momenta_dict):
@@ -206,30 +184,6 @@ class Particles(object):
                              " momenta already exist and cannot be added." +
                              " Use self.update(...) for this purpose.")
         self.update(coords_n_momenta_dict)
-
-    def update_losses(self):
-        ''' Rearrange coords_n_momenta arrays self.u_all (with u = z, y,
-        z, ...) such that lost particles are relocated to the end of the
-        arrays. Re-set the self.u, which are shallow copies (views) of
-        the numpy arrays self.u_all. They view only the first part of
-        self.u_all containing the alive particles, i.e.
-        self.u = self.u_all[:n_alive_post]. They point to the same
-        locations in memory. Hence, by rearranging the self.u arrays,
-        what is actually sorted are the bunch.u_all. Update the number
-        of macroparticles which are still alive, i.e.
-        self.macroparticlenumber. '''
-        n_alive_post = cyfunc.relocate_lost_particles(self)
-
-        self.macroparticlenumber = n_alive_post
-        self.x = self.x_all[:n_alive_post]
-        self.y = self.y_all[:n_alive_post]
-        self.z = self.z_all[:n_alive_post]
-        self.xp = self.xp_all[:n_alive_post]
-        self.yp = self.yp_all[:n_alive_post]
-        self.dp = self.dp_all[:n_alive_post]
-        self.id = self.id_all[:n_alive_post]
-        self.alive = self.alive_all[:n_alive_post]
-
 
     # Statistics methods
 
@@ -271,4 +225,3 @@ class Particles(object):
 
     def epsn_z(self):
         return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
-        # return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)

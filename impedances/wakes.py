@@ -67,6 +67,7 @@ class WakeField(Element):
         there is a slice_set_age_deque to keep track of the age of
         each of the SliceSet instances."""
         self.slicer = slicer
+
         self.wake_kicks = []
         for source in wake_sources:
             kicks = source.get_wake_kicks(self.slicer)
@@ -168,6 +169,7 @@ class WakeTable(WakeSource):
         if 'time' not in wake_file_columns:
             raise ValueError("No wake_file_column with name 'time' has" +
                              " been specified. \n")
+
         for i, column_name in enumerate(wake_file_columns):
             self.wake_table.update({ column_name : wake_data[:,i] })
 

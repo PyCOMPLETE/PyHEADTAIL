@@ -1,5 +1,3 @@
-
-
 import numpy as np
 cimport numpy as np
 
@@ -59,7 +57,7 @@ def gather_from(self, double[:] x, double[:] y, double[:,:] rho):
         a2 = fx * (1 - fy)
         a3 = (1 - fx) * fy
         a4 = fx * fy
-        
+
         rho[iy, ix] += a1 * ai * q
         rho[iy + 1, ix] += a2 * ai * q
         rho[iy, ix + 1] += a3 * ai * q
