@@ -16,7 +16,7 @@ from scipy.constants import e as ee
 
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
-from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer, ModeIsNotUniformBin, ModeIsUniformCharge
+from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer, ModeIsUniformCharge
 
 
 # In[3]:
@@ -68,9 +68,9 @@ def run():
         slice_set.particle_indices_by_slice
 
 
-        if line_density_testing:
-            slice_set.line_density_derivative_gauss()
-            slice_set.line_density_derivative()
+        # if line_density_testing:
+        #     slice_set.line_density_derivative_gauss()
+        #     slice_set.line_density_derivative()
 
 
     def call_slicer_attributes():

@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.constants import c, e
 
-
-
 class TransverseSpaceCharge(object):
     def __init__(self, L_interaction, slicer, pyPICsolver, flag_clean_slices = False):
 
@@ -27,9 +25,6 @@ class TransverseSpaceCharge(object):
             self.phi_last_track = []
             self.Ex_last_track = []
             self.Ey_last_track = []
-
-
-
 
         if hasattr(beam.particlenumber_per_mp, '__iter__'):
             raise ValueError('spacecharge module assumes same size for all beam MPs')

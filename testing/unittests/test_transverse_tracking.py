@@ -39,7 +39,7 @@ class TestTransverseTracking(unittest.TestCase):
         self.beta_y = self.beta_x.copy()
         self.Qx = 17.89
         self.Qy = 19.11
-        self.Dx = np.zeros(len(self.alpha_x)) # or len(self.s)?
+        self.Dx = 100*np.ones(len(self.alpha_x)) # or len(self.s)?
         self.Dy = self.Dx.copy()
 
     def tearDown(self):

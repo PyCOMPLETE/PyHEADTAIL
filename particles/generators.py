@@ -21,6 +21,7 @@ from ..trackers.rf_bucket import RFBucket
 from ..cobra_functions.pdf_integrators_2d import quad2d
 from . import Printing
 
+from functools import partial
 
 class ParticleGenerator(Printing):
     '''Factory to provide Particle instances according to certain
@@ -419,7 +420,7 @@ class CutRFBucket6D(ParticleGenerator):
     occur as a consequence of the unmatched initialisation. The
     RFBucket.is_accepted method must be created first however, by
     calling the RFBucket.make_is_accepted(margin) method with a certain
-    value for the margin (in % of RFBucket.Hmax, 5% by default).
+    value for the margin.
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
                  circumference, gamma,
@@ -493,7 +494,7 @@ class CutRFBucket2D(ParticleGenerator):
     occur as a consequence of the unmatched initialisation.
     The RFBucket.is_accepted method must be created first however, by
     calling the RFBucket.make_is_accepted(margin) method with a certain
-    value for the margin (in % of RFBucket.Hmax, 5% by default).
+    value for the margin.
 
     BY KEVIN: NEEDS TO BE CLEANED UP BY ADRIAN!
     '''
@@ -528,12 +529,14 @@ class CutRFBucket2D(ParticleGenerator):
             self.prints('Reiterate on non-accepted particles')
 
 
-class RFBucketMatcher(object):
+class RFBucketMatcher(Printing):
 
     def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None):
 
-        self.H = rfbucket
-        self.psi_object = psi(rfbucket.hamiltonian, rfbucket.Hmax)
+        self.rfbucket = rfbucket
+        hamiltonian = partial(rfbucket.hamiltonian, make_convex=True)
+        hmax = rfbucket.h_sfp(make_convex=True)
+        self.psi_object = psi(hamiltonian, hmax)
         self.psi = self.psi_object.function
 
         if sigma_z and not epsn_z:
@@ -543,76 +546,83 @@ class RFBucketMatcher(object):
             self.variable = epsn_z
             self.psi_for_variable = self.psi_for_emittance_newton_method
         else:
-            raise ValueError("Can not generate mismatched matched distribution!")
+            raise ValueError("Can not generate mismatched matched " +
+                             "distribution! (Don't provide both sigma_z " +
+                             "and epsn_z!)")
 
     def psi_for_emittance_newton_method(self, epsn_z):
 
         # Maximum emittance
-        self._set_psi_sigma(self.H.circumference)
-        epsn_max = self._compute_emittance(self.H, self.psi)
+        self._set_psi_sigma(self.rfbucket.circumference)
+        epsn_max = self._compute_emittance(self.rfbucket, self.psi)
         if epsn_z > epsn_max:
-            print '\n*** RMS emittance larger than bucket; using full bucket emittance', epsn_max, ' [eV s].'
+            self.warns('Given RMS emittance does not fit into bucket. ' +
+                       'Using (maximum) full bucket emittance ' +
+                       str(epsn_max*0.99) + 'eV s instead.')
             epsn_z = epsn_max*0.99
-        print '\n*** Maximum RMS emittance', epsn_max, 'eV s.'
+        self.prints('*** Maximum RMS emittance ' + str(epsn_max) + 'eV s.')
 
         def get_zc_for_epsn_z(ec):
             self._set_psi_epsn(ec)
-            emittance = self._compute_emittance(self.H, self.psi)
+            emittance = self._compute_emittance(self.rfbucket, self.psi)
 
-            print '... distance to target emittance: {:.2e}'.format(emittance-epsn_z)
+            self.prints('... distance to target emittance: ' +
+                        '{:.2e}'.format(emittance-epsn_z))
             return emittance-epsn_z
 
         try:
             ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4)
         except RuntimeError:
-            print '*** WARNING: failed to converge using Newton-Raphson method. Trying classic Brent method...'
+            self.warns('RFBucketMatcher -- failed to converge while ' +
+                       'using Newton-Raphson method. ' +
+                       'Instead trying classic Brent method...')
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
 
         self._set_psi_epsn(ec_bar)
-        emittance = self._compute_emittance(self.H, self.psi)
-        print '\n--> Emittance:', emittance
-        sigma = self._compute_sigma(self.H, self.psi)
-        print '--> Bunch length:', sigma
-
-        self.H.emittance, self.H.sigma = emittance, sigma
+        emittance = self._compute_emittance(self.rfbucket, self.psi)
+        self.prints('--> Emittance: ' + str(emittance))
+        sigma = self._compute_sigma(self.rfbucket, self.psi)
+        self.prints('--> Bunch length:' + str(sigma))
 
     # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
 
         # Maximum bunch length
-        self._set_psi_sigma(self.H.circumference)
-        sigma_max = self._compute_sigma(self.H, self.psi)
+        self._set_psi_sigma(self.rfbucket.circumference)
+        sigma_max = self._compute_sigma(self.rfbucket, self.psi)
         if sigma > sigma_max:
-            print '\n*** RMS bunch larger than bucket; using full bucket rms length', sigma_max, ' m.'
+            self.warns('Given RMS bunch length does not fit into bucket. ' +
+                       'Using (maximum) full bucket RMS bunch length ' +
+                       str(sigma_max*0.99) + 'm instead.')
             sigma = sigma_max*0.99
-        print '\n*** Maximum RMS bunch length', sigma_max, 'm.'
+        self.prints('*** Maximum RMS bunch length ' + str(sigma_max) + 'm.')
 
         def get_zc_for_sigma(zc):
             '''Width for bunch length'''
             self._set_psi_sigma(zc)
-            length = self._compute_sigma(self.H, self.psi)
+            length = self._compute_sigma(self.rfbucket, self.psi)
 
             if np.isnan(length): raise ValueError
 
-            print '... distance to target bunchlength:', length-sigma
+            self.prints('... distance to target bunch length: ' +
+                        '{:.4e}'.format(length-sigma))
             return length-sigma
 
         zc_bar = newton(get_zc_for_sigma, sigma)
 
         self._set_psi_sigma(zc_bar)
-        sigma = self._compute_sigma(self.H, self.psi)
-        print '--> Bunch length:', sigma
-        emittance = self._compute_emittance(self.H, self.psi)
-        print '\n--> Emittance:', emittance
-
-        self.H.emittance, self.H.sigma = emittance, sigma
+        sigma = self._compute_sigma(self.rfbucket, self.psi)
+        self.prints('--> Bunch length: ' + str(sigma))
+        emittance = self._compute_emittance(self.rfbucket, self.psi)
+        self.prints('--> Emittance: ' + str(emittance))
 
     def linedensity(self, xx):
         quad_type = fixed_quad
 
         L = []
         try:
-            L = np.array([quad_type(lambda y: self.psi(x, y), 0, self.p_limits(x))[0] for x in xx])
+            L = np.array([quad_type(lambda y: self.psi(x, y), 0,
+                                    self.p_limits(x))[0] for x in xx])
         except TypeError:
             L = quad_type(lambda y: self.psi(xx, y), 0, self.p_limits(xx))[0]
         L = np.array(L)
@@ -620,15 +630,15 @@ class RFBucketMatcher(object):
         return 2*L
 
     def generate(self, macroparticlenumber):
-        '''
-        Generate a 2d phase space of n_particles particles randomly distributed
+        '''Generate a 2d phase space of n_particles particles randomly distributed
         according to the particle distribution function psi within the region
         [xmin, xmax, ymin, ymax].
         '''
         self.psi_for_variable(self.variable)
 
-        xmin, xmax = self.H.zleft, self.H.zright
-        ymin, ymax = -self.H.p_max(self.H.zright), self.H.p_max(self.H.zright)
+        xmin, xmax = self.rfbucket.zleft, self.rfbucket.zright
+        ymin = -self.rfbucket.dp_max(self.rfbucket.zright)
+        ymax = -ymin
         lx = (xmax - xmin)
         ly = (ymax - ymin)
 
@@ -643,65 +653,53 @@ class RFBucketMatcher(object):
             v[mask_out] = ymin + ly * uniform(size=n_gen)
             s[mask_out] = uniform(size=n_gen)
             mask_out = ~(s<self.psi(u, v))
-            # print 'regenerating '+str(n_gen)+' macroparticles...'
+            # self.prints('regenerating '+str(n_gen)+' macroparticles...')
 
         return u, v, self.psi, self.linedensity
 
     def _set_psi_sigma(self, sigma):
-        self.psi_object.H0 = self.H.H0_from_sigma(sigma)
+        self.psi_object.H0 = self.rfbucket.H0_from_sigma(sigma)
 
     def _set_psi_epsn(self, epsn):
-        self.psi_object.H0 = self.H.H0_from_epsn(epsn)
+        self.psi_object.H0 = self.rfbucket.H0_from_epsn(epsn)
 
-    def _compute_sigma(self, H, psi):
+    def _compute_sigma(self, rfbucket, psi):
 
         f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, H.separatrix, H.zleft, H.zright)
+        Q = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         var_x = V
 
         return np.sqrt(var_x)
 
-    def _compute_emittance(self, H, psi):
+    def _compute_emittance(self, rfbucket, psi):
 
         f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, H.separatrix, H.zleft, H.zright)
+        Q = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)
 
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         mean_x = M
         var_x  = V
 
         f = lambda x, y: psi(x, y)*y
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         f = lambda x, y: psi(x, y)*(y-M)**2
-        V = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         mean_y = M
         var_y  = V
 
         f = lambda x, y: psi(x, y)*(x-mean_x)*(y-mean_y)
-        M = quad2d(f, H.separatrix, H.zleft, H.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
         mean_xy = M
 
-        return np.sqrt(var_x*var_y - mean_xy**2) * 4*np.pi*H.p0_reference/e
-
-    # # @profile
-    # def _get_edges_for_cut(self, h_cut):
-    #     zz = np.linspace(self.H.zmin, self.H.zmax, 128)
-    #     ll = self.linedensity(zz)
-    #     lmax = np.amax(ll)
-    #     # plt.plot(zz, linedensity(zz)/lmax, 'r', lw=2)
-    #     # plt.plot(zz, psi(zz, 0))
-    #     # plt.axhline(h_cut)
-    #     # plt.axvline(zcut_bar)
-    #     # plt.show()
-    #     return self.H._get_zero_crossings(
-    #         lambda x: self.linedensity(x) - h_cut*lmax)
+        return (np.sqrt(var_x*var_y - mean_xy**2) *
+                4*np.pi*rfbucket.p0/rfbucket.charge)
 
 class StationaryExponential(object):
 
