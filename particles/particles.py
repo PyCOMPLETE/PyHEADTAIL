@@ -62,6 +62,7 @@ class Particles(Printing):
 
         self.update(coords_n_momenta_dict)
 
+
     @property
     def intensity(self):
         return self.particlenumber_per_mp * self.macroparticlenumber
@@ -188,22 +189,22 @@ class Particles(Printing):
     # Statistics methods
 
     def mean_x(self):
-        return cp.mean(self.x)
+        return np.mean(self.x)
 
     def mean_xp(self):
-        return cp.mean(self.xp)
+        return np.mean(self.xp)
 
     def mean_y(self):
-        return cp.mean(self.y)
+        return np.mean(self.y)
 
     def mean_yp(self):
-        return cp.mean(self.yp)
+        return np.mean(self.yp)
 
     def mean_z(self):
-        return cp.mean(self.z)
+        return np.mean(self.z)
 
     def mean_dp(self):
-        return cp.mean(self.dp)
+        return np.mean(self.dp)
 
     def sigma_x(self):
         return cp.std(self.x)
@@ -217,11 +218,49 @@ class Particles(Printing):
     def sigma_dp(self):
         return cp.std(self.dp)
 
+    def effective_normalized_emittance_x(self):
+        return cp.emittance(self.x, self.xp, None) * self.betagamma
+
+    def effective_normalized_emittance_y(self):
+        return cp.emittance(self.y, self.yp, None) * self.betagamma
+
+    def effective_normalized_emittance_z(self):
+        return(4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
+
     def epsn_x(self):
-        return cp.emittance(self.x, self.xp) * self.betagamma
+        return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
+               * self.betagamma)
 
     def epsn_y(self):
-        return cp.emittance(self.y, self.yp) * self.betagamma
+        return (cp.emittance(self.y, self.yp, getattr(self, 'dp', None))
+               * self.betagamma)
 
     def epsn_z(self):
-        return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
+        # always use the effective emittance
+        return self.effective_normalized_emittance_z()
+
+    def dispersion_x(self):
+        return cp.dispersion(self.x, self.dp)
+
+    def dispersion_y(self):
+        return cp.dispersion(self.y, self.dp)
+
+    def alpha_Twiss_x(self):
+        return cp.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
+
+    def alpha_Twiss_y(self):
+        return cp.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
+
+    def beta_Twiss_x(self):
+        return cp.get_beta(self.x, self.xp, getattr(self, 'dp', None))
+
+    def beta_Twiss_y(self):
+        return cp.get_beta(self.y, self.yp, getattr(self, 'dp', None))
+
+    def gamma_Twiss_x(self):
+        return cp.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
+
+    def gamma_Twiss_y(self):
+        return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
+
+

@@ -122,6 +122,63 @@ class TestParticles(unittest.TestCase):
         self.assertTrue(len(self.bunch._slice_sets) == 0,
                         'clean_slices() does not delete the slice set')
 
+    def test_means(self):
+        ''' Tests the mean() method of the Particle class '''
+        self.assertAlmostEquals(self.bunch.mean_xp(), np.mean(self.bunch.xp),
+                                places=5, msg='np.mean() and bunch.mean_xp() ' +
+                                'yield different results')
+
+    def test_sigmaz(self):
+        """ Test the sigma_z() method of the Particle class
+        Only check the first 3 digits because the sample is small (2048)
+        """
+        self.assertAlmostEquals(self.bunch.sigma_z(), np.std(self.bunch.z),
+                                places=3, msg='np.std() and bunch.sigma_z() ' +
+                                'yield different results')
+
+    def test_alpha_trans_only(self):
+        """ Test whether the computation of alpha, beta, gamma, eps works when
+        the beam has no longitudinal phase space
+        """
+        beam_transverse = self.create_transverse_only_bunch()
+        beam_transverse.alpha_Twiss_x()
+        beam_transverse.alpha_Twiss_y()
+        beam_transverse.beta_Twiss_x()
+        beam_transverse.beta_Twiss_y()
+        beam_transverse.gamma_Twiss_x()
+        beam_transverse.gamma_Twiss_y()
+        beam_transverse.epsn_x()
+        beam_transverse.epsn_y()
+
+    def test_check_error_thrown_dispersion_trans_only(self):
+        """ Test whether an AttributeError gets raised when trying to
+        compute the dispersion of a beam with no longitudinal phase space
+        """
+        beam_transverse = self.create_transverse_only_bunch()
+        with self.assertRaises(AttributeError):
+            beam_transverse.dispersion_y()
+        with self.assertRaises(AttributeError):
+            beam_transverse.dispersion_x()
+
+    def test_effective_emittance_vs_emittance(self):
+        """ Test whether the effective emittance is the same as the emittance
+        for a transverse-only beam
+        """
+        beam_transverse = self.create_transverse_only_bunch()
+        self.assertAlmostEquals(beam_transverse.epsn_x(),
+                                beam_transverse.effective_normalized_emittance_x(),
+                                places = 5,
+                                msg='beam.effective_normalized_emittance_x() ' +
+                                'yields a different result than beam.epsn_x() '+
+                                'for a transverse only beam.')
+
+        self.assertAlmostEquals(beam_transverse.epsn_y(),
+                                beam_transverse.effective_normalized_emittance_y(),
+                                places = 5,
+                                msg='beam.effective_normalized_emittance_y() ' +
+                                'yields a different result than beam.epsn_y() '+
+                                'for a transverse only beam.')
+
     def create_bunch(self):
         x = np.random.uniform(-1, 1, self.macroparticlenumber)
         y = np.copy(x)
@@ -137,6 +194,20 @@ class TestParticles(unittest.TestCase):
             self.macroparticlenumber, self.particlenumber_per_mp, e, m_p,
             self.circumference, self.gamma, coords_n_momenta_dict
         )
+    def create_transverse_only_bunch(self):
+        x = np.random.uniform(-1, 1, self.macroparticlenumber)
+        y = np.copy(x)
+        xp = np.random.uniform(-0.5, 0.5, self.macroparticlenumber)
+        yp = np.copy(xp)
+        coords_n_momenta_dict = {
+            'x': x, 'y': y,
+            'xp': xp, 'yp': yp
+        }
+        return Particles(
+            self.macroparticlenumber, self.particlenumber_per_mp, e, m_p,
+            self.circumference, self.gamma, coords_n_momenta_dict
+        )
+
 
     def create_slicer(self):
         n_slices = 2
