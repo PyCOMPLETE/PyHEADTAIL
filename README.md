@@ -1,4 +1,4 @@
 PyHEADTAIL
 ==========
 
-CERN PyHEADTAIL simulation code for simulation of multi-particle beam dynamics and collective effects
+CERN PyHEADTAIL numerical n-body simulation code for simulating macro-particle beam dynamics with collective effects

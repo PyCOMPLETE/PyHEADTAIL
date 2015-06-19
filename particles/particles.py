@@ -6,18 +6,18 @@ Created on 17.10.2014
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-from scipy.constants import c, e
+from scipy.constants import c, e, m_p
 
 from ..cobra_functions import stats as cp
+from . import Printing
 
-class Particles(object):
+class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
     Designed to describe beams, electron clouds, ... '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma_reference,
-                 coords_n_momenta_dict={}):
+                 mass, circumference, gamma, coords_n_momenta_dict={}):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
@@ -27,15 +27,19 @@ class Particles(object):
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
-        if not np.allclose(self.charge, e, atol=1e-24):
-            raise NotImplementedError('PyHEADTAIL currently features many "e" '
-                                      + 'all over the place, these need to be '
-                                      + 'consistently replaced by '
-                                      + '"self.charge"!')
+        if not np.allclose(self.charge, e): #, atol=1e-24):
+            self.warns('PyHEADTAIL currently features many "e" ' +
+                       'in the various modules, these need to be ' +
+                       'consistently replaced by "beam.charge"!')
+        self.charge_per_mp = particlenumber_per_mp * charge
         self.mass = mass
+        if not np.allclose(self.charge, m_p): #, atol=1e-24):
+            self.warns('PyHEADTAIL currently features many "m_p" ' +
+                       'in the various modules, these need to be ' +
+                       'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
-        self.gamma = gamma_reference
+        self.gamma = gamma
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded
@@ -57,6 +61,7 @@ class Particles(object):
         self.id = np.arange(1, self.macroparticlenumber+1, dtype=np.int32)
 
         self.update(coords_n_momenta_dict)
+
 
     @property
     def intensity(self):
@@ -116,14 +121,35 @@ class Particles(object):
         '''
         return {coord: getattr(self, coord) for coord in self.coords_n_momenta}
 
-    def get_slices(self, slicer):
+    def get_slices(self, slicer, *args, **kwargs):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
         state has changed), a new SliceSet is requested from the Slicer
         via Slicer.slice(self) and stored for future reference.
+
+        Arguments:
+        - statistics=True attaches mean values, standard deviations
+        and emittances to the SliceSet for all planes.
+        - statistics=['mean_x', 'sigma_dp', 'epsn_z'] only adds the
+        listed statistics values (can be used to save time).
+        Valid list entries are all statistics functions of Particles.
+
+        Note: Requesting statistics after calling get_slices w/o
+        the statistics keyword results in creating a new SliceSet!
         '''
-        if slicer not in self._slice_sets:
-            self._slice_sets[slicer] = slicer.slice(self)
+        if slicer not in self._slice_sets or kwargs.get('statistics'):
+            self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
+        # # try to save time by allowing longitudinal statistics to
+        # # simply be added to the existing SliceSet:
+        # # (transverse statistics may change even if longitudinal stays
+        # # the same between two SliceSet requesting elements)
+        # elif 'statistics' in kwargs:
+        #     if (any([ '_x' in stats for stats in kwargs['statistics']]) or
+        #             any([ '_y' in stats for stats in kwargs['statistics']])):
+        #         self._slice_sets[slicer] = slicer.slice(self, *args, **kwargs)
+        #     else:
+        #         slicer.add_statistics(self._slice_sets[slicer], self,
+        #                               kwargs['statistics'])
         return self._slice_sets[slicer]
 
     def clean_slices(self):
@@ -163,22 +189,22 @@ class Particles(object):
     # Statistics methods
 
     def mean_x(self):
-        return cp.mean(self.x)
+        return np.mean(self.x)
 
     def mean_xp(self):
-        return cp.mean(self.xp)
+        return np.mean(self.xp)
 
     def mean_y(self):
-        return cp.mean(self.y)
+        return np.mean(self.y)
 
     def mean_yp(self):
-        return cp.mean(self.yp)
+        return np.mean(self.yp)
 
     def mean_z(self):
-        return cp.mean(self.z)
+        return np.mean(self.z)
 
     def mean_dp(self):
-        return cp.mean(self.dp)
+        return np.mean(self.dp)
 
     def sigma_x(self):
         return cp.std(self.x)
@@ -192,11 +218,49 @@ class Particles(object):
     def sigma_dp(self):
         return cp.std(self.dp)
 
+    def effective_normalized_emittance_x(self):
+        return cp.emittance(self.x, self.xp, None) * self.betagamma
+
+    def effective_normalized_emittance_y(self):
+        return cp.emittance(self.y, self.yp, None) * self.betagamma
+
+    def effective_normalized_emittance_z(self):
+        return(4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
+
     def epsn_x(self):
-        return cp.emittance(self.x, self.xp) * self.betagamma
+        return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
+               * self.betagamma)
 
     def epsn_y(self):
-        return cp.emittance(self.y, self.yp) * self.betagamma
+        return (cp.emittance(self.y, self.yp, getattr(self, 'dp', None))
+               * self.betagamma)
 
     def epsn_z(self):
-        return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
+        # always use the effective emittance
+        return self.effective_normalized_emittance_z()
+
+    def dispersion_x(self):
+        return cp.dispersion(self.x, self.dp)
+
+    def dispersion_y(self):
+        return cp.dispersion(self.y, self.dp)
+
+    def alpha_Twiss_x(self):
+        return cp.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
+
+    def alpha_Twiss_y(self):
+        return cp.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
+
+    def beta_Twiss_x(self):
+        return cp.get_beta(self.x, self.xp, getattr(self, 'dp', None))
+
+    def beta_Twiss_y(self):
+        return cp.get_beta(self.y, self.yp, getattr(self, 'dp', None))
+
+    def gamma_Twiss_x(self):
+        return cp.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
+
+    def gamma_Twiss_y(self):
+        return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
+
+

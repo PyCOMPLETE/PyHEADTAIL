@@ -1,5 +1,5 @@
 """
-@author Kevin Li, Michael Schenk
+@author Kevin Li, Michael Schenk, Stefan Hegglin
 @date 07. January 2014
 @brief Description of the transport of transverse phase spaces using
        Cython functions (prepared for OpenMP).
@@ -12,6 +12,8 @@ from cython.parallel cimport prange
 import numpy as np
 cimport numpy as np
 from libc.math cimport cos, sin
+diff = np.diff
+ndim = np.ndim
 
 
 class TransverseSegmentMap(object):
@@ -26,6 +28,13 @@ class TransverseSegmentMap(object):
     Q_{x,y} and possibly by an incoherent tune shift introduced e.g. by
     amplitude detuning or chromaticity effects (see trackers.detuners
     module).
+
+    Dispersion is added in the horizontal and vertical planes. Care
+    needs to be taken, that dispersive effects were taken into account
+    upon beam creation. Then, before each linear tracking step, the
+    dispersion is removed, linear tracking is performed via the linear
+    periodic map and dispersion is added back so that any subsequent
+    collective effect has dispersion taken into account.
 
     For this implementation of the class, which uses Cython functions,
     two different cases must be considered.
@@ -43,10 +52,6 @@ class TransverseSegmentMap(object):
         calls the corresponding Cython function.
 
     TODO
-    Implement dispersion effects, i.e. the change of a particle's
-    transverse phase space coordinates on its relative momentum offset.
-    For the moment, a NotImplementedError is raised if dispersion
-    coefficients are non-zero.
     Improve the interface between the TransverseSegmentMap class and the
     Cython tracking functions. Think of a way to make the whole
     TransverseSegmentMap class a Cython class.
@@ -79,19 +84,25 @@ class TransverseSegmentMap(object):
         individually. The self.track(self, beam) method is bound to
         self.track_with_detuners(self, beam) which calls the
         corresponding Cython function. """
+        self.D_x_s0 = D_x_s0
+        self.D_x_s1 = D_x_s1
+        self.D_y_s0 = D_y_s0
+        self.D_y_s1 = D_y_s1
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
-
-        if not np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
-                           [0., 0., 0., 0.], atol=1e-15):
-            raise NotImplementedError('Non-zero values have been \n' +
-                'specified for the dispersion coefficients D_{x,y}.\n' +
-                'But, the effects of dispersion are not yet implemented. \n')
+        
+        # HACK: flag to check for dispersion
+        if np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
+                       np.zeros(4), atol=1e-3):
+            self.has_dispersion = False
+        else:
+            self.has_dispersion = True
 
         self._build_segment_map(alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                                 alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
 
         self.segment_detuners = kwargs.pop('segment_detuners', [])
+
         if self.segment_detuners:
             self.track = self.track_with_detuners
         else:
@@ -181,8 +192,24 @@ class TransverseSegmentMap(object):
         dphi_y *= 2. * np.pi
 
         # Call Cython method to do the tracking.
-        cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
+
+        # HACK continue...
+        if self.has_dispersion:
+
+            beam.x += -self.D_x_s0 * beam.dp
+            beam.y += -self.D_y_s0 * beam.dp
+
+            cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                               dphi_x, dphi_y, self.I, self.J)
+
+            beam.x += self.D_x_s1 * beam.dp
+            beam.y += self.D_y_s1 * beam.dp
+
+        else :
+            cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
+                                  dphi_x, dphi_y, self.I, self.J)
+
+ 
 
     def track_without_detuners(self, beam):
         """ This method is bound to the self.track(self, beam) method
@@ -190,8 +217,21 @@ class TransverseSegmentMap(object):
         the transport matrix self.M is a constant and can be directly
         used. """
 
-        # Call Cython method to do the tracking.
-        cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
+        # HACK continue...
+
+        if self.has_dispersion:
+
+            beam.x += -self.D_x_s0 * beam.dp
+            beam.y += -self.D_y_s0 * beam.dp
+
+            cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
+                                 self.M)
+
+            beam.x += self.D_x_s1 * beam.dp
+            beam.y += self.D_y_s1 * beam.dp
+
+        else :
+            cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                  self.M)
 
 
@@ -301,7 +341,7 @@ class TransverseMap(object):
     TransverseMap(...)[i] (with i the index of the accelerator
     segment). """
     def __init__(self, C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
-                 Q_x, Q_y, *detuner_collections):
+                 accQ_x, accQ_y, *detuner_collections):
         """ Create a one-turn map that manages the transverse tracking
         for each of the accelerator segments defined by s.
           - s is the array of positions defining the boundaries of the
@@ -312,13 +352,17 @@ class TransverseMap(object):
             beta. They are arrays of size len(s) as these parameters
             must be defined at every segment boundary of the
             accelerator.
+          - accQ_{x,y} are arrays with the accumulating phase advance
+            in units of 2 \pi (i.e. mu_{x,y} / 2 \pi) at each segment
+            boundary. The respective last entry gives the betatron tune
+            Q_{x,y} .
+            Note: instead of arrays of length len(s) it is possible
+            to provide solely the scalar one-turn betatron tune Q_{x,y}
+            directly. Then the phase advances are smoothly distributed
+            over the segments (proportional to the respective s length).
           - D_{x,y} are the dispersion coefficients. They are arrays of
             size len(s) as these parameters must be defined at every
             segment boundary of the accelerator.
-            WARNING: Dispersion effects are not yet implemented.
-          - Q_{x,y} are scalar values and define the betatron tunes
-            (i.e. the number of betatron oscillations in one complete
-            turn).
           - detuner_collections is a list of DetunerCollection objects
             that are present in the accelerator. Each DetunerCollection
             knows how to generate and store its SegmentDetuner objects
@@ -335,13 +379,18 @@ class TransverseMap(object):
         self.alpha_y = alpha_y
         self.beta_y = beta_y
         self.D_y = D_y
-        self.Q_x = Q_x
-        self.Q_y = Q_y
+        self.accQ_x = accQ_x
+        self.accQ_y = accQ_y
         self.detuner_collections = detuner_collections
 
         # List to store TransverseSegmentMap objects.
         self.segment_maps = []
         self._generate_segment_maps()
+
+        if self.D_x.any() or self.D_y.any():
+            print '\n*** PyHEADTAIL WARNING: Non-zero dispersion; ' +\
+                  'ensure the beam has been "blown-up" ' +\
+                  'accordingly upon creation!'
 
     def _generate_segment_maps(self):
         """ This method is called at instantiation of a TransverseMap
@@ -359,9 +408,16 @@ class TransverseMap(object):
         the accelerator circumference s[-1]). """
         segment_length = np.diff(self.s) / self.s[-1]
 
-        # Betatron motion normalized to this particular segment.
-        dQ_x = self.Q_x * segment_length
-        dQ_y = self.Q_y * segment_length
+        if ndim(self.accQ_x) == 0:
+            # smooth approximation for phase advance (proportional to s)
+            dQ_x = self.accQ_x * segment_length
+        else:
+            dQ_x = diff(self.accQ_x)
+        if ndim(self.accQ_y) == 0:
+            # smooth approximation for phase advance (proportional to s)
+            dQ_y = self.accQ_y * segment_length
+        else:
+            dQ_y = diff(self.accQ_y)
 
         n_segments = len(self.s) - 1
         for seg in range(n_segments):
@@ -371,6 +427,7 @@ class TransverseMap(object):
             # Instantiate SegmentDetuner objects.
             for detuner in self.detuner_collections:
                 detuner.generate_segment_detuner(segment_length[s0],
+                    alpha_x=self.alpha_x[s0], alpha_y=self.alpha_y[s0],
                     beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
 
             # Instantiate TransverseSegmentMap objects.
