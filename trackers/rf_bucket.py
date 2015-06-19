@@ -454,7 +454,7 @@ class RFBucket(Printing):
         return dp_at
 
     def separatrix(self, z):
-        '''Return the dp value corresponding to the separatrix
+        '''Return the positive dp value corresponding to the separatrix
         Hamiltonian contour line at the given z.
         '''
         dp_separatrix_at = self.equihamiltonian(self.z_ufp_separatrix)

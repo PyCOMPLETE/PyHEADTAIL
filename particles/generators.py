@@ -214,7 +214,7 @@ class Gaussian2DTwiss(Gaussian):
             raise NotImplementedError("alpha != 0 is not yet taken into" +
                                       " account")
         coordssig = self.coords_n_momenta_with_sigmas(coords, epsn_geo, beta)
-        super(Gaussian2Dtwiss, self).__init__(
+        super(Gaussian2DTwiss, self).__init__(
             macroparticlenumber, intensity, charge, mass, circumference,
             gamma, coordssig, *args, **kwargs)
 
