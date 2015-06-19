@@ -21,6 +21,8 @@ from scipy.constants import c, e, m_p
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 from PyHEADTAIL.general.printers import AccumulatorPrinter
+from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
+from PyHEADTAIL.particles.generators import Gaussian6DTwiss
 
 
 def check_elements_equal(np_array1d):
@@ -40,7 +42,8 @@ class TestSlicing(unittest.TestCase):
         self.gamma = 20.1
 
         #simulation parameters
-        self.macroparticlenumber = 100 #must be multiple of nslices
+        self.macroparticlenumber = 100
+         #must be multiple of nslices
         self.particlenumber_per_mp = self.intensity/self.macroparticlenumber
 
         #create a bunch
@@ -122,6 +125,29 @@ class TestSlicing(unittest.TestCase):
         self.assertEqual(self.macroparticlenumber, n_particles,
                          'the SliceSet lost/added some particles')
 
+    def test_add_statistics(self):
+        """ Tests whether any error gets thrown when calling the statistics
+        functions of the slicer. Does not do any specific tests
+        """
+        self.basic_slicer.add_statistics(self.basic_slice_set, self.bunch, True)
+        self.basic_slice_set.mean_x
+        self.basic_slice_set.eff_epsn_y
+
+    def test_emittance_no_dispersion(self):
+        """ Tests whether the effective emittance and emittance are the same
+        for a beam with no dispersion effects
+        """
+        bunch = self.create_bunch_with_params(1, 42, 0., 20)
+        slice_set = self.basic_slicer.slice(bunch)
+        self.basic_slicer.add_statistics(slice_set, bunch, True)
+        for n in xrange(self.nslices):
+            self.assertAlmostEqual(slice_set.epsn_x[n],
+                                   slice_set.eff_epsn_x[n],
+                                   places=4,
+                                   msg='The effective emittance is not the ' +
+                                   'same as the emittance for no dispersion')
+
+
     # exclude this test for now, fails at the moment but not clear whether
     # this should be changed
     #def test_sliceset_dimensions(self):
@@ -150,6 +176,43 @@ class TestSlicing(unittest.TestCase):
             self.circumference, self.gamma, coords_n_momenta_dict
         )
 
+    def create_bunch_with_params(self,alpha_x, beta_x, disp_x, gamma):
+        np.random.seed(0)
+        beta_y = beta_x
+        alpha_y = alpha_x
+        disp_y = disp_x
+        alpha0= [0.00308]
+        C = 6911.
+        Qs = 0.017
+        epsn_x = 3.75e-6
+        epsn_y = 3.75e-6
+        linear_map = LinearMap(alpha0, Qs, C)
+       # then transform...
+        intensity = 1.05e11
+        sigma_z = 0.23
+        gamma_t = 1. / np.sqrt(linear_map.alpha_array[0])
+        p0 = np.sqrt(gamma**2 - 1) * m_p * c
 
+        beta_z = np.abs((linear_map.eta(dp=0, gamma=gamma) * linear_map.circumference / 
+                  (2 * np.pi * linear_map.Qs)))
+
+        epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e)
+        #print ('epsn_z: ' + str(epsn_z))
+        bunch = Gaussian6DTwiss(
+            macroparticlenumber=10000, intensity=intensity, charge=e,
+            gamma=gamma, mass=m_p, circumference=linear_map.circumference,
+            alpha_x=0., beta_x=1., epsn_x=epsn_x,
+            alpha_y=0., beta_y=1., epsn_y=epsn_y,
+            beta_z=beta_z, epsn_z=epsn_z).generate()
+        # Scale to correct beta and alpha
+        xx = bunch.x.copy()
+        yy = bunch.y.copy()
+        bunch.x *= np.sqrt(beta_x)
+        bunch.xp = -alpha_x/np.sqrt(beta_x) * xx + 1./np.sqrt(beta_x) * bunch.xp
+        bunch.y *= np.sqrt(beta_y)
+        bunch.yp = -alpha_y/np.sqrt(beta_y) * yy + 1./np.sqrt(beta_y) * bunch.yp
+        bunch.x += disp_x * bunch.dp
+        bunch.y += disp_y * bunch.dp
+        return bunch
 if __name__ == '__main__':
     unittest.main()

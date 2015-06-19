@@ -14,6 +14,12 @@ class TransverseSpaceCharge(object):
 
         self.flag_clean_slices = flag_clean_slices
 
+    def get_beam_x(self, beam):
+        return beam.x
+
+    def get_beam_y(self, beam):
+        return beam.y
+
 #	@profile
     def track(self, beam):
 
@@ -44,9 +50,9 @@ class TransverseSpaceCharge(object):
             dt = dz / (beam.beta * c)
 
             # beam field
-            x_mp = beam.x[ix]
-            y_mp = beam.y[ix]
-            n_mp = beam.x[ix]*0.+beam.particlenumber_per_mp/dz#they have to become cylinders
+            x_mp = self.get_beam_x(beam)[ix]
+            y_mp = self.get_beam_y(beam)[ix]
+            n_mp = x_mp*0.+beam.particlenumber_per_mp/dz#they have to become cylinders
             N_mp = slices.n_macroparticles_per_slice[i]
 
             #compute beam field (it assumes electrons!)
