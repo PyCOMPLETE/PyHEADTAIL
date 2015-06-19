@@ -64,17 +64,18 @@ class WakeKick(Printing):
         return wake_factor
 
     def _convolution_dot_product(self, target_times, source_times,
-                                 source_moments):
+                                 source_moments, source_beta):
         """ Implementation of the convolution of wake and source_moments
         (beam profile) using the numpy dot product. To be used with the
         'uniform_charge' slicer mode. """
         dt_to_target_slice = (
             [target_times] - np.transpose([source_times]))
-        wake = self.wake_function(dt_to_target_slice)
+        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
 
         return np.dot(source_moments, wake)
 
-    def _convolution_numpy(self, target_times, source_times, source_moments):
+    def _convolution_numpy(self, target_times, source_times,
+                           source_moments, source_beta):
         """ Implementation of the convolution of wake and source_moments
         (longitudinal beam profile) using the numpy built-in
         numpy.convolve method. Recommended use with the 'uniform_bin'
@@ -84,12 +85,12 @@ class WakeKick(Printing):
         dt_to_target_slice = np.concatenate(
             (target_times - source_times[-1],
             (target_times - source_times[0])[1:]))
-        wake = self.wake_function(dt_to_target_slice)
+        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
 
         return np.convolve(source_moments, wake, 'valid')
 
-    def _accumulate_source_signal(self, bunch, times_list, moments_list,
-                                  ages_list):
+    def _accumulate_source_signal(self, bunch, times_list, ages_list,
+                                  moments_list, betas_list):
         """ Accumulate (multiturn-)wake signals left by source slices.
         Takes a list of slice set attributes and adds up all
         convolutions weighted by the respective moments. Also updates
@@ -104,9 +105,10 @@ class WakeKick(Printing):
 
         for i in range(n_turns):
             source_times = times_list[i] + ages_list[i]
+            source_beta = betas_list[i]
             source_moments = moments_list[i]
-            accumulated_signal += self._convolution(target_times, source_times,
-                                                    source_moments)
+            accumulated_signal += self._convolution(
+                target_times, source_times, source_moments, source_beta)
 
         return self._wake_factor(bunch) * accumulated_signal
 
@@ -121,10 +123,12 @@ class ConstantWakeKickX(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
+
         constant_kick = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -139,10 +143,11 @@ class ConstantWakeKickY(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         constant_kick = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -157,10 +162,11 @@ class ConstantWakeKickZ(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         constant_kick = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -177,10 +183,11 @@ class DipoleWakeKickX(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_x
                         for s in slice_set_list]
         dipole_kick_x = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -195,10 +202,11 @@ class DipoleWakeKickXY(WakeKick):
         the slicing region, i.e particles_within_cuts (defined by the
         slice_set) experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_y
                         for s in slice_set_list]
         dipole_kick_xy = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -213,10 +221,11 @@ class DipoleWakeKickY(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_y
                         for s in slice_set_list]
         dipole_kick_y = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -231,10 +240,11 @@ class DipoleWakeKickYX(WakeKick):
         the slicing region, i.e particles_within_cuts (defined by the
         slice_set) experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_x
                         for s in slice_set_list]
         dipole_kick_yx = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -251,10 +261,11 @@ class QuadrupoleWakeKickX(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         quadrupole_kick_x = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -269,10 +280,11 @@ class QuadrupoleWakeKickXY(WakeKick):
         within the slicing region, i.e particles_within_cuts (defined by
         the slice_set) experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         quadrupole_kick_xy = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -287,10 +299,11 @@ class QuadrupoleWakeKickY(WakeKick):
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         quadrupole_kick_y = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
@@ -305,10 +318,11 @@ class QuadrupoleWakeKickYX(WakeKick):
         within the slicing region, i.e particles_within_cuts (defined by
         the slice_set) experience the kick. """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
                         for s in slice_set_list]
         quadrupole_kick_yx = self._accumulate_source_signal(
-            bunch, times_list, moments_list, slice_set_age_list)
+            bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
         p_idx = slice_set_list[0].particles_within_cuts
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)

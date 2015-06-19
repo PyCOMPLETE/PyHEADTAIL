@@ -280,14 +280,14 @@ class WakeTable(WakeSource):
         wake_strength = -convert_to_V_per_Cm * self.wake_table[wake_component]
 
         if (time[0] == 0) and (wake_strength[0] == 0):
-            def wake(dt):
+            def wake(dt, *args, **kwargs):
                 dt = dt.clip(max=0)
                 return interp1d(time, wake_strength)(-dt)
             self.warns(wake_component +
                   ' Assuming ultrarelativistic wake.')
 
         elif (time[0] < 0):
-            def wake(dt):
+            def wake(dt, *args, **kwargs):
                 return interp1d(time, wake_strength)(-dt)
             self.warns(wake_component +  ' Found low beta wake.')
 
@@ -315,7 +315,7 @@ class WakeTable(WakeSource):
         time = convert_to_s * self.wake_table['time']
         wake_strength = -convert_to_V_per_C * self.wake_table['longitudinal']
 
-        def wake(dt):
+        def wake(dt, *args, **kwargs):
             wake_interpolated = interp1d(time, wake_strength)(-dt)
             if time[0] == 0:
                 # Beam loading theorem: Half value of wake strength at
@@ -406,7 +406,7 @@ class Resonator(WakeSource):
         alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
-        def wake(dt):
+        def wake(dt, *args, **kwargs):
             dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
@@ -428,7 +428,7 @@ class Resonator(WakeSource):
         alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
-        def wake(dt):
+        def wake(dt, *args, **kwargs):
             dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (-(np.sign(dt) - 1) * self.R_shunt * alpha *
@@ -542,9 +542,9 @@ class ResistiveWall(WakeSource):
         lambda_s = 1. / (Z0 * self.conductivity)
         mu_r = 1
 
-        def wake(dt):
+        def wake(dt, *args, **kwargs):
             y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
-                 beta * c * Z0 * self.resistive_wall_length / np.pi /
+                 kwargs['beta'] * c * Z0 * self.resistive_wall_length / np.pi /
                  self.pipe_radius**3 * np.sqrt(-lambda_s * mu_r / np.pi /
                  dt.clip(max=-abs(self.dt_min))))
             return y
