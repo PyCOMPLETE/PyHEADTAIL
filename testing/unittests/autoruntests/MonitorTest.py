@@ -104,12 +104,12 @@ def run():
         epsn_y = 3.75e-6 # [m rad]
         epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e) # WITH OR WITHOUT 4 PIjQuery202047649151738733053_1414145430832?
 
-        bunch = generators.Gaussian6DTwiss(
+        bunch = generators.generate_Gaussian6DTwiss(
             macroparticlenumber=n_macroparticles, intensity=intensity, charge=e,
             gamma=gamma, mass=m_p, circumference=C,
             alpha_x=alpha_x, beta_x=beta_x, epsn_x=epsn_x,
             alpha_y=alpha_y, beta_y=beta_y, epsn_y=epsn_y,
-            beta_z=beta_z, epsn_z=epsn_z).generate()
+            beta_z=beta_z, epsn_z=epsn_z)
         return bunch
 
 

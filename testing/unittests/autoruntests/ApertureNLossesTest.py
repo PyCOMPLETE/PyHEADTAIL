@@ -8,7 +8,7 @@ from scipy.constants import m_p, c, e
 
 
 from PyHEADTAIL.particles.particles import Particles
-from PyHEADTAIL.particles.generators import Gaussian6DTwiss
+from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.trackers.simple_long_tracking import RFSystems
 import PyHEADTAIL.aperture.aperture as aperture
 
@@ -72,12 +72,11 @@ def run():
     # In[8]:
 
     def generate_bunch(n_particles):
-        bunch = Gaussian6DTwiss(
+        bunch = generate_Gaussian6DTwiss(
             n_particles, intensity, e, m_p, circumference, gamma,
-            inj_alpha_x, inj_beta_x, epsn_x,
-            inj_alpha_y, inj_beta_y, epsn_y,
-            beta_z, epsn_z
-            ).generate()
+            inj_alpha_x, inj_alpha_y, inj_beta_x, inj_beta_y, beta_z,
+            epsn_x, epsn_y, epsn_z
+            )
         return bunch
 
 
