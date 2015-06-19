@@ -18,7 +18,8 @@ import platform
 if platform.system() is 'Darwin':
     print ("Info: since you are running Mac OS, you "
            "may have to install with the following line:\n\n"
-           "$ CC=gcc-4.9 ./install")
+           "$ CC=gcc-4.9 ./install\n"
+           "(or any equivalent version of gcc)")
     raw_input('Hit any key to continue...')
 
 VERSIONFILE="_version.py"
