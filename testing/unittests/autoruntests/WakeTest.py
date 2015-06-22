@@ -354,7 +354,7 @@ def run():
 
     # Definition of WakeField as a composition of different sources.
     resis_circ = CircularResistiveWall(pipe_radius=5e-2, resistive_wall_length=C,
-                                        conductivity=1e6, dz_min=1e-3)
+                                        conductivity=1e6, dt_min=1e-3)
     wake_field = WakeField(uniform_bin_slicer, resis_circ)
 
 
@@ -376,7 +376,7 @@ def run():
 
     # Definition of WakeField as a composition of different sources.
     resis_para = ParallelPlatesResistiveWall(pipe_radius=5e-2, resistive_wall_length=C,
-                                        conductivity=1e6, dz_min=1e-3)
+                                        conductivity=1e6, dt_min=1e-3)
     wake_field = WakeField(uniform_bin_slicer, resis_para)
 
 
@@ -398,7 +398,7 @@ def run():
 
     # Definition of WakeField as a composition of different sources.
     resis_circ = CircularResistiveWall(pipe_radius=5e-2, resistive_wall_length=C,
-                                        conductivity=1e6, dz_min=1e-3)
+                                        conductivity=1e6, dt_min=1e-3)
     reson_para = ParallelPlatesResonator(R_shunt=1e6, frequency=1e8, Q=1)
     wake_file_columns = ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y',
                          'dipole_xy', 'dipole_yx']
