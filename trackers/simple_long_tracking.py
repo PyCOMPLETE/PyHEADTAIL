@@ -281,6 +281,7 @@ class RFSystems(LongitudinalOneTurnMap):
                  phi_offset_list, alpha_array, gamma_reference,
                  p_increment=0, phase_lock=True,
                  shrink_transverse=True, shrink_longitudinal=False,
+                 D_x=0, D_y=0,
                  *args, **kwargs):
         """
         The first entry in harmonic_list, voltage_list and
@@ -326,6 +327,13 @@ class RFSystems(LongitudinalOneTurnMap):
         In this case take care about all Kick.p_increment attributes --
         highly non-trivial, as all other p_increment functionality
         in RFSystems is broken. So take care, you're on your own! :-)
+        - D_x, D_y: horizontal and vertical dispersion. These arguments
+          are passed to the Kicks class. Because both kicks are applied
+          consecutively, the dispersion will be the same for both kicks and
+          it is therefore sufficient to specify only one dispersion.
+          The dispersion must match the dispersion of the following transverse
+          map. See the docstring of the Kick class for a more detailed
+          description.
         """
 
         super(RFSystems, self).__init__(
@@ -339,7 +347,8 @@ class RFSystems(LongitudinalOneTurnMap):
         if not shrink_transverse:
             self.track = self.track_no_transverse_shrinking
 
-        self._kicks = [Kick(alpha_array, self.circumference, h, V, dphi)
+        self._kicks = [Kick(alpha_array, self.circumference, h, V, dphi,
+                            D_x=D_x, D_y=D_y)
                       for h, V, dphi in
                       zip(harmonic_list, voltage_list, phi_offset_list)]
         self._elements = ( [Drift(alpha_array, 0.5 * self.circumference)]
