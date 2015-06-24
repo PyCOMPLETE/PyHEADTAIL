@@ -18,7 +18,7 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
-from PyHEADTAIL.particles.generators import Gaussian6DTwiss
+from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 import PyHEADTAIL.cobra_functions.stats as cf
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
 
@@ -158,12 +158,12 @@ class TestCobra(unittest.TestCase):
         epsn_x = 3.75e-6 # [m rad]
         epsn_y = 3.75e-6 # [m rad]
         epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e)
-        bunch = Gaussian6DTwiss(
+        bunch = generate_Gaussian6DTwiss(
             macroparticlenumber=n_macroparticles, intensity=intensity, charge=e,
             gamma=gamma, mass=m_p, circumference=C,
             alpha_x=0., beta_x=1., epsn_x=epsn_x,
             alpha_y=0., beta_y=1., epsn_y=epsn_y,
-            beta_z=beta_z, epsn_z=epsn_z).generate()
+            beta_z=beta_z, epsn_z=epsn_z)
         # Scale to correct beta and alpha
         bunch.x *= np.sqrt(beta_x)
         bunch.xp = -alpha_x/np.sqrt(beta_x) * bunch.x + 1./np.sqrt(beta_x) * bunch.xp

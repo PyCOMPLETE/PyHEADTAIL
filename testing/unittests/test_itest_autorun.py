@@ -19,7 +19,6 @@ import unittest
 import autoruntests.ApertureNLossesTest as at
 import autoruntests.DetunersCythonTest as dct
 import autoruntests.DetunersTest as dt
-import autoruntests.GeneratorTest as gt
 import autoruntests.MonitorTest as mt
 import autoruntests.RFQTest as rt
 import autoruntests.SlicingTest as st
@@ -71,15 +70,6 @@ class TestAutoRun(unittest.TestCase):
             dt.run()
         except Exception, err:
             self.fail('DetunersTest threw an exception:\n' + str(err))
-
-    def test_generatortest(self):
-        '''Runs the autoruntests/GeneratorTest script and fails
-        the test if an exception is thrown
-        '''
-        try:
-            gt.run()
-        except Exception, err:
-            self.fail('GeneratorTest threw an exception:\n' + str(err))
 
     def test_monitortest(self):
         '''Runs the autoruntests/MonitorTest script and fails

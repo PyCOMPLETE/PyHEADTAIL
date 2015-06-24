@@ -22,7 +22,7 @@ from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 from PyHEADTAIL.general.printers import AccumulatorPrinter
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
-from PyHEADTAIL.particles.generators import Gaussian6DTwiss
+from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 
 
 def check_elements_equal(np_array1d):
@@ -193,17 +193,17 @@ class TestSlicing(unittest.TestCase):
         gamma_t = 1. / np.sqrt(linear_map.alpha_array[0])
         p0 = np.sqrt(gamma**2 - 1) * m_p * c
 
-        beta_z = np.abs((linear_map.eta(dp=0, gamma=gamma) * linear_map.circumference / 
+        beta_z = np.abs((linear_map.eta(dp=0, gamma=gamma) * linear_map.circumference /
                   (2 * np.pi * linear_map.Qs)))
 
         epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e)
         #print ('epsn_z: ' + str(epsn_z))
-        bunch = Gaussian6DTwiss(
+        bunch = generate_Gaussian6DTwiss(
             macroparticlenumber=10000, intensity=intensity, charge=e,
             gamma=gamma, mass=m_p, circumference=linear_map.circumference,
             alpha_x=0., beta_x=1., epsn_x=epsn_x,
             alpha_y=0., beta_y=1., epsn_y=epsn_y,
-            beta_z=beta_z, epsn_z=epsn_z).generate()
+            beta_z=beta_z, epsn_z=epsn_z)
         # Scale to correct beta and alpha
         xx = bunch.x.copy()
         yy = bunch.y.copy()
