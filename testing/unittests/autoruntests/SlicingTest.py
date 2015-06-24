@@ -137,12 +137,12 @@ def run():
     beta_z = np.abs(eta) * circumference / (2 * np.pi * Qs)
     turn_period = circumference / (beta * c)
 
-    bunch = generators.Gaussian6DTwiss( # implicitly tests Gaussian and Gaussian2DTwiss as well
-        n_particles, intensity, ee, m_p, circumference, gamma,
-        inj_alpha_x, inj_beta_x, epsn_x,
-        inj_alpha_y, inj_beta_y, epsn_y,
-        beta_z, epsn_z
-        ).generate()
+    bunch = generators.generate_Gaussian6DTwiss( # implicitly tests Gaussian and Gaussian2DTwiss as well
+        n_particles, intensity, ee, m_p, circumference, gamma=gamma,
+        alpha_x=inj_alpha_x, beta_x=inj_beta_x, epsn_x=epsn_x,
+        alpha_y=inj_alpha_y, beta_y=inj_beta_y, epsn_y=epsn_y,
+        beta_z=beta_z, epsn_z=epsn_z
+        )
 
 
 
