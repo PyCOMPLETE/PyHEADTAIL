@@ -61,9 +61,12 @@ def check_wake_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=Fal
         [ax2.axvline(z, color='g') for z in zz]
 
     ax2.grid()
-    ax2.legend(['Table', 'Interpolated'])
+    lgd = ['Table', 'Interpolated']
+    if bins:
+        lgd += ['Bin edges']
+    ax2.legend(lgd)
 
-    print '\n--> Rsulting number of slices: {:g}'.format(len(ss))
+    print '\n--> Resulting number of slices: {:g}'.format(len(ss))
 
     return ax1
 
