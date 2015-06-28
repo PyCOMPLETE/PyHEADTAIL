@@ -81,7 +81,8 @@ class WakeKick(Printing):
         numpy.convolve method. Recommended use with the 'uniform_bin'
         slicer mode (in case of multiturn wakes, additional conditions
         must be fulfilled: fixed z_cuts and no acceleration!) for
-        higher performance. """
+        higher performance. Question: how about interpolation to avoid
+        expensive dot product in most cases? """
         dt_to_target_slice = np.concatenate(
             (target_times - source_times[-1],
             (target_times - source_times[0])[1:]))
