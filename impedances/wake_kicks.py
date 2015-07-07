@@ -39,7 +39,7 @@ class WakeKick(Printing):
         if (slicer.mode == 'uniform_bin' and
             (n_turns_wake == 1 or slicer.z_cuts)):
             self._convolution = self._convolution_numpy
-            self.warns('*** WARNING: Acceleration not handled properly' +
+            self.warns('Acceleration not handled properly' +
                        ' by this kind of convolution due to changing' +
                        ' bunch length!')
         else:

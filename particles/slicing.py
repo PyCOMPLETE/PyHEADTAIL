@@ -519,8 +519,8 @@ class UniformBinSlicer(Slicer):
         '''
         dz = np.diff(z_sample_points)[0]
         if not np.allclose(np.diff(z_sample_points)-dz, 1e-15):
-            raise TypeError("Irregular sampling of wakes cannot be used " +
-                            "for UniformBinSlicer. Check the sampling points.")
+            raise TypeError("Irregular sampling of wakes incompatible with" +
+                            " UniformBinSlicer. Check the sampling points.")
 
         # Get edges
         n_slices = len(z_sample_points)

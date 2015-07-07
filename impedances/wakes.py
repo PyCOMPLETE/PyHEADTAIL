@@ -321,13 +321,13 @@ class WakeTable(WakeSource):
             def wake(dt, *args, **kwargs):
                 dt = dt.clip(max=0)
                 return interp1d(time, wake_strength)(-dt)
-            self.warns(wake_component +
+            self.prints(wake_component +
                   ' Assuming ultrarelativistic wake.')
 
         elif (time[0] < 0):
             def wake(dt, *args, **kwargs):
                 return interp1d(time, wake_strength)(-dt)
-            self.warns(wake_component +  ' Found low beta wake.')
+            self.prints(wake_component +  ' Found low beta wake.')
 
         else:
             raise ValueError(wake_component +
