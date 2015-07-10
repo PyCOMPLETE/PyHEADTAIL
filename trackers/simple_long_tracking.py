@@ -444,6 +444,21 @@ class RFSystems(LongitudinalOneTurnMap):
         if self._shrinking:
             self._shrinking_drift.shrinkage_p_increment = value
 
+    def pop_kick(self, index):
+        '''Remove a Kick instance from this RFSystems instance.
+        Return the removed Kick instance.
+        Arguments:
+            - index: the index according to the defining lists
+            voltages, harmonics, phi_offsets.
+        Note: can only remove kicks that are not index == 0.
+        The accelerating / fundamental kick cannot be removed.
+        '''
+        if index == 0:
+            raise ValueError('Cannot remove accelerating / fundamental kick, '
+                             'remove_kick(0) is not accepted.')
+        kick = self._kicks.pop(index)
+        return kick
+
     def get_bucket(self, bunch=None, gamma=None, mass=m_p, charge=e,
                    *args, **kwargs):
         '''Return an RFBucket instance which contains all information
