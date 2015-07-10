@@ -68,3 +68,8 @@ class ListProxy(Printing):
 
     def __len__(self):
         return len(self._list_of_objects)
+
+    def pop(self, index):
+        '''Remove the object from the internal list and return the
+        corresponding attribute, analogous to list.pop .'''
+        return getattr(self._list_of_objects.pop(index), self._attr_name)
