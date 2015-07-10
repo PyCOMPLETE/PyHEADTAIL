@@ -338,6 +338,51 @@ def uniform2D(low, high):
         return coords
     return _uniform2D
 
+def kv2D(r_u, r_up):
+    '''Closure which generates a Kapchinski-Vladimirski-type uniform
+    distribution in 2D. The extent is determined by the arguments.
+
+    Args:
+        - r_u: envelope edge radius for the spatial axis
+        - r_up: envelope edge angle for the momentum axis
+    '''
+    def _kv2d(n_particles):
+        '''Create a two-dimensional phase space (u, up)
+        Kapchinski-Vladimirski-type uniform distribution.
+        '''
+        rand = np.random.uniform(low=-0.5, high=0.5, size=n_particles)
+        u = np.sin(2 * np.pi * rand)
+        sign = (-1)**np.random.randint(2, size=n_particles)
+        up = sign * np.sqrt(1. - r**2)
+        return [u, up]
+    return _kv2d
+
+def kv4D(r_x, r_xp, r_y, r_yp):
+    '''Closure which generates a Kapchinski-Vladimirski-type uniform
+    distribution in 4D. The extent of the phase space ellipses is
+    determined by the arguments.
+
+    Args:
+        - r_x: envelope edge radius for the horizontal spatial axis
+        - r_xp: envelope edge angle for the horizontal momentum axis
+        - r_y: envelope edge radius for the vertical spatial axis
+        - r_yp: envelope edge angle for the vertical momentum axis
+    '''
+    def _kv4d(n_particles):
+        '''Create a four-dimensional phase space (x, xp, y, yp)
+        Kapchinski-Vladimirski-type uniform distribution.
+        '''
+        t = 2 * np.pi * np.random.uniform(low=-0.5, high=0.5, size=n_particles)
+        u = (np.random.uniform(low=0, high=1, size=n_particles) +
+             np.random.uniform(low=0, high=1, size=n_particles))
+        r = np.where(u > 1, 2 - u, u)
+        x, y = r_x * r * np.cos(t), r_y * r * np.sin(t)
+        t = 2 * np.pi * np.random.uniform(low=-0.5, high=0.5, size=n_particles)
+        rp = np.sqrt(1. - r**2)
+        xp, yp = r_xp * rp * np.cos(t), r_yp * rp * np.sin(t)
+        return [x, xp, y, yp]
+    return _kv4d
+
 class RFBucketMatcher(Printing):
 
     def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None):

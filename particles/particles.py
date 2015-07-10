@@ -215,6 +215,12 @@ class Particles(Printing):
     def sigma_z(self):
         return cp.std(self.z)
 
+    def sigma_xp(self):
+        return cp.std(self.xp)
+
+    def sigma_yp(self):
+        return cp.std(self.yp)
+
     def sigma_dp(self):
         return cp.std(self.dp)
 
