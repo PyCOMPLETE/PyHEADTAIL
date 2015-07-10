@@ -11,6 +11,8 @@ from scipy.constants import c, e, m_p
 from ..cobra_functions import stats as cp
 from . import Printing
 
+arange = np.arange
+
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
@@ -58,7 +60,7 @@ class Particles(Printing):
         '''ID of particles in order to keep track of single entries
         in the coordinate and momentum arrays.
         '''
-        self.id = np.arange(1, self.macroparticlenumber+1, dtype=np.int32)
+        self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
 
         self.update(coords_n_momenta_dict)
 
@@ -100,20 +102,6 @@ class Particles(Printing):
     @p0.setter
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
-
-    # @property
-    # def theta(self):
-    #     return self.z/self.ring_radius
-    # @theta.setter
-    # def theta(self, value):
-    #     self.z = value*self.ring_radius
-
-    # @property
-    # def delta_E(self):
-    #     return self.dp * self.beta*c*self.p0
-    # @delta_E.setter
-    # def delta_E(self, value):
-    #     self.dp = value / (self.beta*c*self.p0)
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -185,6 +173,25 @@ class Particles(Printing):
                              " momenta already exist and cannot be added." +
                              " Use self.update(...) for this purpose.")
         self.update(coords_n_momenta_dict)
+
+    def sort_for(self, attr):
+        '''Sort the named particle attribute (coordinate / momentum)
+        array and reorder all particles accordingly.
+        '''
+        permutation = np.argsort(getattr(self, attr))
+        self.reorder(permutation)
+
+    def reorder(self, permutation, except_for_attrs=[]):
+        '''Reorder all particle coordinate and momentum arrays
+        (in self.coords_n_momenta) and ids except for except_for_attrs
+        according to the given index array permutation.
+        '''
+        to_be_reordered = ['id'] + list(self.coords_n_momenta)
+        for attr in to_be_reordered:
+            if attr in except_for_attrs:
+                continue
+            reordered = getattr(self, attr)[permutation]
+            setattr(self, attr, reordered)
 
     # Statistics methods
 
