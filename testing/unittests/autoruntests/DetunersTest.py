@@ -19,14 +19,14 @@ from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 import PyHEADTAIL.particles.generators as generators
 
 
-# In[24]:
+# In[3]:
+
+# HELPERS
 def run():
-    # HELPERS
     def track(bunch, map_):
         for i in range(n_turns):
             for m in map_:
                 m.track(bunch)
-
 
     def generate_bunch(n_macroparticles, alpha_x, alpha_y, beta_x, beta_y, alpha_0, Q_s, R):
         intensity = 1.05e11
@@ -53,12 +53,12 @@ def run():
         return bunch
 
 
-    # In[25]:
+    # In[4]:
 
-# Basic parameters.
-    n_turns = 2
+    # Basic parameters.
+    n_turns = 3
     n_segments = 1
-    n_macroparticles = 20
+    n_macroparticles = 10
 
     Q_x = 64.28
     Q_y = 59.31
@@ -74,7 +74,7 @@ def run():
     alpha_0 = 0.0003225
 
 
-    # In[26]:
+    # In[5]:
 
     # Parameters for transverse map.
     s = np.arange(0, n_segments + 1) * C / n_segments
@@ -88,7 +88,7 @@ def run():
     D_y = np.zeros(n_segments)
 
 
-    # In[27]:
+    # In[6]:
 
     # CASE I
     # With amplitude detuning (python implementation)
@@ -109,7 +109,7 @@ def run():
     track(bunch, map_)
 
 
-    # In[53]:
+    # In[7]:
 
     # CASE II
     # With first order Chromaticity (python implementation)
@@ -127,7 +127,7 @@ def run():
     track(bunch, map_)
 
 
-    # In[56]:
+    # In[8]:
 
     # CASE III
     # With higher order Chromaticity (python implementation)
@@ -145,21 +145,10 @@ def run():
     track(bunch, map_)
 
 
-    # In[58]:
 
-    # CASE IV
-    # detuning functions for higher order chroma.
+    # In[ ]:
 
-    chroma = Chromaticity(Qp_x=[6., 4e4], Qp_y=[3., 0., 2e8])
-    chroma.generate_segment_detuner(segment_length=1)
-
-    dp = np.linspace(-5e-4, 5e-4, 500)
-
-    dQx = chroma.segment_detuners[0].calc_detuning_x(dp)
-    dQy = chroma.segment_detuners[0].calc_detuning_y(dp)
 
 if __name__ == '__main__':
     run()
 
-
-# In[ ]:

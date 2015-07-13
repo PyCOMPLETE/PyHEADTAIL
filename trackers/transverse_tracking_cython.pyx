@@ -14,7 +14,7 @@ cimport numpy as np
 from libc.math cimport cos, sin
 diff = np.diff
 ndim = np.ndim
-
+atleast_1d = np.atleast_1d
 
 class TransverseSegmentMap(object):
     """ Class to transport/track the particles of the beam in the
@@ -90,7 +90,7 @@ class TransverseSegmentMap(object):
         self.D_y_s1 = D_y_s1
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
-        
+
         # HACK: flag to check for dispersion
         if np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
                        np.zeros(4), atol=1e-3):
@@ -209,7 +209,7 @@ class TransverseSegmentMap(object):
             cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                   dphi_x, dphi_y, self.I, self.J)
 
- 
+
 
     def track_without_detuners(self, beam):
         """ This method is bound to the self.track(self, beam) method
@@ -420,13 +420,18 @@ class TransverseMap(object):
             dQ_y = diff(self.accQ_y)
 
         n_segments = len(self.s) - 1
+        # relative phase advances for detuners:
+        dmu_x = dQ_x / atleast_1d(self.accQ_x)[-1]
+        dmu_y = dQ_y / atleast_1d(self.accQ_y)[-1]
+
         for seg in range(n_segments):
             s0 = seg % n_segments
             s1 = (seg + 1) % n_segments
 
             # Instantiate SegmentDetuner objects.
             for detuner in self.detuner_collections:
-                detuner.generate_segment_detuner(segment_length[s0],
+                detuner.generate_segment_detuner(
+                    dmu_x[s0], dmu_y[s0],
                     alpha_x=self.alpha_x[s0], alpha_y=self.alpha_y[s0],
                     beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
 

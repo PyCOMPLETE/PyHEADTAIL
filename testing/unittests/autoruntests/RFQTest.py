@@ -8,10 +8,13 @@ BIN = os.path.expanduser("../../../../")
 sys.path.append(BIN)
 
 
-# In[8]:
+# In[2]:
 
 import numpy as np
 from scipy.constants import m_p, c, e
+import matplotlib.pyplot as plt
+
+np.random.seed(0)
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
@@ -19,14 +22,14 @@ from PyHEADTAIL.rfq.rfq import RFQLongitudinalKick, RFQTransverseKick, RFQTransv
 import PyHEADTAIL.particles.generators as generators
 
 
-# In[9]:
+# In[3]:
 
 # HELPERS
 def run():
     def track(bunch, map_):
         for i in range(n_turns):
-            for m_ in map_:
-                m_.track(bunch)
+            for m in map_:
+                m.track(bunch)
 
     def generate_bunch(n_macroparticles, alpha_x, alpha_y, beta_x, beta_y, linear_map):
 
@@ -53,11 +56,12 @@ def run():
         return bunch
 
 
-    # In[10]:
+    # In[4]:
+
     # Basic parameters.
-    n_turns = 500
+    n_turns = 3
     n_segments = 5
-    n_macroparticles = 500
+    n_macroparticles = 10
 
     Q_x = 64.28
     Q_y = 59.31
@@ -73,7 +77,7 @@ def run():
     alpha_0 = [0.0003225]
 
 
-    # In[11]:
+    # In[5]:
 
     # Parameters for transverse map.
     s = np.arange(0, n_segments + 1) * C / n_segments
@@ -87,7 +91,7 @@ def run():
     D_y = np.zeros(n_segments)
 
 
-    # In[12]:
+    # In[6]:
 
     # TEST CASE SETUP
     def gimme(*detuners):
@@ -100,7 +104,7 @@ def run():
         return bunch, trans_map, long_map
 
 
-    # In[15]:
+    # In[7]:
 
     # CASE I
     # With RFQ transverse as detuner
@@ -116,7 +120,8 @@ def run():
 
     track(bunch, map_)
 
-    # In[16]:
+
+    # In[8]:
 
     # CASE II
     # With RFQ transverse as kick
@@ -132,7 +137,7 @@ def run():
     track(bunch, map_)
 
 
-    # In[18]:
+    # In[9]:
 
     # CASE III
     # With RFQ longitudinal Kick.
@@ -147,8 +152,9 @@ def run():
     track(bunch, map_)
 
 
+    # In[ ]:
+
+
 if __name__ == '__main__':
     run()
 
-
-# In[ ]:

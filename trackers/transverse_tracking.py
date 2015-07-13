@@ -13,6 +13,7 @@ sin = np.sin
 cos = np.cos
 diff = np.diff
 ndim = np.ndim
+atleast_1d = np.atleast_1d
 
 class TransverseSegmentMap(Element):
     """ Class to transport/track the particles of the beam in the
@@ -110,7 +111,7 @@ class TransverseSegmentMap(Element):
         there are dispersion effects, i.e. any of the 4 dispersion parameters
         is != 0
         It computes the transverse tracking given the matrix elements Mij.
-        1) Subtract the dispersion using dp 
+        1) Subtract the dispersion using dp
         2) Change the positions and momenta using the matrix elements
         3) Add the dispersion effects using dp
         """
@@ -288,13 +289,18 @@ class TransverseMap(Printing):
             dQ_y = diff(self.accQ_y)
 
         n_segments = len(self.s) - 1
+        # relative phase advances for detuners:
+        dmu_x = dQ_x / atleast_1d(self.accQ_x)[-1]
+        dmu_y = dQ_y / atleast_1d(self.accQ_y)[-1]
+
         for seg in xrange(n_segments):
             s0 = seg % n_segments
             s1 = (seg + 1) % n_segments
 
             # Instantiate SegmentDetuner objects.
             for detuner in self.detuner_collections:
-                detuner.generate_segment_detuner(segment_length[s0],
+                detuner.generate_segment_detuner(
+                    dmu_x[s0], dmu_y[s0],
                     alpha_x=self.alpha_x[s0], beta_x=self.beta_x[s0],
                     alpha_y=self.alpha_y[s0], beta_y=self.beta_y[s0],
                     )
