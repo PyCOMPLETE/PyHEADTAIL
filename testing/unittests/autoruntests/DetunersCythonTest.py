@@ -1,4 +1,6 @@
 
+# coding: utf-8
+
 # In[1]:
 
 import sys, os
@@ -18,14 +20,13 @@ import PyHEADTAIL.particles.generators as generators
 
 
 # In[3]:
+
+# HELPERS
 def run():
-    # HELPERS
     def track(bunch, map_):
         for i in range(n_turns):
             for m in map_:
                 m.track(bunch)
-
-
 
     def generate_bunch(n_macroparticles, alpha_x, alpha_y, beta_x, beta_y, alpha_0, Q_s, R):
         intensity = 1.05e11
@@ -47,15 +48,17 @@ def run():
             alpha_x=alpha_x, beta_x=beta_x, epsn_x=epsn_x,
             alpha_y=alpha_y, beta_y=beta_y, epsn_y=epsn_y,
             beta_z=beta_z, epsn_z=epsn_z)
+        #print bunch.sigma_z()
 
         return bunch
 
 
     # In[4]:
+
     # Basic parameters.
-    n_turns = 2
+    n_turns = 3
     n_segments = 1
-    n_macroparticles = 5
+    n_macroparticles = 10
 
     Q_x = 64.28
     Q_y = 59.31
@@ -102,6 +105,7 @@ def run():
 
     trans_one_turn = [ m for m in trans_map ]
     map_ = trans_one_turn
+
     track(bunch, map_)
 
 
@@ -123,7 +127,7 @@ def run():
     track(bunch, map_)
 
 
-    # In[14]:
+    # In[8]:
 
     # CASE III
     # With higher order Chromaticity (python implementation)
@@ -140,11 +144,9 @@ def run():
 
     track(bunch, map_)
 
+    # In[ ]:
+
 
 if __name__ == '__main__':
     run()
 
-# In[15]:
-
-
-# In[ ]:
