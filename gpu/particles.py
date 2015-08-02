@@ -43,3 +43,5 @@ class ParticlesGPU(def_particles.Particles):
         tmp = gpuarray.empty(self.macroparticlenumber, dtype=self.id.dtype)
         thrust.apply_sort_perm_int(self.id, tmp, permutation)
         self.id = tmp
+
+

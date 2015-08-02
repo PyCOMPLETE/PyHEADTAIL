@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.constants import c, e
+from scipy.constants import c
 
 class TransverseSpaceCharge(object):
     def __init__(self, L_interaction, slicer, pyPICsolver, flag_clean_slices = False):

@@ -1,10 +1,10 @@
 '''
 @authors: Hannes Bartosik,
-	  Stefan Hegglin,
+          Stefan Hegglin,
           Giovanni Iadarola,
           Kevin Li,
           Adrian Oeftiger,
-	  Michael Schenk
+          Michael Schenk
 @date:    01/10/2014
 '''
 from __future__ import division
@@ -26,6 +26,9 @@ from scipy import interpolate
 
 floor = np.floor
 empty_like = np.empty_like
+min_ = np.min
+max_ = np.max
+arange = np.arange
 def make_int32(array):
     # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
@@ -352,8 +355,8 @@ class Slicer(Printing):
             z_cut_tail = beam.mean_z() - self.n_sigma_z * beam.sigma_z()
             z_cut_head = beam.mean_z() + self.n_sigma_z * beam.sigma_z()
         else:
-            z_cut_tail = np.min(beam.z)
-            z_cut_head = np.max(beam.z)
+            z_cut_tail = min_(beam.z)
+            z_cut_head = max_(beam.z)
             z_cut_head += abs(z_cut_head) * 1e-15
         return z_cut_tail, z_cut_head
 
@@ -557,7 +560,8 @@ class UniformBinSlicer(Slicer):
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
 
-        z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
+        z_bins = arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
+                        slice_width, dtype=np.float64)
         slice_index_of_particle = make_int32(floor(
                 (beam.z - z_cut_tail) / slice_width
             ))

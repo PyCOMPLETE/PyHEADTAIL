@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.constants import c, e
+from scipy.constants import c
 
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyPIC.PyPIC_Scatter_Gather import PyPIC_Scatter_Gather

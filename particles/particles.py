@@ -12,6 +12,8 @@ from ..cobra_functions import stats as cp
 from . import Printing
 
 arange = np.arange
+mean = np.mean
+std = cp.std
 
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
@@ -196,40 +198,40 @@ class Particles(Printing):
     # Statistics methods
 
     def mean_x(self):
-        return np.mean(self.x)
+        return mean(self.x)
 
     def mean_xp(self):
-        return np.mean(self.xp)
+        return mean(self.xp)
 
     def mean_y(self):
-        return np.mean(self.y)
+        return mean(self.y)
 
     def mean_yp(self):
-        return np.mean(self.yp)
+        return mean(self.yp)
 
     def mean_z(self):
-        return np.mean(self.z)
+        return mean(self.z)
 
     def mean_dp(self):
-        return np.mean(self.dp)
+        return mean(self.dp)
 
     def sigma_x(self):
-        return cp.std(self.x)
+        return std(self.x)
 
     def sigma_y(self):
-        return cp.std(self.y)
+        return std(self.y)
 
     def sigma_z(self):
-        return cp.std(self.z)
+        return std(self.z)
 
     def sigma_xp(self):
-        return cp.std(self.xp)
+        return std(self.xp)
 
     def sigma_yp(self):
-        return cp.std(self.yp)
+        return std(self.yp)
 
     def sigma_dp(self):
-        return cp.std(self.dp)
+        return std(self.dp)
 
     def effective_normalized_emittance_x(self):
         return cp.emittance(self.x, self.xp, None) * self.betagamma
