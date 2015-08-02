@@ -1,7 +1,7 @@
 # monkey patching default classes with GPU variants
 # is done on importing this module!
 
-from skcuda.misc import mean, std
+from skcuda.misc import mean, std, diff
 from pycuda import gpuarray
 
 from ..particles import particles as def_particles
@@ -17,6 +17,7 @@ def_particles.std = lambda *args, **kwargs: std(*args, **kwargs).get()
 # Slicing rebindings for GPU
 def_slicing.min_ = lambda *args, **kwargs: gpuarray.min(*args, **kwargs).get()
 def_slicing.max_ = lambda *args, **kwargs: gpuarray.max(*args, **kwargs).get()
+def_slicing.diff = diff
 
 from .slicing import SlicerGPU
 

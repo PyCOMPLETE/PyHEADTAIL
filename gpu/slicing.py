@@ -5,7 +5,6 @@
 from __future__ import division
 
 import os
-
 where = os.path.dirname(os.path.abspath(__file__)) + '/'
 
 import numpy as np
@@ -13,9 +12,13 @@ import numpy as np
 # default classes imports from modules as assigned in gpu/__init__.py
 from . import def_slicing
 
+
 from pycuda import gpuarray
 from pycuda.compiler import SourceModule
+from pycuda.elementwise import ElementwiseKernel
+import pycuda.driver as cuda
 from pycuda import cumath
+
 
 import thrust_interface
 thrust = thrust_interface.compiled_module
@@ -23,6 +26,7 @@ thrust = thrust_interface.compiled_module
 get_sort_perm_int = thrust.get_sort_perm_int
 lower_bound_int = thrust.lower_bound_int
 upper_bound_int = thrust.upper_bound_int
+
 
 # load kernels
 with open(where + 'stats.cu') as stream:
@@ -36,12 +40,35 @@ sorted_cov_per_slice = stats_kernels.get_function('sorted_cov_per_slice')
 sorted_mean_per_slice.prepare('PPPIP')
 sorted_cov_per_slice.prepare('PPPIP')
 
-class PyPICSliceSet(def_slicing.SliceSet):
+
+slice_to_particles = ElementwiseKernel(
+    "unsigned int* slice_index_of_particle, double* input_slice_quantity, "
+    "double* output_particle_array",
+    # i is the particle index within slice_index_of_particle
+    "output_particle_array[i] = "
+        "input_slice_quantity[slice_index_of_particle[i]]",
+    "slice_to_particles_kernel"
+)
+
+
+from PyPIC.meshing import UniformMesh1D
+
+
+class MeshSliceSet(def_slicing.SliceSet):
     '''Defines a set of longitudinal slices with PyPIC as the algorithm,
     this allows for the use of the GPU.
     '''
 
-    def __init__(self, z_bins, slice_index_of_particle, mode, pypic_algorithm,
+    '''Lower boundary indices of the respective slice (determined by
+    the index within lower_bounds) within the particle attributes.
+    '''
+    lower_bounds = []
+    '''Upper boundary indices of the respective slice (determined by
+    the index within upper_bounds) within the particle attributes.
+    '''
+    upper_bounds = []
+
+    def __init__(self, z_bins, slice_index_of_particle, mode, mesh,
                  n_macroparticles_per_slice=None, beam_parameters={}):
         '''Is intended to be created by the SlicerGPU factory method.
         A SliceSet is given a set of intervals defining the slicing
@@ -53,10 +80,23 @@ class PyPICSliceSet(def_slicing.SliceSet):
         beam_parameters contains lower_bounds and upper_bounds (see SlicerGPU).
         '''
         super(PyPICSliceSet, self).__init__(
-            z_bins, slice_index_of_particle, mode,
-            n_macroparticles_per_slice, beam_parameters
+            z_bins=z_bins,
+            slice_index_of_particle=slice_index_of_particle,
+            mode=mode,
+            n_macroparticles_per_slice=n_macroparticles_per_slice,
+            beam_parameters=beam_parameters
         )
-        self.pypic_algorithm = pypic_algorithm
+
+        self.mesh = mesh
+
+        # the last entry of slice_positions needs to be n_slices,
+        # otherwise it has the same entries as lower_bounds
+        self.slice_positions = gpuarray.zeros(self.n_slices + 1,
+                                              dtype=self.lower_bounds.dtype)
+        self.slice_positions += self.n_slices
+        cuda.memcpy_dtod(self.slice_positions.gpudata,
+                         self.lower_bounds.gpudata,
+                         self.lower_bounds.nbytes)
 
     @property
     def z_cut_head(self):
@@ -67,44 +107,13 @@ class PyPICSliceSet(def_slicing.SliceSet):
         return self.z_bins[0].get()
 
     @property
-    def z_centers(self):
-        # @TODO: current point
-        return self.z_bins[:-1] + 0.5 * (self.z_bins[1:] - self.z_bins[:-1])
-
-    @property
-    def n_slices(self):
-        return len(self.z_bins) - 1
-
-    @property
-    def smoothing_sigma(self):
-        return 0.02 * self.n_slices
-
-    @property
-    def slice_widths(self):
-        '''Array of the widths of the slices.'''
-        return np.diff(self.z_bins)
-
-    @property
-    def slice_positions(self):
-        '''Position of the respective slice start within the array
-        self.particle_indices_per_slice .
-        '''
-        slice_positions_ = np.zeros(self.n_slices + 1, dtype=np.int32)
-        slice_positions_[1:] = (
-                np.cumsum(self.n_macroparticles_per_slice).astype(np.int32))
-        return slice_positions_
-
-    @property
     def n_macroparticles_per_slice(self):
         '''Slice distribution, i.e. number of macroparticles in each
         slice.
         '''
         if self._n_macroparticles_per_slice is None:
-            self._n_macroparticles_per_slice = np.zeros(
-                self.n_slices, dtype=np.int32)
-            cp.count_macroparticles_per_slice(self.slice_index_of_particle,
-                                              self.particles_within_cuts,
-                                              self._n_macroparticles_per_slice)
+            self._n_macroparticles_per_slice = (
+                self.upper_bounds - self.lower_bounds)
         return self._n_macroparticles_per_slice
 
     @property
@@ -115,28 +124,16 @@ class PyPICSliceSet(def_slicing.SliceSet):
         return self.charge_per_mp * self.n_macroparticles_per_slice
 
     @property
-    # @memoize
     def particles_within_cuts(self):
         '''All particle indices which are situated within the slicing
         region defined by [z_cut_tail, z_cut_head).'''
-        particles_within_cuts_ = make_int32(np.where(
-                (self.slice_index_of_particle > -1) &
-                (self.slice_index_of_particle < self.n_slices)
-            )[0])
+        particles_within_cuts_ = gpuarray.arange(self.lower_bounds[0],
+                                                 self.upper_bounds[-1] + 1,
+                                                 dtype=np.int32)
         return particles_within_cuts_
 
-    @property
-    # @memoize
-    def particle_indices_by_slice(self):
-        '''Array of particle indices arranged / sorted according to
-        their slice affiliation.
-        '''
-        particle_indices_by_slice = np.zeros(len(self.particles_within_cuts),
-                                             dtype=np.int32)
-        cp.sort_particle_indices_by_slice(
-            self.slice_index_of_particle, self.particles_within_cuts,
-            self.slice_positions, particle_indices_by_slice)
-        return particle_indices_by_slice
+    # particles are automatically sorted by slice affiliation!
+    particle_indices_by_slice = particles_within_cuts
 
     def lambda_bins(self, sigma=None, smoothen=True):
         '''Line charge density with respect to bins along the slices.'''
@@ -202,10 +199,9 @@ class PyPICSliceSet(def_slicing.SliceSet):
         '''Return an array of particle indices which are located in the
         slice defined by the given slice_index.
         '''
-        pos      = self.slice_positions[slice_index]
-        next_pos = self.slice_positions[slice_index + 1]
-
-        return self.particle_indices_by_slice[pos:next_pos]
+        return gpuarray.arange(self.lower_bounds[slice_index],
+                               self.upper_bounds[slice_index] + 1,
+                               dtype=np.int32)
 
     def convert_to_time(self, z):
         '''Convert longitudinal quantity from length to time units using
@@ -220,12 +216,11 @@ class PyPICSliceSet(def_slicing.SliceSet):
         particle belongs to.
         '''
         if empty_particles == None:
-            empty_particles = empty_like(self.slice_index_of_particle, dtype=np.float)
-        particle_array = empty_particles
-        p_id = self.particles_within_cuts
-        s_id = self.slice_index_of_particle.take(p_id)
-        particle_array[p_id] = slice_array.take(s_id)
-        return particle_array
+            empty_particles = gpuarray.empty(self.slice_index_of_particle.shape,
+                                             dtype=np.float64)
+        slice_to_particles(self.slice_index_of_particle,
+                           slice_array, empty_particles)
+        return empty_particles
 
 
 class SlicerGPU(def_slicing.Slicer):
@@ -399,35 +394,34 @@ class SlicerGPU(def_slicing.Slicer):
     #     return epsn_u
 
 
-class PyPICSlicer(SlicerGPU):
-    '''Slices with respect to the mesh of the PyPIC algorithm.
-    Uses the PyPIC methods for the SliceSet which allows for GPU use.
+class MeshSlicer(SlicerGPU):
+    '''Slices with respect to the mesh (from the PyPIC package).
+    For GPU use.
     '''
 
-    def __init__(self, pypic_algorithm, *args, **kwargs):
-        '''Set up a Slicer with the mesh of pypic_algorithm.
+    def __init__(self, mesh, *args, **kwargs):
+        '''Set up a Slicer with the PyPIC mesh. It should be a 1D
+        rectangular mesh (PyPIC.UniformMesh1D).
         z_cuts are set according to the left and right node of the mesh.
-
-        The returned Slicer will use a 1D rectangular mesh from PyPIC.
         '''
-        if isinstance(pypic_algorithm.mesh, UniformMesh1D):
+        if isinstance(mesh, UniformMesh1D):
             mode = 'uniform_bin'
         else:
             raise NotImplementedError(
-                'beam.z is hard-coded in the PyPICSlicer, other slicing '
+                'beam.z is hard-coded in the MeshSlicer, other slicing '
                 'schemes than UniformMesh1D have to be implemented first.')
-        n_slices = pypic_algorithm.mesh.n_nodes
+        n_slices = mesh.n_nodes
         n_sigma_z = None
         z_cuts = None
 
-        self.pypic_algorithm = pypic_algorithm
+        self.mesh = mesh
         self.config = (mode, n_slices, n_sigma_z, z_cuts)
 
     def get_long_cuts(self, beam):
         '''Return boundaries of slicing region defined by the PyPIC
         mesh: (z_cut_tail, z_cut_head).
         '''
-        mesh = self.pypic_algorithm.mesh
+        mesh = self.mesh
         z_cuts = (mesh.origin[-1],
                   mesh.origin[-1] + mesh.shape_r[-1] * mesh.distances[-1])
         return z_cuts
@@ -443,9 +437,9 @@ class PyPICSlicer(SlicerGPU):
         z_bins = gpuarray.arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
                                  slice_width, dtype=np.float64)
 
-        slice_index_of_particle = self.pypic_algorithm.mesh.get_node_ids(beam.z)
+        slice_index_of_particle = self.mesh.get_node_ids(beam.z)
 
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
                     mode=self.mode,
-                    pypic_algorithm=self.pypic_algorithm)
+                    mesh=self.mesh)

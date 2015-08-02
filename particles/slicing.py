@@ -29,6 +29,7 @@ empty_like = np.empty_like
 min_ = np.min
 max_ = np.max
 arange = np.arange
+diff = np.diff
 def make_int32(array):
     # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
@@ -131,12 +132,12 @@ class SliceSet(Printing):
     @property
     def slice_widths(self):
         '''Array of the widths of the slices.'''
-        return np.diff(self.z_bins)
+        return diff(self.z_bins)
 
     @property
     def slice_positions(self):
         '''Position of the respective slice start within the array
-        self.particle_indices_per_slice .
+        self.particle_indices_by_slice .
         '''
         slice_positions_ = np.zeros(self.n_slices + 1, dtype=np.int32)
         slice_positions_[1:] = (
