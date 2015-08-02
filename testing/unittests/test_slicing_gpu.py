@@ -1,6 +1,6 @@
 '''
-@date:   11/03/2015
-@author: Stefan Hegglin
+@date:   02/08/2015
+@author: Adrian Oeftiger
 '''
 
 from __future__ import division
@@ -18,6 +18,13 @@ import unittest
 import numpy as np
 from scipy.constants import c, e, m_p
 
+sys.path.append(os.path.expanduser('~/cern/git/PyPIC-experimental'))
+from PyPIC.meshing import UniformMesh1D
+
+from pycuda.autoinit import context
+from pycuda import gpuarray
+from pycuda import cumath
+
 import PyHEADTAIL.gpu
 
 from PyHEADTAIL.particles.particles import Particles
@@ -25,12 +32,6 @@ from PyHEADTAIL.gpu.slicing import MeshSlicer
 from PyHEADTAIL.general.printers import AccumulatorPrinter
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
-
-from PyPIC.meshing import UniformMesh1D
-
-from pycuda.autoinit import context
-from pycuda import gpuarray
-from pycuda import cumath
 
 def check_elements_equal(np_array1d):
     value = np_array1d[0]
@@ -75,15 +76,15 @@ class TestSlicing(unittest.TestCase):
         self.assertAlmostEqual(self.z_cuts[1], cut_head,
                                'get_long_cuts incorrect (head cut)')
 
-    def test_z_cuts_warning(self):
-        '''Tests whether a warning is raised whenever
-        z_cut_tail >= z_cut_head
-        '''
-        mesh = self.create_mesh(z_cuts=tuple(reversed(self.z_cuts)))
-        warnings = AccumulatorPrinter()
-        slicer = MeshSlicer(mesh, warningprinter=warnings)
-        self.assertTrue(len(warnings.log) > 0,
-                        'no warning generated when z_cut head < z_cut tail')
+    # def test_z_cuts_warning(self):
+    #     '''Tests whether a warning is raised whenever
+    #     z_cut_tail >= z_cut_head
+    #     '''
+    #     mesh = self.create_mesh(z_cuts=tuple(reversed(self.z_cuts)))
+    #     warnings = AccumulatorPrinter()
+    #     slicer = MeshSlicer(mesh, warningprinter=warnings)
+    #     self.assertTrue(len(warnings.log) > 0,
+    #                     'no warning generated when z_cut head < z_cut tail')
 
     def test_equality(self):
         '''Tests whether two slicers with the same config are equal
@@ -120,10 +121,7 @@ class TestSlicing(unittest.TestCase):
         z_min, z_max = -2., 2.
         bunch = self.create_bunch(zmin=z_min, zmax=z_max)
         z_cuts = (z_min-1, z_max+1)
-        mesh = UniformMesh1D(z_cuts[0],
-                             -np.diff(self.z_cuts)[0] / self.nslices,
-                             self.nslices,
-                             mathlib=cumath)
+        mesh = self.create_mesh(z_cuts=z_cuts)
         slice_set = MeshSlicer(mesh).slice(bunch)
         n_particles = gpuarray.sum(slice_set.n_macroparticles_per_slice).get()
         self.assertEqual(self.macroparticlenumber, n_particles,
@@ -133,7 +131,11 @@ class TestSlicing(unittest.TestCase):
         """ Tests whether any error gets thrown when calling the statistics
         functions of the slicer. Does not do any specific tests
         """
-        self.basic_slicer.add_statistics(self.basic_slice_set, self.bunch, True)
+        self.basic_slicer.add_statistics(
+            self.basic_slice_set, self.bunch, True,
+            self.basic_slice_set.lower_bounds,
+            self.basic_slice_set.upper_bounds
+        )
         self.basic_slice_set.mean_x
         # self.basic_slice_set.eff_epsn_y
 

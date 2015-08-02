@@ -59,14 +59,14 @@ class MeshSliceSet(def_slicing.SliceSet):
     this allows for the use of the GPU.
     '''
 
-    '''Lower boundary indices of the respective slice (determined by
-    the index within lower_bounds) within the particle attributes.
-    '''
-    lower_bounds = []
-    '''Upper boundary indices of the respective slice (determined by
-    the index within upper_bounds) within the particle attributes.
-    '''
-    upper_bounds = []
+    # '''Lower boundary indices of the respective slice (determined by
+    # the index within lower_bounds) within the particle attributes.
+    # '''
+    # lower_bounds = []
+    # '''Upper boundary indices of the respective slice (determined by
+    # the index within upper_bounds) within the particle attributes.
+    # '''
+    # upper_bounds = []
 
     def __init__(self, z_bins, slice_index_of_particle, mode, mesh,
                  n_macroparticles_per_slice=None, beam_parameters={}):
@@ -79,7 +79,11 @@ class MeshSliceSet(def_slicing.SliceSet):
         (e.g. beta being saved via beam_parameters['beta'] = beam.beta)
         beam_parameters contains lower_bounds and upper_bounds (see SlicerGPU).
         '''
-        super(PyPICSliceSet, self).__init__(
+        # # overwrite these afterwards via beam_parameters:
+        # delattr(MeshSliceSet, 'lower_bounds')
+        # delattr(MeshSliceSet, 'upper_bounds')
+
+        super(MeshSliceSet, self).__init__(
             z_bins=z_bins,
             slice_index_of_particle=slice_index_of_particle,
             mode=mode,
@@ -89,15 +93,6 @@ class MeshSliceSet(def_slicing.SliceSet):
 
         self.mesh = mesh
 
-        # the last entry of slice_positions needs to be n_slices,
-        # otherwise it has the same entries as lower_bounds
-        self.slice_positions = gpuarray.zeros(self.n_slices + 1,
-                                              dtype=self.lower_bounds.dtype)
-        self.slice_positions += self.n_slices
-        cuda.memcpy_dtod(self.slice_positions.gpudata,
-                         self.lower_bounds.gpudata,
-                         self.lower_bounds.nbytes)
-
     @property
     def z_cut_head(self):
         return self.z_bins[-1].get()
@@ -105,6 +100,22 @@ class MeshSliceSet(def_slicing.SliceSet):
     @property
     def z_cut_tail(self):
         return self.z_bins[0].get()
+
+    @property
+    def slice_positions(self):
+        '''Position of the respective slice start within the array
+        self.particle_indices_by_slice .
+        '''
+        if not hasattr(self, '_slice_positions'):
+            # the last entry of slice_positions needs to be n_slices,
+            # the other entries are the same as lower_bounds
+            self._slice_positions = gpuarray.zeros(
+                self.n_slices + 1, dtype=self.lower_bounds.dtype)
+            self._slice_positions += self.n_slices
+            cuda.memcpy_dtod(self._slice_positions.gpudata,
+                             self.lower_bounds.gpudata,
+                             self.lower_bounds.nbytes)
+        return self._slice_positions
 
     @property
     def n_macroparticles_per_slice(self):
@@ -247,13 +258,14 @@ class SlicerGPU(def_slicing.Slicer):
         sliceset_kwargs = self.compute_sliceset_kwargs(beam)
         slice_index_of_particle = sliceset_kwargs['slice_index_of_particle']
 
-        sorting_permutation = gpuarray.zeros(n_particles, dtype=np.int32)
+        sorting_permutation = gpuarray.zeros(beam.macroparticlenumber,
+                                             dtype=np.int32)
         # also resorts slice_index_of_particle:
         get_sort_perm_int(slice_index_of_particle, sorting_permutation)
         beam.reorder(sorting_permutation)
         del sorting_permutation
-        lower_bounds = gpuarray.empty(mesh.n_nodes, dtype=np.int32)
-        upper_bounds = gpuarray.empty(mesh.n_nodes, dtype=np.int32)
+        lower_bounds = gpuarray.empty(self.n_slices, dtype=np.int32)
+        upper_bounds = gpuarray.empty(self.n_slices, dtype=np.int32)
         seq = gpuarray.arange(self.n_slices, dtype=np.int32)
         lower_bound_int(slice_index_of_particle, seq, lower_bounds)
         upper_bound_int(slice_index_of_particle, seq, upper_bounds)
@@ -266,7 +278,7 @@ class SlicerGPU(def_slicing.Slicer):
             {'lower_bounds': lower_bounds, 'upper_bounds': upper_bounds}
         )
 
-        sliceset = SliceSet(**sliceset_kwargs)
+        sliceset = MeshSliceSet(**sliceset_kwargs)
 
         if 'statistics' in kwargs:
             self.add_statistics(sliceset, beam, kwargs['statistics'],
@@ -367,22 +379,26 @@ class SlicerGPU(def_slicing.Slicer):
 
     def _mean(self, sliceset, u, lower_bounds, upper_bounds):
         block = (256, 1, 1)
-        grid = (min(sliceset.n_slices // block[0], 1), 1, 1)
+        grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
         mean_u = gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
         sorted_mean_per_slice(lower_bounds.gpudata,
                               upper_bounds.gpudata,
                               u.gpudata,
                               self.n_slices,
-                              mean_u.gpudata)
+                              mean_u.gpudata,
+                              block=block, grid=grid)
         return mean_u
 
     def _sigma(self, sliceset, u, lower_bounds, upper_bounds):
-        cov_u = np.zeros(sliceset.n_slices)
+        block = (256, 1, 1)
+        grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
+        cov_u = gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
         sorted_cov_per_slice(lower_bounds.gpudata,
                              upper_bounds.gpudata,
                              u.gpudata,
                              self.n_slices,
-                             cov_u.gpudata)
+                             cov_u.gpudata,
+                             block=block, grid=grid)
         return cumath.sqrt(cov_u)
 
     # def _epsn(self, sliceset, u, up, dp):
@@ -405,26 +421,27 @@ class MeshSlicer(SlicerGPU):
         z_cuts are set according to the left and right node of the mesh.
         '''
         if isinstance(mesh, UniformMesh1D):
-            mode = 'uniform_bin'
+            self.mode = 'uniform_bin'
         else:
             raise NotImplementedError(
                 'beam.z is hard-coded in the MeshSlicer, other slicing '
                 'schemes than UniformMesh1D have to be implemented first.')
-        n_slices = mesh.n_nodes
-        n_sigma_z = None
-        z_cuts = None
-
+        self.n_slices = mesh.n_nodes
+        self.n_sigma_z = None
         self.mesh = mesh
-        self.config = (mode, n_slices, n_sigma_z, z_cuts)
 
-    def get_long_cuts(self, beam):
-        '''Return boundaries of slicing region defined by the PyPIC
-        mesh: (z_cut_tail, z_cut_head).
-        '''
+    @property
+    def z_cuts(self):
         mesh = self.mesh
         z_cuts = (mesh.origin[-1],
                   mesh.origin[-1] + mesh.shape_r[-1] * mesh.distances[-1])
         return z_cuts
+
+    def get_long_cuts(self, beam):
+        '''Return boundaries of slicing region defined by the PyPIC
+        mesh range, the tuple format being (z_cut_tail, z_cut_head).
+        '''
+        return self.z_cuts
 
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
