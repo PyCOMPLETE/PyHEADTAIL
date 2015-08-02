@@ -58,11 +58,11 @@ class TestSlicing(unittest.TestCase):
         self.bunch = self.create_bunch()
 
         #create a params for slicers
-        self.nslices = 5
+        self.nslices = 32
         self.z_cuts = (-20.,30.) #asymmetric to check uniform_charge_slicer
         self.n_sigma_z = 5
         self.mesh = self.create_mesh()
-        self.basic_slicer = MeshSlicer(self.mesh)
+        self.basic_slicer = MeshSlicer(self.mesh, context)
         self.basic_slice_set = self.basic_slicer.slice(self.bunch)
 
     def tearDown(self):
@@ -90,8 +90,8 @@ class TestSlicing(unittest.TestCase):
         '''Tests whether two slicers with the same config are equal
         in the sense of the == and != operator (calling __eq__, __ne__)
         '''
-        unif_bin_slicer = MeshSlicer(self.mesh)
-        unif_bin_slicer2 = MeshSlicer(self.mesh)
+        unif_bin_slicer = MeshSlicer(self.mesh, context)
+        unif_bin_slicer2 = MeshSlicer(self.mesh, context)
         self.assertTrue(unif_bin_slicer == unif_bin_slicer2,
                         'comparing two uniform bin slicers with '+
                         'identical config using == returns False')
@@ -103,8 +103,9 @@ class TestSlicing(unittest.TestCase):
         '''Tests whether two slicers with differing meshs are not equal
         in the sense of the == and != operator (calling __eq__, __ne__)
         '''
-        unif_bin_slicer = MeshSlicer(self.mesh)
-        unif_bin_slicer2 = MeshSlicer(self.create_mesh(nslices=self.nslices+1))
+        unif_bin_slicer = MeshSlicer(self.mesh, context)
+        unif_bin_slicer2 = MeshSlicer(self.create_mesh(nslices=self.nslices+1),
+                                      context)
         self.assertTrue(unif_bin_slicer != unif_bin_slicer2,
                         'comparing two uniform bin slicers with '+
                         'different config using != returns False')
@@ -122,7 +123,7 @@ class TestSlicing(unittest.TestCase):
         bunch = self.create_bunch(zmin=z_min, zmax=z_max)
         z_cuts = (z_min-1, z_max+1)
         mesh = self.create_mesh(z_cuts=z_cuts)
-        slice_set = MeshSlicer(mesh).slice(bunch)
+        slice_set = MeshSlicer(mesh, context).slice(bunch)
         n_particles = gpuarray.sum(slice_set.n_macroparticles_per_slice).get()
         self.assertEqual(self.macroparticlenumber, n_particles,
                          'the SliceSet lost/added some particles')

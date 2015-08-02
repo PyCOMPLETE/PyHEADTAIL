@@ -36,9 +36,19 @@ stats_kernels = SourceModule(source)
 sorted_mean_per_slice = stats_kernels.get_function('sorted_mean_per_slice')
 sorted_cov_per_slice = stats_kernels.get_function('sorted_cov_per_slice')
 
+with open(where + 'smoothing_kernels.cu') as stream:
+    source = stream.read()
+smoothing_kernels = SourceModule(source)
+
+uniform_smoothing = smoothing_kernels.get_function('smoothing_stencil_1d')
+gaussian_smoothing = smoothing_kernels.get_function('gauss_1sig_smoothing')
+
 # prepare calls to kernels!!!
 sorted_mean_per_slice.prepare('PPPIP')
 sorted_cov_per_slice.prepare('PPPIP')
+
+uniform_smoothing.prepare('PPi')
+gaussian_smoothing.prepare('PPi')
 
 
 slice_to_particles = ElementwiseKernel(
@@ -52,6 +62,7 @@ slice_to_particles = ElementwiseKernel(
 
 
 from PyPIC.meshing import UniformMesh1D
+from PyPIC.gradient.gradient import make_GPU_gradient
 
 
 class MeshSliceSet(def_slicing.SliceSet):
@@ -68,7 +79,7 @@ class MeshSliceSet(def_slicing.SliceSet):
     # '''
     # upper_bounds = []
 
-    def __init__(self, z_bins, slice_index_of_particle, mode, mesh,
+    def __init__(self, z_bins, slice_index_of_particle, mode, mesh, context,
                  n_macroparticles_per_slice=None, beam_parameters={}):
         '''Is intended to be created by the SlicerGPU factory method.
         A SliceSet is given a set of intervals defining the slicing
@@ -92,6 +103,8 @@ class MeshSliceSet(def_slicing.SliceSet):
         )
 
         self.mesh = mesh
+        self._context = context
+        self._gradient = make_GPU_gradient(mesh, context)
 
     @property
     def z_cut_head(self):
@@ -146,14 +159,23 @@ class MeshSliceSet(def_slicing.SliceSet):
     # particles are automatically sorted by slice affiliation!
     particle_indices_by_slice = particles_within_cuts
 
-    def lambda_bins(self, sigma=None, smoothen=True):
+    # for consequent and thorough implementation of all these
+    # derivations and interpolations below use 1D textures as in
+    # http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter20.html:
+
+    def lambda_bins(self, sigma=1, smoothen=True):
         '''Line charge density with respect to bins along the slices.'''
-        if sigma is None:
-            sigma = self.smoothing_sigma
+        if sigma is not 1:
+            raise NotImplementedError('Sigma != 1 for Gaussian smoothing not '
+                                      'implemented yet! Check out the file '
+                                      'smoothing_kernels.cu.')
         lambda_of_bins = self.n_macroparticles_per_slice * self.charge_per_mp
         if smoothen:
-            lambda_of_bins = ndimage.gaussian_filter1d(
-                lambda_of_bins, sigma=sigma, mode='wrap')
+            new = gpuarray.empty_like(lambda_of_bins)
+            gaussian_smoothing(lambda_of_bins, new,
+                               np.int32(len(lambda_of_bins)))
+            self._context.synchronize()
+            lambda_of_bins = new
         return lambda_of_bins
 
     def lambda_prime_bins(self, sigma=None, smoothen_before=True,
@@ -173,38 +195,45 @@ class MeshSliceSet(def_slicing.SliceSet):
                                       'numerical fluctuations because the ' +
                                       'charges have been distributed ' +
                                       'uniformly across the slices.')
-        if sigma is None:
-            sigma = self.smoothing_sigma
-        smoothen = partial(ndimage.gaussian_filter1d,
-                           sigma=sigma, mode='wrap')
+        if sigma is not 1:
+            raise NotImplementedError('Sigma != 1 for Gaussian smoothing not '
+                                      'implemented yet! Check out the file '
+                                      'smoothing_kernels.cu.')
         line_density = self.n_macroparticles_per_slice
         if smoothen_before:
-            line_density = smoothen(line_density)
-        # not compatible with uniform_charge:
-        # (perhaps use gaussian_filter1d for derivative!)
-        mp_density_derivative = np.gradient(line_density, self.slice_widths[0])
+            new = gpuarray.empty_like(line_density)
+            gaussian_smoothing(line_density, new, np.int32(len(line_density)))
+            self._context.synchronize()
+            line_density = new
+        mp_density_derivative = self._gradient(line_density)[0]
         if smoothen_after:
-            mp_density_derivative = smoothen(mp_density_derivative)
+            new = gpuarray.empty_like(mp_density_derivative)
+            gaussian_smoothing(mp_density_derivative, new,
+                               np.int32(len(mp_density_derivative)))
+            self._context.synchronize()
+            mp_density_derivative = new
         return mp_density_derivative * self.charge_per_mp
 
     def lambda_z(self, z, sigma=None, smoothen=True):
         '''Line charge density with respect to z along the slices.'''
-        lambda_along_bins = (self.lambda_bins(sigma, smoothen)
-                             / self.slice_widths)
-        tck = interpolate.splrep(self.z_centers, lambda_along_bins, s=0)
-        l_of_z = interpolate.splev(z, tck, der=0, ext=1)
-        return l_of_z
+        raise NotImplementedError('GPU splining needs to be implemented!')
+        # lambda_along_bins = (self.lambda_bins(sigma, smoothen)
+        #                      / self.slice_widths)
+        # tck = interpolate.splrep(self.z_centers, lambda_along_bins, s=0)
+        # l_of_z = interpolate.splev(z, tck, der=0, ext=1)
+        # return l_of_z
 
     def lambda_prime_z(self, z, sigma=None, smoothen_before=True,
                        smoothen_after=True):
         '''Line charge density derivative with respect to z along
         the slices.
         '''
-        lp_along_bins = self.lambda_prime_bins(
-            sigma, smoothen_before, smoothen_after) / self.slice_widths
-        tck = interpolate.splrep(self.z_centers, lp_along_bins, s=0)
-        lp_of_z = interpolate.splev(z, tck, der=0, ext=1)
-        return lp_of_z
+        raise NotImplementedError('GPU splining needs to be implemented!')
+        # lp_along_bins = self.lambda_prime_bins(
+        #     sigma, smoothen_before, smoothen_after) / self.slice_widths
+        # tck = interpolate.splrep(self.z_centers, lp_along_bins, s=0)
+        # lp_of_z = interpolate.splev(z, tck, der=0, ext=1)
+        # return lp_of_z
 
     def particle_indices_of_slice(self, slice_index):
         '''Return an array of particle indices which are located in the
@@ -415,7 +444,7 @@ class MeshSlicer(SlicerGPU):
     For GPU use.
     '''
 
-    def __init__(self, mesh, *args, **kwargs):
+    def __init__(self, mesh, context, *args, **kwargs):
         '''Set up a Slicer with the PyPIC mesh. It should be a 1D
         rectangular mesh (PyPIC.UniformMesh1D).
         z_cuts are set according to the left and right node of the mesh.
@@ -429,6 +458,7 @@ class MeshSlicer(SlicerGPU):
         self.n_slices = mesh.n_nodes
         self.n_sigma_z = None
         self.mesh = mesh
+        self._context = context
 
     @property
     def z_cuts(self):
@@ -459,4 +489,5 @@ class MeshSlicer(SlicerGPU):
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
                     mode=self.mode,
-                    mesh=self.mesh)
+                    mesh=self.mesh,
+                    context=self._context)
