@@ -25,13 +25,15 @@ __global__ void sorted_mean_per_slice(unsigned int* lower_bounds,
     {
         sum_u = 0;
         n_macroparticles = upper_bounds[sid] - lower_bounds[sid];
-        if (n_macroparticles == 0) mean_u[sid] = 0;
-
-        for (int pid = lower_bounds[sid]; pid < upper_bounds[sid]; pid++)
-        {
-            sum_u += u[pid];
+        if (n_macroparticles == 0) {
+            mean_u[sid] = 0;
+        } else {
+            for (int pid = lower_bounds[sid]; pid < upper_bounds[sid]; pid++)
+            {
+                sum_u += u[pid];
+            }
+            mean_u[sid] = sum_u / n_macroparticles;
         }
-        mean_u[sid] = sum_u / n_macroparticles;
     }
 }
 
@@ -62,20 +64,22 @@ __global__ void sorted_cov_per_slice(unsigned int* lower_bounds,
     {
         sum_u = 0;
         n_macroparticles = upper_bounds[sid] - lower_bounds[sid];
-        if (n_macroparticles == 0) cov_u[sid] = 0;
+        if (n_macroparticles <= 1) {
+            cov_u[sid] = 0;
+        } else {
+            for (int pid = lower_bounds[sid]; pid < upper_bounds[sid]; pid++)
+            {
+                sum_u += u[pid];
+            }
+            mean_u = sum_u / n_macroparticles;
 
-        for (int pid = lower_bounds[sid]; pid < upper_bounds[sid]; pid++)
-        {
-            sum_u += u[pid];
+            l_cov_u = 0;
+            for (int pid = lower_bounds[sid]; pid < upper_bounds[sid]; pid++)
+            {
+                du = u[pid] - mean_u;
+                l_cov_u += du * du;
+            }
+            cov_u[sid] = l_cov_u / (n_macroparticles - 1);
         }
-        mean_u = sum_u / n_macroparticles;
-
-        l_cov_u = 0;
-        for (int pid = lower_bounds[sid]; pid < upper_bounds[sid]; pid++)
-        {
-            du = u[pid] - mean_u;
-            l_cov_u += du * du;
-        }
-        cov_u[sid] = l_cov_u / (n_macroparticles - 1);
     }
 }
