@@ -195,7 +195,7 @@ class SliceSet(Printing):
         lambda_of_bins = self.n_macroparticles_per_slice * self.charge_per_mp
         if smoothen:
             lambda_of_bins = ndimage.gaussian_filter1d(
-                lambda_of_bins, sigma=sigma, mode='wrap')
+                lambda_of_bins, sigma=sigma, mode='nearest')
         return lambda_of_bins
 
     def lambda_prime_bins(self, sigma=None, smoothen_before=True,

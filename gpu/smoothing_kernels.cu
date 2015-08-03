@@ -49,6 +49,7 @@ __global__ void smoothing_stencil_1d(double *in, double *out, int length)
    out[gindex] = result * WEIGHT;
 }
 
+
 __constant__ double w4 = 0.0001338306246147;
 __constant__ double w3 = 0.0044318616200313;
 __constant__ double w2 = 0.0539911274207044;

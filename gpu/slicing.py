@@ -49,7 +49,8 @@ sorted_mean_per_slice.prepare('PPPIP')
 sorted_cov_per_slice.prepare('PPPIP')
 
 # for both smoothing kernels, the launched threads need to cover the slices exactly!
-# uniform_smoothing.prepare('PPi') # block size block=(256, 1, 1) is fixed!
+# block size block=(32, 1, 1) is fixed!
+# uniform_smoothing.prepare('PPi')
 gaussian_smoothing.prepare('PPi')
 
 
@@ -110,11 +111,11 @@ class MeshSliceSet(def_slicing.SliceSet):
 
     @property
     def z_cut_head(self):
-        return self.z_bins[-1].get()
+        return float(self.z_bins[-1].get())
 
     @property
     def z_cut_tail(self):
-        return self.z_bins[0].get()
+        return float(self.z_bins[0].get())
 
     @property
     def slice_positions(self):
@@ -174,10 +175,10 @@ class MeshSliceSet(def_slicing.SliceSet):
         lambda_of_bins = self.n_macroparticles_per_slice * self.charge_per_mp
         if smoothen:
             new = gpuarray.empty_like(lambda_of_bins)
-            block = (min(256, self.n_slices), 1, 1)
+            block = (min(32, self.n_slices), 1, 1)
             grid = ((self.n_slices + block[0] - 1) // block[0], 1, 1)
             gaussian_smoothing.prepared_call(
-                block, grid,
+                grid, block,
                 lambda_of_bins.gpudata, new.gpudata,
                 np.int32(len(lambda_of_bins))
             )
@@ -206,13 +207,13 @@ class MeshSliceSet(def_slicing.SliceSet):
             raise NotImplementedError('Sigma != 1 for Gaussian smoothing not '
                                       'implemented yet! Check out the file '
                                       'smoothing_kernels.cu.')
-        line_density = self.n_macroparticles_per_slice
+        line_density = self.n_macroparticles_per_slice.astype(np.float64)
         if smoothen_before:
             new = gpuarray.empty_like(line_density)
-            block = (min(256, self.n_slices), 1, 1)
+            block = (min(32, self.n_slices), 1, 1)
             grid = ((self.n_slices + block[0] - 1) // block[0], 1, 1)
             gaussian_smoothing.prepared_call(
-                block, grid,
+                grid, block,
                 line_density.gpudata, new.gpudata,
                 np.int32(len(line_density))
             )
@@ -221,10 +222,10 @@ class MeshSliceSet(def_slicing.SliceSet):
         mp_density_derivative = self._gradient(line_density)[0][0]
         if smoothen_after:
             new = gpuarray.empty_like(mp_density_derivative)
-            block = (min(256, self.n_slices), 1, 1)
+            block = (min(32, self.n_slices), 1, 1)
             grid = ((self.n_slices + block[0] - 1) // block[0], 1, 1)
             gaussian_smoothing.prepared_call(
-                block, grid,
+                grid, block,
                 mp_density_derivative.gpudata, new.gpudata,
                 np.int32(len(mp_density_derivative))
             )
