@@ -42,7 +42,7 @@ smoothing_kernels = SourceModule(source)
 
 # uniform_smoothing does not work yet with several blocks launched!
 # uniform_smoothing = smoothing_kernels.get_function('smoothing_stencil_1d')
-gaussian_smoothing = smoothing_kernels.get_function('gauss_1sig_smoothing')
+gaussian_smoothing = smoothing_kernels.get_function('gaussian_smoothing_1d')
 
 # prepare calls to kernels!!!
 sorted_mean_per_slice.prepare('PPPIP')

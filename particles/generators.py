@@ -99,7 +99,6 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
         setattr(beam, direction[0], space_coords)
         setattr(beam, direction[1], momentum_coords)
 
-
     return _transverse_linear_matcher
 
 
@@ -119,7 +118,7 @@ def longitudinal_linear_matcher(Qs, eta, C):
     '''
     beta_z = np.abs(eta) * C / (2. * np.pi * Qs)
     internal_transverse_matcher = transverse_linear_matcher(alpha=0.,
-                                                             beta=beta_z)
+                                                            beta=beta_z)
 
     def _longitudinal_linear_matcher(beam, *args, **kwargs):
         '''Match the beam to the specified parameters:
@@ -138,7 +137,7 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None):
     Specify only one of sigma_z, epsn_z
     Args:
         rfbucket: An object of type RFBucket
-        sigma_z:target std
+        sigma_z: target std
         epsn_z: target normalized emittance in z-direction
     Returns:
         A matcher with the specified bucket properties (closure)
@@ -147,10 +146,10 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None):
     '''
     rf_bucket_matcher_impl = RFBucketMatcher(rfbucket, StationaryExponential,
                                              sigma_z=sigma_z, epsn_z=epsn_z)
-    def _RF_bucket_matcher(n_particles):
+    def _RF_bucket_dist(n_particles):
         z, dp, _, _ = rf_bucket_matcher_impl.generate(n_particles)
         return [z, dp]
-    return _RF_bucket_matcher
+    return _RF_bucket_dist
 
 def cut_distribution(distribution, is_accepted):
     """ Generate coordinates according to some distribution inside the region

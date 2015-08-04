@@ -218,7 +218,7 @@ class SliceSet(Printing):
         if sigma is None:
             sigma = self.smoothing_sigma
         smoothen = partial(ndimage.gaussian_filter1d,
-                           sigma=sigma, mode='wrap')
+                           sigma=sigma, mode='nearest')
         line_density = self.n_macroparticles_per_slice
         if smoothen_before:
             line_density = smoothen(line_density)

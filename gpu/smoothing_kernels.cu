@@ -50,51 +50,83 @@ __global__ void smoothing_stencil_1d(double *in, double *out, int length)
 }
 
 
-__constant__ double w4 = 0.0001338306246147;
-__constant__ double w3 = 0.0044318616200313;
-__constant__ double w2 = 0.0539911274207044;
-__constant__ double w1 = 0.2419714456566007;
-__constant__ double w0 = 0.3989434693560978;
+#define W4 0.0001338306246147
+#define W3 0.0044318616200313
+#define W2 0.0539911274207044
+#define W1 0.2419714456566007
+#define W0 0.3989434693560978
 
-__global__ void gauss_1sig_smoothing(double *in, double *out, int length)
+// __device__ __constant__ double GAUSSIAN_SMOOTHING_WEIGHT[] =
+//   {
+//     0.0001338306246147,
+//     0.0044318616200313,
+//     0.0539911274207044,
+//     0.2419714456566007,
+//     0.3989434693560978,
+//     0.2419714456566007,
+//     0.0539911274207044,
+//     0.0044318616200313,
+//     0.0001338306246147,
+//   };
+
+#define GAUSSIAN_FILTER_RADIUS 4
+#define GAUSSIAN_BLOCK_SIZE       32
+
+// template<int GAUSSIAN_FILTER_RADIUS, int GAUSSIAN_BLOCK_SIZE>
+__global__ void gaussian_smoothing_1d(double *in, double *out, int length)
 {
-   __shared__ double temp[BLOCK_SIZE + 8];
+  // needs length GAUSSIAN_BLOCK_SIZE + 2*GAUSSIAN_FILTER_RADIUS
+  __shared__ double temp[GAUSSIAN_BLOCK_SIZE + 2*GAUSSIAN_FILTER_RADIUS];
+  int lindex, offset;
 
-   int gindex = threadIdx.x + blockIdx.x * blockDim.x;
-   int lindex = threadIdx.x + 4;
+  for (int gindex = blockIdx.x * blockDim.x + threadIdx.x;
+       gindex < length;
+       gindex += blockDim.x * gridDim.x)
+  {
+    lindex = threadIdx.x + GAUSSIAN_FILTER_RADIUS;
 
-   temp[lindex] = in[gindex];
+    temp[lindex] = in[gindex];
 
-   if (threadIdx.x < 4) {
+    if (threadIdx.x < GAUSSIAN_FILTER_RADIUS) {
       // local edge handling
 
       // left
-      if (gindex < 4) {
-         // local edge is global edge
-         temp[lindex - 4] = in[0];
+      if (gindex < GAUSSIAN_FILTER_RADIUS) {
+        // local edge is global edge
+        temp[lindex - GAUSSIAN_FILTER_RADIUS] = in[0];
       } else {
-         temp[lindex - 4] = in[gindex - 4];
+        temp[lindex - GAUSSIAN_FILTER_RADIUS] =
+            in[gindex - GAUSSIAN_FILTER_RADIUS];
       }
 
       //right
-      if (gindex >= length - BLOCK_SIZE) {
-         // local edge is global edge
-         temp[lindex + BLOCK_SIZE] = in[length - 1];
+      if (gindex >= length - GAUSSIAN_BLOCK_SIZE) {
+        // local edge is global edge
+        temp[lindex + GAUSSIAN_BLOCK_SIZE] = in[length - 1];
       } else {
-         temp[lindex + BLOCK_SIZE] = in[gindex + BLOCK_SIZE];
+        temp[lindex + GAUSSIAN_BLOCK_SIZE] = in[gindex + GAUSSIAN_BLOCK_SIZE];
       }
-   }
+    }
 
-   __syncthreads();
+    __syncthreads();
 
-   out[gindex] =   temp[lindex - 4] * w4
-                 + temp[lindex - 3] * w3
-                 + temp[lindex - 2] * w2
-                 + temp[lindex - 1] * w1
-                 + temp[lindex]     * w0
-                 + temp[lindex + 1] * w1
-                 + temp[lindex + 2] * w2
-                 + temp[lindex + 3] * w3
-                 + temp[lindex + 4] * w4;
+    out[gindex] =   temp[lindex - 4] * W4
+                  + temp[lindex - 3] * W3
+                  + temp[lindex - 2] * W2
+                  + temp[lindex - 1] * W1
+                  + temp[lindex]     * W0
+                  + temp[lindex + 1] * W1
+                  + temp[lindex + 2] * W2
+                  + temp[lindex + 3] * W3
+                  + temp[lindex + 4] * W4;
 
+
+    // for (offset = lindex - GAUSSIAN_FILTER_RADIUS;
+    //      offset <= lindex + GAUSSIAN_FILTER_RADIUS;
+    //      offset++)
+    // {
+    //   out[gindex] += temp[offset] *
+    //                  GAUSSIAN_SMOOTHING_WEIGHT[offset + GAUSSIAN_FILTER_RADIUS - lindex];
+    // }
+  }
 }
