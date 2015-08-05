@@ -1,3 +1,6 @@
+from .. import Element
+from .. import __version__
+
 # monkey patching default classes with GPU variants
 # is done on importing this module!
 
@@ -9,6 +12,7 @@ from pycuda import cumath
 from ..particles import particles as def_particles
 from ..particles import slicing as def_slicing
 from ..trackers import simple_long_tracking as def_simple_long_tracking
+from ..trackers import wrapper as def_wrapper
 
 # II. actual monkey patching
 
@@ -33,3 +37,7 @@ from .slicing import SlicerGPU
 
 # c) Longitudinal tracker rebindings for GPU
 def_simple_long_tracking.sin = cumath.sin
+
+# d) Wrapper rebindings for GPU
+from .wrapper import LongWrapperGPU
+def_wrapper.LongWrapper = LongWrapperGPU
