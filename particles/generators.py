@@ -131,7 +131,7 @@ def longitudinal_linear_matcher(Qs, eta, C):
         internal_transverse_matcher(beam, direction=['z', 'dp'])
     return _longitudinal_linear_matcher
 
-def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None):
+def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None, margin=0):
     '''Return a distribution function which generates particles
     which are matched to the specified bucket and target emittance or std
     Specify only one of sigma_z, epsn_z
@@ -139,6 +139,8 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None):
         rfbucket: An object of type RFBucket
         sigma_z: target std
         epsn_z: target normalized emittance in z-direction
+        margin: relative margin from the separatrix towards the
+            inner stable fix point in which particles are avoided
     Returns:
         A matcher with the specified bucket properties (closure)
     Raises:
@@ -147,7 +149,7 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None):
     rf_bucket_matcher_impl = RFBucketMatcher(rfbucket, StationaryExponential,
                                              sigma_z=sigma_z, epsn_z=epsn_z)
     def _RF_bucket_dist(n_particles):
-        z, dp, _, _ = rf_bucket_matcher_impl.generate(n_particles)
+        z, dp, _, _ = rf_bucket_matcher_impl.generate(n_particles, margin)
         return [z, dp]
     return _RF_bucket_dist
 
@@ -487,7 +489,7 @@ class RFBucketMatcher(Printing):
 
         return 2*L
 
-    def generate(self, macroparticlenumber):
+    def generate(self, macroparticlenumber, cutting_margin=0):
         '''Generate a 2d phase space of n_particles particles randomly distributed
         according to the particle distribution function psi within the region
         [xmin, xmax, ymin, ymax].
@@ -497,21 +499,34 @@ class RFBucketMatcher(Printing):
         xmin, xmax = self.rfbucket.zleft, self.rfbucket.zright
         ymin = -self.rfbucket.dp_max(self.rfbucket.zright)
         ymax = -ymin
-        lx = (xmax - xmin)
-        ly = (ymax - ymin)
 
+        # rejection sampling
         uniform = np.random.uniform
         n_gen = macroparticlenumber
-        u = xmin + lx * uniform(size=n_gen)
-        v = ymin + ly * uniform(size=n_gen)
+        u = uniform(low=xmin, high=xmax, size=n_gen)
+        v = uniform(low=ymin, high=ymax, size=n_gen)
         s = uniform(size=n_gen)
-        mask_out = ~(s<self.psi(u, v))
-        while mask_out.any():
-            n_gen = np.sum(mask_out)
-            u[mask_out] = xmin + lx * uniform(size=n_gen)
-            v[mask_out] = ymin + ly * uniform(size=n_gen)
-            s[mask_out] = uniform(size=n_gen)
-            mask_out = ~(s<self.psi(u, v))
+
+        def mask_out(s, psi_uv):
+            return s >= psi_uv
+
+        if cutting_margin:
+            mask_out_nocut = mask_out
+            def mask_out(s, psi_uv):
+                return np.logical_or(
+                    mask_out_nocut(s, psi_uv),
+                    ~self.rfbucket.is_in_separatrix(u, v, cutting_margin)
+                )
+
+        # masked_out = ~(s<self.psi(u, v))
+        masked_out = mask_out(s, self.psi(u, v))
+        while masked_out.any():
+            n_gen = np.sum(masked_out)
+            u[masked_out] = uniform(low=xmin, high=xmax, size=n_gen)
+            v[masked_out] = uniform(low=ymin, high=ymax, size=n_gen)
+            s[masked_out] = uniform(size=n_gen)
+            # masked_out = ~(s<self.psi(u, v))
+            masked_out = mask_out(s, self.psi(u, v))
             # self.prints('regenerating '+str(n_gen)+' macroparticles...')
 
         return u, v, self.psi, self.linedensity
