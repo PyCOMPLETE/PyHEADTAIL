@@ -10,9 +10,13 @@ import numpy as np
 
 from particles import Particles
 from ..trackers.rf_bucket import RFBucket
+
 from scipy.optimize import brentq, brenth, bisect, newton
+
 from ..cobra_functions.pdf_integrators_2d import quad2d
+
 from . import Printing
+
 from functools import partial
 from scipy.constants import e, m_p, c
 
@@ -386,13 +390,15 @@ def kv4D(r_x, r_xp, r_y, r_yp):
 
 class RFBucketMatcher(Printing):
 
-    def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None):
+    def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None,
+                 verbose_regeneration=False):
 
         self.rfbucket = rfbucket
         hamiltonian = partial(rfbucket.hamiltonian, make_convex=True)
         hmax = rfbucket.h_sfp(make_convex=True)
         self.psi_object = psi(hamiltonian, hmax)
         self.psi = self.psi_object.function
+        self.verbose_regeneration = verbose_regeneration
         if sigma_z and not epsn_z:
             self.variable = sigma_z
             self.psi_for_variable = self.psi_for_bunchlength_newton_method
@@ -507,27 +513,32 @@ class RFBucketMatcher(Printing):
         v = uniform(low=ymin, high=ymax, size=n_gen)
         s = uniform(size=n_gen)
 
-        def mask_out(s, psi_uv):
-            return s >= psi_uv
+        def mask_out(s, u, v):
+            return s >= self.psi(u, v)
 
         if cutting_margin:
             mask_out_nocut = mask_out
-            def mask_out(s, psi_uv):
+            def mask_out(s, u, v):
                 return np.logical_or(
-                    mask_out_nocut(s, psi_uv),
+                    mask_out_nocut(s, u, v),
                     ~self.rfbucket.is_in_separatrix(u, v, cutting_margin)
                 )
 
         # masked_out = ~(s<self.psi(u, v))
-        masked_out = mask_out(s, self.psi(u, v))
-        while masked_out.any():
-            n_gen = np.sum(masked_out)
+        masked_out = mask_out(s, u, v)
+        while np.any(masked_out):
+            masked_ids = np.where(masked_out)[0]
+            n_gen = len(masked_ids)
             u[masked_out] = uniform(low=xmin, high=xmax, size=n_gen)
             v[masked_out] = uniform(low=ymin, high=ymax, size=n_gen)
             s[masked_out] = uniform(size=n_gen)
             # masked_out = ~(s<self.psi(u, v))
-            masked_out = mask_out(s, self.psi(u, v))
-            # self.prints('regenerating '+str(n_gen)+' macroparticles...')
+            masked_out[masked_ids] = mask_out(
+                s[masked_out], u[masked_out], v[masked_out]
+            )
+            if self.verbose_regeneration:
+                self.prints('Thou shalt not give up! :-) '
+                            'Regenerating {0} macro-particles...'.format(n_gen))
 
         return u, v, self.psi, self.linedensity
 
