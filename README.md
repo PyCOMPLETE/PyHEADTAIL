@@ -34,3 +34,11 @@ In [1]: import PyHEADTAIL
 
 PyHEADTAIL v1.4.0-0-g8422af8081
 
+
+-------------------------------------------------------------------------------
+
+Please use the pre-push script 'pre-push.py' if you want to contribute
+to the repository. It only lets you push to the develop and master branch if
+no unit tests fail.
+
+To install (creates a symlink): ln -s ../../pre-push.py .git/hooks/pre-push

@@ -26,7 +26,7 @@ test_list = [TestSlicing,
              TestSimpleLongTracking,
              TestListProxy,
              TestDetuner,
-             #TestAutoRun, #uncomment to run full test suite (~ 1 min)
+             TestAutoRun, #uncomment to run full test suite (~ 1 min)
              TestTransverseTracking,
              TestCobra]
 
