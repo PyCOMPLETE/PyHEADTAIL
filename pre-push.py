@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # pre-commit hook
-# ensure that unit tests are ok if you commit to develop or master
+# ensure that unit tests are ok if you push to develop or master
 # @author Stefan Hegglin
 
 import subprocess as sbp
@@ -16,7 +16,7 @@ fn_testsuite = git_dir + '/testing/unittests/testsuite.py'
 if branch == 'master' or branch == 'develop':
     print('')
     print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-    print('You are trying to commit to the master or develop branch.')
+    print('You are trying to push to the master or develop branch.')
     print('Checking unit tests first...')
     print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
     print('')
