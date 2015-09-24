@@ -36,9 +36,8 @@ class TestParticleGenerators(unittest.TestCase):
         self.generator = gf.ParticleGenerator(
             self.nparticles, self.intensity,
             self.charge, self.mass, self.circumference, self.gamma,
-            distribution_x=gf.gaussian2D(0.5),
-            distribution_z=gf.gaussian2D(3.0),
-            linear_matcher_x=gf.transverse_linear_matcher(alpha=-0.7, beta=4, dispersion=0))
+            distribution_x=gf.gaussian2D(0.5),alpha_x=-0.7, beta_x=4, D_x=0,
+            distribution_z=gf.gaussian2D(3.0))
         self.beam = self.generator.generate()
 
     def tearDown(self):

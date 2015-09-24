@@ -33,19 +33,19 @@ def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
     eps_geo_x = epsn_x/(beta*gamma)
     eps_geo_y = epsn_y/(beta*gamma)
     eps_geo_z = epsn_z * e / (4. * np.pi * p0)
-    return ParticleGenerator(macroparticlenumber=macroparticlenumber,
-                             intensity=intensity, charge=charge, mass=mass,
-                             circumference=circumference, gamma=gamma,
-                             distribution_x=gaussian2D(eps_geo_x),
-                             distribution_y=gaussian2D(eps_geo_y),
-                             distribution_z=gaussian2D(eps_geo_z),
-                             linear_matcher_x=transverse_linear_matcher(
-                                 alpha_x, beta_x, dispersion_x),
-                             linear_matcher_y=transverse_linear_matcher(
-                                 alpha_y, beta_y, dispersion_y),
-                             linear_matcher_z=transverse_linear_matcher(
-                                 alpha=0., beta=beta_z)
-                             ).generate()
+    # a bit of a hack: epsn_z is a parameter even though the ParticleGenerator
+    # does not have such a parameter. This is kept for backwards compatiblity.
+    # Therefore, some fake eta, Qs parameters are invented s.t.
+    # beta_z = |eta| * circumference / (2 * pi * Qs)
+    # holds (circumference is fixed). Does not have any side effects.
+    Qs = 1./(2 * np.pi)
+    eta = beta_z / circumference
+    return ParticleGenerator(
+        macroparticlenumber, intensity, charge, mass, circumference, gamma,
+        gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
+        gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
+        gaussian2D(eps_geo_z), Qs, eta
+        ).generate()
 
 
 def transverse_linear_matcher(alpha, beta, dispersion=None):
@@ -76,10 +76,7 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
                        the momentum coordinate. e.g. ['x', 'xp']
         Returns:
             Nothing, transforms coords dictionary in place
-        Raises:
-            KeyError: If dispersion!=None and coords['dp] doesn't exist
         '''
-        #match TODO check if formula correct
         space_coords = getattr(beam, direction[0])
         space_coords_copy = space_coords.copy()
         momentum_coords = getattr(beam, direction[1])
@@ -95,7 +92,6 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
                 print ('Dispersion in the transverse phase space depends on' +
                        'dp, however no longitudinal phase space was specified. '+
                        'No matching performed')
-                raise
         setattr(beam, direction[0], space_coords)
         setattr(beam, direction[1], momentum_coords)
 
@@ -189,23 +185,35 @@ class ParticleGenerator(Printing):
     specified by the parameters in the initializer.
     The Particle instance can be generated via the .generate() method
     '''
-    def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma, distribution_x=None,
-                 distribution_y=None, distribution_z=None,
-                 linear_matcher_x=None, linear_matcher_y=None,
-                 linear_matcher_z=None):
+    def __init__(self ,macroparticlenumber, intensity, charge, mass,
+                 circumference, gamma,
+                 distribution_x=None, alpha_x=0., beta_x=1., D_x=None,
+                 distribution_y=None, alpha_y=0., beta_y=1., D_y=None,
+                 distribution_z=None, Qs=None, eta=None):
         '''
         Specify the distribution for each phase space seperately. Only
         the phase spaces for which a distribution has been specified
         will be generated.
+        The transverse phase space can be matched by specifying the Twiss
+        parameters alpha and/or beta. The dispersion will be take into
+        account after the beam has been matched longitudinally (if matched).
+        The longitudinal phase space will only get matched
+        if both Qs and eta are specified.
         Args:
             distribution_[x,y,z]: a function which takes the n_particles
                 as a parameter and returns a list-like object containing
                 a 2D phase space. result[0] should stand for the spatial,
                 result[1] for the momentum coordinate
-            linear_matcher_[x,y,z]: a function which takes a Particles object
-                and a direction (ie. ['x', 'xp'], ['y, 'yp'], ['z', 'dp'])
-                and transforms the specified beams coordinates
+            alpha_[x,y]: Twiss parameter. The corresponding transverse phase
+                space gets matched to (alpha_[], beta_[])
+            beta_[x,y]: Twiss parameter. The corresponding transverse phase
+                space gets matched to (alpha_[], beta_[])
+            D_[x,y]: Dispersion. Only valid in combination with a longitudinal
+                phase space.
+            Qs: Synchrotron tune. If Qs and eta are specified the
+                longitudinal phase space gets matched to these parameters.
+            eta: Slippage factor (zeroth order).If Qs and eta are specified
+                the longitudinal phase space gets matched to these parameters.
         '''
         self.macroparticlenumber = macroparticlenumber
         self.intensity = intensity
@@ -213,13 +221,20 @@ class ParticleGenerator(Printing):
         self.mass = mass
         self.circumference = circumference
         self.gamma = gamma
-        # bind the generator and methods
+        # bind the generator methods and parameters for the matching
         self.distribution_x = distribution_x
         self.distribution_y = distribution_y
         self.distribution_z = distribution_z
-        self.linear_matcher_x = linear_matcher_x
-        self.linear_matcher_y = linear_matcher_y
-        self.linear_matcher_z = linear_matcher_z
+
+        # bind the matching methods with the correct parameters
+        if Qs is not None and eta is not None: #match longitudinally iff
+            self.linear_matcher_z = longitudinal_linear_matcher(Qs, eta,
+                                                                circumference)
+        else:
+            self.linear_matcher_z = None
+        self.linear_matcher_x = transverse_linear_matcher(alpha_x, beta_x, D_x)
+        self.linear_matcher_y = transverse_linear_matcher(alpha_y, beta_y, D_y)
+
 
     def generate(self):
         ''' Returns a particle  object with the parameters specified
@@ -245,18 +260,17 @@ class ParticleGenerator(Printing):
 
     def _create_phase_space(self):
         coords = {}
-        if self.distribution_x:
+        if self.distribution_x is not None:
             x_phase_space = self.distribution_x(self.macroparticlenumber)
             coords.update({'x': np.ascontiguousarray(x_phase_space[0]),
                            'xp': np.ascontiguousarray(x_phase_space[1])})
             assert len(coords['x']) == len(coords['xp'])
-
-        if self.distribution_y:
+        if self.distribution_y is not None:
             y_phase_space = self.distribution_y(self.macroparticlenumber)
             coords.update({'y': np.ascontiguousarray(y_phase_space[0]),
                            'yp': np.ascontiguousarray(y_phase_space[1])})
             assert len(coords['y']) == len(coords['yp'])
-        if self.distribution_z:
+        if self.distribution_z is not None:
             z_phase_space = self.distribution_z(self.macroparticlenumber)
             coords.update({'z': np.ascontiguousarray(z_phase_space[0]),
                            'dp': np.ascontiguousarray(z_phase_space[1])})
@@ -267,12 +281,13 @@ class ParticleGenerator(Printing):
     def _linear_match_phase_space(self, beam):
         #NOTE: keep this ordering (z as first, as x,y dispersion effects
         #depend on the dp coordinate!
-        if self.linear_matcher_z:
+        if self.linear_matcher_z is not None:
             self.linear_matcher_z(beam, ['z', 'dp'])
-        if self.linear_matcher_x:
+        if self.distribution_x is not None:
             self.linear_matcher_x(beam, ['x', 'xp'])
-        if self.linear_matcher_y:
+        if self.distribution_y is not None:
             self.linear_matcher_y(beam, ['y', 'yp'])
+
 
 def import_distribution2D(coords):
     '''Return a closure which generates the phase space specified
