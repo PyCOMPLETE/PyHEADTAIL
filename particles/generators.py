@@ -185,7 +185,7 @@ class ParticleGenerator(Printing):
     specified by the parameters in the initializer.
     The Particle instance can be generated via the .generate() method
     '''
-    def __init__(self ,macroparticlenumber, intensity, charge, mass,
+    def __init__(self, macroparticlenumber, intensity, charge, mass,
                  circumference, gamma,
                  distribution_x=None, alpha_x=0., beta_x=1., D_x=None,
                  distribution_y=None, alpha_y=0., beta_y=1., D_y=None,
