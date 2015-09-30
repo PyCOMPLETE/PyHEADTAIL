@@ -23,9 +23,10 @@ from PyHEADTAIL.general.printers import AccumulatorPrinter
 # try to import pycuda, if not available --> skip this test file
 try:
     import pycuda.autoinit
-    has_pycuda = True
 except ImportError:
     has_pycuda = False
+else:
+    has_pycuda = True
 
 @unittest.skipUnless(has_pycuda, 'pycuda not found, skipping')
 class TestGPUInterface(unittest.TestCase):
