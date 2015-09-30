@@ -4,8 +4,12 @@ Context manager classes
 @data 30.09.2015
 '''
 import numpy as np
-import pycuda.gpuarray as gpuarray
-import pycuda
+try:
+    import pycuda.gpuarray as gpuarray
+    import pycuda
+except ImportError:
+    print('pycuda not found, GPU context unavailable')
+
 
 class Context(object):
     '''

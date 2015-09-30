@@ -19,6 +19,7 @@ from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.general.printers import AccumulatorPrinter
+from PyHEADTAIL.general.contextmanager import GPU
 
 # try to import pycuda, if not available --> skip this test file
 try:
@@ -42,8 +43,16 @@ class TestGPUInterface(unittest.TestCase):
         pass
 
     def test_if_beam_is_numpy(self):
+        '''
+        Check if beam.x is a numpy array before and after the with statement
+        '''
         self.assertTrue(self.check_if_npndarray(),
             msg='beam.x is not of type np.ndarray')
+        with GPU(self.bunch) as device:
+            foo = 1
+        self.assertTrue(self.check_if_npndarray(),
+            msg='beam.x is not of type np.ndarray')
+
 
     def check_if_npndarray(self):
         '''
