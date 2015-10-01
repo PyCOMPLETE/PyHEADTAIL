@@ -20,7 +20,9 @@ from scipy.constants import c, e, m_p
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.general.printers import AccumulatorPrinter
 from PyHEADTAIL.general.contextmanager import GPU
-
+import PyHEADTAIL.trackers.transverse_tracking as tt
+import PyHEADTAIL.trackers.simple_long_tracking as lt
+from PyHEADTAIL.trackers.detuners import AmplitudeDetuning
 # try to import pycuda, if not available --> skip this test file
 try:
     import pycuda.autoinit
@@ -37,29 +39,143 @@ class TestGPUInterface(unittest.TestCase):
     (see the unittest.skipUnless decorator)
     '''
     def setUp(self):
-        self.bunch = self.create_all1_bunch()
+        # machine parameters / optics
+        self.circumference = 17.1
+        self.nsegments = 4
+        self.s = np.linspace(0., self.circumference, self.nsegments+1)
+        self.alpha_x = np.linspace(-1.51, 1.52, self.nsegments)
+        self.alpha_y = self.alpha_x.copy()
+        self.beta_x = np.linspace(0.1, 10., self.nsegments)
+        self.beta_y = self.beta_x.copy() + 1.
+        self.Qx = 17.89
+        self.Qy = 19.11
+        self.Dx = 100*np.ones(len(self.alpha_x)) # or len(self.s)?
+        self.Dy = self.Dx.copy() - self.beta_y*10
+        self.Qs = 0.1
+
+        self.gamma = 15.
+        self.h1 = 1
+        self.h2 = 2
+        self.V1 = 8e3
+        self.V2 = 0
+        self.dphi1 = 0
+        self.dphi2 = np.pi
+
 
     def tearDown(self):
         pass
+
 
     def test_if_beam_is_numpy(self):
         '''
         Check if beam.x is a numpy array before and after the with statement
         '''
-        self.assertTrue(self.check_if_npndarray(),
+        bunch = self.create_all1_bunch()
+        self.assertTrue(self.check_if_npndarray(bunch),
             msg='beam.x is not of type np.ndarray')
-        with GPU(self.bunch) as device:
+        with GPU(bunch) as device:
             foo = 1
-        self.assertTrue(self.check_if_npndarray(),
+        self.assertTrue(self.check_if_npndarray(bunch),
             msg='beam.x is not of type np.ndarray')
 
 
-    def check_if_npndarray(self):
+    def test_transverse_track_no_detuning(self):
+        '''
+        Track the GPU bunch through a TransverseMap with no detuning
+        Check if results on CPU and GPU are the same
+        '''
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        transverse_map = tt.TransverseMap(
+            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy)
+        self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
+            bunch_gpu), 'Transverse tracking w/o detuning CPU/GPU differs')
+
+
+    def test_transverse_track_with_detuning(self):
+        '''
+        Track the GPU bunch through a TransverseMap with detuning
+        Check if results on CPU and GPU are the same
+        '''
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        adetuner = AmplitudeDetuning(1e-2, 5e-2, 1e-3)
+        transverse_map = tt.TransverseMap(
+            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
+            adetuner)
+        self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
+            bunch_gpu), 'Transverse tracking with detuning CPU/GPU differs')
+
+
+    def test_longitudinal_linear_map(self):
+        '''
+        Track through a LinearMap and compare CPU/GPU versions
+        '''
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        alpha_array = [0.5]
+        longitudinal_map = lt.LinearMap(alpha_array, self.circumference,
+            self.Qs)
+        self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
+            bunch_gpu), 'Longitudinal tracking LinearMap CPU/GPU differs')
+
+    def test_longitudinal_drift(self):
+        '''
+        Track along a Drift and compare GPU/CPU
+        '''
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        alpha_array = [0.05]
+        shrinkage_p_increment = 0.2
+        length = 100.
+        longitudinal_map = lt.Drift(alpha_array, length, shrinkage_p_increment)
+        self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
+            bunch_gpu), 'Longitudinal tracking Drift CPU/GPU differs')
+
+    def test_longitudinal_RFSystems_map(self):
+        '''
+        Track through an RFSystems and compare CPU/GPU versions
+        '''
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        longitudinal_map = lt.RFSystems(
+                self.circumference, [self.h1, self.h2], [self.V1, self.V2],
+                [self.dphi1, self.dphi2], [0.05], self.gamma, 0.2,
+                D_x=self.Dx[0], D_y=self.Dy[0]
+            )
+        self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
+            bunch_gpu), 'Longitudinal tracking RFSystems CPU/GPU differs')
+
+
+    def _track_cpu_gpu(self, list_of_maps, bunch1, bunch2):
+        '''
+        Tracks both bunches through the list of maps (once GPU, once CPU)
+        and checks whether it yields the same result. Returns True/False.
+        Make sure bunch1, bunch2 are two identical objects (not one!)
+        Change the actual implementation of the GPU interface/strategy here
+        '''
+        # GPU
+        with GPU(bunch1) as device:
+            for m in list_of_maps:
+                m.track(bunch1)
+        # CPU
+        for m in list_of_maps:
+            m.track(bunch2)
+        for att in bunch1.coords_n_momenta | set(['id']):
+            if not np.allclose(getattr(bunch1, att), getattr(bunch2, att),
+                               rtol=1.e-5, atol=1.e-8):
+                return False
+        return True
+
+
+    def check_if_npndarray(self, bunch):
         '''
         Convenience function which checks if beam.x is an
         np.ndarray type
         '''
-        return isinstance(self.bunch.x, np.ndarray)
+        return isinstance(bunch.x, np.ndarray)
 
     def create_all1_bunch(self):
         x = np.ones(100)
