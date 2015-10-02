@@ -25,7 +25,8 @@ import PyHEADTAIL.trackers.simple_long_tracking as lt
 from PyHEADTAIL.trackers.detuners import AmplitudeDetuning
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField, WakeTable
-
+from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
+from PyHEADTAIL.feedback.widebandfeedback import Pickup, Kicker
 # try to import pycuda, if not available --> skip this test file
 try:
     import pycuda.autoinit
@@ -168,6 +169,34 @@ class TestGPUInterface(unittest.TestCase):
         wake_field = WakeField(unif_bin_slicer, res)
         self.assertTrue(self._track_cpu_gpu([wake_field], bunch_cpu, bunch_gpu),
             'Tracking Wakefield CircularResonator CPU/GPU differs')
+
+
+    def test_transverse_damper(self):
+        '''
+        Track through a transverse damper
+        '''
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        dampingrate_x = 0.01
+        dampingrate_y =  0.05
+        damp = TransverseDamper(dampingrate_x, dampingrate_y)
+        self.assertTrue(self._track_cpu_gpu([damp], bunch_cpu, bunch_gpu),
+            'Tracking TransverseDamper CPU/GPU differs')
+
+    def test_widebandfeedback(self):
+        '''
+        Track trough a Kicker (class in widebandfeedback)
+        '''
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        slices = bunch_cpu.get_slices(UniformBinSlicer(n_slices=5, n_sigma_z=0))
+        pickup = Pickup(slices)
+        kicker = Kicker(pickup)
+        self.assertTrue(self._track_cpu_gpu([kicker], bunch_cpu, bunch_gpu),
+            'Tracking widebandfeedback CPU/GPU differs. Check if reslicing ' +
+            'needed and test is wrong!')
+
+
 
     def _track_cpu_gpu(self, list_of_maps, bunch1, bunch2):
         '''
