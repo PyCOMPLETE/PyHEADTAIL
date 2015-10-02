@@ -23,6 +23,9 @@ from PyHEADTAIL.general.contextmanager import GPU
 import PyHEADTAIL.trackers.transverse_tracking as tt
 import PyHEADTAIL.trackers.simple_long_tracking as lt
 from PyHEADTAIL.trackers.detuners import AmplitudeDetuning
+from PyHEADTAIL.particles.slicing import UniformBinSlicer
+from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField, WakeTable
+
 # try to import pycuda, if not available --> skip this test file
 try:
     import pycuda.autoinit
@@ -148,6 +151,23 @@ class TestGPUInterface(unittest.TestCase):
         self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
             bunch_gpu), 'Longitudinal tracking RFSystems CPU/GPU differs')
 
+    def test_wakefield_circresonator(self):
+        '''
+        Track through a CircularResonator wakefield
+        '''
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        bunch_cpu.z += np.arange(len(bunch_cpu.z))
+        bunch_gpu.z += np.arange(len(bunch_cpu.z))
+        n_slices=5
+        frequency = 1e9
+        R_shunt = 23e3 # [Ohm]
+        Q = 1.
+        unif_bin_slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=0)
+        res = CircularResonator(R_shunt=R_shunt, frequency=frequency, Q=Q)
+        wake_field = WakeField(unif_bin_slicer, res)
+        self.assertTrue(self._track_cpu_gpu([wake_field], bunch_cpu, bunch_gpu),
+            'Tracking Wakefield CircularResonator CPU/GPU differs')
 
     def _track_cpu_gpu(self, list_of_maps, bunch1, bunch2):
         '''
@@ -178,7 +198,8 @@ class TestGPUInterface(unittest.TestCase):
         return isinstance(bunch.x, np.ndarray)
 
     def create_all1_bunch(self):
-        x = np.ones(100)
+        np.random.seed(1)
+        x = np.random.normal(size=100)
         y = x.copy()
         z = x.copy()
         xp = x.copy()
