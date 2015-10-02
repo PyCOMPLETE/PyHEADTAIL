@@ -39,7 +39,6 @@ class GPU(object):
         to the gpu. The problem with this approach: not very nice for the user:
         with GPU(bunch) as context:
         '''
-        print('Creating a GPU context')
         # replace above line with bunch.coords_n_momenta!
         # 'id' is required for the sorting and has to be transformed as well
         self.bunch = bunch #reference!
@@ -55,7 +54,6 @@ class GPU(object):
                 obj = getattr(self.bunch, coord, None)
                 if isinstance(obj, np.ndarray):
                     setattr(self.bunch, coord, gpuarray.to_gpu(obj))
-                    print ('moved ' + coord + ' to gpu' )
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -67,5 +65,3 @@ class GPU(object):
                 obj = getattr(self.bunch, coord, None)
                 if isinstance(obj, pycuda.gpuarray.GPUArray):
                     setattr(self.bunch, coord, obj.get())
-                    print ('moved ' + coord + ' to cpu' )
-        print('Exited context')
