@@ -8,9 +8,10 @@ from __future__ import division
 import numpy as np
 
 from . import Element, Printing
+from .. general import pmath as pm
 
-sin = np.sin
-cos = np.cos
+#sin = pm.sin
+#cos = pm.cos
 diff = np.diff
 ndim = np.ndim
 atleast_1d = np.atleast_1d
@@ -155,18 +156,34 @@ class TransverseSegmentMap(Element):
         dphi_x = self.dQ_x
         dphi_y = self.dQ_y
 
+        dphi_is_array = False
+
         for element in self.segment_detuners:
             detune_x, detune_y = element.detune(beam)
             dphi_x += detune_x
             dphi_y += detune_y
+            dphi_is_array = True
 
         dphi_x *= 2.*np.pi
         dphi_y *= 2.*np.pi
 
-        c_dphi_x = cos(dphi_x)
-        c_dphi_y = cos(dphi_y)
-        s_dphi_x = sin(dphi_x)
-        s_dphi_y = sin(dphi_y)
+        # needs to be pm.cos, cos alone not possible:
+        # the change in the pm namespace has to be visible here
+        # --> use of named vars better style anyway
+        # another problem is that dphi_x can be either a scalar (no detuning)
+        # or an array (with detuning): somehow discriminate between the two
+        # bc. cumath.cos() can't handle scalars. For now simply put an if/else,
+        # think about better solutions
+        if dphi_is_array:
+            c_dphi_x = pm.cos(dphi_x)
+            c_dphi_y = pm.cos(dphi_y)
+            s_dphi_x = pm.sin(dphi_x)
+            s_dphi_y = pm.sin(dphi_y)
+        else:
+            c_dphi_x = np.cos(dphi_x)
+            c_dphi_y = np.cos(dphi_y)
+            s_dphi_x = np.sin(dphi_x)
+            s_dphi_y = np.sin(dphi_y)
 
         # Calculate the matrix M and transport the transverse phase
         # spaces through the segment.

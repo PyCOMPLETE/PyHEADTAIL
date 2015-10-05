@@ -4,6 +4,7 @@ Context manager classes
 @data 30.09.2015
 '''
 import numpy as np
+import pmath as pm
 try:
     import pycuda.gpuarray as gpuarray
     import pycuda
@@ -43,6 +44,7 @@ class GPU(object):
         # 'id' is required for the sorting and has to be transformed as well
         self.bunch = bunch #reference!
         self.to_move = self.bunch.coords_n_momenta | set(['id'])
+        self.previous_state = dict()
 
 
     def __enter__(self):
@@ -54,6 +56,9 @@ class GPU(object):
                 obj = getattr(self.bunch, coord, None)
                 if isinstance(obj, np.ndarray):
                     setattr(self.bunch, coord, gpuarray.to_gpu(obj))
+
+        # replace functions in general.math.py
+        pm.update_active_dict(pm._GPU_func_dict)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -65,3 +70,4 @@ class GPU(object):
                 obj = getattr(self.bunch, coord, None)
                 if isinstance(obj, pycuda.gpuarray.GPUArray):
                     setattr(self.bunch, coord, obj.get())
+        pm.update_active_dict(pm._CPU_numpy_func_dict)
