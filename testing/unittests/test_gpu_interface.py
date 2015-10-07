@@ -183,9 +183,10 @@ class TestGPUInterface(unittest.TestCase):
         self.assertTrue(self._track_cpu_gpu([damp], bunch_cpu, bunch_gpu),
             'Tracking TransverseDamper CPU/GPU differs')
 
-    def test_widebandfeedback(self):
+    def _test_widebandfeedback(self):
         '''
         Track trough a Kicker (class in widebandfeedback)
+        Wiedeband feedback not ready yet! Skip test
         '''
         bunch_cpu = self.create_all1_bunch()
         bunch_gpu = self.create_all1_bunch()
