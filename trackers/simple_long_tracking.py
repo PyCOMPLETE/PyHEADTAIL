@@ -18,8 +18,10 @@ from rf_bucket import RFBucket, attach_clean_buckets
 from types import MethodType
 import weakref
 
-sin = np.sin
-cos = np.cos
+from ..general import pmath as pm
+
+#sin = np.sin
+#cos = np.cos
 
 # @TODO
 # think about flexible design to separate numerical methods
@@ -183,7 +185,7 @@ class Kick(LongitudinalMap):
         beam.y -= self.D_y*beam.dp
 
         delta_p = beam.dp * beam.p0
-        delta_p += amplitude * sin(phi) - self.p_increment
+        delta_p += amplitude * pm.sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
 
@@ -677,6 +679,7 @@ class LinearMap(LongitudinalOneTurnMap):
         '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
+        assert (np.isscalar(Qs)), "Qs has to be a scalar"
         self.Qs = Qs
         self.D_x = D_x
         self.D_y = D_y
@@ -693,8 +696,8 @@ class LinearMap(LongitudinalOneTurnMap):
         omega_s = self.Qs * omega_0
 
         dQs = 2 * np.pi * self.Qs
-        cosdQs = cos(dQs)
-        sindQs = sin(dQs)
+        cosdQs = np.cos(dQs) # use np because dQs is always a scalar
+        sindQs = np.sin(dQs) # use np because dQs is always a scalar
 
         z0 = beam.z
         dp0 = beam.dp

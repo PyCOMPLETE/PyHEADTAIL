@@ -146,7 +146,7 @@ class TestGPUInterface(unittest.TestCase):
         bunch_gpu = self.create_all1_bunch()
         longitudinal_map = lt.RFSystems(
                 self.circumference, [self.h1, self.h2], [self.V1, self.V2],
-                [self.dphi1, self.dphi2], [0.05], self.gamma, 0.2,
+                [self.dphi1, self.dphi2], [0.05], self.gamma, 0,
                 D_x=self.Dx[0], D_y=self.Dy[0]
             )
         self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
@@ -185,8 +185,8 @@ class TestGPUInterface(unittest.TestCase):
 
     def _test_widebandfeedback(self):
         '''
+        !!!!! Wiedeband feedback not ready yet! Skip test
         Track trough a Kicker (class in widebandfeedback)
-        Wiedeband feedback not ready yet! Skip test
         '''
         bunch_cpu = self.create_all1_bunch()
         bunch_gpu = self.create_all1_bunch()
