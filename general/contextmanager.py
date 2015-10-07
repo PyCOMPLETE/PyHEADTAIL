@@ -53,9 +53,9 @@ class GPU(object):
         Returns self (eg. to provide info about gpu/status/...)
         '''
         for coord in self.to_move:
-                obj = getattr(self.bunch, coord, None)
-                if isinstance(obj, np.ndarray):
-                    setattr(self.bunch, coord, gpuarray.to_gpu(obj))
+            obj = getattr(self.bunch, coord, None)
+            if isinstance(obj, np.ndarray):
+                setattr(self.bunch, coord, gpuarray.to_gpu(obj))
 
         # replace functions in general.math.py
         pm.update_active_dict(pm._GPU_func_dict)
@@ -67,7 +67,7 @@ class GPU(object):
         Reestablish state of everything as it was before entering
         '''
         for coord in self.to_move:
-                obj = getattr(self.bunch, coord, None)
-                if isinstance(obj, pycuda.gpuarray.GPUArray):
-                    setattr(self.bunch, coord, obj.get())
+            obj = getattr(self.bunch, coord, None)
+            if isinstance(obj, pycuda.gpuarray.GPUArray):
+                setattr(self.bunch, coord, obj.get())
         pm.update_active_dict(pm._CPU_numpy_func_dict)
