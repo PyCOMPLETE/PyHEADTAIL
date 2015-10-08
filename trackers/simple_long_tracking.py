@@ -295,7 +295,7 @@ class RFSystems(LongitudinalOneTurnMap):
                  phi_offset_list, alpha_array, gamma_reference,
                  p_increment=0, phase_lock=True,
                  shrink_transverse=True, shrink_longitudinal=False,
-                 D_x=0, D_y=0,
+                 D_x=0, D_y=0, charge=e,
                  *args, **kwargs):
         """
         The first entry in harmonic_list, voltage_list and
@@ -375,7 +375,7 @@ class RFSystems(LongitudinalOneTurnMap):
         self.p_increment = p_increment
 
         if phase_lock:
-            self._phaselock(gamma_reference)
+            self._phaselock(gamma_reference, charge)
 
         '''Take care of possible memory leakage when accessing with many
         different gamma values without tracking while setting
@@ -517,7 +517,7 @@ class RFSystems(LongitudinalOneTurnMap):
         '''
         self._rfbuckets = {}
 
-    def phi_s(self, gamma):
+    def phi_s(self, gamma, charge=e):
         beta = np.sqrt(1 - gamma**-2)
         eta0 = self.eta(0, gamma)
 
@@ -527,12 +527,8 @@ class RFSystems(LongitudinalOneTurnMap):
             return 0
 
         deltaE = self.p_increment * beta * c
-        phi_rel = np.arcsin(deltaE / (e * V))
+        phi_rel = np.arcsin(deltaE / (charge * V))
 
-        # if eta0<0:
-        #     # return np.sign(deltaE) * np.pi - phi_rel
-        #     return np.pi - phi_rel
-        # else:
         return phi_rel
 
     @staticmethod
@@ -571,7 +567,7 @@ class RFSystems(LongitudinalOneTurnMap):
         if self.p_increment:
             self.clean_buckets()
 
-    def _phaselock(self, gamma):
+    def _phaselock(self, gamma, charge=e):
         '''Put all _kicks other than the accelerating kick to
         zero phase difference w.r.t. the accelerating kick.
         Attention: Make sure the p_increment of each non-accelerating
@@ -581,7 +577,8 @@ class RFSystems(LongitudinalOneTurnMap):
         non_accelerating_kicks = (k for k in self._kicks if k is not acc)
 
         for kick in non_accelerating_kicks:
-            kick._phi_lock -= kick.harmonic/acc.harmonic * self.phi_s(gamma)
+            kick._phi_lock -= (kick.harmonic/acc.harmonic *
+                               self.phi_s(gamma, charge))
 
 
     # --- INTERFACE CHANGE notifications to update users of previous versions
