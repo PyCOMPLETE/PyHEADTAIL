@@ -22,11 +22,21 @@ from PyHEADTAIL.general.printers import AccumulatorPrinter
 from PyHEADTAIL.general.contextmanager import GPU
 import PyHEADTAIL.trackers.transverse_tracking as tt
 import PyHEADTAIL.trackers.simple_long_tracking as lt
-from PyHEADTAIL.trackers.detuners import AmplitudeDetuning
+from PyHEADTAIL.trackers.detuners import AmplitudeDetuning, Chromaticity
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField, WakeTable
 from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.feedback.widebandfeedback import Pickup, Kicker
+from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
+
+
+try:
+    import PyCERNmachines.CERNmachines as m
+except ImportError:
+    has_PyCERNmachines= False
+else:
+    has_PyCERNmachines = True
+
 # try to import pycuda, if not available --> skip this test file
 try:
     import pycuda.autoinit
@@ -34,7 +44,6 @@ except ImportError:
     has_pycuda = False
 else:
     has_pycuda = True
-
 @unittest.skipUnless(has_pycuda, 'pycuda not found, skipping')
 class TestGPUInterface(unittest.TestCase):
     '''
@@ -45,7 +54,7 @@ class TestGPUInterface(unittest.TestCase):
     def setUp(self):
         # machine parameters / optics
         self.circumference = 17.1
-        self.nsegments = 4
+        self.nsegments = 10
         self.s = np.linspace(0., self.circumference, self.nsegments+1)
         self.alpha_x = np.linspace(-1.51, 1.52, self.nsegments)
         self.alpha_y = self.alpha_x.copy()
@@ -57,7 +66,7 @@ class TestGPUInterface(unittest.TestCase):
         self.Dy = self.Dx.copy() - self.beta_y*10
         self.Qs = 0.1
 
-        self.gamma = 15.
+        self.gamma = 15 #lhc=7000, sps=27
         self.h1 = 1
         self.h2 = 2
         self.V1 = 8e3
@@ -96,21 +105,48 @@ class TestGPUInterface(unittest.TestCase):
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
             bunch_gpu), 'Transverse tracking w/o detuning CPU/GPU differs')
 
-
-    def test_transverse_track_with_detuning(self):
+    @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
+    def test_transverse_track_with_Adetuning(self):
         '''
-        Track the GPU bunch through a TransverseMap with detuning
+        Track the GPU bunch through a TransverseMap with amplitude detuning
+        Check if results on CPU and GPU are the same
+        Special test since it requires the PyCERNmachines module to create
+        the LHC beam. Skip if not available.
+        '''
+        # Use a real bunch (not all set to 1), otherwise the Action/detuning
+        # gets too big and the numbers blow up.
+        Dx = np.append(np.linspace(0., 20., self.nsegments),[0])
+        # add some dispersion/alpha
+        lhc = m.LHC(n_segments=self.nsegments, machine_configuration='450GeV',
+                    app_x=1e-9, app_y=2e-9, app_xy=-1.5e-11,
+                    chromaticity_on=False, amplitude_detuning_on=True,
+                    alpha_x=1.2*np.ones(self.nsegments), D_x=Dx)
+        # create pure Python map, PyCERNmachine uses Cython.
+        adetuner = AmplitudeDetuning(lhc.app_x, lhc.app_y, lhc.app_xy)
+        transverse_map = tt.TransverseMap(
+            lhc.circumference, lhc.s, lhc.alpha_x, lhc.beta_x,
+            lhc.D_x, lhc.alpha_y, lhc.beta_y, lhc.D_y, lhc.Q_x, lhc.Q_y,
+            adetuner)
+        bunch_cpu = self.create_lhc_bunch(lhc)
+        bunch_gpu = self.create_lhc_bunch(lhc)
+        self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
+            bunch_gpu), 'Transverse tracking with Adetuning CPU/GPU differs')
+
+    def test_transverse_track_with_Cdetuning(self):
+        '''
+        Track the GPU bunch through a TransverseMap with chromaticity (detuning)
         Check if results on CPU and GPU are the same
         '''
         bunch_cpu = self.create_all1_bunch()
         bunch_gpu = self.create_all1_bunch()
-        adetuner = AmplitudeDetuning(1e-2, 5e-2, 1e-3)
+        detuner = Chromaticity(Qp_x=[5, 1], Qp_y=[7, 2])
         transverse_map = tt.TransverseMap(
             self.circumference, self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
-            adetuner)
+            detuner)
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
-            bunch_gpu), 'Transverse tracking with detuning CPU/GPU differs')
+            bunch_gpu), 'Transverse tracking with chromaticity CPU/GPU differs')
+        #self.assertTrue(False, 'check')
 
 
     def test_longitudinal_linear_map(self):
@@ -229,7 +265,8 @@ class TestGPUInterface(unittest.TestCase):
 
     def create_all1_bunch(self):
         np.random.seed(1)
-        x = np.random.normal(size=100)
+        #x = np.random.normal(size=100)
+        x = np.ones(1)
         y = x.copy()
         z = x.copy()
         xp = x.copy()
@@ -240,9 +277,18 @@ class TestGPUInterface(unittest.TestCase):
             'xp': xp, 'yp': yp, 'dp': dp
         }
         return Particles(
-            len(x), 1, e, 1, #never mind the other params
-            1, 18., coords_n_momenta_dict
+            macroparticlenumber=len(x), particlenumber_per_mp=100, charge=e,
+            mass=m_p, circumference=self.circumference, gamma=self.gamma,
+            coords_n_momenta_dict=coords_n_momenta_dict
         )
+
+    def create_gaussian_bunch(self):
+        return self.create_lhc_bunch()
+
+    def create_lhc_bunch(self, lhc):
+        np.random.seed(0)
+        return lhc.generate_6D_Gaussian_bunch(n_macroparticles=1, intensity=1e11,
+            epsn_x=3e-6, epsn_y=2.5e-5, sigma_z=0.11)
 
 if __name__ == '__main__':
     unittest.main()
