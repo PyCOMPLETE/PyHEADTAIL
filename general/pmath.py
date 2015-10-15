@@ -18,21 +18,36 @@ except ImportError:
 _CPU_numpy_func_dict = {
     'sin' : np.sin,
     'cos' : np.cos,
-    'exp' : np.exp
+    'exp' : np.exp,
+    'arcsin': np.arcsin,
+    '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
 _GPU_func_dict = {
     'sin' : pycuda.cumath.sin,
     'cos' : pycuda.cumath.cos,
-    'exp' : pycuda.cumath.exp
+    'exp' : pycuda.cumath.exp,
+    'cosh': pycuda.cumath.cosh,
+    '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
-global sin, cos, exp
 ################################################################################
 def update_active_dict(new_dict):
-    global sin, cos, exp
-    sin = new_dict['sin']
-    cos = new_dict['cos']
-    exp = new_dict['exp']
+    '''
+    Update the currently active dictionary. Removes the keys of the currently
+    active dictionary from globals() and spills the keys
+    from new_dict to globals()
+    Args:
+        new_dict A dictionary which contents will be spilled to globals()
+    '''
+    if not hasattr(update_active_dict, 'active_dict'):
+        update_active_dict.active_dict = new_dict
+    # delete all old implementations/references from globals()
+    for key in globals().keys():
+        if key in update_active_dict.active_dict.keys():
+            del globals()[key]
+    # add the new active dict to the globals()
+    globals().update(new_dict)
+    update_active_dict.active_dict = new_dict
 
 ################################################################################
 update_active_dict(_CPU_numpy_func_dict)
