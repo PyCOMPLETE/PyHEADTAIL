@@ -74,6 +74,8 @@ class TestGPUInterface(unittest.TestCase):
         self.dphi1 = 0
         self.dphi2 = np.pi
 
+        self.n_macroparticles = 2
+
 
     def tearDown(self):
         pass
@@ -233,6 +235,31 @@ class TestGPUInterface(unittest.TestCase):
             'Tracking widebandfeedback CPU/GPU differs. Check if reslicing ' +
             'needed and test is wrong!')
 
+    @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
+    def test_SPS_nonlinear(self):
+        sps = m.SPS(n_segments=self.nsegments,
+            machine_configuration='Q26-injection', Qp_x=2, Qp_y=-2.2,
+            )
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        one_turn_map = sps.one_turn_map
+        self.assertTrue(self._track_cpu_gpu(one_turn_map, bunch_cpu, bunch_gpu),
+            'Tracking through SPS Q26 injection one turn map CPU/GPU differs.')
+
+
+    @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
+    def test_PSB_linear(self):
+        psb = m.PSB(n_segments=self.nsegments,
+            machine_configuration='160MeV', longitudinal_focusing='linear')
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+        one_turn_map = psb.one_turn_map
+        self.assertTrue(self._track_cpu_gpu(one_turn_map, bunch_cpu, bunch_gpu),
+            'Tracking through SPS Q26 injection one turn map CPU/GPU differs.')
+
+
+
+
 
 
     def _track_cpu_gpu(self, list_of_maps, bunch1, bunch2):
@@ -249,6 +276,8 @@ class TestGPUInterface(unittest.TestCase):
         # CPU
         for m in list_of_maps:
             m.track(bunch2)
+        #print bunch1.x
+        #print bunch2.x
         for att in bunch1.coords_n_momenta | set(['id']):
             if not np.allclose(getattr(bunch1, att), getattr(bunch2, att),
                                rtol=1.e-5, atol=1.e-8):
@@ -265,8 +294,7 @@ class TestGPUInterface(unittest.TestCase):
 
     def create_all1_bunch(self):
         np.random.seed(1)
-        #x = np.random.normal(size=100)
-        x = np.ones(1)
+        x = np.ones(self.n_macroparticles)
         y = x.copy()
         z = x.copy()
         xp = x.copy()
@@ -287,7 +315,8 @@ class TestGPUInterface(unittest.TestCase):
 
     def create_lhc_bunch(self, lhc):
         np.random.seed(0)
-        return lhc.generate_6D_Gaussian_bunch(n_macroparticles=1, intensity=1e11,
+        return lhc.generate_6D_Gaussian_bunch(
+            n_macroparticles=self.n_macroparticles, intensity=1e11,
             epsn_x=3e-6, epsn_y=2.5e-5, sigma_z=0.11)
 
 if __name__ == '__main__':
