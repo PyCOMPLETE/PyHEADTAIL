@@ -17,6 +17,8 @@ from test_listproxy import TestListProxy
 from test_detuners import TestDetuner
 from test_itest_autorun import TestAutoRun
 from test_cobra import TestCobra
+from test_gpu_interface import TestGPUInterface
+from test_dispatch import TestDispatch
 
 #add your test classes here
 test_list = [TestSlicing,
@@ -28,7 +30,9 @@ test_list = [TestSlicing,
              TestDetuner,
              TestAutoRun, #uncomment to run full test suite (~ 1 min)
              TestTransverseTracking,
-             TestCobra]
+             TestCobra,
+             TestGPUInterface,
+             TestDispatch]
 
 
 if __name__ == '__main__':
