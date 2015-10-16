@@ -6,9 +6,11 @@ Dispatches for CPU/GPU versions
 '''
 
 import numpy as np
+from ..cobra_functions import stats as cp
 
 try:
     import pycuda.cumath
+    import pycuda.gpuarray
 except ImportError:
     print ('No Pycuda in math.py import statement found')
 
@@ -20,6 +22,7 @@ _CPU_numpy_func_dict = {
     'cos' : np.cos,
     'exp' : np.exp,
     'arcsin': np.arcsin,
+    'mean' : np.mean,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -28,6 +31,7 @@ _GPU_func_dict = {
     'cos' : pycuda.cumath.cos,
     'exp' : pycuda.cumath.exp,
     'cosh': pycuda.cumath.cosh,
+    'mean': lambda x, **kwargs : pycuda.gpuarray.sum(x).get() / x.size,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################

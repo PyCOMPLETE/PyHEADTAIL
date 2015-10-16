@@ -9,6 +9,7 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 from ..cobra_functions import stats as cp
+from ..general import pmath as pm
 from . import Printing
 
 arange = np.arange
@@ -196,22 +197,22 @@ class Particles(Printing):
     # Statistics methods
 
     def mean_x(self):
-        return np.mean(self.x)
+        return pm.mean(self.x)
 
     def mean_xp(self):
-        return np.mean(self.xp)
+        return pm.mean(self.xp)
 
     def mean_y(self):
-        return np.mean(self.y)
+        return pm.mean(self.y)
 
     def mean_yp(self):
-        return np.mean(self.yp)
+        return pm.mean(self.yp)
 
     def mean_z(self):
-        return np.mean(self.z)
+        return pm.mean(self.z)
 
     def mean_dp(self):
-        return np.mean(self.dp)
+        return pm.mean(self.dp)
 
     def sigma_x(self):
         return cp.std(self.x)
@@ -275,5 +276,3 @@ class Particles(Printing):
 
     def gamma_Twiss_y(self):
         return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
-
-
