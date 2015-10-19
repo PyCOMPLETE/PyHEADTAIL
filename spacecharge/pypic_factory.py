@@ -56,7 +56,8 @@ def create_pypic(slicer, mesh_args, context=None):
     return pypic_algorithm_class(mesh, poisson_solver, context)
 
 
-def create_mesh(mesh_origin, mesh_distances, mesh_size, slicer=None):
+def create_mesh(mesh_origin, mesh_distances, mesh_size,
+                slicer=None, gamma=None):
     '''Create a (PyPIC) rectangular mesh. The dimension is
     determined by the length of the list arguments.
 
@@ -67,10 +68,14 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size, slicer=None):
           e.g. [dx, dy, dz]
         - mesh_size: list with number of nodes per dimension,
           e.g. [nx, ny, nz]
+
+    Optional arguments:
         - slicer: if a particles.slicer.Slicer instance is given,
           the previous mesh arguments are assumed to be transversal
           only and the longitudinal information as defined by the slicer
-          are added to the lists.
+          are added to the lists. Requires gamma to be given as well!
+        - gamma: if slicer is given, the Lorentz gamma is needed to
+          transform the lab frame to the beam frame.
 
     Requires the slicer to have uniformly sized bins.
     '''
@@ -80,7 +85,7 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size, slicer=None):
                                'sized bins in order to create a '
                                'PyPIC.meshing.RectMesh3D.')
         mesh_origin.append(slicer.z_cut_tail)
-        mesh_distances.append(slicer.slice_widths[0])
+        mesh_distances.append(slicer.slice_widths[0] * gamma) # Lorentz trafo!
         mesh_size.append(slicer.n_slices)
     dim = len(mesh_origin)
     if not dim == len(mesh_distances) == len(mesh_size):
