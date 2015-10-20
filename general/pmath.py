@@ -13,6 +13,10 @@ try:
     import pycuda.gpuarray
 except ImportError:
     print ('No Pycuda in math.py import statement found')
+try:
+    import skcuda.misc
+except ImportError:
+    print ('Skcuda not found. (Scikit-cuda)')
 
 
 
@@ -23,6 +27,7 @@ _CPU_numpy_func_dict = {
     'exp' : np.exp,
     'arcsin': np.arcsin,
     'mean' : np.mean,
+    'std' : cp.std,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -31,7 +36,8 @@ _GPU_func_dict = {
     'cos' : pycuda.cumath.cos,
     'exp' : pycuda.cumath.exp,
     'cosh': pycuda.cumath.cosh,
-    'mean': lambda x, **kwargs : pycuda.gpuarray.sum(x).get() / x.size,
+    'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs),
+    'std': lambda *args, **kwargs : skcuda.misc.std(*args, **kwargs),
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################

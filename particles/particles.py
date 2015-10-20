@@ -215,22 +215,22 @@ class Particles(Printing):
         return pm.mean(self.dp)
 
     def sigma_x(self):
-        return cp.std(self.x)
+        return pm.std(self.x)
 
     def sigma_y(self):
-        return cp.std(self.y)
+        return pm.std(self.y)
 
     def sigma_z(self):
-        return cp.std(self.z)
+        return pm.std(self.z)
 
     def sigma_xp(self):
-        return cp.std(self.xp)
+        return pm.std(self.xp)
 
     def sigma_yp(self):
-        return cp.std(self.yp)
+        return pm.std(self.yp)
 
     def sigma_dp(self):
-        return cp.std(self.dp)
+        return pm.std(self.dp)
 
     def effective_normalized_emittance_x(self):
         return cp.emittance(self.x, self.xp, None) * self.betagamma

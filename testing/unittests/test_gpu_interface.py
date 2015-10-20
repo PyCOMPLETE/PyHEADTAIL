@@ -28,6 +28,7 @@ from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField, WakeTable
 from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.feedback.widebandfeedback import Pickup, Kicker
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
+from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor
 
 
 try:
@@ -78,6 +79,7 @@ class TestGPUInterface(unittest.TestCase):
 
 
     def tearDown(self):
+        #os.remove('bunchmonitor.tmp.h5')
         pass
 
 
@@ -257,6 +259,33 @@ class TestGPUInterface(unittest.TestCase):
         self.assertTrue(self._track_cpu_gpu(one_turn_map, bunch_cpu, bunch_gpu),
             'Tracking through SPS Q26 injection one turn map CPU/GPU differs.')
 
+
+    def test_bunchmonitor(self):
+        ''' Test the bunchmonitor and all statistics functions
+        '''
+        bunchmonitor = BunchMonitor('bunchmonitor.tmp', 1000,
+            write_buffer_to_file_every=512, buffer_size=4096)
+        bunch_cpu = self.create_all1_bunch()
+        bunch_gpu = self.create_all1_bunch()
+
+        self._monitor_cpu_gpu([bunchmonitor], bunch_cpu, bunch_gpu)
+
+
+
+
+    def _monitor_cpu_gpu(self, monitors, bunch1, bunch2):
+        '''
+        Test whether monitor.dump(bunch1/bunch2) yield the same
+        HDF5 file
+        '''
+
+        for m in monitors:
+            m.dump(bunch2)
+
+        with GPU(bunch1) as device:
+            for m in monitors:
+                m.dump(bunch1)
+        self.assertTrue(False, 'Check hdf5')
 
 
 
