@@ -57,22 +57,49 @@ class TestDispatch(unittest.TestCase):
     def test_equivalency_CPU_GPU_functions(self):
         '''
         Check that CPU/GPU functions yield the same result (if both exist)
-        No complete tracking, only bare functions.
+        No complete tracking, only bare functions. Only single param funnctions.
+        Use a large sample size to account for std/mean fluctuations due to
+        different algorithms (single pass/shifted/...)
         '''
+        multi_param_fn = ['emittance']
         np.random.seed(0)
-        parameter_cpu = np.random.normal(loc=1., scale=1., size=1000)
+        parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
-        print type(parameter_gpu)
         common_functions = [fn for fn in self.available_CPU
                             if fn in self.available_GPU]
         for fname in common_functions:
-            res_cpu = pm._CPU_numpy_func_dict[fname](parameter_cpu)
-            res_gpu = pm._GPU_func_dict[fname](parameter_gpu)
-            if isinstance(res_gpu, pycuda.gpuarray.GPUArray):
-                res_gpu = res_gpu.get()
-            self.assertTrue(np.allclose(res_cpu, res_gpu),
-                'CPU/GPU version of ' + fname + ' dont yield the same result')
+            if fname not in multi_param_fn:
+                res_cpu = pm._CPU_numpy_func_dict[fname](parameter_cpu)
+                res_gpu = pm._GPU_func_dict[fname](parameter_gpu)
+                if isinstance(res_gpu, pycuda.gpuarray.GPUArray):
+                    res_gpu = res_gpu.get()
+                self.assertTrue(np.allclose(res_cpu, res_gpu),
+                    'CPU/GPU version of ' + fname + ' dont yield the same result')
 
+    def test_emittance_computation(self):
+        '''
+        Check that CPU/GPU functions yield the same result (if both exist)
+        No complete tracking, only bare functions. Only single param funnctions.
+        Use a large number of samples (~500k). The CPU and GPU computations
+        are not exactly the same due to differences in the algorithms (i.e.
+        biased/unbiased estimator)
+        '''
+        fname = 'emittance'
+        np.random.seed(0)
+        parameter_cpu_1 = np.random.normal(loc=1., scale=.1, size=500000)
+        parameter_cpu_2 = np.random.normal(loc=1., scale=1., size=500000)
+        parameter_cpu_3 = np.random.normal(loc=1., scale=1., size=500000)
+        parameter_gpu_1 = pycuda.gpuarray.to_gpu(parameter_cpu_1)
+        parameter_gpu_2 = pycuda.gpuarray.to_gpu(parameter_cpu_2)
+        parameter_gpu_3 = pycuda.gpuarray.to_gpu(parameter_cpu_3)
+        params_cpu = [parameter_cpu_1, parameter_cpu_2, parameter_cpu_3]
+        params_gpu = [parameter_gpu_1, parameter_gpu_2, parameter_gpu_3]
+        res_cpu = pm._CPU_numpy_func_dict[fname](*params_cpu)
+        res_gpu = pm._GPU_func_dict[fname](*params_gpu)
+        if isinstance(res_gpu, pycuda.gpuarray.GPUArray):
+            res_gpu = res_gpu.get()
+        self.assertTrue(np.allclose(res_cpu, res_gpu),
+            'CPU/GPU version of ' + fname + ' dont yield the same result')
     def tearDown(self):
         pass
 

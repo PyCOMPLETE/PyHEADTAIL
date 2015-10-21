@@ -233,20 +233,20 @@ class Particles(Printing):
         return pm.std(self.dp)
 
     def effective_normalized_emittance_x(self):
-        return cp.emittance(self.x, self.xp, None) * self.betagamma
+        return pm.emittance(self.x, self.xp, None) * self.betagamma
 
     def effective_normalized_emittance_y(self):
-        return cp.emittance(self.y, self.yp, None) * self.betagamma
+        return pm.emittance(self.y, self.yp, None) * self.betagamma
 
     def effective_normalized_emittance_z(self):
-        return(4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
+        return(4*np.pi * pm.emittance(self.z, self.dp, None) * self.p0/e)
 
     def epsn_x(self):
-        return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
+        return (pm.emittance(self.x, self.xp, getattr(self, 'dp', None))
                * self.betagamma)
 
     def epsn_y(self):
-        return (cp.emittance(self.y, self.yp, getattr(self, 'dp', None))
+        return (pm.emittance(self.y, self.yp, getattr(self, 'dp', None))
                * self.betagamma)
 
     def epsn_z(self):

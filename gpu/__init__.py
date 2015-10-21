@@ -1,5 +1,5 @@
-from ..particles import particles as def_particles
+#from ..particles import particles as def_particles
 
-from .particles import ParticlesGPU
+#from .particles import ParticlesGPU
 
-def_particles.Particles = ParticlesGPU
+#def_particles.Particles = ParticlesGPU

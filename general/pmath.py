@@ -4,10 +4,9 @@ Dispatches for CPU/GPU versions
 @author Stefan Hegglin
 @date 05.10.2015
 '''
-
 import numpy as np
 from ..cobra_functions import stats as cp
-
+from ..gpu import gpu_wrap as gpu_wrap
 try:
     import pycuda.cumath
     import pycuda.gpuarray
@@ -28,6 +27,7 @@ _CPU_numpy_func_dict = {
     'arcsin': np.arcsin,
     'mean' : np.mean,
     'std' : cp.std,
+    'emittance' : lambda *args, **kwargs : cp.emittance(*args, **kwargs),
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -38,6 +38,7 @@ _GPU_func_dict = {
     'cosh': pycuda.cumath.cosh,
     'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs),
     'std': lambda *args, **kwargs : skcuda.misc.std(*args, **kwargs),
+    'emittance' : lambda u, up, dp=None : gpu_wrap.emittance(u, up, dp),
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
