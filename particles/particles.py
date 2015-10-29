@@ -194,6 +194,25 @@ class Particles(Printing):
                 continue
             reordered = getattr(self, attr)[permutation]
             setattr(self, attr, reordered)
+            
+    def __add__(self, other):
+        '''Merges two beams.
+		'''
+        print 'Checks still to be added!!!!!!'
+
+        self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
+        other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
+        
+        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber, 
+                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+        
+        
+        for coord in self_coords_n_momenta_dict.keys():
+            #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
+            result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
+            
+        return result          
 
     # Statistics methods
 
