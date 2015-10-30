@@ -212,7 +212,23 @@ class Particles(Printing):
             #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
             result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
             
-        return result          
+        return result 
+    
+    def __radd__(self, other):
+        if other==0:
+            self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
+            result = Particles(macroparticlenumber=self.macroparticlenumber, 
+                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                    mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+        
+            for coord in self_coords_n_momenta_dict.keys():
+                #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
+                result.update({coord: self_coords_n_momenta_dict[coord].copy()})
+        else:
+            result = self.__add__(other)
+        
+        return result      
+  
 
     # Statistics methods
 
