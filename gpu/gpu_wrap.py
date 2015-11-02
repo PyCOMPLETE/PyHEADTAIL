@@ -19,12 +19,12 @@ def covariance(a, b):
         b: pycuda.GPUArray
     '''
     n = len(a)
-    mean_a = skcuda.misc.mean(a)
+    mean_a = skcuda.misc.mean(a).get()
     x = a - mean_a
-    mean_b = skcuda.misc.mean(b)
+    mean_b = skcuda.misc.mean(b).get()
     y = b - mean_b
     covariance = skcuda.misc.mean(x * y) * n / (n + 1)
-    return covariance
+    return covariance.get()
 
 def emittance(u, up, dp):
     '''

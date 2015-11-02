@@ -36,8 +36,8 @@ _GPU_func_dict = {
     'cos' : pycuda.cumath.cos,
     'exp' : pycuda.cumath.exp,
     'cosh': pycuda.cumath.cosh,
-    'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs),
-    'std': lambda *args, **kwargs : skcuda.misc.std(*args, **kwargs),
+    'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs).get(),
+    'std': lambda *args, **kwargs : skcuda.misc.std(*args, **kwargs).get(),
     'emittance' : lambda u, up, dp=None : gpu_wrap.emittance(u, up, dp),
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
