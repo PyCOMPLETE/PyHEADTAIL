@@ -18,20 +18,16 @@ from abc import ABCMeta, abstractmethod
 from functools import partial, wraps
 
 from ..cobra_functions import stats as cp
+from ..general import pmath as pm
 # from ..general.decorators import memoize
 from . import Printing
 
 from scipy import interpolate
 
 
-floor = np.floor
 empty_like = np.empty_like
-min_ = np.min
-max_ = np.max
 arange = np.arange
-diff = np.diff
 def make_int32(array):
-    # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
 
 
@@ -132,7 +128,7 @@ class SliceSet(Printing):
     @property
     def slice_widths(self):
         '''Array of the widths of the slices.'''
-        return diff(self.z_bins)
+        return pm.diff(self.z_bins)
 
     @property
     def slice_positions(self):
@@ -356,8 +352,8 @@ class Slicer(Printing):
             z_cut_tail = beam.mean_z() - self.n_sigma_z * beam.sigma_z()
             z_cut_head = beam.mean_z() + self.n_sigma_z * beam.sigma_z()
         else:
-            z_cut_tail = min_(beam.z)
-            z_cut_head = max_(beam.z)
+            z_cut_tail = pm.min(beam.z)
+            z_cut_head = pm.max(beam.z)
             z_cut_head += abs(z_cut_head) * 1e-15
         return z_cut_tail, z_cut_head
 
@@ -560,10 +556,9 @@ class UniformBinSlicer(Slicer):
         '''
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
-
         z_bins = arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
                         slice_width, dtype=np.float64)
-        slice_index_of_particle = make_int32(floor(
+        slice_index_of_particle = make_int32(pm.floor(
                 (beam.z - z_cut_tail) / slice_width
             ))
 
