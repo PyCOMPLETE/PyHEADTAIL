@@ -31,6 +31,7 @@ _CPU_numpy_func_dict = {
     'min' : np.min,
     'max' : np.max,
     'diff' : np.diff,
+    'floor': np.floor,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -45,6 +46,7 @@ _GPU_func_dict = {
     'min': lambda *args, **kwargs : pycuda.gpuarray.min(*args, **kwargs).get(),
     'max': lambda *args, **kwargs : pycuda.gpuarray.max(*args, **kwargs).get(),
     'diff' : lambda *args, **kwargs : skcuda.misc.diff(*args, **kwargs),
+    'floor': lambda *args, **kwargs : pycuda.cumath.floor(*args, **kwargs).get(),
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
