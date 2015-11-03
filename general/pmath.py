@@ -28,6 +28,9 @@ _CPU_numpy_func_dict = {
     'mean' : np.mean,
     'std' : cp.std,
     'emittance' : lambda *args, **kwargs : cp.emittance(*args, **kwargs),
+    'min' : np.min,
+    'max' : np.max,
+    'diff' : np.diff,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -39,6 +42,9 @@ _GPU_func_dict = {
     'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs).get(),
     'std': lambda *args, **kwargs : skcuda.misc.std(*args, **kwargs).get(),
     'emittance' : lambda u, up, dp=None : gpu_wrap.emittance(u, up, dp),
+    'min': lambda *args, **kwargs : pycuda.gpuarray.min(*args, **kwargs).get(),
+    'max': lambda *args, **kwargs : pycuda.gpuarray.max(*args, **kwargs).get(),
+    'diff' : lambda *args, **kwargs : skcuda.misc.diff(*args, **kwargs),
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
