@@ -18,6 +18,13 @@ class ParticlesGPU(def_particles.Particles):
             setattr(self, coord, device_array)
         self.id = gpuarray.to_gpu(self.id)
 
+    def transfer_to_host(self):
+        '''Transfers all GPU device data back to the host RAM.'''
+        for coord in self.coords_n_momenta:
+            device_array = getattr(self, coord).get()
+            setattr(self, coord, device_array)
+        self.id = self.id.get()
+
     def sort_for(self, attr):
         '''Sort the named particle attribute (coordinate / momentum)
         array and reorder all particles accordingly.
@@ -43,3 +50,5 @@ class ParticlesGPU(def_particles.Particles):
         tmp = gpuarray.empty(self.macroparticlenumber, dtype=self.id.dtype)
         thrust.apply_sort_perm_int(self.id, tmp, permutation)
         self.id = tmp
+
+

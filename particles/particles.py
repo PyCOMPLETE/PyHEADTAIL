@@ -13,6 +13,8 @@ from ..general import pmath as pm
 from . import Printing
 
 arange = np.arange
+mean = np.mean
+std = cp.std
 
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with

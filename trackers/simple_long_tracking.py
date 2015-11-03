@@ -172,27 +172,41 @@ class Kick(LongitudinalMap):
         self._phi_lock = 0
         self.D_x = D_x
         self.D_y = D_y
+        if not D_x and not D_y:
+            self.track = self.track_without_dispersion
 
     def track(self, beam):
+        try:
+            self.track_with_dispersion(beam)
+            self.track = self.track_with_dispersion
+        except AttributeError as e:
+            self.warns("Failed to apply transverse dispersion correction "
+                       "during longitudinal tracking. Caught AttributeError: \n"
+                       + e.message + "\nContinue without adjusting dispersion "
+                       "contribution when changing beam.dp...")
+            self.track = self.track_without_dispersion
+
+    def track_with_dispersion(self, beam):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp
         '''
+        beam.x -= self.D_x*beam.dp
+        beam.y -= self.D_y*beam.dp
+
+        self.track_without_dispersion(beam)
+
+        beam.x += self.D_x*beam.dp
+        beam.y += self.D_y*beam.dp
+
+    def track_without_dispersion(self, beam):
         amplitude = e*self.voltage / (beam.beta*c)
         phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
                + self.phi_offset + self._phi_lock)
-
-        beam.x -= self.D_x*beam.dp
-        beam.y -= self.D_y*beam.dp
 
         delta_p = beam.dp * beam.p0
         delta_p += amplitude * pm.sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
-
-        beam.x += self.D_x*beam.dp
-        beam.y += self.D_y*beam.dp
-
-
 
     # @property
     # def parameters(self):

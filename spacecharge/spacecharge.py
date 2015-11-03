@@ -7,7 +7,7 @@ from __future__ import division
 from . import Element, clean_slices
 
 import numpy as np
-from scipy.constants import m_p, c, e, epsilon_0, pi
+from scipy.constants import c, epsilon_0, pi
 
 from scipy.interpolate import splrep, splev
 from functools import wraps
