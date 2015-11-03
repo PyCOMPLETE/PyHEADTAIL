@@ -29,6 +29,8 @@ from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.feedback.widebandfeedback import Pickup, Kicker
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor
+from PyHEADTAIL.rfq.rfq_python import RFQLongitudinalKick, RFQTransverseKick
+from PyHEADTAIL.rfq.rfq_python import RFQTransverseDetuner
 
 
 try:
@@ -75,7 +77,7 @@ class TestGPUInterface(unittest.TestCase):
         self.dphi1 = 0
         self.dphi2 = np.pi
 
-        self.n_macroparticles = 1000000
+        self.n_macroparticles = 10000
 
 
     def tearDown(self):
@@ -270,8 +272,36 @@ class TestGPUInterface(unittest.TestCase):
         bunch_gpu = self.create_gaussian_bunch()
         self._monitor_cpu_gpu([bunchmonitor], bunch_cpu, bunch_gpu)
 
+    def test_RFQ_Kick(self):
+        '''
+        Test the RFQ tracking element in rfq/rfq_python
+        '''
+        bunch_cpu = self.create_gaussian_bunch()
+        bunch_gpu = self.create_gaussian_bunch()
+        rfq_transverse = RFQTransverseKick(v_2=2e9, omega=800e6*2.*np.pi,
+            phi_0=0.
+        )
+        rfq_longitudinal = RFQLongitudinalKick(v_2=2e9, omega=100e6*2.*np.pi,
+            phi_0=np.pi/2
+        )
+        self.assertTrue(self._track_cpu_gpu([rfq_transverse, rfq_longitudinal],
+            bunch_cpu, bunch_gpu), 'Tracking through an RFQ differs on CPU/GPU'
+        )
 
-
+    def test_RFQ_detuner(self):
+        '''
+        Test the RFQ as a detuning element in the transverse map
+        '''
+        bunch_cpu = self.create_gaussian_bunch()
+        bunch_gpu = self.create_gaussian_bunch()
+        detuner = RFQTransverseDetuner(v_2=1.5e9, omega=341e5*2.5*np.pi,
+            phi_0=-np.pi/4, beta_x_RFQ=200., beta_y_RFQ=99.)
+        transverse_map = tt.TransverseMap(
+            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
+            detuner)
+        self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
+            bunch_gpu), 'Transverse tracking with RFQDetuner CPU/GPU differs')
 
     def _monitor_cpu_gpu(self, monitors, bunch1, bunch2):
         '''

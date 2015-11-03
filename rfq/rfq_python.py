@@ -37,9 +37,8 @@ from abc import ABCMeta, abstractmethod
 from scipy.constants import c, e
 import numpy as np
 from ..trackers.detuners import DetunerCollection
+import PyHEADTAIL.general.pmath as pm
 
-sin = np.sin
-cos = np.cos
 
 class RFQTransverseDetuner(DetunerCollection):
     """Collection class to contain/manage the segment-wise defined
@@ -123,7 +122,7 @@ class RFQTransverseDetunerSegment(object):
         (Probably, it would make sense to approximate p by p0 for better
         performance). """
         p = (1. + beam.dp) * beam.p0
-        cos_term = cos(self.omega / (beam.beta * c) * beam.z + self.phi_0) / p
+        cos_term = pm.cos(self.omega / (beam.beta * c) * beam.z + self.phi_0) / p
         dQ_x = self.dapp_xz * cos_term
         dQ_y = self.dapp_yz * cos_term
 
@@ -171,7 +170,7 @@ class RFQTransverseKick(RFQKick):
                 cos(omega z / (beta c) + phi_0).
         """
         cos_term = (2. * e * self.v_2 / self.omega *
-            cos(self.omega / (beam.beta * c) * beam.z + self.phi_0))
+            pm.cos(self.omega / (beam.beta * c) * beam.z + self.phi_0))
 
         beam.xp += -beam.x * cos_term / beam.p0
         beam.yp += beam.y * cos_term / beam.p0
@@ -201,5 +200,5 @@ class RFQLongitudinalKick(RFQKick):
                 sin(omega z / (beta c) + phi_0).
         """
         sin_term = (e * self.v_2 / (beam.beta * c) *
-            sin(self.omega / (beam.beta * c) * beam.z + self.phi_0))
+            pm.sin(self.omega / (beam.beta * c) * beam.z + self.phi_0))
         beam.dp += -(beam.x*beam.x - beam.y*beam.y) * sin_term / beam.p0
