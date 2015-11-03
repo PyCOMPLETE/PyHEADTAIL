@@ -18,7 +18,6 @@ except ImportError:
     print ('Skcuda not found. (Scikit-cuda)')
 
 
-
 #### dictionaries storing the CPU and GPU versions of the desired functions ####
 _CPU_numpy_func_dict = {
     'sin' : np.sin,
@@ -32,6 +31,7 @@ _CPU_numpy_func_dict = {
     'max' : np.max,
     'diff' : np.diff,
     'floor': np.floor,
+    'argsort' : np.argsort,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -47,6 +47,7 @@ _GPU_func_dict = {
     'max': lambda *args, **kwargs : pycuda.gpuarray.max(*args, **kwargs).get(),
     'diff' : lambda *args, **kwargs : skcuda.misc.diff(*args, **kwargs),
     'floor': lambda *args, **kwargs : pycuda.cumath.floor(*args, **kwargs).get(),
+    'argsort': gpu_wrap.argsort,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################

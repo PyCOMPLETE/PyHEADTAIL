@@ -76,6 +76,7 @@ class TestDispatch(unittest.TestCase):
                 self.assertTrue(np.allclose(res_cpu, res_gpu),
                     'CPU/GPU version of ' + fname + ' dont yield the same result')
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_emittance_computation(self):
         '''
         Check that CPU/GPU functions yield the same result (if both exist)
@@ -100,6 +101,11 @@ class TestDispatch(unittest.TestCase):
             res_gpu = res_gpu.get()
         self.assertTrue(np.allclose(res_cpu, res_gpu),
             'CPU/GPU version of ' + fname + ' dont yield the same result')
+
+
+
+
+
     def tearDown(self):
         pass
 
