@@ -109,9 +109,7 @@ class TestDispatch(unittest.TestCase):
         apply_permutation only, requires a special function call.
         Check that CPU/GPU functions yield the same result (if both exist)
         No complete tracking, only bare functions. Only single param funnctions.
-        Use a large number of samples (~500k). The CPU and GPU computations
-        are not exactly the same due to differences in the algorithms (i.e.
-        biased/unbiased estimator)
+        Use a large number of samples (~500k). 
         '''
         fname = 'apply_permutation'
         np.random.seed(0)
