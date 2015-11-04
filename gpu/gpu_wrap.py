@@ -59,8 +59,32 @@ def emittance(u, up, dp):
 def argsort(to_sort):
     '''
     Sort the array to_sort and return the permutation used to sort it.
+    Args:
+        to_sort gpuarray to be sorted
     Returns the permutation
     '''
     permutation = pycuda.gpuarray.empty(to_sort.shape, dtype=np.int32)
     thrust.get_sort_perm_double(to_sort.copy(), permutation)
     return permutation
+
+def apply_permutation(array, permutation):
+    '''
+    Permute the entries in array according to the permutation array.
+    Returns a new (permuted) array which is equal to array[permutation]
+    Args:
+        array gpuarray to be permuted. Either float64 or int32
+        permutation permutation array: must be np.int32 (or int32), is asserted
+    '''
+    assert(permutation.dtype.itemsize == 4 and permutation.dtype.kind is 'i')
+    tmp = pycuda.gpuarray.empty_like(array)
+    dtype = array.dtype
+    if dtype.itemsize == 8 and dtype.kind is 'f':
+        thrust.apply_sort_perm_double(array, tmp, permutation)
+    elif dtype.itemsize == 4 and dtype.kind is 'i':
+        thrust.apply_sort_perm_int(array, tmp, permutation)
+    else:
+        print array.dtype
+        print array.dtype.itemsize
+        print array.dtype.kind
+        raise TypeError('Currently only float64 and int32 types can be sorted')
+    return tmp

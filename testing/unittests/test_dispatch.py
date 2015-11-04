@@ -61,7 +61,7 @@ class TestDispatch(unittest.TestCase):
         Use a large sample size to account for std/mean fluctuations due to
         different algorithms (single pass/shifted/...)
         '''
-        multi_param_fn = ['emittance']
+        multi_param_fn = ['emittance', 'apply_permutation',]
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
@@ -79,6 +79,7 @@ class TestDispatch(unittest.TestCase):
     @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_emittance_computation(self):
         '''
+        Emittance computation only, requires a special funcition call.
         Check that CPU/GPU functions yield the same result (if both exist)
         No complete tracking, only bare functions. Only single param funnctions.
         Use a large number of samples (~500k). The CPU and GPU computations
@@ -102,7 +103,29 @@ class TestDispatch(unittest.TestCase):
         self.assertTrue(np.allclose(res_cpu, res_gpu),
             'CPU/GPU version of ' + fname + ' dont yield the same result')
 
-
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
+    def test_apply_permutation_computation(self):
+        '''
+        apply_permutation only, requires a special function call.
+        Check that CPU/GPU functions yield the same result (if both exist)
+        No complete tracking, only bare functions. Only single param funnctions.
+        Use a large number of samples (~500k). The CPU and GPU computations
+        are not exactly the same due to differences in the algorithms (i.e.
+        biased/unbiased estimator)
+        '''
+        fname = 'apply_permutation'
+        np.random.seed(0)
+        n = 10
+        parameter_cpu_tosort = np.random.normal(loc=1., scale=.1, size=n)
+        parameter_gpu_tosort = pycuda.gpuarray.to_gpu(parameter_cpu_tosort)
+        parameter_cpu_perm = np.array(np.random.permutation(n), dtype=np.int32)
+        parameter_gpu_perm = pycuda.gpuarray.to_gpu(parameter_cpu_perm)
+        params_cpu = [parameter_cpu_tosort, parameter_cpu_perm]
+        params_gpu = [parameter_gpu_tosort, parameter_gpu_perm]
+        res_cpu = pm._CPU_numpy_func_dict[fname](*params_cpu)
+        res_gpu = pm._GPU_func_dict[fname](*params_gpu)
+        self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
+            'CPU/GPU version of ' + fname + ' dont yield the same result')
 
 
 

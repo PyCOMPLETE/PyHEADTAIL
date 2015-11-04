@@ -32,6 +32,7 @@ _CPU_numpy_func_dict = {
     'diff' : np.diff,
     'floor': np.floor,
     'argsort' : np.argsort,
+    'apply_permutation' : lambda array, permutation: array[permutation], #auto copy
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -48,6 +49,7 @@ _GPU_func_dict = {
     'diff' : lambda *args, **kwargs : skcuda.misc.diff(*args, **kwargs),
     'floor': lambda *args, **kwargs : pycuda.cumath.floor(*args, **kwargs).get(),
     'argsort': gpu_wrap.argsort,
+    'apply_permutation' : gpu_wrap.apply_permutation,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
