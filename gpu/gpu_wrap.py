@@ -25,7 +25,7 @@ with open(where + 'stats.cu') as stream:
     source = stream.read()
 stats_kernels = pycuda.compiler.SourceModule(source) # compile
 sorted_mean_per_slice_kernel = stats_kernels.get_function('sorted_mean_per_slice')
-sorted_var_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
+sorted_std_per_slice_kernel = stats_kernels.get_function('sorted_std_per_slice')
 
 
 def covariance(a, b):
@@ -164,10 +164,10 @@ def sorted_std_per_slice(sliceset, u):
         _add_bounds_to_sliceset(sliceset)
     block = (256, 1, 1)
     grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
-    var_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
-    sorted_var_per_slice_kernel(sliceset.lower_bounds.gpudata,
+    std_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
+    sorted_std_per_slice_kernel(sliceset.lower_bounds.gpudata,
                                  sliceset.upper_bounds.gpudata,
                                  u.gpudata, np.int32(sliceset.n_slices),
-                                 var_u.gpudata,
+                                 std_u.gpudata,
                                  block=block, grid=grid)
-    return pycuda.cumath.sqrt(var_u)
+    return std_u

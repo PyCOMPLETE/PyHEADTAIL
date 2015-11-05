@@ -34,7 +34,7 @@ with open(where + 'stats.cu') as stream:
 stats_kernels = SourceModule(source)
 
 sorted_mean_per_slice = stats_kernels.get_function('sorted_mean_per_slice')
-sorted_cov_per_slice = stats_kernels.get_function('sorted_cov_per_slice')
+sorted_std_per_slice = stats_kernels.get_function('sorted_std_per_slice')
 
 with open(where + 'smoothing_kernels.cu') as stream:
     source = stream.read()
@@ -46,7 +46,7 @@ gaussian_smoothing = smoothing_kernels.get_function('gaussian_smoothing_1d')
 
 # prepare calls to kernels!!!
 sorted_mean_per_slice.prepare('PPPIP')
-sorted_cov_per_slice.prepare('PPPIP')
+sorted_std_per_slice.prepare('PPPIP')
 
 # for both smoothing kernels, the launched threads need to cover the slices exactly!
 # block size block=(32, 1, 1) is fixed!
@@ -441,7 +441,7 @@ class SlicerGPU(def_slicing.Slicer):
         block = (256, 1, 1)
         grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
         cov_u = gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
-        sorted_cov_per_slice(lower_bounds.gpudata,
+        sorted_std_per_slice(lower_bounds.gpudata,
                              upper_bounds.gpudata,
                              u.gpudata,
                              self.n_slices,

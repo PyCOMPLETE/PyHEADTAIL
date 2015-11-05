@@ -37,7 +37,7 @@ __global__ void sorted_mean_per_slice(unsigned int* lower_bounds,
     }
 }
 
-__global__ void sorted_cov_per_slice(unsigned int* lower_bounds,
+__global__ void sorted_std_per_slice(unsigned int* lower_bounds,
                                      unsigned int* upper_bounds,
                                      double* u,                     // array of particle quantity sorted by slice
                                      unsigned int n_slices,
@@ -79,7 +79,7 @@ __global__ void sorted_cov_per_slice(unsigned int* lower_bounds,
                 du = u[pid] - mean_u;
                 l_cov_u += du * du;
             }
-            cov_u[sid] = l_cov_u / (n_macroparticles - 1);
+            cov_u[sid] = sqrt(l_cov_u / (n_macroparticles - 1));
         }
     }
 }
