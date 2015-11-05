@@ -25,7 +25,7 @@ with open(where + 'stats.cu') as stream:
     source = stream.read()
 stats_kernels = pycuda.compiler.SourceModule(source) # compile
 sorted_mean_per_slice_kernel = stats_kernels.get_function('sorted_mean_per_slice')
-sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
+sorted_var_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
 
 
 def covariance(a, b):
@@ -111,34 +111,63 @@ def apply_permutation(array, permutation):
         raise TypeError('Currently only float64 and int32 types can be sorted')
     return tmp
 
+
+def _add_bounds_to_sliceset(sliceset):
+    '''
+    Adds the lower_bounds and upper_bounds members to the sliceset
+    They must not present before the function call, otherwise undefined behaviour
+    '''
+    seq = pycuda.gpuarray.arange(sliceset.n_slices, dtype=np.int32)
+    upper_bounds = pycuda.gpuarray.empty_like(seq)
+    lower_bounds = pycuda.gpuarray.empty_like(seq)
+    thrust.upper_bound_int(sliceset.slice_index_of_particle,
+                                            seq, upper_bounds)
+    thrust.lower_bound_int(sliceset.slice_index_of_particle,
+                                            seq, lower_bounds)
+    sliceset.upper_bounds = upper_bounds
+    sliceset.lower_bounds = lower_bounds
+    #print 'upper bounds ',sliceset.upper_bounds
+    #print 'lower bounds ',sliceset.lower_bounds
+
 def sorted_mean_per_slice(sliceset, u):
     '''
     Computes the mean per slice of the array u
     Args:
-        sliceset specifying slices
+        sliceset specifying slices, has .nslices and .slice_index_of_particle
         u the array of which to compute the mean
     Returns the an array, res[i] stores the mean of slice i
     '''
     if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
         #print 'Adding the upper/lower_bounds to the sliceset'
         #print 'Assuming a sorted beam'
-        seq = pycuda.gpuarray.arange(sliceset.n_slices, dtype=np.int32)
-        upper_bounds = pycuda.gpuarray.empty_like(seq)
-        lower_bounds = pycuda.gpuarray.empty_like(seq)
-        thrust.upper_bound_int(sliceset.slice_index_of_particle,
-                                                seq, upper_bounds)
-        thrust.lower_bound_int(sliceset.slice_index_of_particle,
-                                                seq, lower_bounds)
-        sliceset.upper_bounds = upper_bounds
-        sliceset.lower_bounds = lower_bounds
-    #print 'upper bounds ',sliceset.upper_bounds
-    #print 'lower bounds ',sliceset.lower_bounds
+        _add_bounds_to_sliceset(sliceset)
+
     block = (256, 1, 1)
     grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
-    mean_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64) + 99.
+    mean_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
     sorted_mean_per_slice_kernel(sliceset.lower_bounds.gpudata,
                                  sliceset.upper_bounds.gpudata,
                                  u.gpudata, np.int32(sliceset.n_slices),
                                  mean_u.gpudata,
                                  block=block, grid=grid)
     return mean_u
+
+def sorted_std_per_slice(sliceset, u):
+    '''
+    Computes the cov per slice of the array u
+    Args:
+        sliceset specifying slices
+        u the array of which to compute the cov
+    Returns an array, res[i] stores the cov of slice i
+    '''
+    if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
+        _add_bounds_to_sliceset(sliceset)
+    block = (256, 1, 1)
+    grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
+    var_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
+    sorted_var_per_slice_kernel(sliceset.lower_bounds.gpudata,
+                                 sliceset.upper_bounds.gpudata,
+                                 u.gpudata, np.int32(sliceset.n_slices),
+                                 var_u.gpudata,
+                                 block=block, grid=grid)
+    return pycuda.cumath.sqrt(var_u)

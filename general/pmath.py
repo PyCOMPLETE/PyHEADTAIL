@@ -22,6 +22,7 @@ def _mean_per_slice_cpu(sliceset, u):
     '''
     CPU Wrapper for the mean per slice function.
     TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+    --> Directly into cobra_functions/stats.pyx?
     '''
     mean_u = np.zeros(sliceset.n_slices)
     cp.mean_per_slice(sliceset.slice_index_of_particle,
@@ -29,6 +30,19 @@ def _mean_per_slice_cpu(sliceset, u):
                       sliceset.n_macroparticles_per_slice,
                       u, mean_u)
     return mean_u
+
+def _std_per_slice_cpu(sliceset, u):
+    '''
+    CPU Wrapper for the cov per slice function.
+    TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+    --> Directly into cobra_functions/stats.pyx?
+    '''
+    std_u = np.zeros(sliceset.n_slices)
+    cp.std_per_slice(sliceset.slice_index_of_particle,
+                      sliceset.particles_within_cuts,
+                      sliceset.n_macroparticles_per_slice,
+                      u, std_u)
+    return std_u
 
 #### dictionaries storing the CPU and GPU versions of the desired functions ####
 _CPU_numpy_func_dict = {
@@ -46,6 +60,8 @@ _CPU_numpy_func_dict = {
     'argsort' : np.argsort,
     'apply_permutation' : lambda array, permutation: array[permutation], #auto copy
     'mean_per_slice' : lambda sliceset,  u: _mean_per_slice_cpu(sliceset, u),
+    #'cov_per_slice' : lambda sliceset, u: _cov_per_slice_cpu(sliceset, u),
+    'std_per_slice' : lambda sliceset, u: _std_per_slice_cpu(sliceset, u),
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -64,6 +80,7 @@ _GPU_func_dict = {
     'argsort': gpu_wrap.argsort,
     'apply_permutation' : gpu_wrap.apply_permutation,
     'mean_per_slice' : gpu_wrap.sorted_mean_per_slice,
+    'std_per_slice' : gpu_wrap.sorted_std_per_slice,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################

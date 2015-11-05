@@ -66,7 +66,8 @@ class TestDispatch(unittest.TestCase):
         Use a large sample size to account for std/mean fluctuations due to
         different algorithms (single pass/shifted/...)
         '''
-        multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice']
+        multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice',
+            'std_per_slice']
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
@@ -136,12 +137,12 @@ class TestDispatch(unittest.TestCase):
         Check that CPU/GPU functions yield the same result (if both exist)
         No complete tracking, only bare functions.
         '''
-        fnames = ['mean_per_slice']
+        fnames = ['mean_per_slice', 'std_per_slice']
         np.random.seed(0)
-        n = 10000
+        n = 9999
         b = self.create_gaussian_bunch(n)
         b.sort_for('z')
-        slicer = UniformBinSlicer(n_slices=100, n_sigma_z=None)
+        slicer = UniformBinSlicer(n_slices=77, n_sigma_z=None)
         s_set = b.get_slices(slicer)
         z_cpu = b.z.copy()
         z_gpu = pycuda.gpuarray.to_gpu(z_cpu)
