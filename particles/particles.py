@@ -181,7 +181,7 @@ class Particles(Printing):
         '''Sort the named particle attribute (coordinate / momentum)
         array and reorder all particles accordingly.
         '''
-        permutation = np.argsort(getattr(self, attr))
+        permutation = pm.argsort(getattr(self, attr))
         self.reorder(permutation)
 
     def reorder(self, permutation, except_for_attrs=[]):
@@ -193,7 +193,7 @@ class Particles(Printing):
         for attr in to_be_reordered:
             if attr in except_for_attrs:
                 continue
-            reordered = getattr(self, attr)[permutation]
+            reordered = pm.apply_permutation(getattr(self, attr),permutation)
             setattr(self, attr, reordered)
 
     # Statistics methods

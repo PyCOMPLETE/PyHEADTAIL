@@ -561,6 +561,7 @@ class UniformBinSlicer(Slicer):
         slice_index_of_particle = make_int32(pm.floor(
                 (beam.z - z_cut_tail) / slice_width
             ))
+        #print 'type slice_idx_of_particle: ', type(slice_index_of_particle)
 
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,

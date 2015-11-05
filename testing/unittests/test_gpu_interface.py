@@ -17,6 +17,15 @@ import unittest
 import numpy as np
 from scipy.constants import c, e, m_p
 
+
+# try to import pycuda, if not available --> skip this test file
+try:
+    import pycuda.autoinit
+except ImportError:
+    has_pycuda = False
+else:
+    has_pycuda = True
+
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.general.printers import AccumulatorPrinter
 from PyHEADTAIL.general.contextmanager import GPU
@@ -40,13 +49,7 @@ except ImportError:
 else:
     has_PyCERNmachines = True
 
-# try to import pycuda, if not available --> skip this test file
-try:
-    import pycuda.autoinit
-except ImportError:
-    has_pycuda = False
-else:
-    has_pycuda = True
+
 @unittest.skipUnless(has_pycuda, 'pycuda not found, skipping')
 class TestGPUInterface(unittest.TestCase):
     '''

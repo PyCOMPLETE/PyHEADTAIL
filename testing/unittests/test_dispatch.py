@@ -14,9 +14,8 @@ sys.path.append(BIN)
 
 import unittest
 import numpy as np
-
-import PyHEADTAIL.general.pmath as pm
-
+from scipy.constants import c, e, m_p
+import copy
 # try to import pycuda, if not available --> skip this test file
 try:
     import pycuda.autoinit
@@ -25,6 +24,12 @@ except ImportError:
     has_pycuda = False
 else:
     has_pycuda = True
+
+import PyHEADTAIL.general.pmath as pm
+from PyHEADTAIL.particles.particles import Particles
+from PyHEADTAIL.particles.slicing import UniformBinSlicer
+
+
 
 class TestDispatch(unittest.TestCase):
     '''Test Class for the function dispatch functionality in general.pmath'''
@@ -61,7 +66,7 @@ class TestDispatch(unittest.TestCase):
         Use a large sample size to account for std/mean fluctuations due to
         different algorithms (single pass/shifted/...)
         '''
-        multi_param_fn = ['emittance', 'apply_permutation',]
+        multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice']
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
@@ -81,7 +86,7 @@ class TestDispatch(unittest.TestCase):
         '''
         Emittance computation only, requires a special funcition call.
         Check that CPU/GPU functions yield the same result (if both exist)
-        No complete tracking, only bare functions. Only single param funnctions.
+        No complete tracking, only bare functions.
         Use a large number of samples (~500k). The CPU and GPU computations
         are not exactly the same due to differences in the algorithms (i.e.
         biased/unbiased estimator)
@@ -108,8 +113,7 @@ class TestDispatch(unittest.TestCase):
         '''
         apply_permutation only, requires a special function call.
         Check that CPU/GPU functions yield the same result (if both exist)
-        No complete tracking, only bare functions. Only single param funnctions.
-        Use a large number of samples (~500k). 
+        No complete tracking, only bare functions.
         '''
         fname = 'apply_permutation'
         np.random.seed(0)
@@ -125,7 +129,62 @@ class TestDispatch(unittest.TestCase):
         self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
             'CPU/GPU version of ' + fname + ' dont yield the same result')
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
+    def test_per_slice_stats(self):
+        '''
+        All per_slice functions (mean, cov, ?emittance)
+        Check that CPU/GPU functions yield the same result (if both exist)
+        No complete tracking, only bare functions.
+        '''
+        fnames = ['mean_per_slice']
+        np.random.seed(0)
+        n = 10000
+        b = self.create_gaussian_bunch(n)
+        b.sort_for('z')
+        slicer = UniformBinSlicer(n_slices=100, n_sigma_z=None)
+        s_set = b.get_slices(slicer)
+        z_cpu = b.z.copy()
+        z_gpu = pycuda.gpuarray.to_gpu(z_cpu)
+        sliceset_cpu = s_set
+        sliceset_gpu = copy.deepcopy(s_set)
+        sliceset_gpu.slice_index_of_particle = pycuda.gpuarray.to_gpu(
+            s_set.slice_index_of_particle
+        )
+        for fname in fnames:
+            res_cpu = pm._CPU_numpy_func_dict[fname](sliceset_cpu, z_cpu)
+            res_gpu = pm._GPU_func_dict[fname](sliceset_gpu,z_gpu)
+            #print res_cpu
+            #print res_gpu
+            self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
+                'CPU/GPU version of ' + fname + ' dont yield the same result')
 
+    def create_all1_bunch(self, n_macroparticles):
+        np.random.seed(1)
+        x = np.ones(n_macroparticles)
+        y = x.copy()
+        z = x.copy()
+        xp = x.copy()
+        yp = x.copy()
+        dp = x.copy()
+        coords_n_momenta_dict = {
+            'x': x, 'y': y, 'z': z,
+            'xp': xp, 'yp': yp, 'dp': dp
+        }
+        return Particles(
+            macroparticlenumber=len(x), particlenumber_per_mp=100, charge=e,
+            mass=m_p, circumference=100, gamma=10,
+            coords_n_momenta_dict=coords_n_momenta_dict
+        )
+
+    def create_gaussian_bunch(self, n_macroparticles):
+        P = self.create_all1_bunch(n_macroparticles)
+        P.x = np.random.randn(n_macroparticles)
+        P.y = np.random.randn(n_macroparticles)
+        P.z = np.random.randn(n_macroparticles)
+        P.xp = np.random.randn(n_macroparticles)
+        P.yp = np.random.randn(n_macroparticles)
+        P.dp = np.random.randn(n_macroparticles)
+        return P
 
     def tearDown(self):
         pass

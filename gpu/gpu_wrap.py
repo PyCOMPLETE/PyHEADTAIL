@@ -10,10 +10,23 @@ import numpy as np
 try:
     import skcuda.misc
     import pycuda.gpuarray
+    import pycuda.compiler
 except ImportError:
     pass
+
+### Thrust
 import thrust_interface
 thrust = thrust_interface.compiled_module
+
+### CUDA Kernels
+import os
+where = os.path.dirname(os.path.abspath(__file__)) + '/'
+with open(where + 'stats.cu') as stream:
+    source = stream.read()
+stats_kernels = pycuda.compiler.SourceModule(source) # compile
+sorted_mean_per_slice_kernel = stats_kernels.get_function('sorted_mean_per_slice')
+sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
+
 
 def covariance(a, b):
     '''Covariance (not covariance matrix)
@@ -97,3 +110,35 @@ def apply_permutation(array, permutation):
         print array.dtype.kind
         raise TypeError('Currently only float64 and int32 types can be sorted')
     return tmp
+
+def sorted_mean_per_slice(sliceset, u):
+    '''
+    Computes the mean per slice of the array u
+    Args:
+        sliceset specifying slices
+        u the array of which to compute the mean
+    Returns the an array, res[i] stores the mean of slice i
+    '''
+    if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
+        #print 'Adding the upper/lower_bounds to the sliceset'
+        #print 'Assuming a sorted beam'
+        seq = pycuda.gpuarray.arange(sliceset.n_slices, dtype=np.int32)
+        upper_bounds = pycuda.gpuarray.empty_like(seq)
+        lower_bounds = pycuda.gpuarray.empty_like(seq)
+        thrust.upper_bound_int(sliceset.slice_index_of_particle,
+                                                seq, upper_bounds)
+        thrust.lower_bound_int(sliceset.slice_index_of_particle,
+                                                seq, lower_bounds)
+        sliceset.upper_bounds = upper_bounds
+        sliceset.lower_bounds = lower_bounds
+    #print 'upper bounds ',sliceset.upper_bounds
+    #print 'lower bounds ',sliceset.lower_bounds
+    block = (256, 1, 1)
+    grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
+    mean_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64) + 99.
+    sorted_mean_per_slice_kernel(sliceset.lower_bounds.gpudata,
+                                 sliceset.upper_bounds.gpudata,
+                                 u.gpudata, np.int32(sliceset.n_slices),
+                                 mean_u.gpudata,
+                                 block=block, grid=grid)
+    return mean_u

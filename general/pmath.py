@@ -18,6 +18,18 @@ except ImportError:
     print ('Skcuda not found. (Scikit-cuda)')
 
 
+def _mean_per_slice_cpu(sliceset, u):
+    '''
+    CPU Wrapper for the mean per slice function.
+    TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+    '''
+    mean_u = np.zeros(sliceset.n_slices)
+    cp.mean_per_slice(sliceset.slice_index_of_particle,
+                      sliceset.particles_within_cuts,
+                      sliceset.n_macroparticles_per_slice,
+                      u, mean_u)
+    return mean_u
+
 #### dictionaries storing the CPU and GPU versions of the desired functions ####
 _CPU_numpy_func_dict = {
     'sin' : np.sin,
@@ -33,6 +45,7 @@ _CPU_numpy_func_dict = {
     'floor': np.floor,
     'argsort' : np.argsort,
     'apply_permutation' : lambda array, permutation: array[permutation], #auto copy
+    'mean_per_slice' : lambda sliceset,  u: _mean_per_slice_cpu(sliceset, u),
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -47,9 +60,10 @@ _GPU_func_dict = {
     'min': lambda *args, **kwargs : pycuda.gpuarray.min(*args, **kwargs).get(),
     'max': lambda *args, **kwargs : pycuda.gpuarray.max(*args, **kwargs).get(),
     'diff' : lambda *args, **kwargs : skcuda.misc.diff(*args, **kwargs),
-    'floor': lambda *args, **kwargs : pycuda.cumath.floor(*args, **kwargs).get(),
+    'floor': lambda *args, **kwargs : pycuda.cumath.floor(*args, **kwargs),
     'argsort': gpu_wrap.argsort,
     'apply_permutation' : gpu_wrap.apply_permutation,
+    'mean_per_slice' : gpu_wrap.sorted_mean_per_slice,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
