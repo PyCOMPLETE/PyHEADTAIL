@@ -44,6 +44,19 @@ def _std_per_slice_cpu(sliceset, u):
                       u, std_u)
     return std_u
 
+def _emittance_per_slice_cpu(sliceset, u, up, dp=None):
+    '''
+    CPU Wrapper for the emittance per slice function.
+    TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+    --> Directly into cobra_functions/stats.pyx?
+    '''
+    emittance_u = np.zeros(sliceset.n_slices)
+    cp.emittance_per_slice(sliceset.slice_index_of_particle,
+                           sliceset.particles_within_cuts,
+                           sliceset.n_macroparticles_per_slice,
+                           u, up, dp, emittance_u)
+    return emittance_u
+
 #### dictionaries storing the CPU and GPU versions of the desired functions ####
 _CPU_numpy_func_dict = {
     'sin' : np.sin,
@@ -62,6 +75,7 @@ _CPU_numpy_func_dict = {
     'mean_per_slice' : lambda sliceset,  u: _mean_per_slice_cpu(sliceset, u),
     #'cov_per_slice' : lambda sliceset, u: _cov_per_slice_cpu(sliceset, u),
     'std_per_slice' : lambda sliceset, u: _std_per_slice_cpu(sliceset, u),
+    'emittance_per_slice': _emittance_per_slice_cpu,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -81,6 +95,7 @@ _GPU_func_dict = {
     'apply_permutation' : gpu_wrap.apply_permutation,
     'mean_per_slice' : gpu_wrap.sorted_mean_per_slice,
     'std_per_slice' : gpu_wrap.sorted_std_per_slice,
+    'emittance_per_slice' : gpu_wrap.sorted_emittance_per_slice,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################

@@ -67,7 +67,7 @@ class TestDispatch(unittest.TestCase):
         different algorithms (single pass/shifted/...)
         '''
         multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice',
-            'std_per_slice']
+            'std_per_slice', 'emittance_per_slice']
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
@@ -139,10 +139,10 @@ class TestDispatch(unittest.TestCase):
         '''
         fnames = ['mean_per_slice', 'std_per_slice']
         np.random.seed(0)
-        n = 9999
+        n = 99999
         b = self.create_gaussian_bunch(n)
         b.sort_for('z')
-        slicer = UniformBinSlicer(n_slices=77, n_sigma_z=None)
+        slicer = UniformBinSlicer(n_slices=777, n_sigma_z=None)
         s_set = b.get_slices(slicer)
         z_cpu = b.z.copy()
         z_gpu = pycuda.gpuarray.to_gpu(z_cpu)
@@ -154,9 +154,21 @@ class TestDispatch(unittest.TestCase):
         for fname in fnames:
             res_cpu = pm._CPU_numpy_func_dict[fname](sliceset_cpu, z_cpu)
             res_gpu = pm._GPU_func_dict[fname](sliceset_gpu,z_gpu)
-            #print res_cpu
-            #print res_gpu
             self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
+                'CPU/GPU version of ' + fname + ' dont yield the same result')
+        fnames = ['emittance_per_slice']
+        v_cpu = b.x
+        v_gpu = pycuda.gpuarray.to_gpu(v_cpu)
+        dp_cpu = z_cpu + np.arange(n)/n
+        dp_gpu = pycuda.gpuarray.to_gpu(dp_cpu)
+        for fname in fnames:
+            res_cpu = pm._CPU_numpy_func_dict[fname](sliceset_cpu, z_cpu, v_cpu, dp_cpu)
+            res_gpu = pm._GPU_func_dict[fname](sliceset_gpu, z_gpu, v_gpu, dp_gpu)
+            # only check things which aren't nan/None. Ignore RuntimeWarning!
+            with np.errstate(invalid='ignore'):
+                res_cpu = res_cpu[res_cpu>1e-10]
+                res_gpu = res_gpu.get()[res_gpu.get()>1e-10]
+            self.assertTrue(np.allclose(res_cpu, res_gpu),
                 'CPU/GPU version of ' + fname + ' dont yield the same result')
 
     def create_all1_bunch(self, n_macroparticles):
