@@ -318,9 +318,15 @@ class Slicer(Printing):
         Valid list entries are all statistics functions of Particles.
         '''
         sliceset_kwargs = self.compute_sliceset_kwargs(beam)
+        perm = pm.argsort(sliceset_kwargs['slice_index_of_particle'])
+        beam.reorder(perm)
+        # Update slice index of particles! otherwise cpu impl is wrong
+        sliceset_kwargs = self.compute_sliceset_kwargs(beam)
         sliceset_kwargs['beam_parameters'] = (
             self.extract_beam_parameters(beam))
         sliceset = SliceSet(**sliceset_kwargs)
+        #beam.reorder(pm.argsort(sliceset_kwargs['slice_index_of_particle']))
+
         if 'statistics' in kwargs:
             self.add_statistics(sliceset, beam, kwargs['statistics'])
         return sliceset
@@ -458,28 +464,13 @@ class Slicer(Printing):
     # Statistics helper functions.
 
     def _mean(self, sliceset, u):
-        mean_u = np.zeros(sliceset.n_slices)
-        cp.mean_per_slice(sliceset.slice_index_of_particle,
-                          sliceset.particles_within_cuts,
-                          sliceset.n_macroparticles_per_slice,
-                          u, mean_u)
-        return mean_u
+        return pm.mean_per_slice(sliceset, u)
 
     def _sigma(self, sliceset, u):
-        sigma_u = np.zeros(sliceset.n_slices)
-        cp.std_per_slice(sliceset.slice_index_of_particle,
-                         sliceset.particles_within_cuts,
-                         sliceset.n_macroparticles_per_slice,
-                         u, sigma_u)
-        return sigma_u
+        return pm.std_per_slice(sliceset, u)
 
     def _epsn(self, sliceset, u, up, dp):
-        epsn_u = np.zeros(sliceset.n_slices)
-        cp.emittance_per_slice(sliceset.slice_index_of_particle,
-                               sliceset.particles_within_cuts,
-                               sliceset.n_macroparticles_per_slice,
-                               u, up, dp, epsn_u)
-        return epsn_u
+        return pm.emittance_per_slice(sliceset, u, up, dp)
 
 
 class UniformBinSlicer(Slicer):

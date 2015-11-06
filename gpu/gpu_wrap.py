@@ -213,6 +213,8 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None):
         cov_dp2 = sorted_cov_per_slice(sliceset, dp, dp, stream=streams[2])
     else:
         cov_dp2 = pycuda.gpuarray.zeros_like(cov_u2) + 1.
+        cov_u_dp = pycuda.gpuarray.zeros_like(cov_u2)
+        cov_up_dp = pycuda.gpuarray.zeros_like(cov_u2)
     for i in xrange(n_streams):
         streams[i].synchronize()
     # TODO: change this to elementwise kernels or .mul_add()
