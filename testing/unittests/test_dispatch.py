@@ -67,7 +67,7 @@ class TestDispatch(unittest.TestCase):
         different algorithms (single pass/shifted/...)
         '''
         multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice',
-            'std_per_slice', 'emittance_per_slice']
+            'std_per_slice', 'emittance_per_slice', 'particles_within_cuts']
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
@@ -170,6 +170,35 @@ class TestDispatch(unittest.TestCase):
                 res_gpu = res_gpu.get()[res_gpu.get()>1e-10]
             self.assertTrue(np.allclose(res_cpu, res_gpu),
                 'CPU/GPU version of ' + fname + ' dont yield the same result')
+
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
+    def test_particles_within_cuts_computation(self):
+        '''
+        cut_array, requires a special function call.
+        Check that CPU/GPU functions yield the same result (if both exist)
+        No complete tracking, only bare functions.
+        '''
+        fname = 'particles_within_cuts'
+        np.random.seed(0)
+        n = 200
+        b = self.create_gaussian_bunch(n)
+        b.sort_for('z')
+        slicer = UniformBinSlicer(n_slices=10, n_sigma_z=2)
+        s_set = b.get_slices(slicer)
+        z_cpu = b.z.copy()
+        z_gpu = pycuda.gpuarray.to_gpu(z_cpu)
+        sliceset_cpu = s_set
+        sliceset_gpu = copy.deepcopy(s_set)
+        sliceset_gpu.slice_index_of_particle = pycuda.gpuarray.to_gpu(
+            s_set.slice_index_of_particle
+        )
+        params_cpu = [sliceset_cpu]
+        params_gpu = [sliceset_gpu]
+        res_cpu = pm._CPU_numpy_func_dict[fname](*params_cpu)
+        res_gpu = pm._GPU_func_dict[fname](*params_gpu)
+        self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
+            'CPU/GPU version of ' + fname + ' dont yield the same result')
+
 
     def create_all1_bunch(self, n_macroparticles):
         np.random.seed(1)

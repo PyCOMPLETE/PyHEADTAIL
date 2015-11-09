@@ -29,6 +29,7 @@ sorted_mean_per_slice_kernel = stats_kernels.get_function('sorted_mean_per_slice
 sorted_std_per_slice_kernel = stats_kernels.get_function('sorted_std_per_slice')
 sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
 
+
 def covariance(a, b):
     '''Covariance (not covariance matrix)
     Args:
@@ -111,6 +112,20 @@ def apply_permutation(array, permutation):
         print array.dtype.kind
         raise TypeError('Currently only float64 and int32 types can be sorted')
     return tmp
+
+def particles_within_cuts(sliceset):
+    '''
+    Returns np.where((array >= minimum) and (array <= maximum))
+    Assumes a sorted beam!
+    '''
+    if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
+        #print 'Adding the upper/lower_bounds to the sliceset'
+        #print 'Assuming a sorted beam'
+        _add_bounds_to_sliceset(sliceset)
+    begin = sliceset.lower_bounds.get()[0]
+    end = sliceset.upper_bounds.get()[-1]
+    idx = pycuda.gpuarray.arange(begin, end, dtype=np.int32)
+    return idx
 
 
 def _add_bounds_to_sliceset(sliceset):
