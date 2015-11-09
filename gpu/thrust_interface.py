@@ -24,9 +24,27 @@ nvcc_includes = [
     'thrust/binary_search.h',
     'thrust/device_vector.h',
     'cuda.h',
+    'thrust/copy.h',
+    'thrust/device_ptr.h',
+    'thrust/sequence.h',
+    #'helper.h'
     ]
 #Add includes to module
 nvcc_mod.add_to_preamble([Include(x) for x in nvcc_includes])
+
+device_structs = [
+'namespace helper {'
+
+	'struct between'
+	'{'
+		'const int minimum;'
+		'const int maximum;'
+		'__host__ __device__ between(int min, int max): minimum(min), maximum(max) {};'
+	    '__host__ __device__ bool operator()(const int x) {return !(x < minimum) && !(maximum < x);};'
+	'};'
+'}'
+]
+nvcc_mod.add_to_preamble([Statement(x) for x in device_structs])
 
 #NVCC function
 nvcc_functions = [
@@ -120,7 +138,39 @@ nvcc_functions = [
                              'thrust_bounds_ptr + bounds_length, '
                              'thrust_output_ptr)'),
               ])),
+    FunctionBody(
+        FunctionDeclaration(Value('int', 'thrust_copy_if_min_max'),
+                            [Value('int*', 'input_ptr'),
+                             Value('int', 'input_length'),
+                             Value('int*', 'output_ptr'),
+                             Value('int', 'mini'),
+                             Value('int', 'maxi')]),
+        Block([Statement(x) for x in
+            [
+                # get device ptr
+                'thrust::device_ptr<int> d_input_ptr(input_ptr)',
+                'thrust::device_ptr<int> d_output_ptr(output_ptr)',
+                'thrust::device_ptr<int> d_end_input_ptr(d_input_ptr+input_length)',
+
+                # define the predicate
+
+                'thrust::device_ptr<int> output_end = thrust::copy_if(d_input_ptr, d_end_input_ptr, d_output_ptr, helper::between(mini, maxi))',
+                'int output_length = output_end - d_output_ptr',
+                # 'int N = 10',
+                # 'thrust::device_vector<int> v1(N)',
+                # 'thrust::sequence(v1.begin(), v1.end())',
+                # 'thrust::device_vector<int> result(N)',
+                # 'thrust::device_ptr<int> d_in = v1.data()',
+                # 'thrust::device_ptr<int> d_out = result.data()',
+                # 'thrust::copy_if(d_in, d_in + N, d_out, helper::between(0,2))',
+
+
+
+                'return output_length',
+            ]
+              ])),
 ]
+
 
 #Add declaration to nvcc_mod
 #Adds declaration to host_mod as well
@@ -295,6 +345,27 @@ host_functions = [
                                        '(int*) bounds_ptr, bounds_length, (int*) output_ptr)',
             ]
         ])),
+
+        FunctionBody(
+            FunctionDeclaration(Value('int', 'copy_if_min_max'),
+                                [Value('p::object', 'input_gpuarray'),
+                                 Value('p::object', 'output_gpuarray'),
+                                 Value('int', 'minimum'),
+                                 Value('int', 'maximum')]),
+            Block([Statement(x) for x in
+                [
+                    #Extract information from PyCUDA GPUArray
+                    #Get length
+                    'p::tuple shape = p::extract<p::tuple>(input_gpuarray.attr("shape"))',
+                    'int input_length = p::extract<int>(shape[0])',
+                    #Get data pointer
+                    'CUdeviceptr input_ptr = p::extract<CUdeviceptr>(input_gpuarray.attr("ptr"))',
+                    'CUdeviceptr output_ptr = p::extract<CUdeviceptr>(output_gpuarray.attr("ptr"))',
+
+                    'return thrust_copy_if_min_max((int*)input_ptr, input_length,'
+                                                  '(int*)output_ptr, minimum, maximum)',
+                ]
+            ])),
 ]
 
 for fct in host_functions:
