@@ -96,6 +96,7 @@ class SliceSet(Printing):
         slice.
         '''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
+        self._particles_within_cuts = None
 
         for p_name, p_value in beam_parameters.iteritems():
             if hasattr(self, p_name):
@@ -146,11 +147,7 @@ class SliceSet(Printing):
         slice.
         '''
         if self._n_macroparticles_per_slice is None:
-            self._n_macroparticles_per_slice = np.zeros(
-                self.n_slices, dtype=np.int32)
-            cp.count_macroparticles_per_slice(self.slice_index_of_particle,
-                                              self.particles_within_cuts,
-                                              self._n_macroparticles_per_slice)
+            self._n_macroparticles_per_slice = pm.macroparticles_per_slice(self)
         return self._n_macroparticles_per_slice
 
     @property
@@ -165,11 +162,9 @@ class SliceSet(Printing):
     def particles_within_cuts(self):
         '''All particle indices which are situated within the slicing
         region defined by [z_cut_tail, z_cut_head).'''
-        particles_within_cuts_ = make_int32(np.where(
-                (self.slice_index_of_particle > -1) &
-                (self.slice_index_of_particle < self.n_slices)
-            )[0])
-        return particles_within_cuts_
+        if self._particles_within_cuts is None:
+            self._particles_within_cuts = pm.particles_within_cuts(self)
+        return self._particles_within_cuts
 
     @property
     # @memoize

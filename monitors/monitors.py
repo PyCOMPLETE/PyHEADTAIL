@@ -281,7 +281,10 @@ class SliceMonitor(Monitor):
 
         # slice_set-specific data.
         for stats in self.slice_stats_to_store:
-            self.buffer_slice[stats][:,0] = getattr(slice_set, stats)
+            try:
+                self.buffer_slice[stats][:,0] = getattr(slice_set, stats)
+            except ValueError: #temp fix for gpuarrays
+                self.buffer_slice[stats][:,0] = getattr(slice_set, stats).get()
             self.buffer_slice[stats] = np.roll(self.buffer_slice[stats],
                                                shift=-1, axis=1)
 

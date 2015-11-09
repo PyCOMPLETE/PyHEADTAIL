@@ -85,7 +85,7 @@ _CPU_numpy_func_dict = {
     'std_per_slice' : lambda sliceset, u: _std_per_slice_cpu(sliceset, u),
     'emittance_per_slice': _emittance_per_slice_cpu,
     'particles_within_cuts' : lambda sliceset: np.where(
-        (sliceset.slice_index_of_particle < sliceset.n_slices) & (sliceset.slice_index_of_particle >= 0)),
+        (sliceset.slice_index_of_particle < sliceset.n_slices) & (sliceset.slice_index_of_particle >= 0))[0].astype(np.int32),
     'macroparticles_per_slice': lambda sliceset : _count_macroparticles_per_slice_cpu(sliceset),
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }

@@ -275,6 +275,18 @@ class TestGPUInterface(unittest.TestCase):
         bunch_gpu = self.create_gaussian_bunch()
         self._monitor_cpu_gpu([bunchmonitor], bunch_cpu, bunch_gpu)
 
+    def test_slicemonitor(self):
+        '''Test the slicemonitor, especially the statistics per slice functions
+        '''
+        self.n_macroparticles = 1000
+        nslices = 10
+        n_sigma_z = 1
+        slicer = UniformBinSlicer(nslices, n_sigma_z)
+        slicemonitor = SliceMonitor('slicemonitor.tmp', 1000, slicer)
+        bunch_cpu = self.create_gaussian_bunch()
+        bunch_gpu = self.create_gaussian_bunch()
+        self._monitor_cpu_gpu([slicemonitor], bunch_cpu, bunch_gpu)
+
     def test_RFQ_Kick(self):
         '''
         Test the RFQ tracking element in rfq/rfq_python
