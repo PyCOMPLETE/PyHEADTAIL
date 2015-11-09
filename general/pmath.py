@@ -58,7 +58,11 @@ def _emittance_per_slice_cpu(sliceset, u, up, dp=None):
     return emittance_u
 
 def _count_macroparticles_per_slice_cpu(sliceset):
-    pass
+    output = np.zeros(sliceset.n_slices, dtype=np.int32)
+    cp.count_macroparticles_per_slice(sliceset.slice_index_of_particle,
+        sliceset.particles_within_cuts,
+        output)
+    return output
 
 
 #### dictionaries storing the CPU and GPU versions of the desired functions ####
@@ -82,6 +86,7 @@ _CPU_numpy_func_dict = {
     'emittance_per_slice': _emittance_per_slice_cpu,
     'particles_within_cuts' : lambda sliceset: np.where(
         (sliceset.slice_index_of_particle < sliceset.n_slices) & (sliceset.slice_index_of_particle >= 0)),
+    'macroparticles_per_slice': lambda sliceset : _count_macroparticles_per_slice_cpu(sliceset),
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -103,6 +108,7 @@ _GPU_func_dict = {
     'std_per_slice' : gpu_wrap.sorted_std_per_slice,
     'emittance_per_slice' : gpu_wrap.sorted_emittance_per_slice,
     'particles_within_cuts': gpu_wrap.particles_within_cuts,
+    'macroparticles_per_slice' : gpu_wrap.macroparticles_per_slice,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################

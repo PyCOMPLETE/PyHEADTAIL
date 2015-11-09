@@ -119,13 +119,20 @@ def particles_within_cuts(sliceset):
     Assumes a sorted beam!
     '''
     if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
-        #print 'Adding the upper/lower_bounds to the sliceset'
-        #print 'Assuming a sorted beam'
         _add_bounds_to_sliceset(sliceset)
     begin = sliceset.lower_bounds.get()[0]
     end = sliceset.upper_bounds.get()[-1]
     idx = pycuda.gpuarray.arange(begin, end, dtype=np.int32)
     return idx
+
+def macroparticles_per_slice(sliceset):
+    '''
+    Returns the number of macroparticles per slice. Assumes a sorted beam!
+    '''
+    # simple: upper_bounds - lower_bounds!
+    if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
+        _add_bounds_to_sliceset(sliceset)
+    return sliceset.upper_bounds - sliceset.lower_bounds
 
 
 def _add_bounds_to_sliceset(sliceset):
@@ -154,8 +161,6 @@ def sorted_mean_per_slice(sliceset, u, stream=None):
     Returns the an array, res[i] stores the mean of slice i
     '''
     if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
-        #print 'Adding the upper/lower_bounds to the sliceset'
-        #print 'Assuming a sorted beam'
         _add_bounds_to_sliceset(sliceset)
 
     block = (256, 1, 1)
