@@ -68,7 +68,7 @@ class TestDispatch(unittest.TestCase):
         '''
         multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice',
             'std_per_slice', 'emittance_per_slice', 'particles_within_cuts',
-            'macroparticles_per_slice']
+            'macroparticles_per_slice', 'take']
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
@@ -203,7 +203,24 @@ class TestDispatch(unittest.TestCase):
             self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
                 'CPU/GPU version of ' + f + ' dont yield the same result')
 
-
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
+    def test_take(self):
+        '''
+        Check that CPU/GPU functions yield the same result (if both exist)
+        No complete tracking, only bare functions.
+        '''
+        fname = 'take'
+        N = 1000
+        arr_cpu = self.create_gaussian_bunch(n_macroparticles=N).x
+        arr_gpu = pycuda.gpuarray.to_gpu(arr_cpu)
+        idx = np.array(np.random.permutation(N//2), dtype=np.int32)
+        idx_gpu = pycuda.gpuarray.to_gpu(idx)
+        params_cpu = [arr_cpu, idx]
+        params_gpu = [arr_gpu, idx_gpu]
+        res_cpu = pm._CPU_numpy_func_dict[fname](*params_cpu)
+        res_gpu = pm._GPU_func_dict[fname](*params_gpu)
+        self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
+            'CPU/GPU version of ' + fname + ' dont yield the same result')
 
     def create_all1_bunch(self, n_macroparticles):
         np.random.seed(1)

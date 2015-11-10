@@ -87,6 +87,7 @@ _CPU_numpy_func_dict = {
     'particles_within_cuts' : lambda sliceset: np.where(
         (sliceset.slice_index_of_particle < sliceset.n_slices) & (sliceset.slice_index_of_particle >= 0))[0].astype(np.int32),
     'macroparticles_per_slice': lambda sliceset : _count_macroparticles_per_slice_cpu(sliceset),
+    'take' : np.take,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -109,6 +110,7 @@ _GPU_func_dict = {
     'emittance_per_slice' : gpu_wrap.sorted_emittance_per_slice,
     'particles_within_cuts': gpu_wrap.particles_within_cuts,
     'macroparticles_per_slice' : gpu_wrap.macroparticles_per_slice,
+    'take': pycuda.gpuarray.take,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
