@@ -7,27 +7,38 @@ All functions assume GPU arrays as arguments!
 '''
 from __future__ import division
 import numpy as np
+import os
 try:
     import skcuda.misc
     import pycuda.gpuarray
     import pycuda.compiler
     import pycuda.driver as drv
+    import thrust_interface
+
+    # if pycuda is there, try to compile things. If no context available,
+    # throw error to tell the user that he should import pycuda.autoinit
+    # at the beginning of the script if he wants to use cuda functionalities
+    try:
+        ### Thrust
+        thrust = thrust_interface.compiled_module
+
+        ### CUDA Kernels
+        where = os.path.dirname(os.path.abspath(__file__)) + '/'
+        with open(where + 'stats.cu') as stream:
+            source = stream.read()
+        stats_kernels = pycuda.compiler.SourceModule(source) # compile
+        sorted_mean_per_slice_kernel = stats_kernels.get_function('sorted_mean_per_slice')
+        sorted_std_per_slice_kernel = stats_kernels.get_function('sorted_std_per_slice')
+        sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
+    except pycuda._driver.LogicError: #the error pycuda throws if no context initialized
+        print ('No context initialized. Please import pycuda.autoinit at the '
+               'beginning of your script if you want to use GPU functionality')
+
+
 except ImportError:
-    pass
+    print 'Either pycuda, skcuda or thrust not found! No GPU capabilites available'
 
-### Thrust
-import thrust_interface
-thrust = thrust_interface.compiled_module
 
-### CUDA Kernels
-import os
-where = os.path.dirname(os.path.abspath(__file__)) + '/'
-with open(where + 'stats.cu') as stream:
-    source = stream.read()
-stats_kernels = pycuda.compiler.SourceModule(source) # compile
-sorted_mean_per_slice_kernel = stats_kernels.get_function('sorted_mean_per_slice')
-sorted_std_per_slice_kernel = stats_kernels.get_function('sorted_std_per_slice')
-sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
 
 
 def covariance(a, b):
