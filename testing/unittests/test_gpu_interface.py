@@ -5,6 +5,7 @@
 from __future__ import division
 
 import sys, os
+import os.path
 BIN = os.path.dirname(__file__) # ./PyHEADTAIL/testing/unittests/
 BIN = os.path.abspath( BIN ) # absolute path to unittests
 BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/testing/
@@ -33,7 +34,8 @@ import PyHEADTAIL.trackers.transverse_tracking as tt
 import PyHEADTAIL.trackers.simple_long_tracking as lt
 from PyHEADTAIL.trackers.detuners import AmplitudeDetuning, Chromaticity
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
-from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField, WakeTable
+from PyHEADTAIL.impedances.wakes import WakeField, WakeTable
+from PyHEADTAIL.impedances.wakes import CircularResonator, ParallelPlatesResonator
 from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.feedback.widebandfeedback import Pickup, Kicker
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
@@ -197,24 +199,70 @@ class TestGPUInterface(unittest.TestCase):
         self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
             bunch_gpu), 'Longitudinal tracking RFSystems CPU/GPU differs')
 
-    def test_wakefield_circresonator(self):
+    def test_wakefield_platesresonator(self):
         '''
-        Track through a CircularResonator wakefield
+        Track through a ParallelPlatesResonator wakefield
         '''
-        bunch_cpu = self.create_all1_bunch()
-        bunch_gpu = self.create_all1_bunch()
-        bunch_cpu.z += np.arange(len(bunch_cpu.z))
-        bunch_gpu.z += np.arange(len(bunch_cpu.z))
-        n_slices=5
-        frequency = 1e9
+        Dx = np.append(np.linspace(0., 20., self.nsegments),[0])
+        # add some dispersion/alpha
+        lhc = m.LHC(n_segments=self.nsegments, machine_configuration='450GeV',
+                    app_x=1e-9, app_y=2e-9, app_xy=-1.5e-11,
+                    chromaticity_on=False, amplitude_detuning_on=True,
+                    alpha_x=1.2*np.ones(self.nsegments), D_x=Dx)
+
+
+        self.n_macroparticles = 200000
+        bunch_cpu = self.create_lhc_bunch(lhc)#self.create_gaussian_bunch()
+        bunch_gpu = self.create_lhc_bunch(lhc)#self.create_gaussian_bunch()
+        n_slices=50#5
+        frequency = 8e8#1e9
         R_shunt = 23e3 # [Ohm]
         Q = 1.
-        unif_bin_slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=0)
-        res = CircularResonator(R_shunt=R_shunt, frequency=frequency, Q=Q)
+        unif_bin_slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=1)
+        #res = CircularResonator(R_shunt=R_shunt, frequency=frequency, Q=Q)
+        res = ParallelPlatesResonator(R_shunt=R_shunt, frequency=frequency, Q=Q)
         wake_field = WakeField(unif_bin_slicer, res)
         self.assertTrue(self._track_cpu_gpu([wake_field], bunch_cpu, bunch_gpu),
             'Tracking Wakefield CircularResonator CPU/GPU differs')
 
+    @unittest.skipUnless(os.path.isfile(
+        './wakeforhdtl_PyZbase_Allthemachine_450GeV_B1_LHC_inj_450GeV_B1.dat'),
+        'Wakefile not found')
+    def test_wakefield_wakefile(self):
+        '''
+        Track an LHC bunch and a LHC wakefield
+        '''
+        wakefile = './wakeforhdtl_PyZbase_Allthemachine_450GeV_B1_LHC_inj_450GeV_B1.dat'
+        Qp_x, Qp_y = 1., 1.
+        Qs = 0.0049
+        n_macroparticles = 10
+        intensity = 1e11
+        longitudinal_focusing = 'linear'
+        machine = m.LHC(n_segments=1, machine_configuration='450GeV',
+                  longitudinal_focusing=longitudinal_focusing,
+                  Qp_x=[Qp_x], Qp_y=[Qp_y], Q_s=Qs,
+                  beta_x=[65.9756], beta_y=[71.5255])
+        epsn_x  = 3.5e-6
+        epsn_y  = 3.5e-6
+        sigma_z = 1.56e-9*c / 4.
+        np.random.seed(0)
+        bunch_cpu = machine.generate_6D_Gaussian_bunch(
+            n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
+        np.random.seed(0)
+        bunch_gpu = machine.generate_6D_Gaussian_bunch(
+            n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
+        n_slices_wakefields = 55
+        n_sigma_z_wakefields = 3
+        slicer_for_wakefields_cpu   = UniformBinSlicer(
+            n_slices_wakefields, n_sigma_z=n_sigma_z_wakefields)
+        wake_components = [ 'time', 'dipole_x', 'dipole_y',
+                        'no_quadrupole_x', 'no_quadrupole_y',
+                        'no_dipole_xy', 'no_dipole_yx' ]
+        wake_table_cpu      = WakeTable(wakefile, wake_components)
+        wake_field_cpu      = WakeField(slicer_for_wakefields_cpu, wake_table_cpu)
+        # also checked for 100 turns!
+        self.assertTrue(self._track_cpu_gpu([wake_field_cpu], bunch_cpu, bunch_gpu, nturns=2),
+            'Tracking through WakeField(waketable) differs')
 
     def test_transverse_damper(self):
         '''
@@ -330,7 +378,7 @@ class TestGPUInterface(unittest.TestCase):
             for m in monitors:
                 m.dump(bunch1)
 
-    def _track_cpu_gpu(self, list_of_maps, bunch1, bunch2):
+    def _track_cpu_gpu(self, list_of_maps, bunch1, bunch2, nturns=1):
         '''
         Tracks both bunches through the list of maps (once GPU, once CPU)
         and checks whether it yields the same result. Returns True/False.
@@ -339,13 +387,21 @@ class TestGPUInterface(unittest.TestCase):
         '''
         # GPU
         with GPU(bunch1) as device:
-            for m in list_of_maps:
-                m.track(bunch1)
+            for n in xrange(nturns):
+                for m in list_of_maps:
+                    m.track(bunch1)
+
         # CPU
-        for m in list_of_maps:
-            m.track(bunch2)
+        for n in xrange(nturns):
+            for m in list_of_maps:
+                m.track(bunch2)
         #print bunch1.x
         #print bunch2.x
+        # make sure the beam is sorted according to it's id to be able to compare them
+        # this is required since argsort for the slices is not unique
+        # (particles within slices can be permuted, gpu/cpu might be different!)
+        bunch1.sort_for('id')
+        bunch2.sort_for('id')
         for att in bunch1.coords_n_momenta | set(['id']):
             if not np.allclose(getattr(bunch1, att), getattr(bunch2, att),
                                rtol=1.e-5, atol=1.e-8):
@@ -373,7 +429,7 @@ class TestGPUInterface(unittest.TestCase):
             'xp': xp, 'yp': yp, 'dp': dp
         }
         return Particles(
-            macroparticlenumber=len(x), particlenumber_per_mp=100, charge=e,
+            macroparticlenumber=len(x), particlenumber_per_mp=1000, charge=e,
             mass=m_p, circumference=self.circumference, gamma=self.gamma,
             coords_n_momenta_dict=coords_n_momenta_dict
         )

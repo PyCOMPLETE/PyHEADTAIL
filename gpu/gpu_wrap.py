@@ -120,9 +120,7 @@ def particles_within_cuts(sliceset):
     '''
     if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
         _add_bounds_to_sliceset(sliceset)
-    begin = sliceset.lower_bounds.get()[0]
-    end = sliceset.upper_bounds.get()[-1]
-    idx = pycuda.gpuarray.arange(begin, end, dtype=np.int32)
+    idx = pycuda.gpuarray.arange(sliceset.pidx_begin, sliceset.pidx_end, dtype=np.int32)
     return idx
 
 def macroparticles_per_slice(sliceset):
@@ -149,6 +147,8 @@ def _add_bounds_to_sliceset(sliceset):
                                             seq, lower_bounds)
     sliceset.upper_bounds = upper_bounds
     sliceset.lower_bounds = lower_bounds
+    sliceset._pidx_begin = lower_bounds.get()[0] # set those properties now!
+    sliceset._pidx_end = upper_bounds.get()[-1]  # this way .get() gets called only once
     #print 'upper bounds ',sliceset.upper_bounds
     #print 'lower bounds ',sliceset.lower_bounds
 
@@ -165,6 +165,8 @@ def sorted_mean_per_slice(sliceset, u, stream=None):
 
     block = (256, 1, 1)
     grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
+    #!!! managed memory, requires comp. capability >=3.0 (not on TeslaC2075)!
+    #mean_u = drv.managed_zeros(sliceset.n_slices, dtype=np.float64, mem_flags=drv.mem_attach_flags.GLOBAL)
     mean_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
     sorted_mean_per_slice_kernel(sliceset.lower_bounds.gpudata,
                                  sliceset.upper_bounds.gpudata,
@@ -243,3 +245,19 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None):
     sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
     emittance = pycuda.cumath.sqrt(sigma11*sigma22 - sigma12*sigma12)
     return emittance
+
+def convolve(a, v, mode='full'):
+    '''
+    Compute the convolution of the two arrays a,v. See np.convolve
+    '''
+    #HACK: use np.convolve for now, make sure both arguments are np.arrays!
+    try:
+        a = a.get()
+    except:
+        pass
+    try:
+        v = v.get()
+    except:
+        pass
+    c = np.convolve(a, v, mode)
+    return pycuda.gpuarray.to_gpu(c)

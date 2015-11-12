@@ -97,6 +97,8 @@ class SliceSet(Printing):
         '''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
         self._particles_within_cuts = None
+        self._pidx_begin = None
+        self._pidx_end = None
 
         for p_name, p_value in beam_parameters.iteritems():
             if hasattr(self, p_name):
@@ -165,6 +167,29 @@ class SliceSet(Printing):
         if self._particles_within_cuts is None:
             self._particles_within_cuts = pm.particles_within_cuts(self)
         return self._particles_within_cuts
+
+    @property
+    def particles_within_cuts_slice(self):
+        ''' Returns a continous slice(first,last,1) of particles indices
+        between [z_cut_tail, z_cut_head]
+        Required for gpuarrays slicing syntax, i.e. x[slice] += 2
+        Only use when beam is sorted!
+        '''
+        return slice(self.pidx_begin, self.pidx_end, 1)
+
+    @property
+    def pidx_begin(self):
+        ''' particle index of the first particle within the sliceset region'''
+        if self._pidx_begin is None:
+            self._pidx_begin = self.particles_within_cuts[0]
+        return self._pidx_begin
+
+    @property
+    def pidx_end(self):
+        ''' particle index of the last+1 particle within the sliceset region'''
+        if self._pidx_end is None:
+            self._pidx_end = self.particles_within_cuts[-1]+1
+        return self._pidx_end
 
     @property
     # @memoize
@@ -407,6 +432,10 @@ class Slicer(Printing):
                 stat_caller = getattr(self, '_' + stat)
                 values = stat_caller(sliceset, beam)
                 setattr(sliceset, stat, values)
+                try:
+                    setattr(sliceset, stat+'_cpu', values.get())
+                except:
+                    setattr(sliceset, stat+'_cpu', values)
 
     def _mean_x(self, sliceset, beam):
         return self._mean(sliceset, beam.x)

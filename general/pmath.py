@@ -88,6 +88,7 @@ _CPU_numpy_func_dict = {
         (sliceset.slice_index_of_particle < sliceset.n_slices) & (sliceset.slice_index_of_particle >= 0))[0].astype(np.int32),
     'macroparticles_per_slice': lambda sliceset : _count_macroparticles_per_slice_cpu(sliceset),
     'take' : np.take,
+    'convolve': np.convolve,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -97,7 +98,7 @@ _GPU_func_dict = {
     'exp' : pycuda.cumath.exp,
     'cosh': pycuda.cumath.cosh,
     'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs).get(),
-    'std': lambda *args, **kwargs : skcuda.misc.std(*args, **kwargs).get(),
+    'std': lambda *args, **kwargs : skcuda.misc.std(*args, ddof=1, **kwargs).get(),
     'emittance' : lambda u, up, dp=None : gpu_wrap.emittance(u, up, dp),
     'min': lambda *args, **kwargs : pycuda.gpuarray.min(*args, **kwargs).get(),
     'max': lambda *args, **kwargs : pycuda.gpuarray.max(*args, **kwargs).get(),
@@ -111,6 +112,7 @@ _GPU_func_dict = {
     'particles_within_cuts': gpu_wrap.particles_within_cuts,
     'macroparticles_per_slice' : gpu_wrap.macroparticles_per_slice,
     'take': pycuda.gpuarray.take,
+    'convolve': gpu_wrap.convolve,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
