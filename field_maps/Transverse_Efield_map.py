@@ -9,8 +9,15 @@ from PyPIC.PyPIC_Scatter_Gather import PyPIC_Scatter_Gather
 class Transverse_Efield_map(object):
 	def __init__(self, xg, yg, Ex, Ey, n_slices, z_cut,
 		L_interaction, flag_clean_slices = False, wrt_slice_centroid = False):
+			
+		if type(z_cut) is float:
+			z_cuts = (-z_cut, z_cut)
+		elif type(z_cut) is tuple:
+			z_cuts = z_cut
+		else:
+			raise ValueError('Type not recognized!')
 
-		self.slicer = UniformBinSlicer(n_slices = n_slices, z_cuts=(-z_cut, z_cut))
+		self.slicer = UniformBinSlicer(n_slices = n_slices, z_cuts=z_cuts)
 		self.L_interaction = L_interaction
 		self.flag_clean_slices = flag_clean_slices
 		self.wrt_slice_centroid = wrt_slice_centroid
