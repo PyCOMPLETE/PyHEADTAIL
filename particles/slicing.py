@@ -23,7 +23,7 @@ from ..general import pmath as pm
 from . import Printing
 
 from scipy import interpolate
-
+import pycuda.gpuarray
 
 empty_like = np.empty_like
 arange = np.arange
@@ -175,7 +175,10 @@ class SliceSet(Printing):
         Required for gpuarrays slicing syntax, i.e. x[slice] += 2
         Only use when beam is sorted!
         '''
-        return slice(self.pidx_begin, self.pidx_end, 1)
+        if self.is_sorted: #
+            return slice(self.pidx_begin, self.pidx_end, 1)
+        else:
+            return self.particles_within_cuts
 
     @property
     def pidx_begin(self):
@@ -338,15 +341,21 @@ class Slicer(Printing):
         Valid list entries are all statistics functions of Particles.
         '''
         sliceset_kwargs = self.compute_sliceset_kwargs(beam)
-        perm = pm.argsort(sliceset_kwargs['slice_index_of_particle'])
-        beam.reorder(perm)
+        if not isinstance(beam.x, np.ndarray):
+            #print 'IS (probably) a GPUARRAY, sort it'
+            perm = pm.argsort(sliceset_kwargs['slice_index_of_particle'])
+            beam.reorder(perm)
+            sliceset_kwargs = self.compute_sliceset_kwargs(beam)
+            is_sorted = True
+        else:
+            #print 'IS np.ndarray'
+            is_sorted = False
+
         # Update slice index of particles! otherwise cpu impl is wrong
-        sliceset_kwargs = self.compute_sliceset_kwargs(beam)
         sliceset_kwargs['beam_parameters'] = (
             self.extract_beam_parameters(beam))
+        sliceset_kwargs['beam_parameters']['is_sorted'] = is_sorted
         sliceset = SliceSet(**sliceset_kwargs)
-        #beam.reorder(pm.argsort(sliceset_kwargs['slice_index_of_particle']))
-
         if 'statistics' in kwargs:
             self.add_statistics(sliceset, beam, kwargs['statistics'])
         return sliceset
