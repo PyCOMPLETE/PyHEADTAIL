@@ -26,6 +26,20 @@ class Context(object):
     def __exit__(self, exc_type, exc_value, traceback):
         print('Exited context')
 
+class CPU(object):
+    '''
+    Dummy class to run the code on the CPU.
+    Does nothing but has the same interface as the GPU contextmanager
+    '''
+    def __init__(self, bunch):
+        pass
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
 
 class GPU(object):
     '''
