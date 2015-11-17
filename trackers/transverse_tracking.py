@@ -210,7 +210,7 @@ class TransverseMap(Printing):
     TransverseMap(...)[i] (with i the index of the accelerator
     segment). """
     def __init__(self, C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
-                 accQ_x, accQ_y, *detuner_collections):
+                 accQ_x, accQ_y, detuners):
         """ Create a one-turn map that manages the transverse tracking
         for each of the accelerator segments defined by s.
           - s is the array of positions defining the boundaries of the
@@ -237,10 +237,7 @@ class TransverseMap(Printing):
             knows how to generate and store its SegmentDetuner objects
             to 'distribute' the detuning proportionally along the
             accelerator circumference. """
-        if not np.allclose([s[0], s[-1]], [0., C]):
-            raise ValueError('The first element of s must be zero \n' +
-                'and the last element must be equal to the \n' +
-                'accelerator circumference C. \n')
+
         self.s = s
         self.alpha_x = alpha_x
         self.beta_x = beta_x
@@ -250,7 +247,7 @@ class TransverseMap(Printing):
         self.D_y = D_y
         self.accQ_x = accQ_x
         self.accQ_y = accQ_y
-        self.detuner_collections = detuner_collections
+        self.detuner_collections = detuners
 
         '''List to store TransverseSegmentMap instances.'''
         self.segment_maps = []
