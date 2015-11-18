@@ -318,8 +318,13 @@ class TransverseMap(Printing):
         """ Return a tuple with the transverse TWISS parameters
         (alpha_x, beta_x, alpha_y, beta_y) from the beginning of the
         first segment (injection point). """
-        return (self.alpha_x[0], self.beta_x[0],
-                self.alpha_y[0], self.beta_y[0])
+        return {
+            'alpha_x': self.alpha_x[0], 
+            'beta_x': self.beta_x[0], 
+            'D_x': self.D_x[0],
+            'alpha_y': self.alpha_y[0], 
+            'beta_y': self.beta_y[0], 
+            'D_y': self.D_y[0]}
 
     def __len__(self):
         return len(self.segment_maps)
