@@ -8,8 +8,17 @@ import pmath as pm
 try:
     import pycuda.gpuarray as gpuarray
     import pycuda
+    import pycuda.tools
+    has_pycuda = True
 except ImportError:
     print('pycuda not found, GPU context unavailable')
+    has_pycuda = False
+
+if has_pycuda:
+    GPU_utils = dict()
+    GPU_utils['memory_pool'] = pycuda.tools.DeviceMemoryPool()
+    #GPU_utils['memory_pool'] = pycuda.tools.PageLockedMemoryPool()
+
 
 
 class Context(object):
@@ -69,7 +78,7 @@ class GPU(object):
         for coord in self.to_move:
             obj = getattr(self.bunch, coord, None)
             if isinstance(obj, np.ndarray):
-                setattr(self.bunch, coord, gpuarray.to_gpu(obj))
+                setattr(self.bunch, coord, gpuarray.to_gpu(obj, GPU_utils['memory_pool'].allocate))
 
         # replace functions in general.math.py
         pm.update_active_dict(pm._GPU_func_dict)
