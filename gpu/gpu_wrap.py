@@ -14,6 +14,7 @@ try:
     import pycuda.compiler
     import pycuda.driver as drv
     import thrust_interface
+    import pycuda.elementwise
 
     # if pycuda is there, try to compile things. If no context available,
     # throw error to tell the user that he should import pycuda.autoinit
@@ -30,18 +31,41 @@ try:
         sorted_mean_per_slice_kernel = stats_kernels.get_function('sorted_mean_per_slice')
         sorted_std_per_slice_kernel = stats_kernels.get_function('sorted_std_per_slice')
         sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
+        has_pycuda = True
     except pycuda._driver.LogicError: #the error pycuda throws if no context initialized
         print ('No context initialized. Please import pycuda.autoinit at the '
                'beginning of your script if you want to use GPU functionality')
+        has_pycuda=False
 
 
 except ImportError:
     print 'Either pycuda, skcuda or thrust not found! No GPU capabilites available'
 
+if has_pycuda:
+    _sub_1dgpuarr = pycuda.elementwise.ElementwiseKernel(
+        'double* out, double* a, const double* b',
+        'out[i] = a[i] - b[0]',
+        '_sub_1dgpuarr'
+    )
+    _mul_1dgpuarr = pycuda.elementwise.ElementwiseKernel(
+        'double* out, double* x, const double* a',
+        'out[i] = a[0] * x[i]',
+        '_mul_1dgpuarr'
+    )
+
+
+def scale(x, a):
+    '''Scales the gpuarray x by a factor a, where a is a gpuarray of length 1
+    Args:
+        x: gpuarray, len=n
+        a: gpuarray, len=1
+    Required as a seperate function bc gpuarrays can only be scaled by scalars
+    (residing on the GPU)
+    '''
 
 
 
-def covariance(a, b):
+def covariance_old(a, b):
     '''Covariance (not covariance matrix)
     Args:
         a: pycuda.GPUArray
@@ -53,6 +77,22 @@ def covariance(a, b):
     mean_b = skcuda.misc.mean(b).get()
     y = b - mean_b
     covariance = skcuda.misc.mean(x * y) * n / (n + 1)
+    return covariance.get()
+
+def covariance(a,b):
+    '''Covariance (not covariance matrix)
+    Args:
+        a: pycuda.GPUArray
+        b: pycuda.GPUArray
+    '''
+    n = len(a)
+    x = pycuda.gpuarray.empty_like(a)
+    y = pycuda.gpuarray.empty_like(b)
+    mean_a = skcuda.misc.mean(a)
+    _sub_1dgpuarr(x, a, mean_a)
+    mean_b = skcuda.misc.mean(b)
+    _sub_1dgpuarr(y, b, mean_b)
+    covariance = skcuda.misc.mean(x * y) * (n / (n + 1))
     return covariance.get()
 
 def emittance(u, up, dp):
