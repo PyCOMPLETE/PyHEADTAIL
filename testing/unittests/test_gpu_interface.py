@@ -44,8 +44,18 @@ from PyHEADTAIL.rfq.rfq_python import RFQLongitudinalKick, RFQTransverseKick
 from PyHEADTAIL.rfq.rfq_python import RFQTransverseDetuner
 
 
+
+
 try:
     import PyCERNmachines.CERNmachines as m
+    # for replacing the cython versions in machines
+    import PyCERNmachines.machines as mach
+    from PyHEADTAIL.trackers.transverse_tracking import TransverseMap as TransMapPy
+    from PyHEADTAIL.trackers.detuners import Chromaticity as ChromaPy
+    from PyHEADTAIL.trackers.detuners import AmplitudeDetuning as AmpPy
+    mach.TransverseMap = TransMapPy
+    mach.Chromaticity = ChromaPy
+    mach.AmplitudeDetuning = AmpPy
 except ImportError:
     has_PyCERNmachines= False
 else:
