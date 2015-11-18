@@ -209,7 +209,7 @@ class TransverseMap(Printing):
     self.segment_maps) can be accessed using the notation
     TransverseMap(...)[i] (with i the index of the accelerator
     segment). """
-    def __init__(self, C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
+    def __init__(self, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
                  accQ_x, accQ_y, detuners):
         """ Create a one-turn map that manages the transverse tracking
         for each of the accelerator segments defined by s.

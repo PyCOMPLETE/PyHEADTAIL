@@ -7,6 +7,8 @@
 """
 from __future__ import division
 
+from . import Element, Printing
+
 cimport cython
 from cython.parallel cimport prange
 import numpy as np
@@ -313,7 +315,7 @@ cpdef cytrack_without_detuners(double[::1] x, double[::1] xp, double[::1] y,
         yp[i] = M[3,2] * y_tmp + M[3,3] * yp_tmp
 
 
-class TransverseMap(object):
+class TransverseMap(Printing):
     """ Collection class for TransverseSegmentMap objects. This class is
     used to define a one turn map for transverse particle tracking. An
     accelerator ring is divided into segments (1 or more). They are
