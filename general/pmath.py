@@ -10,6 +10,7 @@ from ..gpu import gpu_wrap as gpu_wrap
 try:
     import pycuda.cumath
     import pycuda.gpuarray
+    has_pycuda = True
 except ImportError:
     print ('No Pycuda in math.py import statement found')
 try:
@@ -90,6 +91,7 @@ _CPU_numpy_func_dict = {
     'take' : np.take,
     'convolve': np.convolve,
     'arange': np.arange,
+    'zeros': np.zeros,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -98,7 +100,7 @@ _GPU_func_dict = {
     'cos' : pycuda.cumath.cos,
     'exp' : pycuda.cumath.exp,
     'cosh': pycuda.cumath.cosh,
-    'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs).get(),
+    'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs),
     'std': lambda *args, **kwargs : skcuda.misc.std(*args, ddof=1, **kwargs).get(),
     'emittance' : lambda u, up, dp=None : gpu_wrap.emittance(u, up, dp),
     'min': lambda *args, **kwargs : pycuda.gpuarray.min(*args, **kwargs).get(),
@@ -115,6 +117,8 @@ _GPU_func_dict = {
     'take': pycuda.gpuarray.take,
     'convolve': gpu_wrap.convolve,
     'arange': pycuda.gpuarray.arange,
+    'zeros': lambda *args, **kwargs : pycuda.gpuarray.zeros(*args,
+        allocator=GPU_utils['memory_pool'].allocate, **kwargs),
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
@@ -138,8 +142,12 @@ def update_active_dict(new_dict):
 
 ################################################################################
 update_active_dict(_CPU_numpy_func_dict)
-
-
+################################################################################
+# if pycuda is true, allocate a memory_pool.
+# Access via pmath.GPU_utils['memory_pool']
+if has_pycuda:
+    GPU_utils = dict()
+    GPU_utils['memory_pool'] = pycuda.tools.DeviceMemoryPool()
 
 
 ################################################################################

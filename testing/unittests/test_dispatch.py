@@ -68,7 +68,7 @@ class TestDispatch(unittest.TestCase):
         '''
         multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice',
             'std_per_slice', 'emittance_per_slice', 'particles_within_cuts',
-            'macroparticles_per_slice', 'take', 'convolve', 'arange']
+            'macroparticles_per_slice', 'take', 'convolve', 'arange', 'zeros']
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
@@ -251,13 +251,26 @@ class TestDispatch(unittest.TestCase):
         No complete tracking, only bare functions.
         '''
         fname = 'arange'
-        N = 1000
         start = 1.12
         stop = 4.124
         step = stop-start/(100+1e-10)
         dtype = np.float64
         res_cpu = pm._CPU_numpy_func_dict[fname](start, stop, step, dtype=np.float64)
         res_gpu = pm._GPU_func_dict[fname](start, stop, step, dtype=np.float64)
+        self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
+            'CPU/GPU version of ' + fname + ' dont yield the same result')
+
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
+    def test_zeros(self):
+        '''
+        Check that CPU/GPU functions yield the same result (if both exist)
+        No complete tracking, only bare functions.
+        '''
+        fname = 'zeros'
+        N = 99
+        dtype = np.float64
+        res_cpu = pm._CPU_numpy_func_dict[fname](N, dtype=np.float64)
+        res_gpu = pm._GPU_func_dict[fname](N, dtype=np.float64)
         self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
             'CPU/GPU version of ' + fname + ' dont yield the same result')
 
