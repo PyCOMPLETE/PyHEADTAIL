@@ -9,6 +9,7 @@ try:
     import pycuda.gpuarray as gpuarray
     import pycuda
     import pycuda.tools
+    import pycuda.elementwise
     has_pycuda = True
 except ImportError:
     print('pycuda not found, GPU context unavailable')
@@ -19,6 +20,33 @@ if has_pycuda:
     GPU_utils['memory_pool'] = pycuda.tools.DeviceMemoryPool()
     #GPU_utils['memory_pool'] = pycuda.tools.PageLockedMemoryPool()
 
+    def create_kernel(operator):
+        '''Return a elementwisekernel with the operator being one of +, -, /, * as a string'''
+        _ker = pycuda.elementwise.ElementwiseKernel(
+                'double* out, double* a, const double* b',
+                'out[i] = a[i] %s b[0]' %operator,
+                '_scalar_custom'
+            )
+        return _ker
+
+    def patch_op(op, func_name):
+        ''' Monkey patch the function: Wrap it with an extra check for shape ()
+        func_name: one of __isub__, __iadd__, __imul__, __idiv__
+        '''
+        _kernel = create_kernel(op)
+        old_v = getattr(pycuda.gpuarray.GPUArray, func_name)
+        def _patch(self, other):
+            if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape is ():
+                _kernel(self, self, other)
+            else:
+                old_v(self, other)
+            return self
+        return _patch
+    # patch the GPUArray to be able to cope with gpuarrays of size 1 as ops
+    pycuda.gpuarray.GPUArray.__isub__ = patch_op('-', '__isub__')
+    pycuda.gpuarray.GPUArray.__iadd__ = patch_op('+', '__iadd__')
+    #pycuda.gpuarray.GPUArray.__imul__ = patch_op('*', '__imul__')
+    #pycuda.gpuarray.GPUArray.__idiv__ = patch_op('/', '__idiv__')
 
 
 class Context(object):
