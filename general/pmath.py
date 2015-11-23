@@ -89,6 +89,7 @@ _CPU_numpy_func_dict = {
     'macroparticles_per_slice': lambda sliceset : _count_macroparticles_per_slice_cpu(sliceset),
     'take' : np.take,
     'convolve': np.convolve,
+    'arange': np.arange,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -113,6 +114,7 @@ _GPU_func_dict = {
     'macroparticles_per_slice' : gpu_wrap.macroparticles_per_slice,
     'take': pycuda.gpuarray.take,
     'convolve': gpu_wrap.convolve,
+    'arange': pycuda.gpuarray.arange,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
