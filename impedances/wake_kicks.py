@@ -83,6 +83,18 @@ class WakeKick(Printing):
         must be fulfilled: fixed z_cuts and no acceleration!) for
         higher performance. Question: how about interpolation to avoid
         expensive dot product in most cases? """
+        # Currently target_times/source_times are on the GPU --> np.concatenate
+        # doesnt work. Temporary fix before checking if rewrite of
+        # np.concatenate is required on GPU (if this is bottleneck), is to
+        # get the arrays to the cpu via .get()
+        try:
+            target_times = target_times.get()
+        except AttributeError:
+            pass # is already on CPU
+        try:
+            source_times = source_times.get()
+        except AttributeError:
+            pass #is already on GPU
         dt_to_target_slice = np.concatenate(
             (target_times - source_times[-1],
             (target_times - source_times[0])[1:]))

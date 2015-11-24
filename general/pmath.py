@@ -10,9 +10,11 @@ from ..gpu import gpu_wrap as gpu_wrap
 try:
     import pycuda.cumath
     import pycuda.gpuarray
+    import pycuda.tools
     has_pycuda = True
 except ImportError:
     print ('No Pycuda in math.py import statement found')
+    has_pycuda = False
 try:
     import skcuda.misc
 except ImportError:

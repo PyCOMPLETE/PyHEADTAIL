@@ -193,46 +193,57 @@ class Particles(Printing):
         for attr in to_be_reordered:
             if attr in except_for_attrs:
                 continue
-            reordered = pm.apply_permutation(getattr(self, attr),permutation)
+            reordered = pm.apply_permutation(getattr(self, attr), permutation)
             setattr(self, attr, reordered)
 
     # Statistics methods
 
     def mean_x(self):
-        return np.float(pm.mean(self.x))
+        #return np.float(pm.mean(self.x))
+        return pm.mean(self.x)
 
     def mean_xp(self):
-        return np.float(pm.mean(self.xp))
+        #return np.float(pm.mean(self.xp))
+        return pm.mean(self.xp)
 
     def mean_y(self):
-        return np.float(pm.mean(self.y))
+        #return np.float(pm.mean(self.y))
+        return pm.mean(self.y)
 
     def mean_yp(self):
-        return np.float(pm.mean(self.yp))
+        #return np.float(pm.mean(self.yp))
+        return pm.mean(self.yp)
 
     def mean_z(self):
-        return np.float(pm.mean(self.z))
+        #return np.float(pm.mean(self.z))
+        return pm.mean(self.z)
 
     def mean_dp(self):
-        return np.float(pm.mean(self.dp))
+        #return np.float(pm.mean(self.dp))
+        return pm.mean(self.dp)
 
     def sigma_x(self):
-        return np.float(pm.std(self.x))
+        return pm.std(self.x)
 
     def sigma_y(self):
-        return np.float(pm.std(self.y))
+        #return np.float(pm.std(self.y))
+        return pm.std(self.y)
 
     def sigma_z(self):
-        return np.float(pm.std(self.z))
+        #return np.float(pm.std(self.z))
+        return pm.std(self.z)
 
     def sigma_xp(self):
-        return np.float(pm.std(self.xp))
+        #return np.float(pm.std(self.xp))
+        return pm.std(self.xp)
 
     def sigma_yp(self):
-        return np.float(pm.std(self.yp))
+        #return np.float(pm.std(self.yp))
+        return pm.std(self.yp)
 
     def sigma_dp(self):
-        return np.float(pm.std(self.dp))
+        #return np.float(pm.std(self.dp))
+        return pm.std(self.dp)
 
     def effective_normalized_emittance_x(self):
         return pm.emittance(self.x, self.xp, None) * self.betagamma

@@ -390,7 +390,10 @@ class Slicer(Printing):
             z_cut_tail = pm.min(beam.z)
             z_cut_head = pm.max(beam.z)
             z_cut_head += abs(z_cut_head) * 1e-15
-        return z_cut_tail, z_cut_head
+        try:
+            return z_cut_tail.get(), z_cut_head.get()
+        except:
+            return z_cut_tail, z_cut_head
 
     def __hash__(self):
         '''Identifies different instantiations of Slicer objects via
@@ -580,8 +583,9 @@ class UniformBinSlicer(Slicer):
         '''
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
-        z_bins = arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
-                        slice_width, dtype=np.float64)
+        #print 'type z_cut_tail', type(z_cut_tail)
+        z_bins = pm.arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
+                           slice_width, dtype=np.float64)
         slice_index_of_particle = make_int32(pm.floor(
                 (beam.z - z_cut_tail) / slice_width
             ))
