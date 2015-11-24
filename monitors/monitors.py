@@ -1,5 +1,5 @@
 """
-@author Kevin Li, Michael Schenk
+@author Kevin Li, Michael Schenk, Stefan Hegglin
 @date 11. February 2014
 @brief Implementation of monitors to store bunch-, slice- or particle-
        specific data to a HDF5 file.
@@ -52,11 +52,16 @@ class BunchMonitor(Monitor):
                               simulation parameters.
           write_buffer_every: Number of steps after which buffer
                               contents are actually written to file.
-          buffer_size:        Number of steps to be buffered. """
-        self.stats_to_store = [
+          buffer_size:        Number of steps to be buffered.
+
+          optionally pass a list called stats_to_store which specifies
+          which members/methods of the bunch will be called/stored.
+          """
+        stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
             'epsn_z', 'macroparticlenumber' ]
+        self.stats_to_store = kwargs.pop('stats_to_store', stats_to_store)
         self.filename = filename
         self.n_steps = n_steps
         self.i_steps = 0
@@ -66,8 +71,10 @@ class BunchMonitor(Monitor):
         # Prepare buffer.
         self.buffer_size = buffer_size
         self.write_buffer_every = write_buffer_every
-        self.buffer = {}
+        self.buffer = None
 
+    def _init_buffer(self):
+        self.buffer = {}
         for stats in self.stats_to_store:
             self.buffer[stats] = np.zeros(self.buffer_size)
 
@@ -78,7 +85,11 @@ class BunchMonitor(Monitor):
         This helps to avoid IO errors and loss of data when writing data
         to a file that may become temporarily unavailable (e.g. if file
         is on network). during the simulation. Buffer contents are
-        written to file only every self.write_buffer_every steps. """
+        written to file only every self.write_buffer_every steps.
+        The buffer gets initialized in the first dump() call. This allows
+        for a dynamic creation of the buffer memory on either CPU or GPU"""
+        if self.buffer is None:
+            self._init_buffer()
         self._write_data_to_buffer(bunch)
         if ((self.i_steps + 1) % self.write_buffer_every == 0 or
                 (self.i_steps + 1) == self.n_steps):
@@ -120,24 +131,33 @@ class BunchMonitor(Monitor):
             # Handle the different statistics quantities, which can
             # either be methods (like mean(), ...) or simply attributes
             # (macroparticlenumber) of the bunch.
+            write_pos = self.i_steps % self.buffer_size
             try:
-                self.buffer[stats][0] = evaluate_stats()
+                self.buffer[stats][write_pos] = evaluate_stats()
             except TypeError:
-                self.buffer[stats][0] = evaluate_stats
-
-            self.buffer[stats] = np.roll(self.buffer[stats], shift=-1, axis=0)
+                self.buffer[stats][write_pos] = evaluate_stats
 
     def _write_buffer_to_file(self):
         """ Write buffer contents to the HDF5 file. The file is opened and
         closed each time the buffer is written to file to prevent from
-        loss of data in case of a crash. """
-        # Keep track of where to read from buffer and where to store
-        # data in file.
+        loss of data in case of a crash.
+        buffer_tmp is an extra buffer which is always on the CPU. If
+        self.buffer is on the GPU, copy the data to buffer_tmp and write
+        the result to the file."""
+
+        buffer_tmp = {} # always on CPU
+        shift = - (self.i_steps + 1 % self.buffer_size)
+        for stats in self.stats_to_store:
+            try:
+                buffer_tmp[stats] = np.roll(self.buffer[stats].get(),
+                        shift=shift, axis=0)
+            except:
+                buffer_tmp[stats] = np.roll(self.buffer[stats].copy(),
+                        shift=shift, axis=0)
         n_entries_in_buffer = min(self.i_steps+1, self.buffer_size)
         low_pos_in_buffer = self.buffer_size - n_entries_in_buffer
         low_pos_in_file = self.i_steps + 1 - n_entries_in_buffer
         up_pos_in_file = self.i_steps + 1
-
 
         # Try to write data to file. If file is not available, skip this
         # step and repeat it again after self.write_buffer_every. As
@@ -147,9 +167,9 @@ class BunchMonitor(Monitor):
             h5group = h5file['Bunch']
             for stats in self.stats_to_store:
                 h5group[stats][low_pos_in_file:up_pos_in_file] = \
-                    self.buffer[stats][low_pos_in_buffer:]
+                    buffer_tmp[stats][low_pos_in_buffer:]
             h5file.close()
-        except:
+        except IOError:
             self.warns('Bunch monitor file is temporarily unavailable. \n')
 
 
@@ -179,15 +199,24 @@ class SliceMonitor(Monitor):
                               simulation parameters.
           write_buffer_every: Number of steps after which buffer
                               contents are actually written to file.
-          buffer_size:        Number of steps to be buffered. """
-        self.bunch_stats_to_store = [
+          buffer_size:        Number of steps to be buffered.
+
+          optionally pass a list called bunch_stats_to_store or
+          slice_stats_to_store which specifie
+          which members/methods of the bunch will be called/stored.
+        """
+        bunch_stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
             'epsn_z', 'macroparticlenumber' ]
-        self.slice_stats_to_store = [
+        slice_stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
             'epsn_z', 'n_macroparticles_per_slice' ]
+        self.bunch_stats_to_store = kwargs.pop('bunch_stats_to_store',
+                bunch_stats_to_store)
+        self.slice_stats_to_store = kwargs.pop('slice_stats_to_store',
+                slice_stats_to_store)
 
         self.filename = filename
         self.n_steps = n_steps
@@ -197,15 +226,18 @@ class SliceMonitor(Monitor):
         # Prepare buffers.
         self.buffer_size = buffer_size
         self.write_buffer_every = write_buffer_every
+        self.buffer_bunch = None
+        self.buffer_slice = None
+        self._create_file_structure(parameters_dict)
+
+    def _init_buffer(self):
         self.buffer_bunch = {}
         self.buffer_slice = {}
-
         for stats in self.bunch_stats_to_store:
             self.buffer_bunch[stats] = np.zeros(self.buffer_size)
         for stats in self.slice_stats_to_store:
             self.buffer_slice[stats] = np.zeros((self.slicer.n_slices,
                                                  self.buffer_size))
-        self._create_file_structure(parameters_dict)
 
     def dump(self, bunch):
         """ Evaluate the statistics like mean and standard deviation for
@@ -216,6 +248,8 @@ class SliceMonitor(Monitor):
         become temporarily unavailable (e.g. if file is on network)
         during the simulation. Buffer contents are written to file only
         every self.write_buffer_every steps. """
+        if self.buffer_bunch is None:
+            self._init_buffer()
         self._write_data_to_buffer(bunch)
         if ((self.i_steps + 1) % self.write_buffer_every == 0 or
                 (self.i_steps + 1) == self.n_steps):
@@ -270,25 +304,40 @@ class SliceMonitor(Monitor):
         # or slice_set resp.
 
         # bunch-specific data.
+        write_pos = self.i_steps % self.buffer_size
         for stats in self.bunch_stats_to_store:
             evaluate_stats_bunch = getattr(bunch, stats)
             try:
-                self.buffer_bunch[stats][0] = evaluate_stats_bunch()
+                self.buffer_bunch[stats][write_pos] = evaluate_stats_bunch()
             except TypeError:
-                self.buffer_bunch[stats][0] = evaluate_stats_bunch
-            self.buffer_bunch[stats] = np.roll(self.buffer_bunch[stats],
-                                               shift=-1, axis=0)
+                self.buffer_bunch[stats][write_pos] = evaluate_stats_bunch
 
         # slice_set-specific data.
         for stats in self.slice_stats_to_store:
-            self.buffer_slice[stats][:,0] = getattr(slice_set, stats)
-            self.buffer_slice[stats] = np.roll(self.buffer_slice[stats],
-                                               shift=-1, axis=1)
+            self.buffer_slice[stats][:, write_pos] = getattr(slice_set, stats)
 
     def _write_buffer_to_file(self):
         """ Write buffer contents to the HDF5 file. The file is opened
         and closed each time the buffer is written to file to prevent
         from loss of data in case of a crash. """
+        buffer_tmp_bunch = {} # always on CPU
+        buffer_tmp_slice = {}
+        shift = - (self.i_steps + 1 % self.buffer_size)
+        for stats in self.bunch_stats_to_store:
+            try:
+                buffer_tmp_bunch[stats] = np.roll(self.buffer_bunch[stats].get(),
+                        shift=shift, axis=0)
+            except:
+                buffer_tmp_bunch[stats] = np.roll(self.buffer_bunch[stats].copy(),
+                        shift=shift, axis=0)
+        for stats in self.slice_stats_to_store:
+            try:
+                buffer_tmp_slice[stats] = np.roll(self.buffer_slice[stats].get(),
+                        shift=shift, axis=1)
+            except:
+                buffer_tmp_slice[stats] = np.roll(self.buffer_slice[stats].copy(),
+                        shift=shift, axis=1)
+
         # Keep track of where to read from buffers and where to store
         # data in file.
         n_entries_in_buffer = min(self.i_steps+1, self.buffer_size)
@@ -305,12 +354,14 @@ class SliceMonitor(Monitor):
             h5group_slice = h5file['Slices']
             for stats in self.bunch_stats_to_store:
                 h5group_bunch[stats][low_pos_in_file:up_pos_in_file] = \
-                    self.buffer_bunch[stats][low_pos_in_buffer:]
+                    buffer_tmp_bunch[stats][low_pos_in_buffer:]
+                    #self.buffer_bunch[stats][low_pos_in_buffer:]
             for stats in self.slice_stats_to_store:
                 h5group_slice[stats][:,low_pos_in_file:up_pos_in_file] = \
-                    self.buffer_slice[stats][:,low_pos_in_buffer:]
+                    buffer_tmp_slice[stats][:,low_pos_in_buffer:]
+                    #self.buffer_slice[stats][:,low_pos_in_buffer:]
             h5file.close()
-        except:
+        except IOError:
             self.warns('Slice monitor file is temporarily unavailable. \n')
 
 
