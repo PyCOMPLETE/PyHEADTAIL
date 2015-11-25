@@ -25,8 +25,7 @@ from test_itest_autorun import TestAutoRun
 from test_cobra import TestCobra
 from test_gpu_interface import TestGPUInterface
 from test_dispatch import TestDispatch
-
-
+from test_monitor import TestMonitor
 
 #add your test classes here
 test_list = [TestSlicing,
@@ -40,7 +39,8 @@ test_list = [TestSlicing,
              TestTransverseTracking,
              TestCobra,
              TestGPUInterface,
-             TestDispatch]
+             TestDispatch,
+             TestMonitor]
 
 
 if __name__ == '__main__':
