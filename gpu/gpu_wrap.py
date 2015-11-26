@@ -8,6 +8,7 @@ All functions assume GPU arrays as arguments!
 from __future__ import division
 import numpy as np
 import os
+import gpu_utils
 try:
     import skcuda.misc
     import pycuda.gpuarray
@@ -312,3 +313,31 @@ def convolve(a, v, mode='full'):
         pass
     c = np.convolve(a, v, mode)
     return pycuda.gpuarray.to_gpu(c)
+
+def init_bunch_buffer(bunch, bunch_stats, buffer_size):
+    '''Call bunch.[stats], match the buffer type with the returned type'''
+    buf = {}
+    for stats in bunch_stats:
+        try:
+            res = getattr(bunch, stats)()
+        except TypeError:
+            res = getattr(bunch, stats)
+        if isinstance(res, pycuda.gpuarray.GPUArray):
+            buf[stats] = pycuda.gpuarray.zeros(buffer_size,
+                dtype=res.dtype, allocator=gpu_utils.memory_pool.allocate)
+        else: # is already on CPU, e.g. macroparticlenumber
+            buf[stats] = np.zeros(buffer_size, dtype=type(res))
+    return buf
+
+def init_slice_buffer(slice_set, slice_stats, buffer_size):
+    '''Call sliceset.['stats'], match the buffer type with the returned type'''
+    n_slices = slice_set.n_slices
+    buf = {}
+    for stats in slice_stats:
+        res = getattr(slice_set, stats)
+        if isinstance(res, pycuda.gpuarray.GPUArray):
+            buf[stats] = pycuda.gpuarray.zeros(shape=(n_slices, buffer_size),
+                dtype=res.dtype, allocator=gpu_utils.memory_pool.allocate)
+        else: #already on CPU
+            buf[stats] = np.zeros((n_slices, buffer_size), dtype=type(res))
+    return buf

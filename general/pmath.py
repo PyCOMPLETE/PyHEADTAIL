@@ -6,6 +6,7 @@ Dispatches for CPU/GPU versions
 '''
 import numpy as np
 from ..cobra_functions import stats as cp
+from ..gpu import gpu_utils
 from ..gpu import gpu_wrap as gpu_wrap
 try:
     import pycuda.cumath
@@ -67,6 +68,18 @@ def _count_macroparticles_per_slice_cpu(sliceset):
         output)
     return output
 
+def _init_bunch_buffer(bunch_stats, buffer_size):
+    buf = {}
+    for stats in bunch_stats:
+        buf[stats] = np.zeros(buffer_size)
+    return buf
+
+def _init_slice_buffer(slice_stats, n_slices, buffer_size):
+    buf = {}
+    for stats in slice_stats:
+        buf[stats] = np.zeros((n_slices, buffer_size))
+    return buf
+
 
 #### dictionaries storing the CPU and GPU versions of the desired functions ####
 _CPU_numpy_func_dict = {
@@ -94,6 +107,9 @@ _CPU_numpy_func_dict = {
     'convolve': np.convolve,
     'arange': np.arange,
     'zeros': np.zeros,
+    'device': 'CPU',
+    'init_bunch_buffer': lambda bunch, bunch_stats, buffer_size : _init_bunch_buffer(bunch_stats, buffer_size),
+    'init_slice_buffer': lambda slice_set, slice_stats, buffer_size : _init_slice_buffer(slice_stats, slice_set.n_slices, buffer_size),
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -103,7 +119,7 @@ _GPU_func_dict = {
     'exp' : pycuda.cumath.exp,
     'cosh': pycuda.cumath.cosh,
     'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs),
-    'std': lambda *args, **kwargs : skcuda.misc.std(*args, ddof=1, **kwargs).get(),
+    'std': lambda *args, **kwargs : skcuda.misc.std(*args, ddof=1, **kwargs),
     'emittance' : lambda u, up, dp=None : gpu_wrap.emittance(u, up, dp),
     'min': lambda *args, **kwargs : pycuda.gpuarray.min(*args, **kwargs).get(),
     'max': lambda *args, **kwargs : pycuda.gpuarray.max(*args, **kwargs).get(),
@@ -120,7 +136,10 @@ _GPU_func_dict = {
     'convolve': gpu_wrap.convolve,
     'arange': pycuda.gpuarray.arange,
     'zeros': lambda *args, **kwargs : pycuda.gpuarray.zeros(*args,
-        allocator=GPU_utils['memory_pool'].allocate, **kwargs),
+        allocator=gpu_utils.memory_pool.allocate, **kwargs),
+    'device': 'GPU',
+    'init_bunch_buffer': gpu_wrap.init_bunch_buffer,
+    'init_slice_buffer': gpu_wrap.init_slice_buffer,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
@@ -144,14 +163,6 @@ def update_active_dict(new_dict):
 
 ################################################################################
 update_active_dict(_CPU_numpy_func_dict)
-################################################################################
-# if pycuda is true, allocate a memory_pool.
-# Access via pmath.GPU_utils['memory_pool']
-if has_pycuda:
-    GPU_utils = dict()
-    GPU_utils['memory_pool'] = pycuda.tools.DeviceMemoryPool()
-
-
 ################################################################################
 
 print ('Available functions on GPU:\n' + str(_CPU_numpy_func_dict.keys()))

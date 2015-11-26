@@ -13,6 +13,7 @@ import sys
 
 from abc import ABCMeta, abstractmethod
 from . import Printing
+from ..general import pmath as pm
 
 
 class Monitor(Printing):
@@ -73,10 +74,12 @@ class BunchMonitor(Monitor):
         self.write_buffer_every = write_buffer_every
         self.buffer = None
 
-    def _init_buffer(self):
-        self.buffer = {}
-        for stats in self.stats_to_store:
-            self.buffer[stats] = np.zeros(self.buffer_size)
+    def _init_buffer(self, bunch):
+        '''
+        Init the correct buffer type (np.zeros, gpuarrays.zeros)
+        '''
+        self.buffer = pm.init_bunch_buffer(bunch, self.stats_to_store,
+                                           self.buffer_size)
 
     def dump(self, bunch):
         """ Evaluate the statistics like mean and standard deviation for
@@ -89,7 +92,7 @@ class BunchMonitor(Monitor):
         The buffer gets initialized in the first dump() call. This allows
         for a dynamic creation of the buffer memory on either CPU or GPU"""
         if self.buffer is None:
-            self._init_buffer()
+            self._init_buffer(bunch)
         self._write_data_to_buffer(bunch)
         if ((self.i_steps + 1) % self.write_buffer_every == 0 or
                 (self.i_steps + 1) == self.n_steps):
@@ -230,14 +233,11 @@ class SliceMonitor(Monitor):
         self.buffer_slice = None
         self._create_file_structure(parameters_dict)
 
-    def _init_buffer(self):
-        self.buffer_bunch = {}
-        self.buffer_slice = {}
-        for stats in self.bunch_stats_to_store:
-            self.buffer_bunch[stats] = np.zeros(self.buffer_size)
-        for stats in self.slice_stats_to_store:
-            self.buffer_slice[stats] = np.zeros((self.slicer.n_slices,
-                                                 self.buffer_size))
+    def _init_buffer(self, bunch, slice_set):
+        self.buffer_bunch = pm.init_bunch_buffer(bunch,
+            self.bunch_stats_to_store, self.buffer_size)
+        self.buffer_slice = pm.init_slice_buffer(slice_set,
+            self.slice_stats_to_store, self.buffer_size)
 
     def dump(self, bunch):
         """ Evaluate the statistics like mean and standard deviation for
@@ -248,8 +248,6 @@ class SliceMonitor(Monitor):
         become temporarily unavailable (e.g. if file is on network)
         during the simulation. Buffer contents are written to file only
         every self.write_buffer_every steps. """
-        if self.buffer_bunch is None:
-            self._init_buffer()
         self._write_data_to_buffer(bunch)
         if ((self.i_steps + 1) % self.write_buffer_every == 0 or
                 (self.i_steps + 1) == self.n_steps):
@@ -297,7 +295,8 @@ class SliceMonitor(Monitor):
         bunch (instance of the Particles class), including all the
         statistics that are to be saved. """
         slice_set = bunch.get_slices(self.slicer, statistics=True)
-
+        if self.buffer_bunch is None:
+            self._init_buffer(bunch, slice_set)
         # Handle the different statistics quantities, which can
         # either be methods (like mean(), ...) or simply attributes
         # (macroparticlenumber or n_macroparticles_per_slice) of the bunch

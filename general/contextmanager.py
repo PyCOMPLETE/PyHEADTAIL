@@ -5,6 +5,7 @@ Context manager classes
 '''
 import numpy as np
 import pmath as pm
+from ..gpu import gpu_utils
 try:
     import pycuda.gpuarray as gpuarray
     import pycuda
@@ -103,7 +104,7 @@ class GPU(object):
             obj = getattr(self.bunch, coord, None)
             if isinstance(obj, np.ndarray):
                 setattr(self.bunch, coord, gpuarray.to_gpu(obj,
-                        pm.GPU_utils['memory_pool'].allocate))
+                        gpu_utils.memory_pool.allocate))
 
         # replace functions in general.math.py
         pm.update_active_dict(pm._GPU_func_dict)

@@ -68,7 +68,8 @@ class TestDispatch(unittest.TestCase):
         '''
         multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice',
             'std_per_slice', 'emittance_per_slice', 'particles_within_cuts',
-            'macroparticles_per_slice', 'take', 'convolve', 'arange', 'zeros']
+            'macroparticles_per_slice', 'take', 'convolve', 'arange', 'zeros',
+            'init_bunch_buffer', 'init_slice_buffer', 'device']
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
