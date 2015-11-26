@@ -48,6 +48,11 @@ if has_pycuda:
         'out[i] = a[i] - b[0]',
         '_sub_1dgpuarr'
     )
+    def sub_scalar(gpuarr, scalar):
+        out = pycuda.gpuarray.empty_like(gpuarr)
+        _sub_1dgpuarr(out, gpuarr, scalar)
+        return out
+
     _mul_1dgpuarr = pycuda.elementwise.ElementwiseKernel(
         'double* out, double* x, const double* a',
         'out[i] = a[0] * x[i]',
@@ -55,14 +60,14 @@ if has_pycuda:
     )
 
 
-def scale(x, a):
-    '''Scales the gpuarray x by a factor a, where a is a gpuarray of length 1
-    Args:
-        x: gpuarray, len=n
-        a: gpuarray, len=1
-    Required as a seperate function bc gpuarrays can only be scaled by scalars
-    (residing on the GPU)
+def _inplace_pow(x_gpu, p, stream=None):
     '''
+    Performs an in-place x_gpu = x_gpu ** p
+    Courtesy: scikits.cuda
+    '''
+    func = pycuda.elementwise.get_pow_kernel(x_gpu.dtype)
+    func.prepared_async_call(x_gpu._grid, x_gpu._block, stream,
+        p, x_gpu.gpudata, x_gpu.gpudata, x_gpu.mem_size)
 
 
 
@@ -80,7 +85,7 @@ def covariance_old(a, b):
     covariance = skcuda.misc.mean(x * y) * n / (n + 1)
     return covariance.get()
 
-def covariance(a,b):
+def covariance(a,b, stream=None):
     '''Covariance (not covariance matrix)
     Args:
         a: pycuda.GPUArray
@@ -90,13 +95,27 @@ def covariance(a,b):
     x = pycuda.gpuarray.empty_like(a)
     y = pycuda.gpuarray.empty_like(b)
     mean_a = skcuda.misc.mean(a)
-    _sub_1dgpuarr(x, a, mean_a)
+    #x -= mean_a
+    _sub_1dgpuarr(x, a, mean_a, stream=stream)
     mean_b = skcuda.misc.mean(b)
-    _sub_1dgpuarr(y, b, mean_b)
+    #y -= mean_b
+    _sub_1dgpuarr(y, b, mean_b, stream=stream)
     covariance = skcuda.misc.mean(x * y) * (n / (n + 1))
-    return covariance.get()
+    return covariance
 
-def emittance(u, up, dp):
+def std(a):
+    '''Std of a vector'''
+    #return skcuda.misc.std(a, ddof=1)
+    n = len(a)
+    mean_a = skcuda.misc.mean(a)
+    x = pycuda.gpuarray.empty_like(a)
+    _sub_1dgpuarr(x, a, mean_a)
+    _inplace_pow(x, 2)
+    res =  pycuda.gpuarray.sum(x) / (n - 1)
+    _inplace_pow(res, 0.5)
+    return res
+
+def emittance_old(u, up, dp):
     '''
     Compute the emittance of GPU arrays
     Args:
@@ -120,8 +139,55 @@ def emittance(u, up, dp):
     sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
     sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
     sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
-    sigma11 * sigma22 - sigma12 * sigma12
-    return np.sqrt(sigma11 * sigma22 - sigma12 * sigma12)
+    sigma12 = sigma12.get()
+    return np.sqrt(sigma11.get() * sigma22.get() - sigma12 * sigma12)
+
+def emittance(u, up, dp):
+    '''
+    Compute the emittance of GPU arrays
+    Args:
+        u coordinate array
+        up conjugate momentum array
+        dp longitudinal momentum variation
+    '''
+
+    n = len(u)
+    sigma11 = 0.
+    sigma12 = 0.
+    sigma22 = 0.
+    cov_u_dp = 0.
+    cov_up_dp = 0.
+    cov_dp2 = 1.
+    mean_u = skcuda.misc.mean(u)
+    mean_up = skcuda.misc.mean(up)
+
+    tmp_u = sub_scalar(u, mean_u)
+    tmp_up = sub_scalar(up, mean_up)
+    #pycuda.autoinit.context.synchronize()
+    ## cov_u2 = covariance(u,u)
+    cov_u2 = skcuda.misc.mean(tmp_u*tmp_u).get_async(stream=gpu_utils.streams[0]) * (n / (n + 1.))
+    ## cov_u_up
+    cov_u_up = skcuda.misc.mean(tmp_u*tmp_up).get(stream=gpu_utils.streams[1]) * (n / (n + 1.))
+    # cov_up2
+    cov_up2 = skcuda.misc.mean(tmp_up*tmp_up).get(stream=gpu_utils.streams[2]) * (n / (n + 1.))
+
+    if dp is not None: #if not None, assign values to variables involving dp
+        mean_dp = skcuda.misc.mean(dp)
+        tmp_dp = sub_scalar(dp, mean_dp)
+        #cov_u_dp = covariance(u, dp)
+        cov_u_dp = skcuda.misc.mean(tmp_u*tmp_dp).get_async(stream=gpu_utils.streams[0]) * (n / (n + 1.))
+        #cov_up_dp = covariance(up,dp)
+        cov_up_dp = skcuda.misc.mean(tmp_up*tmp_dp).get_async(stream=gpu_utils.streams[1]) * (n / (n + 1.))
+        #cov_dp2 = covariance(dp,dp)
+        cov_dp2 = skcuda.misc.mean(tmp_dp*tmp_dp).get_async(stream=gpu_utils.streams[2]) * (n / (n + 1.))
+    for i in xrange(3):
+        gpu_utils.streams[i].synchronize()
+    sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
+    sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
+    sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
+    #sigma12 = sigma12.get()
+    #return np.sqrt(sigma11.get() * sigma22.get() - sigma12 * sigma12)
+    return np.sqrt(sigma11 * sigma22 - sigma12*sigma12)
 
 def argsort(to_sort):
     '''

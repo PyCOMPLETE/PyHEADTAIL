@@ -7,6 +7,7 @@ The module is automatically a singleton
 '''
 try:
     import pycuda.tools
+    import pycuda.driver as drv
     has_pycuda = True
     try:
         pycuda.driver.mem_get_info()
@@ -21,3 +22,5 @@ except ImportError:
 
 if has_pycuda:
     memory_pool = pycuda.tools.DeviceMemoryPool()
+    n_streams = 3
+    streams = [drv.Stream() for i in xrange(n_streams)]

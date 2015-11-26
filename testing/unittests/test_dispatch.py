@@ -26,6 +26,7 @@ else:
     has_pycuda = True
 
 import PyHEADTAIL.general.pmath as pm
+import PyHEADTAIL.general.contextmanager #patches the GPUArray
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 

@@ -119,7 +119,7 @@ _GPU_func_dict = {
     'exp' : pycuda.cumath.exp,
     'cosh': pycuda.cumath.cosh,
     'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs),
-    'std': lambda *args, **kwargs : skcuda.misc.std(*args, ddof=1, **kwargs),
+    'std': gpu_wrap.std,
     'emittance' : lambda u, up, dp=None : gpu_wrap.emittance(u, up, dp),
     'min': lambda *args, **kwargs : pycuda.gpuarray.min(*args, **kwargs).get(),
     'max': lambda *args, **kwargs : pycuda.gpuarray.max(*args, **kwargs).get(),
