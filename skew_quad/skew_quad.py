@@ -14,5 +14,5 @@ class SkewQuadrupole(Printing):
         self.k_skew = k_skew
 
     def track(self, beam):
-        beam.xp += k_skew * beam.y
-        beam.yp += k_skew * beam.x
+        beam.xp += self.k_skew * beam.y
+        beam.yp += self.k_skew * beam.x
