@@ -142,7 +142,7 @@ def emittance_old(u, up, dp):
     sigma12 = sigma12.get()
     return np.sqrt(sigma11.get() * sigma22.get() - sigma12 * sigma12)
 
-def emittance(u, up, dp):
+def emittance_getasync(u, up, dp):
     '''
     Compute the emittance of GPU arrays
     Args:
@@ -167,9 +167,9 @@ def emittance(u, up, dp):
     ## cov_u2 = covariance(u,u)
     cov_u2 = skcuda.misc.mean(tmp_u*tmp_u).get_async(stream=gpu_utils.streams[0]) * (n / (n + 1.))
     ## cov_u_up
-    cov_u_up = skcuda.misc.mean(tmp_u*tmp_up).get(stream=gpu_utils.streams[1]) * (n / (n + 1.))
+    cov_u_up = skcuda.misc.mean(tmp_u*tmp_up).get_async(stream=gpu_utils.streams[1]) * (n / (n + 1.))
     # cov_up2
-    cov_up2 = skcuda.misc.mean(tmp_up*tmp_up).get(stream=gpu_utils.streams[2]) * (n / (n + 1.))
+    cov_up2 = skcuda.misc.mean(tmp_up*tmp_up).get_async(stream=gpu_utils.streams[2]) * (n / (n + 1.))
 
     if dp is not None: #if not None, assign values to variables involving dp
         mean_dp = skcuda.misc.mean(dp)
@@ -188,6 +188,50 @@ def emittance(u, up, dp):
     #sigma12 = sigma12.get()
     #return np.sqrt(sigma11.get() * sigma22.get() - sigma12 * sigma12)
     return np.sqrt(sigma11 * sigma22 - sigma12*sigma12)
+
+
+def emittance(u, up, dp):
+    '''
+    Compute the emittance of GPU arrays
+    Args:
+        u coordinate array
+        up conjugate momentum array
+        dp longitudinal momentum variation
+    '''
+
+    n = len(u)
+    sigma11 = 0.
+    sigma12 = 0.
+    sigma22 = 0.
+    cov_u_dp = 0.
+    cov_up_dp = 0.
+    cov_dp2 = 1.
+    mean_u = skcuda.misc.mean(u)
+    mean_up = skcuda.misc.mean(up)
+
+    tmp_u = sub_scalar(u, mean_u)
+    tmp_up = sub_scalar(up, mean_up)
+    ## cov_u2 = covariance(u,u)
+    cov_u2 = skcuda.misc.mean(tmp_u*tmp_u)#* (n / (n + 1.))
+    ## cov_u_up
+    cov_u_up = skcuda.misc.mean(tmp_u*tmp_up)#* (n / (n + 1.))
+    # cov_up2
+    cov_up2 = skcuda.misc.mean(tmp_up*tmp_up)#* (n / (n + 1.))
+
+    if dp is not None: #if not None, assign values to variables involving dp
+        mean_dp = skcuda.misc.mean(dp)
+        tmp_dp = sub_scalar(dp, mean_dp)
+        #cov_u_dp = covariance(u, dp)
+        cov_u_dp = skcuda.misc.mean(tmp_u*tmp_dp)#* (n / (n + 1.))
+        #cov_up_dp = covariance(up,dp)
+        cov_up_dp = skcuda.misc.mean(tmp_up*tmp_dp)#* (n / (n + 1.))
+        #cov_dp2 = covariance(dp,dp)
+        cov_dp2 = skcuda.misc.mean(tmp_dp*tmp_dp)#* (n / (n + 1.))
+
+    sigma11 = (cov_u2 - cov_u_dp*cov_u_dp/cov_dp2)
+    sigma12 = (cov_u_up - cov_u_dp*cov_up_dp/cov_dp2)
+    sigma22 = (cov_up2 - cov_up_dp*cov_up_dp/cov_dp2)
+    return pycuda.cumath.sqrt((n/(n+1.))*(sigma11 * sigma22 - sigma12*sigma12))
 
 def argsort(to_sort):
     '''
