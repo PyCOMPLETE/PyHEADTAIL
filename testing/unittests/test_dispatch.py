@@ -264,11 +264,13 @@ class TestDispatch(unittest.TestCase):
         self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
             'CPU/GPU version of ' + fname + ' dont yield the same result')
         # same exercise with start, stop on GPU
-        start_gpu = pycuda.gpuarray.zeros(1, dtype=np.float64)
-        stop_gpu = pycuda.gpuarray.zeros_like(start_gpu)
+        start_gpu = pycuda.gpuarray.empty(1, dtype=np.float64)
+        stop_gpu = pycuda.gpuarray.empty_like(start_gpu)
+        step_gpu = pycuda.gpuarray.empty_like(start_gpu)
         start_gpu.fill(1.12)
         stop_gpu.fill(4.124)
-        res_gpu2 = pm._GPU_func_dict[fname](start_gpu, stop_gpu, step, nslices, dtype=np.float64)
+        step_gpu.fill(step)
+        res_gpu2 = pm._GPU_func_dict[fname](start_gpu, stop_gpu, step_gpu, nslices, dtype=np.float64)
         self.assertTrue(np.allclose(res_cpu, res_gpu2.get()),
             'CPU/GPU version of ' + fname + ' with start/stop on GPU' +
             'dont yield the same result')
@@ -286,6 +288,20 @@ class TestDispatch(unittest.TestCase):
         res_gpu = pm._GPU_func_dict[fname](N, dtype=np.float64)
         self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
             'CPU/GPU version of ' + fname + ' dont yield the same result')
+
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
+    def test_binaryop_patch(self):
+        N = 10
+        x_cpu = np.random.normal(0., 1., N)
+        x = pycuda.gpuarray.to_gpu(x_cpu)
+        y_cpu = np.array([0.3], dtype=np.float64)
+        y = pycuda.gpuarray.to_gpu(y_cpu)
+        z = (x-y).get()
+        self.assertTrue(np.allclose(z, x_cpu - y_cpu),
+            'Patching of the __sub__ method does not work correctly')
+        z = (x/y).get()
+        self.assertTrue(np.allclose(z, x_cpu / y_cpu),
+            'Patching of the __div__ method does not work correctly')
 
     def create_all1_bunch(self, n_macroparticles):
         np.random.seed(1)

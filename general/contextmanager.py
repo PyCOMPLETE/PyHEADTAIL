@@ -39,11 +39,28 @@ if has_pycuda:
                 old_v(self, other)
             return self
         return _patch
+
+    def patch_binop(op, func_name):
+        '''monkey patch __sub__, __add__, ...'''
+        _kernel = create_kernel(op)
+        old_v = getattr(pycuda.gpuarray.GPUArray, func_name)
+        def _patch_binop(self, other):
+            if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape in [(),(1,)]:
+                out = pycuda.gpuarray.empty_like(self)
+                _kernel(out, self, other)
+                return out
+            else:
+                return old_v(self, other)
+        return _patch_binop
+
     # patch the GPUArray to be able to cope with gpuarrays of size 1 as ops
     pycuda.gpuarray.GPUArray.__isub__ = patch_op('-', '__isub__')
     pycuda.gpuarray.GPUArray.__iadd__ = patch_op('+', '__iadd__')
     #pycuda.gpuarray.GPUArray.__imul__ = patch_op('*', '__imul__')
     #pycuda.gpuarray.GPUArray.__idiv__ = patch_op('/', '__idiv__')
+    pycuda.gpuarray.GPUArray.__sub__ = patch_binop('-', '__sub__')
+    pycuda.gpuarray.GPUArray.__div__ = patch_binop('/', '__div__')
+    pycuda.gpuarray.GPUArray.__truediv__ = pycuda.gpuarray.GPUArray.__div__
 
 
 class Context(object):
