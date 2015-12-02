@@ -9,6 +9,7 @@ from __future__ import division
 import numpy as np
 import os
 import gpu_utils
+import math
 try:
     import skcuda.misc
     import pycuda.gpuarray
@@ -52,6 +53,20 @@ if has_pycuda:
         out = pycuda.gpuarray.empty_like(gpuarr)
         _sub_1dgpuarr(out, gpuarr, scalar)
         return out
+
+    _arange_gpu = pycuda.elementwise.ElementwiseKernel(
+        'double* out, double* start, double step',
+        'out[i] = start[0] + i * step',
+        '_arange_gpu'
+    )
+    def arange_startstop_gpu(start_gpu, stop_gpu, step_cpu, n_slices_cpu, dtype):
+        if dtype is not np.float64:
+            raise TypeError('only np.float64 supported')
+        out = pycuda.gpuarray.empty(n_slices_cpu, dtype=np.float64,
+            allocator=gpu_utils.memory_pool.allocate)
+        _arange_gpu(out, start_gpu, step_cpu)
+        return out
+
 
     _mul_1dgpuarr = pycuda.elementwise.ElementwiseKernel(
         'double* out, double* x, const double* a',

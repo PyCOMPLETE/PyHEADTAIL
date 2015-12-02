@@ -255,12 +255,23 @@ class TestDispatch(unittest.TestCase):
         fname = 'arange'
         start = 1.12
         stop = 4.124
-        step = stop-start/(100+1e-10)
+        step = (stop-start)/(100.+1e-10)
+        import math
+        nslices = int(math.ceil((stop-start)/step))
         dtype = np.float64
-        res_cpu = pm._CPU_numpy_func_dict[fname](start, stop, step, dtype=np.float64)
-        res_gpu = pm._GPU_func_dict[fname](start, stop, step, dtype=np.float64)
+        res_cpu = pm._CPU_numpy_func_dict[fname](start, stop, step, nslices, dtype=np.float64)
+        res_gpu = pm._GPU_func_dict[fname](start, stop, step, nslices, dtype=np.float64)
         self.assertTrue(np.allclose(res_cpu, res_gpu.get()),
             'CPU/GPU version of ' + fname + ' dont yield the same result')
+        # same exercise with start, stop on GPU
+        start_gpu = pycuda.gpuarray.zeros(1, dtype=np.float64)
+        stop_gpu = pycuda.gpuarray.zeros_like(start_gpu)
+        start_gpu.fill(1.12)
+        stop_gpu.fill(4.124)
+        res_gpu2 = pm._GPU_func_dict[fname](start_gpu, stop_gpu, step, nslices, dtype=np.float64)
+        self.assertTrue(np.allclose(res_cpu, res_gpu2.get()),
+            'CPU/GPU version of ' + fname + ' with start/stop on GPU' +
+            'dont yield the same result')
 
     @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_zeros(self):
