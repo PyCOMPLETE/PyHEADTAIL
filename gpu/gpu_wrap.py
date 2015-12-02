@@ -55,16 +55,17 @@ if has_pycuda:
         return out
 
     _arange_gpu = pycuda.elementwise.ElementwiseKernel(
-        'double* out, double* start, double step',
-        'out[i] = start[0] + i * step',
+        'double* out, double* start, const double* step',
+        'const double s = step[0];'+
+        'out[i] = start[0] + i * s',
         '_arange_gpu'
     )
-    def arange_startstop_gpu(start_gpu, stop_gpu, step_cpu, n_slices_cpu, dtype):
+    def arange_startstop_gpu(start_gpu, stop_gpu, step_gpu, n_slices_cpu, dtype):
         if dtype is not np.float64:
             raise TypeError('only np.float64 supported')
         out = pycuda.gpuarray.empty(n_slices_cpu, dtype=np.float64,
             allocator=gpu_utils.memory_pool.allocate)
-        _arange_gpu(out, start_gpu, step_cpu)
+        _arange_gpu(out, start_gpu, step_gpu)
         return out
 
 

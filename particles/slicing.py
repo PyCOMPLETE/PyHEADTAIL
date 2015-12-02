@@ -326,6 +326,7 @@ class Slicer(Printing):
         '''
         pass
 
+    #@profile
     def slice(self, beam, *args, **kwargs):
         '''Return a SliceSet object according to the saved
         configuration. Generate it using the keywords of the
@@ -391,7 +392,8 @@ class Slicer(Printing):
             z_cut_head = pm.max(beam.z)
             z_cut_head += abs(z_cut_head) * 1e-15
         try:
-            return z_cut_tail.get(), z_cut_head.get()
+            #return z_cut_tail.get(), z_cut_head.get()
+            return z_cut_tail, z_cut_head
         except:
             return z_cut_tail, z_cut_head
 
@@ -444,10 +446,10 @@ class Slicer(Printing):
                 stat_caller = getattr(self, '_' + stat)
                 values = stat_caller(sliceset, beam)
                 setattr(sliceset, stat, values)
-                try:
-                    setattr(sliceset, stat+'_cpu', values.get())
-                except:
-                    setattr(sliceset, stat+'_cpu', values)
+                # try:
+                #     setattr(sliceset, stat+'_cpu', values.get())
+                # except:
+                #     setattr(sliceset, stat+'_cpu', values)
 
     def _mean_x(self, sliceset, beam):
         return self._mean(sliceset, beam.x)
@@ -575,7 +577,7 @@ class UniformBinSlicer(Slicer):
         z_cuts = (aa, bb)
 
         return n_slices, z_cuts
-
+    #@profile
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
         according to the saved configuration for
@@ -583,14 +585,11 @@ class UniformBinSlicer(Slicer):
         '''
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
-        #print 'type z_cut_tail', type(z_cut_tail)
         z_bins = pm.arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
-                           slice_width, dtype=np.float64)
+                           slice_width, self.n_slices+1, dtype=np.float64)
         slice_index_of_particle = make_int32(pm.floor(
                 (beam.z - z_cut_tail) / slice_width
             ))
-        #print 'type slice_idx_of_particle: ', type(slice_index_of_particle)
-
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
                     mode='uniform_bin')
