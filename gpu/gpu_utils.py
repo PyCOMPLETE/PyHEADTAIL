@@ -8,6 +8,7 @@ The module is automatically a singleton
 try:
     import pycuda.tools
     import pycuda.driver as drv
+    import pycuda.elementwise
     has_pycuda = True
     try:
         pycuda.driver.mem_get_info()
@@ -18,14 +19,38 @@ try:
 except ImportError:
     has_pycuda = False
 import atexit
+from itertools import cycle
 ################################################################################
 
 if has_pycuda:
+
+    device = pycuda.autoinit.device
+    context = pycuda.autoinit.context
+    driver = drv
+
     memory_pool = pycuda.tools.DeviceMemoryPool()
 
     import skcuda.misc #s
     skcuda.misc.init(allocator=memory_pool.allocate)
     atexit.register(skcuda.misc.shutdown)
 
-    n_streams = 3
+    n_streams = 1
     streams = [drv.Stream() for i in xrange(n_streams)]
+    stream_pool = cycle(streams)
+
+    stream_emittance = [drv.Stream() for i in xrange(3)]
+
+
+    def dummy_1(gpuarr, stream=None):
+        __dummy1(gpuarr, stream=stream)
+        return gpuarr
+
+    def dummy_2(gpuarr, stream=None):
+        __dummy2(gpuarr, stream=stream)
+        return gpuarr
+
+
+else:
+    streams = [] # this way nothing bad happens if 'for stream in streams: sync'
+
+################################################################################
