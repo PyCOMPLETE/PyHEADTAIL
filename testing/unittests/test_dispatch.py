@@ -99,7 +99,7 @@ class TestDispatch(unittest.TestCase):
         np.random.seed(0)
         parameter_cpu_1 = np.random.normal(loc=1., scale=.1, size=500000)
         parameter_cpu_2 = np.random.normal(loc=1., scale=1., size=500000)
-        parameter_cpu_3 = np.random.normal(loc=1., scale=1., size=500000)
+        parameter_cpu_3 = parameter_cpu_2 + 0.001 *np.arange(500000)#np.random.normal(loc=1., scale=1., size=500000)
         parameter_gpu_1 = pycuda.gpuarray.to_gpu(parameter_cpu_1)
         parameter_gpu_2 = pycuda.gpuarray.to_gpu(parameter_cpu_2)
         parameter_gpu_3 = pycuda.gpuarray.to_gpu(parameter_cpu_3)
@@ -111,6 +111,16 @@ class TestDispatch(unittest.TestCase):
             res_gpu = res_gpu.get()
         self.assertTrue(np.allclose(res_cpu, res_gpu),
             'CPU/GPU version of ' + fname + ' dont yield the same result')
+        # check the dp=None case
+        params_cpu[2] = None
+        params_gpu[2] = None
+        res_cpu = pm._CPU_numpy_func_dict[fname](*params_cpu)
+        res_gpu = pm._GPU_func_dict[fname](*params_gpu)
+        if isinstance(res_gpu, pycuda.gpuarray.GPUArray):
+            res_gpu = res_gpu.get()
+        self.assertTrue(np.allclose(res_cpu, res_gpu),
+            'CPU/GPU version of ' + fname + ' dp=None dont yield the same result')
+
 
     @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_apply_permutation_computation(self):

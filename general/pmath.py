@@ -22,7 +22,7 @@ except ImportError:
     print ('Skcuda not found. (Scikit-cuda)')
 
 
-def _mean_per_slice_cpu(sliceset, u):
+def _mean_per_slice_cpu(sliceset, u, **kwargs):
     '''
     CPU Wrapper for the mean per slice function.
     TODO: Find a good spot where to put this function (equiv to gpu_wrap)
@@ -35,7 +35,7 @@ def _mean_per_slice_cpu(sliceset, u):
                       u, mean_u)
     return mean_u
 
-def _std_per_slice_cpu(sliceset, u):
+def _std_per_slice_cpu(sliceset, u, **kwargs):
     '''
     CPU Wrapper for the cov per slice function.
     TODO: Find a good spot where to put this function (equiv to gpu_wrap)
@@ -48,7 +48,7 @@ def _std_per_slice_cpu(sliceset, u):
                       u, std_u)
     return std_u
 
-def _emittance_per_slice_cpu(sliceset, u, up, dp=None):
+def _emittance_per_slice_cpu(sliceset, u, up, dp=None, **kwargs):
     '''
     CPU Wrapper for the emittance per slice function.
     TODO: Find a good spot where to put this function (equiv to gpu_wrap)
@@ -96,9 +96,9 @@ _CPU_numpy_func_dict = {
     'floor': np.floor,
     'argsort' : np.argsort,
     'apply_permutation' : lambda array, permutation: array[permutation], #auto copy
-    'mean_per_slice' : lambda sliceset,  u: _mean_per_slice_cpu(sliceset, u),
+    'mean_per_slice' : _mean_per_slice_cpu,
     #'cov_per_slice' : lambda sliceset, u: _cov_per_slice_cpu(sliceset, u),
-    'std_per_slice' : lambda sliceset, u: _std_per_slice_cpu(sliceset, u),
+    'std_per_slice' : _std_per_slice_cpu,
     'emittance_per_slice': _emittance_per_slice_cpu,
     'particles_within_cuts' : lambda sliceset: np.where(
         (sliceset.slice_index_of_particle < sliceset.n_slices) & (sliceset.slice_index_of_particle >= 0))[0].astype(np.int32),
@@ -118,9 +118,9 @@ _GPU_func_dict = {
     'cos' : pycuda.cumath.cos,
     'exp' : pycuda.cumath.exp,
     'cosh': pycuda.cumath.cosh,
-    'mean': lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs),
+    'mean': gpu_wrap.mean,#lambda *args, **kwargs : skcuda.misc.mean(*args, **kwargs),
     'std': gpu_wrap.std,
-    'emittance' : lambda u, up, dp=None : gpu_wrap.emittance(u, up, dp),
+    'emittance' : lambda u, up, dp=None, **kwargs: gpu_wrap.emittance(u, up, dp, **kwargs),
     'min': lambda *args, **kwargs : pycuda.gpuarray.min(*args, **kwargs).get(),
     'max': lambda *args, **kwargs : pycuda.gpuarray.max(*args, **kwargs).get(),
     'diff' : lambda *args, **kwargs : skcuda.misc.diff(*args, **kwargs),

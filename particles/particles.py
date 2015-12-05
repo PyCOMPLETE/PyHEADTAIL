@@ -112,6 +112,7 @@ class Particles(Printing):
         '''
         return {coord: getattr(self, coord) for coord in self.coords_n_momenta}
 
+    #@profile
     def get_slices(self, slicer, *args, **kwargs):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
@@ -197,74 +198,74 @@ class Particles(Printing):
             setattr(self, attr, reordered)
 
     # Statistics methods
-
-    def mean_x(self):
+    # kwargs are for passing stream=... in the gpu case
+    def mean_x(self, **kwargs):
         #return np.float(pm.mean(self.x))
-        return pm.mean(self.x)
+        return pm.mean(self.x, **kwargs)
 
-    def mean_xp(self):
+    def mean_xp(self, **kwargs):
         #return np.float(pm.mean(self.xp))
-        return pm.mean(self.xp)
+        return pm.mean(self.xp, **kwargs)
 
-    def mean_y(self):
+    def mean_y(self, **kwargs):
         #return np.float(pm.mean(self.y))
-        return pm.mean(self.y)
+        return pm.mean(self.y, **kwargs)
 
-    def mean_yp(self):
+    def mean_yp(self, **kwargs):
         #return np.float(pm.mean(self.yp))
-        return pm.mean(self.yp)
+        return pm.mean(self.yp, **kwargs)
 
-    def mean_z(self):
+    def mean_z(self, **kwargs):
         #return np.float(pm.mean(self.z))
-        return pm.mean(self.z)
+        return pm.mean(self.z, **kwargs)
 
-    def mean_dp(self):
+    def mean_dp(self, **kwargs):
         #return np.float(pm.mean(self.dp))
-        return pm.mean(self.dp)
+        return pm.mean(self.dp, **kwargs)
 
-    def sigma_x(self):
-        return pm.std(self.x)
+    def sigma_x(self, **kwargs):
+        return pm.std(self.x, **kwargs)
 
-    def sigma_y(self):
+    def sigma_y(self, **kwargs):
         #return np.float(pm.std(self.y))
-        return pm.std(self.y)
+        return pm.std(self.y, **kwargs)
 
-    def sigma_z(self):
+    def sigma_z(self, **kwargs):
         #return np.float(pm.std(self.z))
-        return pm.std(self.z)
+        return pm.std(self.z, **kwargs)
 
-    def sigma_xp(self):
+    def sigma_xp(self, **kwargs):
         #return np.float(pm.std(self.xp))
-        return pm.std(self.xp)
+        return pm.std(self.xp, **kwargs)
 
-    def sigma_yp(self):
+    def sigma_yp(self, **kwargs):
         #return np.float(pm.std(self.yp))
-        return pm.std(self.yp)
+        return pm.std(self.yp, **kwargs)
 
-    def sigma_dp(self):
+    def sigma_dp(self, **kwargs):
         #return np.float(pm.std(self.dp))
-        return pm.std(self.dp)
+        return pm.std(self.dp, **kwargs)
 
-    def effective_normalized_emittance_x(self):
-        return pm.emittance(self.x, self.xp, None) * self.betagamma
+    def effective_normalized_emittance_x(self, **kwargs):
+        return pm.emittance(self.x, self.xp, None, **kwargs) * self.betagamma
 
-    def effective_normalized_emittance_y(self):
-        return pm.emittance(self.y, self.yp, None) * self.betagamma
+    def effective_normalized_emittance_y(self, **kwargs):
+        return pm.emittance(self.y, self.yp, None, **kwargs) * self.betagamma
 
-    def effective_normalized_emittance_z(self):
-        return(4*np.pi * pm.emittance(self.z, self.dp, None) * self.p0/e)
+    def effective_normalized_emittance_z(self, **kwargs):
+        return(4*np.pi * pm.emittance(self.z, self.dp, None, **kwargs) * self.p0/e)
 
-    def epsn_x(self):
-        return (pm.emittance(self.x, self.xp, getattr(self, 'dp', None))
+    def epsn_x(self, **kwargs):
+        return (pm.emittance(self.x, self.xp, getattr(self, 'dp', None), **kwargs)
                * self.betagamma)
 
-    def epsn_y(self):
-        return (pm.emittance(self.y, self.yp, getattr(self, 'dp', None))
+    def epsn_y(self, **kwargs):
+        return (pm.emittance(self.y, self.yp, getattr(self, 'dp', None), **kwargs)
                * self.betagamma)
 
-    def epsn_z(self):
+    def epsn_z(self, **kwargs):
         # always use the effective emittance
-        return self.effective_normalized_emittance_z()
+        return self.effective_normalized_emittance_z(**kwargs)
 
     def dispersion_x(self):
         return cp.dispersion(self.x, self.dp)

@@ -42,7 +42,7 @@ from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor
 from PyHEADTAIL.rfq.rfq_python import RFQLongitudinalKick, RFQTransverseKick
 from PyHEADTAIL.rfq.rfq_python import RFQTransverseDetuner
-
+import PyHEADTAIL.general.decorators as decorators
 
 
 
@@ -101,6 +101,12 @@ class TestGPUInterface(unittest.TestCase):
             os.remove(self.monitor_fn+'2' + '.h5')
         except:
             pass
+
+    @decorators.synchronize_gpu_streams_before
+    def test_gpu_sync_decorators(self):
+        '''Test the sync functionality with the decorators'''
+        # not a real test, only calls the decorator...
+        pass
 
 
     def test_if_beam_is_numpy(self):

@@ -34,7 +34,7 @@ if has_pycuda:
     skcuda.misc.init(allocator=memory_pool.allocate)
     atexit.register(skcuda.misc.shutdown)
 
-    n_streams = 1
+    n_streams = 4
     streams = [drv.Stream() for i in xrange(n_streams)]
     stream_pool = cycle(streams)
 

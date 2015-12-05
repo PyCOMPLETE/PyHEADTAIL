@@ -19,7 +19,8 @@ from functools import partial, wraps
 
 from ..cobra_functions import stats as cp
 from ..general import pmath as pm
-# from ..general.decorators import memoize
+from ..general import decorators as decorators
+from ..gpu import gpu_utils as gpu_utils
 from . import Printing
 
 from scipy import interpolate
@@ -344,7 +345,8 @@ class Slicer(Printing):
         sliceset_kwargs = self.compute_sliceset_kwargs(beam)
         if not isinstance(beam.x, np.ndarray):
             #print 'IS (probably) a GPUARRAY, sort it'
-            perm = pm.argsort(sliceset_kwargs['slice_index_of_particle'])
+            s_idx_of_p = sliceset_kwargs['slice_index_of_particle']
+            perm = pm.argsort(s_idx_of_p)
             beam.reorder(perm)
             sliceset_kwargs = self.compute_sliceset_kwargs(beam)
             is_sorted = True
@@ -425,6 +427,7 @@ class Slicer(Printing):
                            'created slice snapshots. This minimises ' +
                            'computation time.')
 
+    @decorators.synchronize_gpu_streams_after
     def add_statistics(self, sliceset, beam, statistics):
         '''Calculate all the statistics quantities (strings) that are
         named in the list 'statistics' and add a corresponding
@@ -444,71 +447,72 @@ class Slicer(Printing):
         for stat in statistics:
             if not hasattr(sliceset, stat):
                 stat_caller = getattr(self, '_' + stat)
-                values = stat_caller(sliceset, beam)
+                if pm.device is 'GPU':
+                    st = next(gpu_utils.stream_pool)
+                    print 'Using stream', st, 'for ', stat, '------------------'
+                    values = stat_caller(sliceset, beam, stream=next(gpu_utils.stream_pool))
+                else:
+                    values = stat_caller(sliceset, beam)
                 setattr(sliceset, stat, values)
-                # try:
-                #     setattr(sliceset, stat+'_cpu', values.get())
-                # except:
-                #     setattr(sliceset, stat+'_cpu', values)
 
-    def _mean_x(self, sliceset, beam):
-        return self._mean(sliceset, beam.x)
+    def _mean_x(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.x, **kwargs)
 
-    def _mean_xp(self, sliceset, beam):
-        return self._mean(sliceset, beam.xp)
+    def _mean_xp(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.xp, **kwargs)
 
-    def _mean_y(self, sliceset, beam):
-        return self._mean(sliceset, beam.y)
+    def _mean_y(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.y, **kwargs)
 
-    def _mean_yp(self, sliceset, beam):
-        return self._mean(sliceset, beam.yp)
+    def _mean_yp(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.yp, **kwargs)
 
-    def _mean_z(self, sliceset, beam):
-        return self._mean(sliceset, beam.z)
+    def _mean_z(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.z, **kwargs)
 
-    def _mean_dp(self, sliceset, beam):
-        return self._mean(sliceset, beam.dp)
+    def _mean_dp(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.dp, **kwargs)
 
-    def _sigma_x(self, sliceset, beam):
-        return self._sigma(sliceset, beam.x)
+    def _sigma_x(self, sliceset, beam, **kwargs):
+        return self._sigma(sliceset, beam.x, **kwargs)
 
-    def _sigma_y(self, sliceset, beam):
-        return self._sigma(sliceset, beam.y)
+    def _sigma_y(self, sliceset, beam, **kwargs):
+        return self._sigma(sliceset, beam.y, **kwargs)
 
-    def _sigma_z(self, sliceset, beam):
-        return self._sigma(sliceset, beam.z)
+    def _sigma_z(self, sliceset, beam, **kwargs):
+        return self._sigma(sliceset, beam.z, **kwargs)
 
-    def _sigma_dp(self, sliceset, beam):
-        return self._sigma(sliceset, beam.dp)
+    def _sigma_dp(self, sliceset, beam, **kwargs):
+        return self._sigma(sliceset, beam.dp, **kwargs)
 
-    def _epsn_x(self, sliceset, beam): # dp will always be present in a sliced beam
-        return self._epsn(sliceset, beam.x, beam.xp, beam.dp) * beam.betagamma
+    def _epsn_x(self, sliceset, beam, **kwargs): # dp will always be present in a sliced beam
+        return self._epsn(sliceset, beam.x, beam.xp, beam.dp, **kwargs) * beam.betagamma
 
-    def _eff_epsn_x(self, sliceset, beam):
-        return self._epsn(sliceset, beam.x, beam.xp, None) * beam.betagamma
+    def _eff_epsn_x(self, sliceset, beam, **kwargs):
+        return self._epsn(sliceset, beam.x, beam.xp, dp=None, **kwargs) * beam.betagamma
 
-    def _epsn_y(self, sliceset, beam):
-        return self._epsn(sliceset, beam.y, beam.yp, beam.dp) * beam.betagamma
+    def _epsn_y(self, sliceset, beam, **kwargs):
+        return self._epsn(sliceset, beam.y, beam.yp, beam.dp, **kwargs) * beam.betagamma
 
-    def _eff_epsn_y(self, sliceset, beam):
-        return self._epsn(sliceset, beam.y, beam.yp, None) * beam.betagamma
+    def _eff_epsn_y(self, sliceset, beam, **kwargs):
+        return self._epsn(sliceset, beam.y, beam.yp, dp=None, **kwargs) * beam.betagamma
 
 
-    def _epsn_z(self, sliceset, beam):
+    def _epsn_z(self, sliceset, beam, **kwargs):
         # Always use the effective emittance --> pass None as second dp param
-        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp, None) *
+        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp, dp=None, **kwargs) *
                 beam.p0 / e)
 
     # Statistics helper functions.
 
-    def _mean(self, sliceset, u):
-        return pm.mean_per_slice(sliceset, u)
+    def _mean(self, sliceset, u, **kwargs):
+        return pm.mean_per_slice(sliceset, u, **kwargs)
 
-    def _sigma(self, sliceset, u):
-        return pm.std_per_slice(sliceset, u)
+    def _sigma(self, sliceset, u, **kwargs):
+        return pm.std_per_slice(sliceset, u, **kwargs)
 
-    def _epsn(self, sliceset, u, up, dp):
-        return pm.emittance_per_slice(sliceset, u, up, dp)
+    def _epsn(self, sliceset, u, up, dp, **kwargs):
+        return pm.emittance_per_slice(sliceset, u, up, dp=dp, **kwargs)
 
 
 class UniformBinSlicer(Slicer):

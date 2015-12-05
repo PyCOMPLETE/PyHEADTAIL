@@ -14,6 +14,8 @@ import sys
 from abc import ABCMeta, abstractmethod
 from . import Printing
 from ..general import pmath as pm
+from ..gpu import gpu_utils as gpu_utils
+from ..general import decorators as decorators
 
 
 class Monitor(Printing):
@@ -125,9 +127,12 @@ class BunchMonitor(Monitor):
                    'failed. \n')
             raise
 
+    @decorators.synchronize_gpu_streams_after
     def _write_data_to_buffer(self, bunch):
         """ Store the data in the self.buffer dictionary before writing
         them to file. The buffer is implemented as a shift register. """
+        val_buf = {}
+        p_write = {}
         for stats in self.stats_to_store:
             evaluate_stats = getattr(bunch, stats)
 
@@ -136,7 +141,15 @@ class BunchMonitor(Monitor):
             # (macroparticlenumber) of the bunch.
             write_pos = self.i_steps % self.buffer_size
             try:
-                self.buffer[stats][write_pos] = evaluate_stats()
+                if pm.device is 'GPU':
+                    #val_bf[stat]
+                    st = next(gpu_utils.stream_pool)
+                    val_buf[stats] = evaluate_stats(stream=st)
+                    p_write[stats] = int(self.buffer[stats].gpudata) + write_pos*self.buffer[stats].strides[0]
+                    sze = 8#val.nbytes
+                    gpu_utils.driver.memcpy_dtod_async(dest=p_write[stats], src=val_buf[stats].gpudata, size=sze, stream=st)
+                else:
+                    self.buffer[stats][write_pos] = evaluate_stats()
             except TypeError:
                 self.buffer[stats][write_pos] = evaluate_stats
 
