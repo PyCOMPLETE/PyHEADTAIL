@@ -533,7 +533,7 @@ def sorted_cov_per_slice(sliceset, u, v, stream=None):
         _add_bounds_to_sliceset(sliceset)
     block = (256, 1, 1)
     grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
-    cov_uv = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
+    cov_uv = pycuda.gpuarray.empty(sliceset.n_slices, dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
     sorted_cov_per_slice_kernel(sliceset.lower_bounds.gpudata,
                                 sliceset.upper_bounds.gpudata,
                                 u.gpudata, v.gpudata,
@@ -542,7 +542,7 @@ def sorted_cov_per_slice(sliceset, u, v, stream=None):
                                 block=block, grid=grid, stream=stream)
     return cov_uv
 
-def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
+def sorted_emittance_per_slice_slow(sliceset, u, up, dp=None, stream=None):
     '''
     Computes the emittance per slice.
     If dp is None, the effective emittance is computed
@@ -552,7 +552,6 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
     '''
     ### computes the covariance on different streams
     #n_streams = 3 #HARDCODED FOR NOW
-    streams = gpu_utils.streams #[drv.Stream() for i in xrange(n_streams)]
     cov_u2 = sorted_cov_per_slice(sliceset, u, u, stream=stream)
     cov_up2= sorted_cov_per_slice(sliceset, up, up, stream=stream)
     cov_u_up = sorted_cov_per_slice(sliceset, u, up, stream=stream)
@@ -564,14 +563,45 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
         cov_dp2 = pycuda.gpuarray.zeros_like(cov_u2) + 1.
         cov_u_dp = pycuda.gpuarray.zeros_like(cov_u2)
         cov_up_dp = pycuda.gpuarray.zeros_like(cov_u2)
-    #for i in xrange(n_streams):
-    #    streams[i].synchronize()
-    # TODO: change this to elementwise kernels or .mul_add()
+
     sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
     sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
     sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
     emittance = pycuda.cumath.sqrt(sigma11*sigma22 - sigma12*sigma12)
     return emittance
+
+
+def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
+    '''
+    Computes the emittance per slice.
+    If dp is None, the effective emittance is computed
+    Args:
+        sliceset specifying slices
+        u, up the quantities of which to compute the emittance, e.g. x,xp
+    '''
+    ### computes the covariance on different streams
+    streams = gpu_utils.stream_emittance
+    cov_u2 = sorted_cov_per_slice(sliceset, u, u, stream=streams[0])
+    cov_up2= sorted_cov_per_slice(sliceset, up, up, stream=streams[1])
+    cov_u_up = sorted_cov_per_slice(sliceset, u, up, stream=streams[2])
+    out = pycuda.gpuarray.empty_like(cov_u2)
+    # use this factor in emitt_disp: the code has a 1/(n*n+n) factor which is not
+    # required here since the scaling is done in the cov_per_slice
+    # --> 1/(n*n + n) must be 1. ==> n = sqrt(5)/2 -0.5
+    n = np.sqrt(5.)/2. - 0.5
+    if dp is not None:
+        cov_u_dp = sorted_cov_per_slice(sliceset, u, dp, stream=streams[3])
+        cov_up_dp= sorted_cov_per_slice(sliceset, up, dp, stream=streams[4])
+        cov_dp2 = sorted_cov_per_slice(sliceset, dp, dp, stream=streams[5])
+        for s in streams:
+            s.synchronize()
+        _emitt_disp(out, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp, cov_dp2,np.float64(n), stream=stream)
+    else:
+        for s in [streams[0], streams[1], streams[2]]:
+            s.synchronize()
+        _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
+    return out
+
 
 def convolve(a, v, mode='full'):
     '''

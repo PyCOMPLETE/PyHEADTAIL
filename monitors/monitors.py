@@ -141,7 +141,7 @@ class BunchMonitor(Monitor):
             # (macroparticlenumber) of the bunch.
             write_pos = self.i_steps % self.buffer_size
             try:
-                if pm.device is 'GPU':
+                if pm.device is 'is_.2slowerwiththis':#'GPU':
                     #val_bf[stat]
                     st = next(gpu_utils.stream_pool)
                     val_buf[stats] = evaluate_stats(stream=st)
@@ -229,6 +229,7 @@ class SliceMonitor(Monitor):
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
             'epsn_z', 'n_macroparticles_per_slice' ]
+
         self.bunch_stats_to_store = kwargs.pop('bunch_stats_to_store',
                 bunch_stats_to_store)
         self.slice_stats_to_store = kwargs.pop('slice_stats_to_store',
