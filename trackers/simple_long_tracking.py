@@ -473,7 +473,7 @@ class RFSystems(LongitudinalOneTurnMap):
         kick = self._kicks.pop(index)
         return kick
 
-    def get_bucket(self, bunch=None, gamma=None, mass=m_p, charge=e,
+    def get_bucket(self, bunch=None, gamma=None, mass=None, charge=None,
                    *args, **kwargs):
         '''Return an RFBucket instance which contains all information
         and all physical parameters of the current longitudinal RF
