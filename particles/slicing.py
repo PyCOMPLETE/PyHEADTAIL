@@ -449,7 +449,6 @@ class Slicer(Printing):
                 stat_caller = getattr(self, '_' + stat)
                 if pm.device is 'GPU':
                     st = next(gpu_utils.stream_pool)
-                    print 'Using stream', st, 'for ', stat, '------------------'
                     values = stat_caller(sliceset, beam, stream=next(gpu_utils.stream_pool))
                 else:
                     values = stat_caller(sliceset, beam)

@@ -30,7 +30,6 @@ def synchronize_gpu_streams_before(func):
     def sync_before_wrap(*args, **kwargs):
         for stream in gpu_utils.streams:
             stream.synchronize()
-            print 'Synched stream before --------------xxxxxxxxxxxxxx'
         return func(*args, **kwargs)
     return sync_before_wrap
 
@@ -41,12 +40,7 @@ def synchronize_gpu_streams_after(func):
     '''
     def sync_after_wrap(*args, **kwargs):
         res = func(*args, **kwargs)
-        print 'Synching streams afterwards ---------------xxxxxxxxxxxxx'
-        for stream in gpu_utils.streams:
-            print stream, stream.is_done()
         for stream in gpu_utils.streams:
             stream.synchronize()
-        for stream in gpu_utils.streams:
-            print stream, stream.is_done()
         return res
     return sync_after_wrap
