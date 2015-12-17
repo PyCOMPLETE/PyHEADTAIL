@@ -11,6 +11,10 @@ from scipy.constants import c, e, m_p
 from ..cobra_functions import stats as cp
 from . import Printing
 
+arange = np.arange
+mean = np.mean
+std = cp.std
+
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
@@ -58,7 +62,7 @@ class Particles(Printing):
         '''ID of particles in order to keep track of single entries
         in the coordinate and momentum arrays.
         '''
-        self.id = np.arange(1, self.macroparticlenumber+1, dtype=np.int32)
+        self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
 
         self.update(coords_n_momenta_dict)
 
@@ -100,20 +104,6 @@ class Particles(Printing):
     @p0.setter
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
-
-    # @property
-    # def theta(self):
-    #     return self.z/self.ring_radius
-    # @theta.setter
-    # def theta(self, value):
-    #     self.z = value*self.ring_radius
-
-    # @property
-    # def delta_E(self):
-    #     return self.dp * self.beta*c*self.p0
-    # @delta_E.setter
-    # def delta_E(self, value):
-    #     self.dp = value / (self.beta*c*self.p0)
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -186,37 +176,62 @@ class Particles(Printing):
                              " Use self.update(...) for this purpose.")
         self.update(coords_n_momenta_dict)
 
+    def sort_for(self, attr):
+        '''Sort the named particle attribute (coordinate / momentum)
+        array and reorder all particles accordingly.
+        '''
+        permutation = np.argsort(getattr(self, attr))
+        self.reorder(permutation)
+
+    def reorder(self, permutation, except_for_attrs=[]):
+        '''Reorder all particle coordinate and momentum arrays
+        (in self.coords_n_momenta) and ids except for except_for_attrs
+        according to the given index array permutation.
+        '''
+        to_be_reordered = ['id'] + list(self.coords_n_momenta)
+        for attr in to_be_reordered:
+            if attr in except_for_attrs:
+                continue
+            reordered = getattr(self, attr)[permutation]
+            setattr(self, attr, reordered)
+
     # Statistics methods
 
     def mean_x(self):
-        return np.mean(self.x)
+        return mean(self.x)
 
     def mean_xp(self):
-        return np.mean(self.xp)
+        return mean(self.xp)
 
     def mean_y(self):
-        return np.mean(self.y)
+        return mean(self.y)
 
     def mean_yp(self):
-        return np.mean(self.yp)
+        return mean(self.yp)
 
     def mean_z(self):
-        return np.mean(self.z)
+        return mean(self.z)
 
     def mean_dp(self):
-        return np.mean(self.dp)
+        return mean(self.dp)
 
     def sigma_x(self):
-        return cp.std(self.x)
+        return std(self.x)
 
     def sigma_y(self):
-        return cp.std(self.y)
+        return std(self.y)
 
     def sigma_z(self):
-        return cp.std(self.z)
+        return std(self.z)
+
+    def sigma_xp(self):
+        return std(self.xp)
+
+    def sigma_yp(self):
+        return std(self.yp)
 
     def sigma_dp(self):
-        return cp.std(self.dp)
+        return std(self.dp)
 
     def effective_normalized_emittance_x(self):
         return cp.emittance(self.x, self.xp, None) * self.betagamma

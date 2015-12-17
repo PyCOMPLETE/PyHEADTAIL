@@ -39,6 +39,8 @@ class TestDetuner(unittest.TestCase):
         self.Qp_x = [0.1, 1.1]
         self.Qp_y = [10.1, 0.2]
         self.segment_length = 0.4
+        self.dmu_x = 0.2
+        self.dmu_y = 0.3
 
     def tearDown(self):
         pass
@@ -51,8 +53,8 @@ class TestDetuner(unittest.TestCase):
         bunch_c = self.create_bunch()
         chromaticity_p = pure_py.Chromaticity(self.Qp_x, self.Qp_y)
         chromaticity_c = cy.Chromaticity(self.Qp_x, self.Qp_y)
-        chromaticity_p.generate_segment_detuner(self.segment_length)
-        chromaticity_c.generate_segment_detuner(self.segment_length)
+        chromaticity_p.generate_segment_detuner(self.dmu_x, self.dmu_y)
+        chromaticity_c.generate_segment_detuner(self.dmu_x, self.dmu_y)
         (dqx_pure, dqy_pure) = chromaticity_p[0].detune(bunch_p)
         (dqx_cy, dqy_cy) = chromaticity_c[0].detune(bunch_c)
         self.assertTrue(np.allclose(dqx_pure, np.asarray(dqx_cy)),
@@ -70,10 +72,10 @@ class TestDetuner(unittest.TestCase):
                 self.app_y, self.app_xy)
         adetuning_c = cy.AmplitudeDetuning(self.app_x,
                 self.app_y, self.app_xy)
-        adetuning_p.generate_segment_detuner(self.segment_length,
+        adetuning_p.generate_segment_detuner(self.dmu_x, self.dmu_y,
                 alpha_x=self.alpha_x, alpha_y=self.alpha_y,
                 beta_x=self.beta_x, beta_y=self.beta_y)
-        adetuning_c.generate_segment_detuner(self.segment_length,
+        adetuning_c.generate_segment_detuner(self.dmu_x, self.dmu_y,
                 alpha_x=self.alpha_x, alpha_y=self.alpha_y,
                 beta_x=self.beta_x, beta_y=self.beta_y)
         bunch_p = self.create_bunch()

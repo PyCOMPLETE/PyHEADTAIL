@@ -1,10 +1,10 @@
 '''
 @authors: Hannes Bartosik,
-          Kevin Li,
-          Michael Schenk,
+          Stefan Hegglin,
           Giovanni Iadarola,
+          Kevin Li,
           Adrian Oeftiger,
-          Stefan Hegglin
+          Michael Schenk
 @date:    01/10/2014
 '''
 from __future__ import division
@@ -26,9 +26,14 @@ from scipy import interpolate
 
 floor = np.floor
 empty_like = np.empty_like
+min_ = np.min
+max_ = np.max
+arange = np.arange
+diff = np.diff
 def make_int32(array):
     # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
+
 
 class ModeIsUniformCharge(Exception):
     def __init__(self, message):
@@ -127,12 +132,12 @@ class SliceSet(Printing):
     @property
     def slice_widths(self):
         '''Array of the widths of the slices.'''
-        return np.diff(self.z_bins)
+        return diff(self.z_bins)
 
     @property
     def slice_positions(self):
         '''Position of the respective slice start within the array
-        self.particle_indices_per_slice .
+        self.particle_indices_by_slice .
         '''
         slice_positions_ = np.zeros(self.n_slices + 1, dtype=np.int32)
         slice_positions_[1:] = (
@@ -190,7 +195,7 @@ class SliceSet(Printing):
         lambda_of_bins = self.n_macroparticles_per_slice * self.charge_per_mp
         if smoothen:
             lambda_of_bins = ndimage.gaussian_filter1d(
-                lambda_of_bins, sigma=sigma, mode='wrap')
+                lambda_of_bins, sigma=sigma, mode='nearest')
         return lambda_of_bins
 
     def lambda_prime_bins(self, sigma=None, smoothen_before=True,
@@ -213,7 +218,7 @@ class SliceSet(Printing):
         if sigma is None:
             sigma = self.smoothing_sigma
         smoothen = partial(ndimage.gaussian_filter1d,
-                           sigma=sigma, mode='wrap')
+                           sigma=sigma, mode='nearest')
         line_density = self.n_macroparticles_per_slice
         if smoothen_before:
             line_density = smoothen(line_density)
@@ -351,8 +356,8 @@ class Slicer(Printing):
             z_cut_tail = beam.mean_z() - self.n_sigma_z * beam.sigma_z()
             z_cut_head = beam.mean_z() + self.n_sigma_z * beam.sigma_z()
         else:
-            z_cut_tail = np.min(beam.z)
-            z_cut_head = np.max(beam.z)
+            z_cut_tail = min_(beam.z)
+            z_cut_head = max_(beam.z)
             z_cut_head += abs(z_cut_head) * 1e-15
         return z_cut_tail, z_cut_head
 
@@ -436,7 +441,7 @@ class Slicer(Printing):
     def _sigma_dp(self, sliceset, beam):
         return self._sigma(sliceset, beam.dp)
 
-    def _epsn_x(self, sliceset, beam): # dp will always be resent in a sliced beam
+    def _epsn_x(self, sliceset, beam): # dp will always be present in a sliced beam
         return self._epsn(sliceset, beam.x, beam.xp, beam.dp) * beam.betagamma
 
     def _eff_epsn_x(self, sliceset, beam):
@@ -485,18 +490,68 @@ class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
 
     def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
-                 *args, **kwargs):
+                 z_sample_points=None, *args, **kwargs):
         '''
         Return a UniformBinSlicer object. Set and store the
-        corresponding slicing configuration in self.config .
-        Note that either n_sigma_z or z_cuts can be set. If both are
-        given, a ValueError will be raised.
+        corresponding slicing configuration in self.config.
+        Note that either n_sigma_z or z_cuts and/or z_sampling_point
+        can be set. If both are given, a ValueError will be raised.
         '''
-        if n_sigma_z and z_cuts:
-            raise ValueError("Both arguments n_sigma_z and z_cuts are" +
-                             " given while only one is accepted!")
+        if n_sigma_z and (z_cuts or z_sample_points):
+            raise ValueError("Argument n_sigma_z is incompatible with" +
+                             " either of z_cuts or z_sampling_points." +
+                             " Choose either n_sigma_z or a combination" +
+                             " of z_cuts and z_sampling_points.")
         mode = 'uniform_bin'
+        if z_sample_points is not None:
+            self.warns("n_slices will be overridden to match given" +
+                       " combination of z_cuts and z_sampling_points.")
+            n_slices, z_cuts = self._get_slicing_from_z_sample_points(
+                z_sample_points, z_cuts)
         self.config = (mode, n_slices, n_sigma_z, z_cuts)
+
+    def _get_slicing_from_z_sample_points(self, z_sample_points, z_cuts=None):
+        '''
+        Alternative slicing function for UniformBinSlicer. The function
+        takes a given array of sampling points and ensures that the
+        slice centers lie at those sampling points. If z_cuts is
+        given and is beyond the sampling points, it furthermore extends
+        the given sampling points at the same sampling frequency to
+        include the range given by z_cuts. Very useful if one wants
+        to ensure that certain points or regions of a wakefield are
+        included or correctl sampled.
+        '''
+        dz = np.diff(z_sample_points)[0]
+        if not np.allclose(np.diff(z_sample_points)-dz, 1e-15):
+            raise TypeError("Irregular sampling of wakes incompatible with" +
+                            " UniformBinSlicer. Check the sampling points.")
+
+        # Get edges
+        n_slices = len(z_sample_points)
+        aa, bb = z_sample_points[0]-dz/2., z_sample_points[-1]+dz/2.
+
+        # Extend/compress edges
+        if z_cuts:
+            if z_cuts[0]<aa:
+                while z_cuts[0]<aa:
+                    aa -= dz
+                    n_slices += 1
+            elif z_cuts[0]>aa:
+                while z_cuts[0]>aa:
+                    aa += dz
+                    n_slices -= 1
+
+            if z_cuts[1]<bb:
+                while z_cuts[1]<bb:
+                    bb -= dz
+                    n_slices -=1
+            elif z_cuts[1]>bb:
+                while z_cuts[1]>bb:
+                    bb += dz
+                    n_slices +=1
+        z_cuts = (aa, bb)
+
+        return n_slices, z_cuts
 
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
@@ -506,7 +561,8 @@ class UniformBinSlicer(Slicer):
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
 
-        z_bins = np.linspace(z_cut_tail, z_cut_head, self.n_slices + 1)
+        z_bins = arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
+                        slice_width, dtype=np.float64)
         slice_index_of_particle = make_int32(floor(
                 (beam.z - z_cut_tail) / slice_width
             ))
