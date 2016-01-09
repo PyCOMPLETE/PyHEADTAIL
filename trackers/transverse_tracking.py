@@ -210,7 +210,7 @@ class TransverseMap(Printing):
     TransverseMap(...)[i] (with i the index of the accelerator
     segment). """
     def __init__(self, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
-                 accQ_x, accQ_y, detuners):
+                 accQ_x, accQ_y, detuners=[]):
         """ Create a one-turn map that manages the transverse tracking
         for each of the accelerator segments defined by s.
           - s is the array of positions defining the boundaries of the
