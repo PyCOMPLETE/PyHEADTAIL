@@ -96,7 +96,7 @@ def run():
     # TEST CASE SETUP
     def gimme(*detuners):
         trans_map = TransverseMap(
-            C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, *detuners)
+            s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, *detuners)
         long_map = LinearMap(alpha_0, C, Q_s)
         bunch = generate_bunch(
             n_macroparticles, alpha_x_inj, alpha_y_inj, beta_x_inj, beta_y_inj,

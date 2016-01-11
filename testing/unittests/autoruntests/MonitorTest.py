@@ -157,7 +157,7 @@ def run():
         alpha_0, Q_s, R)
 
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
 
     # Slicer config for SliceMonitor.
     unibin_slicer = UniformBinSlicer(n_slices=10, n_sigma_z=None, z_cuts=None)

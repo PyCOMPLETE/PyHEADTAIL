@@ -101,7 +101,7 @@ def run():
 
     ampl_det = AmplitudeDetuning.from_octupole_currents_LHC(i_focusing=400, i_defocusing=-400)
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, ampl_det)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, [ampl_det])
 
     trans_one_turn = [ m for m in trans_map ]
     map_ = trans_one_turn
@@ -119,7 +119,7 @@ def run():
 
     chroma = Chromaticity(Qp_x=[6], Qp_y=[3])
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, chroma)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, [chroma])
 
     trans_one_turn = [ m for m in trans_map ]
     map_ = trans_one_turn
@@ -137,7 +137,7 @@ def run():
 
     chroma = Chromaticity(Qp_x=[6., 4e4], Qp_y=[3., 0., 2e8])
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, chroma)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, [chroma])
 
     trans_one_turn = [ m for m in trans_map ]
     map_ = trans_one_turn
