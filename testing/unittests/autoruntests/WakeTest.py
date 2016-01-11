@@ -154,7 +154,7 @@ def run():
 
     # CASE TEST SETUP
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
     long_map = LinearMap(alpha_0, C, Q_s)
 
     bunch = generate_bunch(
