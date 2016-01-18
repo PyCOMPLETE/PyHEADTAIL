@@ -194,7 +194,8 @@ class ParticleGenerator(Printing):
                  circumference, gamma,
                  distribution_x=None, alpha_x=0., beta_x=1., D_x=None,
                  distribution_y=None, alpha_y=0., beta_y=1., D_y=None,
-                 distribution_z=None, Qs=None, eta=None):
+                 distribution_z=None, Qs=None, eta=None,
+                 *args, **kwargs):
         '''
         Specify the distribution for each phase space seperately. Only
         the phase spaces for which a distribution has been specified
