@@ -12,13 +12,14 @@ https://github.com/PyCOMPLETE/PyPIC .
 from __future__ import division
 import numpy as np
 
-from PyPIC import pypic, poisson_solver, meshing
+from PyPIC import pypic, meshing
+from PyPIC.poisson_solver import FFT_solver
 
 i_gpu = True
 
 if i_gpu:
     pypic_algorithm_class = pypic.PyPIC_GPU
-    solver_class = poisson_solver.FFT_solver.GPUFFTPoissonSolver
+    solver_class = FFT_solver.GPUFFTPoissonSolver
     from pycuda import cumath as mathlib
 
 else:
@@ -31,33 +32,33 @@ else:
         Dh = mesh.dx
         x_aper = 0.5 * mesh.nx * Dh
         y_aper = 0.5 * mesh.ny * Dh
-        return poisson_solver.FFT_OpenBoundary_SquareGrid(
+        return FFT_solver.FFT_OpenBoundary_SquareGrid(
             x_aper, y_aper, Dh,
             # we do not want exterior 5 and 4 cells from PyPIC <= v1.03:
             ext_boundary=False,
         )
     mathlib = np
 
-def create_pypic(slicer, mesh_args, context=None):
+def create_pypic(slices, context=None, **mesh_args):
     '''Factory method for PyPIC.pypic.PyPIC(_GPU) instances.
 
     Arguments:
-        - slicer: particles.slicer.Slicer instance
+        - slices: SliceSet instance for the longitudinal mesh quantities
         - mesh_args: dictionary with arguments for create_mesh method,
           defines the origin, distances and mesh size for the
           transverse plane (only!).
         - context: the device context (only for GPU use), e.g. via
           >>> from pycuda.autoinit import context
 
-    Requires the slicer to have uniformly sized bins.
+    Requires uniformly binned slices.
     '''
-    mesh = create_mesh(slicer=slicer, **mesh_args)
+    mesh = create_mesh(slices=slices, **mesh_args)
     poisson_solver = solver_class(mesh, context)
     return pypic_algorithm_class(mesh, poisson_solver, context)
 
 
 def create_mesh(mesh_origin, mesh_distances, mesh_size,
-                slicer=None, gamma=None):
+                slices=None):
     '''Create a (PyPIC) rectangular mesh. The dimension is
     determined by the length of the list arguments.
 
@@ -70,27 +71,29 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size,
           e.g. [nx, ny, nz]
 
     Optional arguments:
-        - slicer: if a particles.slicer.Slicer instance is given,
+        - slices: if a SliceSet instance is given,
           the previous mesh arguments are assumed to be transversal
-          only and the longitudinal information as defined by the slicer
-          are added to the lists. Requires gamma to be given as well!
-        - gamma: if slicer is given, the Lorentz gamma is needed to
-          transform the lab frame to the beam frame.
+          only and the longitudinal information as defined by the slices
+          are added to the lists. Uses slices.gamma for the Lorentz
+          boost to the beam frame!
 
-    Requires the slicer to have uniformly sized bins.
+    Requires uniformly binned slices.
     '''
-    if slicer:
-        if slicer.mode != 'uniform_bin':
-            raise RuntimeError('Requires the slicer to have uniformly '
+    if slices:
+        if slices.mode != 'uniform_bin':
+            raise RuntimeError('Requires the slices to have uniformly '
                                'sized bins in order to create a '
                                'PyPIC.meshing.RectMesh3D.')
-        mesh_origin.append(slicer.z_cut_tail)
-        mesh_distances.append(slicer.slice_widths[0] * gamma) # Lorentz trafo!
-        mesh_size.append(slicer.n_slices)
+        mesh_origin.append(slices.z_cut_tail * slices.gamma)
+        mesh_distances.append(# Lorentz trafo!
+            (slices.z_cut_head - slices.z_cut_tail) / slices.n_slices *
+            slices.gamma
+        )
+        mesh_size.append(slices.n_slices)
     dim = len(mesh_origin)
     if not dim == len(mesh_distances) == len(mesh_size):
         raise ValueError('All arguments for the mesh need to have as '
                          'many entries as the mesh should have dimensions!')
     mesh_class = getattr(meshing, 'RectMesh{dim}D'.format(dim=dim))
-    return mesh_class(*zip(mesh_origin, mesh_distances, mesh_size),
+    return mesh_class(*(mesh_origin + mesh_distances + mesh_size),
                       mathlib=mathlib)

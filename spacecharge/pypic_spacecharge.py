@@ -18,24 +18,49 @@ from . import Element
 from PyPIC.meshing import RectMesh3D
 
 
-# for GPU use:
-# def argsort(array):
-#     idx = gpuarray.zeros(n_particles, dtype=np.int32)
-#     get_sort_perm_int(array, idx)
-#     return
-argsort = np.argsort
+i_gpu = True
+# this whole paragraph simply provides GPU versions and needs the flag
+# ---> to be replaced by new gpu interface from Stefan
+if not i_gpu:
+    arange = np.arange
+    empty = np.empty
+    empty_like = np.empty_like
+    def argsort(*args, **kwargs):
+        kwargs.pop('dest_array', None)
+        return np.argsort(*args, **kwargs)
+    def searchsortedleft(a, v, sorter=None, dest_array=None):
+        return np.searchsorted(a, v, side='left', sorter=sorter)
+    def searchsortedright(a, v, sorter=None, dest_array=None):
+        return np.searchsorted(a, v, side='right', sorter=sorter)
+else:
+    from pycuda import gpuarray
+    arange = gpuarray.arange
+    empty = gpuarray.empty
+    empty_like = gpuarray.empty_like
 
-# for GPU use:
-    # lower_bounds = gpuarray.empty(mesh.n_nodes, dtype=np.int32)
-    # upper_bounds = gpuarray.empty(mesh.n_nodes, dtype=np.int32)
-    # seq = gpuarray.arange(mesh.n_nodes, dtype=np.int32)
-    # lower_bound_int(node_ids, seq, lower_bounds)
-    # upper_bound_int(node_ids, seq, upper_bounds)
-searchsorted = np.searchsorted # used with side='left' and side='right'
+    import PyHEADTAIL.gpu
+    mod = PyHEADTAIL.gpu.thrust_interface.compiled_module
 
-arange = np.arange
+    def argsort(array, dest_array=None):
+        if dest_array is None:
+            dest_array = gpuarray.zeros(len(array), dtype=np.int32)
+        mod.get_sort_perm_int(array, dest_array)
+        return dest_array
 
-class TransverseSpaceCharge(Element):
+    def searchsortedleft(array, values, dest_array=None):
+        if dest_array is None:
+            dest_array = gpuarray.empty(len(values), dtype=np.int32)
+        mod.lower_bound_int(array, values, dest_array)
+        return dest_array
+
+    def searchsortedright(array, values, dest_array=None):
+        if dest_array is None:
+            dest_array = gpuarray.empty(len(values), dtype=np.int32)
+        mod.upper_bound_int(array, values, dest_array)
+        return dest_array
+
+
+class SpaceCharge25D(Element):
     '''Transverse slice-by-slice (2.5D) space charge using a
     particle-in-cell algorithm via PyPIC. Uses the same fixed 2D mesh
     for all slices.
@@ -80,7 +105,8 @@ class TransverseSpaceCharge(Element):
             mathlib=mesh_2d.mathlib
         )
 
-    def _align_particles(self, beam, mesh_3d):
+    @staticmethod
+    def align_particles(beam, mesh_3d):
         '''Sort all particles by their transverse 2D mesh node IDs via
         the given 3D mesh.
         '''
@@ -89,15 +115,17 @@ class TransverseSpaceCharge(Element):
         beam.reorder(permutation)
         # node ids have changed by now!
 
-    def get_bounds(self, beam, mesh_2d, idx_relevant_particles):
+    @staticmethod
+    def get_bounds(beam, mesh_2d, idx_relevant_particles):
         '''Determine indices of sorted particles for each cell, i.e.
         lower and upper index bounds.
         '''
-        seq = arange(len(idx_relevant_particles), dtype=np.int32)
+        seq = arange(mesh_2d.n_nodes, dtype=np.int32)
+        # seq = arange(len(idx_relevant_particles), dtype=np.int32)
         ids = mesh_2d.get_node_ids(beam.x[idx_relevant_particles],
                                    beam.y[idx_relevant_particles])
-        lower_bounds = searchsorted(ids, seq, side='left')
-        upper_bounds = searchsorted(ids, seq, side='right')
+        lower_bounds = searchsortedleft(ids, seq)
+        upper_bounds = searchsortedright(ids, seq)
         return lower_bounds, upper_bounds
 
     def track(self, beam):
@@ -106,22 +134,33 @@ class TransverseSpaceCharge(Element):
         if self.sort_particles:
             mesh_3d = self._create_3d_mesh(self.pypic.mesh, slices.z_cut_tail,
                                            slices.z_cut_head, slices.n_slices)
-            self._align_particles(beam, mesh_3d)
+            self.align_particles(beam, mesh_3d)
+
+
+        # scale to macro-particle charges, integrate over length
+        kick_factor = (self.length / (beam.beta*c) *
+                       beam.charge_per_mp**2 / beam.p0)
 
         # last slice is always empty!
         for (sid, n_mp_in_slice) in enumerate(
                 slices.n_macroparticles_per_slice[:-1]):
-            # dz = slices.z_bins[i + 1] - slices.z_bins[i]
+
             pids_of_slice = slices.particle_indices_of_slice(sid)
-            solve_kwargs = {}
+            solve_kwargs = {
+                'charge': beam.charge_per_mp,
+            }
             if self.sort_particles:
                 solve_kwargs['lower_bounds'], solve_kwargs['upper_bounds'] = \
                     self.get_bounds(beam, self.pypic.mesh, pids_of_slice)
-            # something with the density of particles: 'cylinders' n_mp_in_slice / dz
-            e_x, e_y = self.pypic.pic_solve(beam.x, beam.y, **solve_kwargs)
-            e_x *= beam.gamma**-2
-            e_y *= beam.gamma**-2
-            # calculate kick and apply!
+
+            en_x, en_y = self.pypic.pic_solve(beam.x, beam.y, **solve_kwargs)
+
+            en_x *= beam.gamma**-2
+            en_y *= beam.gamma**-2
+
+            beam.dx += en_x * kick_factor
+            beam.dy += en_y * kick_factor
+
 
 
 class SpaceCharge3D(Element):
@@ -149,8 +188,7 @@ class SpaceCharge3D(Element):
             - sort_particles: determines whether to sort the particles
               by their mesh ID. This may speed up the PyPIC
               particle-to-mesh and mesh-to-particles methods
-              due to coalesced memory access, especially on the GPU
-              (test the timing for your parameters though!).
+              due to coalesced memory access, especially on the GPU.
 
               (NB: sort_particles=True is necessarily required for the
                PyPIC_GPU.sorted_particles_to_mesh method.)
@@ -163,43 +201,54 @@ class SpaceCharge3D(Element):
                                'mesh!')
         self.pypic = pypic_algorithm
 
-    @staticmethod
-    def align_particles(beam, mesh):
+    def align_particles(self, beam, mesh):
         '''Sort all particles by their mesh node IDs.'''
-        ids = mesh.get_node_ids(beam.x, beam.y, beam.z)
+        # if not hasattr(self, '_perm'):
+        #     self._perm = empty(mesh.n_nodes, dtype=np.int32)
+        ids = mesh.get_node_ids(beam.x, beam.y, beam.z_beamframe)
+        # permutation = argsort(ids, dest_array=self._perm)
         permutation = argsort(ids)
         beam.reorder(permutation)
         # node id array has changed by now!
 
-    @staticmethod
-    def get_bounds(beam, mesh):
+    def get_bounds(self, beam, mesh):
         '''Determine indices of sorted particles for each cell, i.e.
         lower and upper index bounds.
         '''
-        ids = mesh.get_node_ids(beam.x, beam.y)
-        seq = arange(beam.macroparticlenumber, dtype=np.int32)
-        lower_bounds = searchsorted(ids, seq, side='left')
-        upper_bounds = searchsorted(ids, seq, side='right')
+        if not hasattr(self, '_seq'):
+            self._seq = arange(mesh.n_nodes, dtype=np.int32)
+        # if not hasattr(self, '_bounds'):
+        #     self._bounds = empty_like(self._seq)
+        ids = mesh.get_node_ids(beam.x, beam.y, beam.z_beamframe)
+        lower_bounds = searchsortedleft(ids, self._seq)#, dest_array=self._bounds)
+        upper_bounds = searchsortedright(ids, self._seq)#, dest_array=self._bounds)
         return lower_bounds, upper_bounds
 
     def track(self, beam):
         slices = self.slicer.slice(beam)
         mesh = self.pypic.mesh
-        dz = mesh.dz # slice length
 
+        solve_kwargs = {
+            'charge': beam.charge_per_mp,
+        }
         if self.sort_particles:
             self.align_particles(beam, mesh)
-            lower_bounds, upper_bounds = self.get_bounds(beam, self.pypic.mesh)
-            solve_kwargs = {
-                'lower_bounds': lower_bounds,
-                'upper_bounds': upper_bounds,
-            }
-        else:
-            solve_kwargs = {}
 
-        # something with the density of particles: 'cylinders' n_mp_in_slice / dz
-        e_x, e_y, e_z = self.pypic.pic_solve(beam.x, beam.y, **solve_kwargs)
-        e_x *= beam.gamma**-2
-        e_y *= beam.gamma**-2
-        # calculate kick and apply!
+            solve_kwargs['lower_bounds'], solve_kwargs['upper_bounds'] = \
+                self.get_bounds(beam, mesh)
 
+        # charge normalised electric fields in beam frame [V/m / Coul]
+        en_x, en_y, en_z = self.pypic.pic_solve(
+            beam.x, beam.y, beam.z_beamframe, **solve_kwargs)
+
+        # Lorentz boost to lab frame --> magnetic fields:
+        en_x *= beam.gamma**-2
+        en_y *= beam.gamma**-2
+
+        # scale to macro-particle charges, integrate over length
+        kick_factor = (self.length / (beam.beta*c) *
+                       beam.charge_per_mp / beam.p0)
+
+        beam.x += en_x * kick_factor
+        beam.y += en_y * kick_factor
+        beam.z += en_z * kick_factor
