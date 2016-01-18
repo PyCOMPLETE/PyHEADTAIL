@@ -7,5 +7,6 @@ try:
         worktree + ' describe --long --dirty --abbrev=10 --tags', shell=True)
     __version__ = __version__.rstrip() # remove trailing \n
     __version__ = __version__[1:] # remove leading v
+    __version__ = '.'.join(__version__.split('-')[:2])
 except:
     __version__ = '(no git available to determine version)'

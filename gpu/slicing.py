@@ -19,6 +19,7 @@ from pycuda.elementwise import ElementwiseKernel
 import pycuda.driver as cuda
 from pycuda import cumath
 
+from skcuda.misc import diff
 
 import thrust_interface
 thrust = thrust_interface.compiled_module
@@ -116,6 +117,11 @@ class MeshSliceSet(def_slicing.SliceSet):
     @property
     def z_cut_tail(self):
         return float(self.z_bins[0].get())
+
+    @property
+    def slice_widths(self):
+        '''Array of the widths of the slices.'''
+        return diff(self.z_bins)
 
     @property
     def slice_positions(self):
