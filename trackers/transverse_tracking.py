@@ -226,8 +226,8 @@ class TransverseMap(Printing):
     self.segment_maps) can be accessed using the notation
     TransverseMap(...)[i] (with i the index of the accelerator
     segment). """
-    def __init__(self, C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
-                 accQ_x, accQ_y, *detuner_collections):
+    def __init__(self, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
+                 accQ_x, accQ_y, detuners=[]):
         """ Create a one-turn map that manages the transverse tracking
         for each of the accelerator segments defined by s.
           - s is the array of positions defining the boundaries of the
@@ -254,10 +254,7 @@ class TransverseMap(Printing):
             knows how to generate and store its SegmentDetuner objects
             to 'distribute' the detuning proportionally along the
             accelerator circumference. """
-        if not np.allclose([s[0], s[-1]], [0., C]):
-            raise ValueError('The first element of s must be zero \n' +
-                'and the last element must be equal to the \n' +
-                'accelerator circumference C. \n')
+
         self.s = s
         self.alpha_x = alpha_x
         self.beta_x = beta_x
@@ -267,7 +264,7 @@ class TransverseMap(Printing):
         self.D_y = D_y
         self.accQ_x = accQ_x
         self.accQ_y = accQ_y
-        self.detuner_collections = detuner_collections
+        self.detuner_collections = detuners
 
         '''List to store TransverseSegmentMap instances.'''
         self.segment_maps = []
@@ -338,8 +335,13 @@ class TransverseMap(Printing):
         """ Return a tuple with the transverse TWISS parameters
         (alpha_x, beta_x, alpha_y, beta_y) from the beginning of the
         first segment (injection point). """
-        return (self.alpha_x[0], self.beta_x[0],
-                self.alpha_y[0], self.beta_y[0])
+        return {
+            'alpha_x': self.alpha_x[0], 
+            'beta_x': self.beta_x[0], 
+            'D_x': self.D_x[0],
+            'alpha_y': self.alpha_y[0], 
+            'beta_y': self.beta_y[0], 
+            'D_y': self.D_y[0]}
 
     def __len__(self):
         return len(self.segment_maps)

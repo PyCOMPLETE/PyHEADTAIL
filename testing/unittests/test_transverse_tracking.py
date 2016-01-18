@@ -51,11 +51,11 @@ class TestTransverseTracking(unittest.TestCase):
         without detuners
         '''
         pure_python_map = pure_py.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
         )
         cython_map = cy.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
         )
         beam_c = self.create_bunch()
@@ -88,12 +88,12 @@ class TestTransverseTracking(unittest.TestCase):
         '''
         adetuner = AmplitudeDetuning(1e-2, 5e-2, 1e-3)
         pure_python_map = pure_py.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
             adetuner
         )
         cython_map = cy.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
             adetuner
         )

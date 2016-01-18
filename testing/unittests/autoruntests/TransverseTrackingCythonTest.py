@@ -139,10 +139,10 @@ def run():
 
         if 'detuners' in kwargs:
             trans_map = TransverseMap(
-                C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, *kwargs['detuners'])
+                s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, kwargs['detuners'])
         else:
             trans_map = TransverseMap(
-                C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+                s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
 
         long_map = LinearMap(alpha_0, C, Q_s)
         bunch = generate_bunch(
@@ -285,8 +285,8 @@ def run():
     beta_y = beta_y_inj * np.ones(n_segments)
 
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
-    alpha_x_inj, beta_x_inj, alpha_y_inj, beta_y_inj = trans_map.get_injection_optics()
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+    inj_optics_dict = trans_map.get_injection_optics()
     # print alpha_x_inj, beta_x_inj, alpha_y_inj, beta_y_inj
 
 
@@ -297,7 +297,7 @@ def run():
 
     try:
         trans_map = TransverseMap(
-            C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+            s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
         # print ('test NOT passed. No error raised!')
     except ValueError as exc:
         # print ('test passed.\n')
