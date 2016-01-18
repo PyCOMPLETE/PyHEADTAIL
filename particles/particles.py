@@ -108,7 +108,9 @@ class Particles(Printing):
     @property
     def z_beamframe(self):
         return self.z * self.gamma
-
+    @z_beamframe.setter
+    def z_beamframe(self, value):
+        self.z = value / self.gamma
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
