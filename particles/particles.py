@@ -21,7 +21,8 @@ class Particles(Printing):
     Designed to describe beams, electron clouds, ... '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma, coords_n_momenta_dict={}):
+                 mass, circumference, gamma, coords_n_momenta_dict={},
+                 *args, **kwargs):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
@@ -108,7 +109,9 @@ class Particles(Printing):
     @property
     def z_beamframe(self):
         return self.z * self.gamma
-
+    @z_beamframe.setter
+    def z_beamframe(self, value):
+        self.z = value / self.gamma
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -199,7 +202,7 @@ class Particles(Printing):
                 continue
             reordered = getattr(self, attr)[permutation]
             setattr(self, attr, reordered)
-            
+
     def __add__(self, other):
         '''Merges two beams.
 		'''
@@ -207,33 +210,33 @@ class Particles(Printing):
 
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
-        
-        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber, 
+
+        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
 					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-        
-        
+
+
         for coord in self_coords_n_momenta_dict.keys():
             #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
             result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
-            
-        return result 
-    
+
+        return result
+
     def __radd__(self, other):
         if other==0:
             self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
-            result = Particles(macroparticlenumber=self.macroparticlenumber, 
+            result = Particles(macroparticlenumber=self.macroparticlenumber,
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                     mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-        
+
             for coord in self_coords_n_momenta_dict.keys():
                 #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
                 result.update({coord: self_coords_n_momenta_dict[coord].copy()})
         else:
             result = self.__add__(other)
-        
-        return result      
-  
+
+        return result
+
 
     # Statistics methods
 
