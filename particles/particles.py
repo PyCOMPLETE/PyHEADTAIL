@@ -105,6 +105,11 @@ class Particles(Printing):
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
 
+    @property
+    def z_beamframe(self):
+        return self.z * self.gamma
+
+
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
         momentum arrays.
