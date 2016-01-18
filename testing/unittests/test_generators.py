@@ -20,7 +20,7 @@ import numpy as np
 import scipy.constants as constants
 from PyHEADTAIL.trackers.simple_long_tracking import RFSystems
 import PyHEADTAIL.particles.generators as gf
-
+from PyHEADTAIL.general.printers import SilentPrinter
 
 class TestParticleGenerators(unittest.TestCase):
     '''Test class for the new ParticleGenerator (generator_functional.py)'''
@@ -37,7 +37,8 @@ class TestParticleGenerators(unittest.TestCase):
             self.nparticles, self.intensity,
             self.charge, self.mass, self.circumference, self.gamma,
             distribution_x=gf.gaussian2D(0.5),alpha_x=-0.7, beta_x=4, D_x=0,
-            distribution_z=gf.gaussian2D(3.0))
+            distribution_z=gf.gaussian2D(3.0),
+            printer=SilentPrinter())
         self.beam = self.generator.generate()
 
     def tearDown(self):
