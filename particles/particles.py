@@ -198,7 +198,7 @@ class Particles(Printing):
     def __add__(self, other):
         '''Merges two beams.
 		'''
-        print 'Checks still to be added!!!!!!'
+        #print 'Checks still to be added!!!!!!'
 
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
