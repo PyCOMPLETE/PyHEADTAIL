@@ -142,6 +142,31 @@ class Particles(Printing):
         #                               kwargs['statistics'])
         return self._slice_sets[slicer]
 
+
+    def extract_slices(self, slicer, *args, **kwargs):
+        '''Return a list Particles object with the different slices.
+        '''
+
+        slices = self.get_slices(slicer, *args, **kwargs)
+        self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
+        slice_object_list = []
+
+        for i_sl in xrange(slices.n_slices):
+
+            ix = slices.particle_indices_of_slice(i_sl)
+            macroparticlenumber = len(ix)
+
+            slice_object = Particles(macroparticlenumber=macroparticlenumber, 
+            particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+            mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+            
+            for coord in self_coords_n_momenta_dict.keys():
+                slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+
+            slice_object_list.append(slice_object)	
+
+        return slice_object_list
+
     def clean_slices(self):
         '''Erases the SliceSet records of this Particles instance.
         Any longitudinal trackers (or otherwise modifying elements)
