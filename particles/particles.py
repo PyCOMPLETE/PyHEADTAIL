@@ -157,13 +157,19 @@ class Particles(Printing):
             macroparticlenumber = len(ix)
 
             slice_object = Particles(macroparticlenumber=macroparticlenumber, 
-            particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-            mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+                particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
             
             for coord in self_coords_n_momenta_dict.keys():
                 slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
 
-            slice_object_list.append(slice_object)	
+            slice_object.slice_info = {\
+                    'z_bin_center': slices.z_centers[i_sl],\
+                    'z_bin_right':slices.z_bins[i_sl+1],\
+                    'z_bin_left':slices.z_bins[i_sl]}
+            
+            slice_object_list.append(slice_object)
+            
 
         return slice_object_list
 
