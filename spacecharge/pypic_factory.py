@@ -5,8 +5,8 @@ Used for space charge modelling under pypic_spacecharge.
 PyPIC can be found under
 https://github.com/PyCOMPLETE/PyPIC .
 
-@authors: Stefan Hegglin, Adrian Oeftiger
-@date: 19.10.2015
+@authors: Adrian Oeftiger
+@date: 18.01.2016
 '''
 
 from __future__ import division
@@ -84,16 +84,49 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size,
             raise RuntimeError('Requires the slices to have uniformly '
                                'sized bins in order to create a '
                                'PyPIC.meshing.RectMesh3D.')
-        mesh_origin.append(slices.z_cut_tail * slices.gamma)
-        mesh_distances.append(# Lorentz trafo!
+        mesh_origin = mesh_origin + [slices.z_cut_tail * slices.gamma]
+        mesh_distances = mesh_distances + [# Lorentz trafo!
             (slices.z_cut_head - slices.z_cut_tail) / slices.n_slices *
             slices.gamma
-        )
-        mesh_size.append(slices.n_slices)
+        ]
+        mesh_size = mesh_size + [slices.n_slices]
     dim = len(mesh_origin)
     if not dim == len(mesh_distances) == len(mesh_size):
         raise ValueError('All arguments for the mesh need to have as '
                          'many entries as the mesh should have dimensions!')
     mesh_class = getattr(meshing, 'RectMesh{dim}D'.format(dim=dim))
-    return mesh_class(*(mesh_origin + mesh_distances + mesh_size),
+    return mesh_class(mesh_origin, mesh_distances, mesh_size,
                       mathlib=mathlib)
+
+
+def create_3dmesh_from_beam(beam, mesh_size, n_beam_sigma, slices=None):
+    '''Create a (PyPIC) 3D rectangular mesh. The mesh is centered
+    at the beam centroid and spans as many beam size sigma as indicated.
+
+    Arguments:
+        - mesh_size: list of length 2 or 3 with number of nodes per
+          dimension,
+          e.g. [nx, ny, nz]
+        - n_beam_sigma: list of length 2 or 3 with factor of beam sigma
+          determining the mesh radius for each dimension,
+          e.g. [n_sigma_x, n_sigma_y, n_sigma_z]
+
+    Optional arguments:
+        - slices: if a SliceSet instance is given, only the first two
+          entries from the mesh_size and n_beam_sigma arguments will be
+          regarded. The given SliceSet determines the longitudinal
+          meshing.
+          Requires uniformly binned slices.
+    '''
+    length_x = 2. * beam.sigma_x() * n_beam_sigma[0]
+    length_y = 2. * beam.sigma_y() * n_beam_sigma[1]
+    mesh_origin = [beam.mean_x() - length_x / 2.,
+                   beam.mean_y() - length_y / 2.]
+    mesh_distances = [length_x / mesh_size[0], length_y / mesh_size[1]]
+
+    if slices is None:
+        length_z = 2. * beam.sigma_z() * n_beam_sigma[2]
+        mesh_origin += [beam.mean_z() - length_z / 2.]
+        mesh_distances += [length_z / mesh_size[2]]
+
+    return create_mesh(mesh_origin, mesh_distances, mesh_size, slices)

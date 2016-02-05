@@ -4,8 +4,8 @@ space charge modelling in transverse 2.5D and 3D.
 PyPIC can be found under
 https://github.com/PyCOMPLETE/PyPIC .
 
-@authors: Stefan Hegglin, Adrian Oeftiger
-@date: 08.10.2015
+@authors: Adrian Oeftiger
+@date: 18.01.2016
 '''
 
 from __future__ import division
@@ -17,47 +17,7 @@ from . import Element
 
 from PyPIC.meshing import RectMesh3D
 
-
-i_gpu = True
-# this whole paragraph simply provides GPU versions and needs the flag
-# ---> to be replaced by new gpu interface from Stefan
-if not i_gpu:
-    arange = np.arange
-    empty = np.empty
-    empty_like = np.empty_like
-    def argsort(*args, **kwargs):
-        kwargs.pop('dest_array', None)
-        return np.argsort(*args, **kwargs)
-    def searchsortedleft(a, v, sorter=None, dest_array=None):
-        return np.searchsorted(a, v, side='left', sorter=sorter)
-    def searchsortedright(a, v, sorter=None, dest_array=None):
-        return np.searchsorted(a, v, side='right', sorter=sorter)
-else:
-    from pycuda import gpuarray
-    arange = gpuarray.arange
-    empty = gpuarray.empty
-    empty_like = gpuarray.empty_like
-
-    import PyHEADTAIL.gpu
-    mod = PyHEADTAIL.gpu.thrust_interface.compiled_module
-
-    def argsort(array, dest_array=None):
-        if dest_array is None:
-            dest_array = gpuarray.zeros(len(array), dtype=np.int32)
-        mod.get_sort_perm_int(array, dest_array)
-        return dest_array
-
-    def searchsortedleft(array, values, dest_array=None):
-        if dest_array is None:
-            dest_array = gpuarray.empty(len(values), dtype=np.int32)
-        mod.lower_bound_int(array, values, dest_array)
-        return dest_array
-
-    def searchsortedright(array, values, dest_array=None):
-        if dest_array is None:
-            dest_array = gpuarray.empty(len(values), dtype=np.int32)
-        mod.upper_bound_int(array, values, dest_array)
-        return dest_array
+from ..general import pmath as pm
 
 
 class SpaceCharge25D(Element):
@@ -89,21 +49,21 @@ class SpaceCharge25D(Element):
         self.length = length
         self.pypic = pypic_algorithm
         self.sort_particles = sort_particles
-        if pypic.mesh.dimension != 2:
-            raise RuntimeError('2.5D space charge requires a two-dimensional '
-                               'mesh!')
+        if self.pypic.mesh.dimension != 3:
+            raise RuntimeError(
+                '2.5D space charge requires a three-dimensional mesh!')
 
-    def _create_3d_mesh(self, mesh_2d, z_cut_tail, z_cut_head, n_slices):
+    @staticmethod
+    def _create_3d_mesh(mesh_2d, z_cut_tail, z_cut_head, n_slices):
         '''For sorting purposes, in order for each slice to have all
         particles sorted by their transverse 2D mesh node ID.
         '''
         dz = (z_cut_head - z_cut_tail) / float(n_slices)
-        return RectMesh3D(
-            mesh_2d.x0, mesh_2d.y0, z_cut_tail,
-            mesh_2d.dx, mesh_2d.dy, dz,
-            mesh_2d.nx, mesh_2d.ny, n_slices,
-            mathlib=mesh_2d.mathlib
-        )
+        origin = (mesh_2d.x0, mesh_2d.y0, z_cut_tail)
+        distances = (mesh_2d.dx, mesh_2d.dy, dz)
+        n_cells_per_direction = (mesh_2d.nx, mesh_2d.ny, n_slices)
+        return RectMesh3D(origin, distances, n_cells_per_direction,
+                          mathlib=mesh_2d.mathlib)
 
     @staticmethod
     def align_particles(beam, mesh_3d):
@@ -111,7 +71,7 @@ class SpaceCharge25D(Element):
         the given 3D mesh.
         '''
         ids = mesh_3d.get_node_ids(beam.x, beam.y, beam.z)
-        permutation = argsort(ids)
+        permutation = pm.argsort(ids)
         beam.reorder(permutation)
         # node ids have changed by now!
 
@@ -120,12 +80,14 @@ class SpaceCharge25D(Element):
         '''Determine indices of sorted particles for each cell, i.e.
         lower and upper index bounds.
         '''
-        seq = arange(mesh_2d.n_nodes, dtype=np.int32)
-        # seq = arange(len(idx_relevant_particles), dtype=np.int32)
+        seq = pm.arange(pm.zeros(1, dtype=np.int32),
+                        mesh_2d.n_nodes,
+                        pm.ones(1, dtype=np.int32),
+                        1, dtype=np.int32)
         ids = mesh_2d.get_node_ids(beam.x[idx_relevant_particles],
                                    beam.y[idx_relevant_particles])
-        lower_bounds = searchsortedleft(ids, seq)
-        upper_bounds = searchsortedright(ids, seq)
+        lower_bounds = pm.searchsortedleft(ids, seq)
+        upper_bounds = pm.searchsortedright(ids, seq)
         return lower_bounds, upper_bounds
 
     def track(self, beam):
@@ -203,11 +165,8 @@ class SpaceCharge3D(Element):
 
     def align_particles(self, beam, mesh):
         '''Sort all particles by their mesh node IDs.'''
-        # if not hasattr(self, '_perm'):
-        #     self._perm = empty(mesh.n_nodes, dtype=np.int32)
         ids = mesh.get_node_ids(beam.x, beam.y, beam.z_beamframe)
-        # permutation = argsort(ids, dest_array=self._perm)
-        permutation = argsort(ids)
+        permutation = pm.argsort(ids)
         beam.reorder(permutation)
         # node id array has changed by now!
 
@@ -217,11 +176,9 @@ class SpaceCharge3D(Element):
         '''
         if not hasattr(self, '_seq'):
             self._seq = arange(mesh.n_nodes, dtype=np.int32)
-        # if not hasattr(self, '_bounds'):
-        #     self._bounds = empty_like(self._seq)
         ids = mesh.get_node_ids(beam.x, beam.y, beam.z_beamframe)
-        lower_bounds = searchsortedleft(ids, self._seq)#, dest_array=self._bounds)
-        upper_bounds = searchsortedright(ids, self._seq)#, dest_array=self._bounds)
+        lower_bounds = pm.searchsortedleft(ids, self._seq)#, dest_array=self._bounds)
+        upper_bounds = pm.searchsortedright(ids, self._seq)#, dest_array=self._bounds)
         return lower_bounds, upper_bounds
 
     def track(self, beam):
