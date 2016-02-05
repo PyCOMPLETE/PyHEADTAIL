@@ -14,12 +14,13 @@ try:
     import pycuda.tools
     has_pycuda = True
 except ImportError:
-    print ('No Pycuda in math.py import statement found')
+    # print ('No Pycuda in pmath.py import statement found')
     has_pycuda = False
 try:
     import skcuda.misc
 except ImportError:
-    print ('Skcuda not found. (Scikit-cuda)')
+    # print ('Skcuda not found. (Scikit-cuda)')
+    pass
 
 
 def _mean_per_slice_cpu(sliceset, u, **kwargs):
@@ -107,9 +108,13 @@ _CPU_numpy_func_dict = {
     'convolve': np.convolve,
     'arange': lambda start, stop, step, nslices=None, dtype=np.float64 :np.arange(start, stop, step, dtype),
     'zeros': np.zeros,
+    'ones': np.ones,
     'device': 'CPU',
     'init_bunch_buffer': lambda bunch, bunch_stats, buffer_size : _init_bunch_buffer(bunch_stats, buffer_size),
     'init_slice_buffer': lambda slice_set, slice_stats, buffer_size : _init_slice_buffer(slice_stats, slice_set.n_slices, buffer_size),
+    'searchsortedleft': lambda a, v, sorter=None, dest_array=None: np.searchsorted(a, v, side='left', sorter=sorter),
+    'searchsortedright': lambda a, v, sorter=None, dest_array=None: np.searchsorted(a, v, side='right', sorter=sorter),
+    'cumsum': np.cumsum,
     '_cpu' : None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -137,9 +142,14 @@ _GPU_func_dict = {
     'arange': lambda start, stop, step, n_slices, dtype=np.float64: gpu_wrap.arange_startstop_gpu(start, stop, step, n_slices, dtype) if isinstance(start, pycuda.gpuarray.GPUArray) else pycuda.gpuarray.arange(start, stop, step, dtype=np.float64),
     'zeros': lambda *args, **kwargs : pycuda.gpuarray.zeros(*args,
         allocator=gpu_utils.memory_pool.allocate, **kwargs),
+    'ones': lambda *args, **kwargs : pycuda.gpuarray.zeros(*args,
+        allocator=gpu_utils.memory_pool.allocate, **kwargs) + 1,
     'device': 'GPU',
     'init_bunch_buffer': gpu_wrap.init_bunch_buffer,
     'init_slice_buffer': gpu_wrap.init_slice_buffer,
+    'searchsortedleft': gpu_wrap.searchsortedleft,
+    'searchsortedright': gpu_wrap.searchsortedright,
+    'cumsum': skcuda.misc.cumsum,
     '_gpu': None # dummy to have at least one distinction between cpu/gpu
 }
 ################################################################################
@@ -165,5 +175,6 @@ def update_active_dict(new_dict):
 update_active_dict(_CPU_numpy_func_dict)
 ################################################################################
 
-print ('Available functions on GPU:\n' + str(_CPU_numpy_func_dict.keys()))
-print ('Available functions on CPU:\n' + str(_GPU_func_dict.keys()))
+# print ('Available functions on GPU:\n' + str(_CPU_numpy_func_dict.keys()))
+# print ('Available functions on CPU:\n' + str(_GPU_func_dict.keys()))
+

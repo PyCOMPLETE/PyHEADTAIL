@@ -35,13 +35,15 @@ try:
         sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
         has_pycuda = True
     except pycuda._driver.LogicError: #the error pycuda throws if no context initialized
-        print ('No context initialized. Please import pycuda.autoinit at the '
-               'beginning of your script if you want to use GPU functionality')
-        has_pycuda=False
+        # print ('No context initialized. Please import pycuda.autoinit at the '
+        #        'beginning of your script if you want to use GPU functionality')
+        has_pycuda = False
 
 
 except ImportError:
-    print 'Either pycuda, skcuda or thrust not found! No GPU capabilites available'
+    # print ('Either pycuda, skcuda or thrust not found! '
+    #        'No GPU capabilities available')
+    pass
 
 if has_pycuda:
     _sub_1dgpuarr = pycuda.elementwise.ElementwiseKernel(
@@ -79,22 +81,34 @@ if has_pycuda:
             b.gpudata, out.gpudata, a.mem_size)
         return out
 
-    _arange_gpu = pycuda.elementwise.ElementwiseKernel(
+    _arange_gpu_float64 = pycuda.elementwise.ElementwiseKernel(
         'double* out, double* start, const double* step',
-        'const double s = step[0];'+
+        'const double s = step[0];'
         'out[i] = start[0] + i * s',
-        '_arange_gpu'
+        '_arange_gpu_float64'
     )
-    def arange_startstop_gpu(start_gpu, stop_gpu, step_gpu, n_slices_cpu, dtype):
-        if dtype is not np.float64:
-            raise TypeError('only np.float64 supported')
-        out = pycuda.gpuarray.empty(n_slices_cpu, dtype=np.float64,
-            allocator=gpu_utils.memory_pool.allocate)
-        _arange_gpu(out, start_gpu, step_gpu)
+    _arange_gpu_int32 = pycuda.elementwise.ElementwiseKernel(
+        'int* out, int* start, const int* step',
+        'const int s = step[0];'
+        'out[i] = start[0] + i * s',
+        '_arange_gpu_int32'
+    )
+    def arange_startstop_gpu(start_gpu, stop_gpu, step_gpu, n_slices_cpu,
+                             dtype):
+        if dtype is np.float64:
+            out = pycuda.gpuarray.empty(n_slices_cpu, dtype=np.float64,
+                allocator=gpu_utils.memory_pool.allocate)
+            _arange_gpu_float64(out, start_gpu, step_gpu)
+        elif dtype is np.int32:
+            out = pycuda.gpuarray.empty(n_slices_cpu, dtype=np.int32,
+                allocator=gpu_utils.memory_pool.allocate)
+            _arange_gpu_int32(out, start_gpu, step_gpu)
+        else:
+            raise TypeError('only np.float64 and np.int32 supported')
         return out
 
     _comp_sigma = pycuda.elementwise.ElementwiseKernel(
-        'double* out, double* a, double* b, double*c, double*d',
+        'double* out, double* a, double* b, double* c, double* d',
         'out[i] = a[i] - b[i]*c[i]/d[i]',
         '_comp_sigma'
     )
@@ -112,7 +126,9 @@ if has_pycuda:
         '_mul_1dgpuarr'
     )
     _emitt_disp = pycuda.elementwise.ElementwiseKernel(
-        arguments='double* out, double* cov_u2, double* cov_u_up, double* cov_up2, double* cov_u_dp, double* cov_up_dp, double* cov_dp2, double nn',
+        arguments='double* out, double* cov_u2, double* cov_u_up, '
+                  'double* cov_up2, double* cov_u_dp, double* cov_up_dp, '
+                  'double* cov_dp2, double nn',
         #operation='out[i] = nn',
         operation='double sigma11 = cov_u2[i]   - cov_u_dp[i] *cov_u_dp[i] / cov_dp2[i];'
                   'double sigma12 = cov_u_up[i] - cov_u_dp[i] *cov_up_dp[i]/ cov_dp2[i];'
@@ -120,22 +136,29 @@ if has_pycuda:
                   'out[i] = sqrt((1./(nn*nn+nn))*(sigma11 * sigma22 - sigma12*sigma12))',
         name='_emitt_disp',
     )
-    def _emittance_dispersion(n, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp,
-        cov_dp2, out=None, stream=None):
+    def _emittance_dispersion(
+            n, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp,
+            cov_dp2, out=None, stream=None):
         if out is None:
             out = pycuda.gpuarray.empty_like(cov_u2)
-        _emitt_disp(out, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp, cov_dp2, np.float64(n), stream=stream)
+        _emitt_disp(out, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp,
+                    cov_dp2, np.float64(n), stream=stream)
         return out
 
     _emitt_nodisp = pycuda.elementwise.ElementwiseKernel(
-        arguments='double* out, double* cov_u2, double* cov_u_up, double* cov_up2, double nn',
-        operation='out[i] = sqrt((1./(nn*nn+nn))*(cov_u2[i] * cov_up2[i] - cov_u_up[i]*cov_u_up[i]))',
+        arguments='double* out, double* cov_u2, double* cov_u_up, '
+                  'double* cov_up2, double nn',
+        operation=
+            'out[i] = sqrt((1./(nn*nn+nn)) * '
+                     '(cov_u2[i] * cov_up2[i] - cov_u_up[i]*cov_u_up[i]))',
         name='_emitt_nodisp'
     )
-    def _emittance_no_dispersion(n, cov_u2, cov_u_up, cov_up2, out=None, stream=None):
+    def _emittance_no_dispersion(
+            n, cov_u2, cov_u_up, cov_up2, out=None, stream=None):
         if out is None:
             out = pycuda.gpuarray.empty_like(cov_u2)
-        _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
+        _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n),
+                      stream=stream)
         return out
 
 
@@ -184,12 +207,14 @@ def covariance(a,b, stream=None):
 
 def mean(a, stream=None):
     '''Compute the mean of the gpuarray a
-    Replacement for skcuda.misc.mean(), which does not allow to specify the
-    stream (because gpuarray.__div__ does not have a stream argument)
+    Replacement for skcuda.misc.mean(), which does not allow to specify
+    the stream (because gpuarray.__div__ does not have a stream
+    argument).
     '''
     #out = pycuda.gpuarray.empty(1, dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
     n = len(a)
-    out = pycuda.gpuarray.sum(a, stream=stream, allocator=gpu_utils.memory_pool.allocate)
+    out = pycuda.gpuarray.sum(a, stream=stream,
+                              allocator=gpu_utils.memory_pool.allocate)
     _mul_scalar(out=out, gpuarr=out, scalar=np.float64(1./n), stream=stream)
     return out
 
@@ -307,7 +332,8 @@ def emittance_(u, up, dp):
         sigma11 = cov_u2
         sigma12 = cov_u_up
         sigma22 = cov_up2
-    return pycuda.cumath.sqrt((1./(n*n+n))*(sigma11 * sigma22 - sigma12*sigma12))
+    return pycuda.cumath.sqrt(
+        (1./(n*n+n))*(sigma11 * sigma22 - sigma12*sigma12))
 
 
 def emittance(u, up, dp, stream=None):
@@ -373,7 +399,9 @@ def emittance_multistream(u, up, dp, stream=None):
     tmp_up = sub_scalar(up, mean_up, stream=streams[1])
     streams[0].synchronize()
     streams[1].synchronize()
-    tmp_space = _multiply(tmp_u, tmp_up, out=tmp_space, stream=stream) #specify out to reuse memory, the stream implicitly serializes everything s.t. nothing bad happens...
+    # specify out to reuse memory, the stream implicitly serializes
+    # everything s.t. nothing bad happens... :
+    tmp_space = _multiply(tmp_u, tmp_up, out=tmp_space, stream=stream)
     cov_u_up = pycuda.gpuarray.sum(tmp_space, stream=stream)
     tmp_space = _multiply(tmp_up, tmp_up, out=tmp_space, stream=stream)
     cov_up2 = pycuda.gpuarray.sum(tmp_space, stream=stream)
@@ -400,8 +428,8 @@ def argsort(to_sort):
     '''
     Return the permutation required to sort the array.
     Args:
-        to_sort gpuarray for which the permutation array to sort it is returned
-    Returns the permutation
+        to_sort: gpuarray for which the permutation array to sort
+                 it is returned
     '''
     dtype = to_sort.dtype
     permutation = pycuda.gpuarray.empty(to_sort.shape, dtype=np.int32)
@@ -415,6 +443,18 @@ def argsort(to_sort):
         print array.dtype.kind
         raise TypeError('Currently only float64 and int32 types can be sorted')
     return permutation
+
+def searchsortedleft(array, values, dest_array=None):
+    if dest_array is None:
+        dest_array = pycuda.gpuarray.empty(len(values), dtype=np.int32)
+    thrust.lower_bound_int(array, values, dest_array)
+    return dest_array
+
+def searchsortedright(array, values, dest_array=None):
+    if dest_array is None:
+        dest_array = pycuda.gpuarray.empty(len(values), dtype=np.int32)
+    thrust.upper_bound_int(array, values, dest_array)
+    return dest_array
 
 def apply_permutation(array, permutation):
     '''
@@ -646,3 +686,4 @@ def init_slice_buffer(slice_set, slice_stats, buffer_size):
         else: #already on CPU
             buf[stats] = np.zeros((n_slices, buffer_size), dtype=type(res))
     return buf
+
