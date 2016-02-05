@@ -24,10 +24,7 @@ from ..gpu import gpu_utils as gpu_utils
 from . import Printing
 
 from scipy import interpolate
-import pycuda.gpuarray
 
-empty_like = np.empty_like
-arange = np.arange
 def make_int32(array):
     return array.astype(np.int32)
 
@@ -139,9 +136,9 @@ class SliceSet(Printing):
         '''Position of the respective slice start within the array
         self.particle_indices_by_slice .
         '''
-        slice_positions_ = np.zeros(self.n_slices + 1, dtype=np.int32)
-        slice_positions_[1:] = (
-                np.cumsum(self.n_macroparticles_per_slice).astype(np.int32))
+        slice_positions_ = pm.zeros(self.n_slices + 1, dtype=np.int32)
+        slice_positions_[1:] = make_int32(
+            pm.cumsum(self.n_macroparticles_per_slice))
         return slice_positions_
 
     @property
@@ -201,12 +198,15 @@ class SliceSet(Printing):
         '''Array of particle indices arranged / sorted according to
         their slice affiliation.
         '''
-        particle_indices_by_slice = np.zeros(len(self.particles_within_cuts),
-                                             dtype=np.int32)
-        cp.sort_particle_indices_by_slice(
-            self.slice_index_of_particle, self.particles_within_cuts,
-            self.slice_positions, particle_indices_by_slice)
-        return particle_indices_by_slice
+        if self.is_sorted:
+            return self.particles_within_cuts
+        else:
+            particle_indices_by_slice = pm.zeros(
+                len(self.particles_within_cuts), dtype=np.int32)
+            cp.sort_particle_indices_by_slice(
+                self.slice_index_of_particle, self.particles_within_cuts,
+                self.slice_positions, particle_indices_by_slice)
+            return particle_indices_by_slice
 
     def lambda_bins(self, sigma=None, smoothen=True):
         '''Line charge density with respect to bins along the slices.'''
@@ -275,7 +275,11 @@ class SliceSet(Printing):
         pos      = self.slice_positions[slice_index]
         next_pos = self.slice_positions[slice_index + 1]
 
-        return self.particle_indices_by_slice[pos:next_pos]
+        if self.is_sorted:
+            return pm.arange(pos, next_pos+1, pm.ones(1, dtype=np.int32),
+                             1, dtype=np.int32)
+        else:
+            return self.particle_indices_by_slice[pos:next_pos]
 
     def convert_to_time(self, z):
         '''Convert longitudinal quantity from length to time units using
@@ -290,7 +294,8 @@ class SliceSet(Printing):
         particle belongs to.
         '''
         if empty_particles == None:
-            empty_particles = empty_like(self.slice_index_of_particle, dtype=np.float)
+            empty_particles = pm.empty_like(
+                self.slice_index_of_particle, dtype=np.float)
         particle_array = empty_particles
         p_id = self.particles_within_cuts
         s_id = self.slice_index_of_particle.take(p_id)
@@ -449,7 +454,8 @@ class Slicer(Printing):
                 stat_caller = getattr(self, '_' + stat)
                 if pm.device is 'GPU':
                     st = next(gpu_utils.stream_pool)
-                    values = stat_caller(sliceset, beam, stream=next(gpu_utils.stream_pool))
+                    values = stat_caller(sliceset, beam,
+                                         stream=next(gpu_utils.stream_pool))
                 else:
                     values = stat_caller(sliceset, beam)
                 setattr(sliceset, stat, values)
