@@ -129,8 +129,7 @@ class TestGPUInterface(unittest.TestCase):
         '''
         bunch_cpu = self.create_all1_bunch()
         bunch_gpu = self.create_all1_bunch()
-        transverse_map = tt.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+        transverse_map = tt.TransverseMap(self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy)
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
             bunch_gpu), 'Transverse tracking w/o detuning CPU/GPU differs')
@@ -153,8 +152,7 @@ class TestGPUInterface(unittest.TestCase):
                     alpha_x=1.2*np.ones(self.nsegments), D_x=Dx)
         # create pure Python map, PyCERNmachine uses Cython.
         adetuner = AmplitudeDetuning(lhc.app_x, lhc.app_y, lhc.app_xy)
-        transverse_map = tt.TransverseMap(
-            lhc.circumference, lhc.s, lhc.alpha_x, lhc.beta_x,
+        transverse_map = tt.TransverseMap(lhc.s, lhc.alpha_x, lhc.beta_x,
             lhc.D_x, lhc.alpha_y, lhc.beta_y, lhc.D_y, lhc.Q_x, lhc.Q_y,
             adetuner)
         bunch_cpu = self.create_lhc_bunch(lhc)
@@ -170,8 +168,7 @@ class TestGPUInterface(unittest.TestCase):
         bunch_cpu = self.create_all1_bunch()
         bunch_gpu = self.create_all1_bunch()
         detuner = Chromaticity(Qp_x=[5, 1], Qp_y=[7, 2])
-        transverse_map = tt.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+        transverse_map = tt.TransverseMap(self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
             detuner)
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
@@ -387,8 +384,7 @@ class TestGPUInterface(unittest.TestCase):
         bunch_gpu = self.create_gaussian_bunch()
         detuner = RFQTransverseDetuner(v_2=1.5e9, omega=341e5*2.5*np.pi,
             phi_0=-np.pi/4, beta_x_RFQ=200., beta_y_RFQ=99.)
-        transverse_map = tt.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+        transverse_map = tt.TransverseMap(self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
             detuner)
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
