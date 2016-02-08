@@ -22,8 +22,8 @@ from ..general import pmath as pm
 
 class SpaceCharge25D(Element):
     '''Transverse slice-by-slice (2.5D) space charge using a
-    particle-in-cell algorithm via PyPIC. Uses the same fixed 2D mesh
-    for all slices.
+    particle-in-cell algorithm via PyPIC. Uses a fixed 3D mesh
+    along slices.
     '''
 
     def __init__(self, slicer, length, pypic_algorithm, sort_particles=False,
@@ -53,21 +53,21 @@ class SpaceCharge25D(Element):
             raise RuntimeError(
                 '2.5D space charge requires a three-dimensional mesh!')
 
-    @staticmethod
-    def _create_3d_mesh(mesh_2d, z_cut_tail, z_cut_head, n_slices):
-        '''For sorting purposes, in order for each slice to have all
-        particles sorted by their transverse 2D mesh node ID.
-        '''
-        dz = (z_cut_head - z_cut_tail) / float(n_slices)
-        origin = (mesh_2d.x0, mesh_2d.y0, z_cut_tail)
-        distances = (mesh_2d.dx, mesh_2d.dy, dz)
-        n_cells_per_direction = (mesh_2d.nx, mesh_2d.ny, n_slices)
-        return RectMesh3D(origin, distances, n_cells_per_direction,
-                          mathlib=mesh_2d.mathlib)
+    # @staticmethod
+    # def _create_3d_mesh(mesh_2d, z_cut_tail, z_cut_head, n_slices):
+    #     '''For sorting purposes, in order for each slice to have all
+    #     particles sorted by their transverse 2D mesh node ID.
+    #     '''
+    #     dz = (z_cut_head - z_cut_tail) / float(n_slices)
+    #     origin = (mesh_2d.x0, mesh_2d.y0, z_cut_tail)
+    #     distances = (mesh_2d.dx, mesh_2d.dy, dz)
+    #     n_cells_per_direction = (mesh_2d.nx, mesh_2d.ny, n_slices)
+    #     return RectMesh3D(origin, distances, n_cells_per_direction,
+    #                       mathlib=mesh_2d.mathlib)
 
     @staticmethod
     def align_particles(beam, mesh_3d):
-        '''Sort all particles by their transverse 2D mesh node IDs via
+        '''Sort all particles by their transverse sub-mesh node IDs via
         the given 3D mesh.
         '''
         ids = mesh_3d.get_node_ids(beam.x, beam.y, beam.z)
@@ -76,16 +76,18 @@ class SpaceCharge25D(Element):
         # node ids have changed by now!
 
     @staticmethod
-    def get_bounds(beam, mesh_2d, idx_relevant_particles):
+    def get_bounds(beam, mesh_3d, idx_relevant_particles):
         '''Determine indices of sorted particles for each cell, i.e.
         lower and upper index bounds.
         '''
         seq = pm.arange(pm.zeros(1, dtype=np.int32),
-                        mesh_2d.n_nodes,
+                        mesh_3d.n_nodes,
                         pm.ones(1, dtype=np.int32),
-                        1, dtype=np.int32)
-        ids = mesh_2d.get_node_ids(beam.x[idx_relevant_particles],
-                                   beam.y[idx_relevant_particles])
+                        mesh.n_nodes, dtype=np.int32)
+        ids = mesh_3d.get_node_ids(
+            pm.take(beam.x, idx_relevant_particles),
+            pm.take(beam.y, idx_relevant_particles),
+            pm.take(beam.z, idx_relevant_particles))
         lower_bounds = pm.searchsortedleft(ids, seq)
         upper_bounds = pm.searchsortedright(ids, seq)
         return lower_bounds, upper_bounds
@@ -94,10 +96,9 @@ class SpaceCharge25D(Element):
         slices = self.slicer.slice(beam)
 
         if self.sort_particles:
-            mesh_3d = self._create_3d_mesh(self.pypic.mesh, slices.z_cut_tail,
-                                           slices.z_cut_head, slices.n_slices)
-            self.align_particles(beam, mesh_3d)
-
+            # mesh_3d = self._create_3d_mesh(self.pypic.mesh, slices.z_cut_tail,
+            #                                slices.z_cut_head, slices.n_slices)
+            self.align_particles(beam, self.pypic.mesh)
 
         # scale to macro-particle charges, integrate over length
         kick_factor = (self.length / (beam.beta*c) *
@@ -115,7 +116,8 @@ class SpaceCharge25D(Element):
                 solve_kwargs['lower_bounds'], solve_kwargs['upper_bounds'] = \
                     self.get_bounds(beam, self.pypic.mesh, pids_of_slice)
 
-            en_x, en_y = self.pypic.pic_solve(beam.x, beam.y, **solve_kwargs)
+            en_x, en_y = self.pypic.pic_solve(beam.x, beam.y, beam.z,
+                                              **solve_kwargs)
 
             en_x *= beam.gamma**-2
             en_y *= beam.gamma**-2
@@ -163,7 +165,8 @@ class SpaceCharge3D(Element):
                                'mesh!')
         self.pypic = pypic_algorithm
 
-    def align_particles(self, beam, mesh):
+    @staticmethod
+    def align_particles(beam, mesh):
         '''Sort all particles by their mesh node IDs.'''
         ids = mesh.get_node_ids(beam.x, beam.y, beam.z_beamframe)
         permutation = pm.argsort(ids)
@@ -175,7 +178,11 @@ class SpaceCharge3D(Element):
         lower and upper index bounds.
         '''
         if not hasattr(self, '_seq'):
-            self._seq = arange(mesh.n_nodes, dtype=np.int32)
+            self._seq = pm.arange(
+                pm.zeros(1, dtype=np.int32),
+                mesh.n_nodes,
+                pm.ones(1, dtype=np.int32),
+                mesh.n_nodes, dtype=np.int32)
         ids = mesh.get_node_ids(beam.x, beam.y, beam.z_beamframe)
         lower_bounds = pm.searchsortedleft(ids, self._seq)#, dest_array=self._bounds)
         upper_bounds = pm.searchsortedright(ids, self._seq)#, dest_array=self._bounds)

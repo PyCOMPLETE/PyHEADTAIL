@@ -124,7 +124,7 @@ def create_3dmesh_from_beam(beam, mesh_size, n_beam_sigma, slices=None):
                    beam.mean_y() - length_y / 2.]
     mesh_distances = [length_x / mesh_size[0], length_y / mesh_size[1]]
 
-    if slices is None:
+    if slices is None: # TODO: LORENTZ TRAFO
         length_z = 2. * beam.sigma_z() * n_beam_sigma[2]
         mesh_origin += [beam.mean_z() - length_z / 2.]
         mesh_distances += [length_z / mesh_size[2]]
