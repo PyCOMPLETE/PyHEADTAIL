@@ -43,7 +43,7 @@ try:
 except ImportError:
     # print ('Either pycuda, skcuda or thrust not found! '
     #        'No GPU capabilities available')
-    pass
+    has_pycuda = False
 
 if has_pycuda:
     _sub_1dgpuarr = pycuda.elementwise.ElementwiseKernel(
@@ -432,7 +432,9 @@ def argsort(to_sort):
                  it is returned
     '''
     dtype = to_sort.dtype
-    permutation = pycuda.gpuarray.empty(to_sort.shape, dtype=np.int32)
+    permutation = pycuda.gpuarray.empty(
+        to_sort.shape, dtype=np.int32,
+        allocator=gpu_utils.memory_pool.allocate)
     if dtype.itemsize == 8 and dtype.kind is 'f':
         thrust.get_sort_perm_double(to_sort.copy(), permutation)
     elif dtype.itemsize == 4 and dtype.kind is 'i':
@@ -446,13 +448,17 @@ def argsort(to_sort):
 
 def searchsortedleft(array, values, dest_array=None):
     if dest_array is None:
-        dest_array = pycuda.gpuarray.empty(len(values), dtype=np.int32)
+        dest_array = pycuda.gpuarray.empty(
+            shape=values.shape, dtype=np.int32,
+            allocator=gpu_utils.memory_pool.allocate)
     thrust.lower_bound_int(array, values, dest_array)
     return dest_array
 
 def searchsortedright(array, values, dest_array=None):
     if dest_array is None:
-        dest_array = pycuda.gpuarray.empty(len(values), dtype=np.int32)
+        dest_array = pycuda.gpuarray.empty(
+            shape=values.shape, dtype=np.int32,
+            allocator=gpu_utils.memory_pool.allocate)
     thrust.upper_bound_int(array, values, dest_array)
     return dest_array
 

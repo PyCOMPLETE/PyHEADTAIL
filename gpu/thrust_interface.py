@@ -346,26 +346,26 @@ host_functions = [
             ]
         ])),
 
-        FunctionBody(
-            FunctionDeclaration(Value('int', 'copy_if_min_max'),
-                                [Value('p::object', 'input_gpuarray'),
-                                 Value('p::object', 'output_gpuarray'),
-                                 Value('int', 'minimum'),
-                                 Value('int', 'maximum')]),
-            Block([Statement(x) for x in
-                [
-                    #Extract information from PyCUDA GPUArray
-                    #Get length
-                    'p::tuple shape = p::extract<p::tuple>(input_gpuarray.attr("shape"))',
-                    'int input_length = p::extract<int>(shape[0])',
-                    #Get data pointer
-                    'CUdeviceptr input_ptr = p::extract<CUdeviceptr>(input_gpuarray.attr("ptr"))',
-                    'CUdeviceptr output_ptr = p::extract<CUdeviceptr>(output_gpuarray.attr("ptr"))',
+    FunctionBody(
+        FunctionDeclaration(Value('int', 'copy_if_min_max'),
+                            [Value('p::object', 'input_gpuarray'),
+                             Value('p::object', 'output_gpuarray'),
+                             Value('int', 'minimum'),
+                             Value('int', 'maximum')]),
+        Block([Statement(x) for x in
+            [
+                #Extract information from PyCUDA GPUArray
+                #Get length
+                'p::tuple shape = p::extract<p::tuple>(input_gpuarray.attr("shape"))',
+                'int input_length = p::extract<int>(shape[0])',
+                #Get data pointer
+                'CUdeviceptr input_ptr = p::extract<CUdeviceptr>(input_gpuarray.attr("ptr"))',
+                'CUdeviceptr output_ptr = p::extract<CUdeviceptr>(output_gpuarray.attr("ptr"))',
 
-                    'return thrust_copy_if_min_max((int*)input_ptr, input_length,'
-                                                  '(int*)output_ptr, minimum, maximum)',
-                ]
-            ])),
+                'return thrust_copy_if_min_max((int*)input_ptr, input_length,'
+                                              '(int*)output_ptr, minimum, maximum)',
+            ]
+        ])),
 ]
 
 for fct in host_functions:

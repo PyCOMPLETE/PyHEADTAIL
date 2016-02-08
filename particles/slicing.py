@@ -275,11 +275,7 @@ class SliceSet(Printing):
         pos      = self.slice_positions[slice_index]
         next_pos = self.slice_positions[slice_index + 1]
 
-        if self.is_sorted:
-            return pm.arange(pos, next_pos+1, pm.ones(1, dtype=np.int32),
-                             1, dtype=np.int32)
-        else:
-            return self.particle_indices_by_slice[pos:next_pos]
+        return self.particle_indices_by_slice[pos:next_pos]
 
     def convert_to_time(self, z):
         '''Convert longitudinal quantity from length to time units using
