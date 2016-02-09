@@ -121,6 +121,7 @@ _CPU_numpy_func_dict = {
     'macroparticles_per_slice': lambda sliceset : _count_macroparticles_per_slice_cpu(sliceset),
     'take' : np.take,
     'convolve': np.convolve,
+    'seq': lambda stop: np.arange(stop, dtype=np.int32),
     'arange': wraps(np.arange)(
         lambda start, stop, step, nslices=None, dtype=np.float64 :
             np.arange(start, stop, step, dtype)
@@ -158,6 +159,7 @@ if has_pycuda:
         'macroparticles_per_slice' : gpu_wrap.macroparticles_per_slice,
         'take': pycuda.gpuarray.take,
         'convolve': gpu_wrap.convolve,
+        'seq': lambda stop: pycuda.gpuarray.arange(stop, dtype=np.int32),
         'arange': wraps(pycuda.gpuarray.arange)(
             lambda start, stop, step, n_slices, dtype=np.float64: gpu_wrap.arange_startstop_gpu(start, stop, step, n_slices, dtype)
             if isinstance(start, pycuda.gpuarray.GPUArray)

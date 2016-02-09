@@ -133,11 +133,9 @@ class SpaceCharge3D(Element):
     The 3D mesh does not adapt and remains constant.
     '''
 
-    def __init__(self, slicer, length, pypic_algorithm, sort_particles=False,
+    def __init__(self, length, pypic_algorithm, sort_particles=False,
                  *args, **kwargs):
         '''Arguments:
-            - slicer: particles.Slicer instance, slicer.n_slices
-              determines the longitudinal mesh size (for the 3D mesh)
             - length: interaction length over which the space charge is
               integrated.
             - mesh_nx: horizontal mesh size (for the mesh to be created)
@@ -147,7 +145,7 @@ class SpaceCharge3D(Element):
             - pypic_algorithm: pre-configured PyPIC.pypic.PyPIC(_GPU)
               instance with the particle-in-cell algorithm encoded, has
               to be consistently set it up beforehand (i.e. the mesh
-              w.r.t. the slicer, poisson solver, particle-to-mesh
+              w.r.t. the poisson solver, particle-to-mesh
               deposition method w.r.t. sort_particles etc.).
             - sort_particles: determines whether to sort the particles
               by their mesh ID. This may speed up the PyPIC
@@ -157,7 +155,6 @@ class SpaceCharge3D(Element):
               (NB: sort_particles=True is necessarily required for the
                PyPIC_GPU.sorted_particles_to_mesh method.)
         '''
-        self.slicer = slicer
         self.length = length
         self.sort_particles = sort_particles
         if pypic_algorithm.mesh.dimension != 3:
@@ -173,23 +170,18 @@ class SpaceCharge3D(Element):
         beam.reorder(permutation)
         # node id array has changed by now!
 
-    def get_bounds(self, beam, mesh):
+    @staticmethod
+    def get_bounds(beam, mesh):
         '''Determine indices of sorted particles for each cell, i.e.
         lower and upper index bounds.
         '''
-        if not hasattr(self, '_seq'):
-            self._seq = pm.arange(
-                pm.zeros(1, dtype=np.int32),
-                mesh.n_nodes,
-                pm.ones(1, dtype=np.int32),
-                mesh.n_nodes, dtype=np.int32)
+        seq = pm.seq(mesh.n_nodes)
         ids = mesh.get_node_ids(beam.x, beam.y, beam.z_beamframe)
-        lower_bounds = pm.searchsortedleft(ids, self._seq)#, dest_array=self._bounds)
-        upper_bounds = pm.searchsortedright(ids, self._seq)#, dest_array=self._bounds)
+        lower_bounds = pm.searchsortedleft(ids, seq)
+        upper_bounds = pm.searchsortedright(ids, seq)
         return lower_bounds, upper_bounds
 
     def track(self, beam):
-        slices = self.slicer.slice(beam)
         mesh = self.pypic.mesh
 
         solve_kwargs = {

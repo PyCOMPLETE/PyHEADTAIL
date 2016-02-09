@@ -332,8 +332,7 @@ def emittance_(u, up, dp):
         sigma11 = cov_u2
         sigma12 = cov_u_up
         sigma22 = cov_up2
-    return pycuda.cumath.sqrt(
-        (1./(n*n+n))*(sigma11 * sigma22 - sigma12*sigma12))
+    return pycuda.cumath.sqrt((1./(n*n+n))*(sigma11 * sigma22 - sigma12*sigma12))
 
 
 def emittance(u, up, dp, stream=None):
@@ -399,9 +398,7 @@ def emittance_multistream(u, up, dp, stream=None):
     tmp_up = sub_scalar(up, mean_up, stream=streams[1])
     streams[0].synchronize()
     streams[1].synchronize()
-    # specify out to reuse memory, the stream implicitly serializes
-    # everything s.t. nothing bad happens... :
-    tmp_space = _multiply(tmp_u, tmp_up, out=tmp_space, stream=stream)
+    tmp_space = _multiply(tmp_u, tmp_up, out=tmp_space, stream=stream) #specify out to reuse memory, the stream implicitly serializes everything s.t. nothing bad happens...
     cov_u_up = pycuda.gpuarray.sum(tmp_space, stream=stream)
     tmp_space = _multiply(tmp_up, tmp_up, out=tmp_space, stream=stream)
     cov_up2 = pycuda.gpuarray.sum(tmp_space, stream=stream)
