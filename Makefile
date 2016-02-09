@@ -18,4 +18,4 @@ clean: remove_so
 	python setup.py build_ext --inplace cleanall
 
 remove_so:
-	rm gpu/thrust.so
+	rm -f gpu/thrust.so
