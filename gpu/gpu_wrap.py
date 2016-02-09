@@ -23,7 +23,7 @@ try:
     # at the beginning of the script if he wants to use cuda functionalities
     try:
         ### Thrust
-        thrust = thrust_interface.compiled_module
+        thrust = thrust_interface
 
         ### CUDA Kernels
         where = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -692,4 +692,3 @@ def init_slice_buffer(slice_set, slice_stats, buffer_size):
         else: #already on CPU
             buf[stats] = np.zeros((n_slices, buffer_size), dtype=type(res))
     return buf
-
