@@ -6,7 +6,7 @@ Created on 17.10.2014
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-from scipy.constants import c, e, m_p
+from scipy.constants import c, e
 
 from ..cobra_functions import stats as cp
 from . import Printing
@@ -37,10 +37,10 @@ class Particles(Printing):
                        'consistently replaced by "beam.charge"!')
         self.charge_per_mp = particlenumber_per_mp * charge
         self.mass = mass
-        if not np.allclose(self.charge, m_p): #, atol=1e-24):
-            self.warns('PyHEADTAIL currently features many "m_p" ' +
-                       'in the various modules, these need to be ' +
-                       'consistently replaced by "beam.mass"!')
+#         if not np.allclose(self.charge, m_p): #, atol=1e-24):
+#             self.warns('PyHEADTAIL currently features many "m_p" ' +
+#                        'in the various modules, these need to be ' +
+#                        'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
         self.gamma = gamma
