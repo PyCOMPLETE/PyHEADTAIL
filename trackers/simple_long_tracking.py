@@ -197,7 +197,7 @@ class Kick(LongitudinalMap):
         beam.y += self.D_y*beam.dp
 
     def track_without_dispersion(self, beam):
-        amplitude = e*self.voltage / (beam.beta*c)
+        amplitude = beam.charge*self.voltage / (beam.beta*c)
         phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
                + self.phi_offset + self._phi_lock)
 
