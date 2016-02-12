@@ -6,7 +6,7 @@ Created on 17.10.2014
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-from scipy.constants import c, e, m_p
+from scipy.constants import c, e
 
 from ..cobra_functions import stats as cp
 from . import Printing
@@ -21,7 +21,8 @@ class Particles(Printing):
     Designed to describe beams, electron clouds, ... '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma, coords_n_momenta_dict={}):
+                 mass, circumference, gamma, coords_n_momenta_dict={},
+                 *args, **kwargs):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
@@ -37,10 +38,10 @@ class Particles(Printing):
                        'consistently replaced by "beam.charge"!')
         self.charge_per_mp = particlenumber_per_mp * charge
         self.mass = mass
-        if not np.allclose(self.charge, m_p): #, atol=1e-24):
-            self.warns('PyHEADTAIL currently features many "m_p" ' +
-                       'in the various modules, these need to be ' +
-                       'consistently replaced by "beam.mass"!')
+#         if not np.allclose(self.charge, m_p): #, atol=1e-24):
+#             self.warns('PyHEADTAIL currently features many "m_p" ' +
+#                        'in the various modules, these need to be ' +
+#                        'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
         self.gamma = gamma
@@ -105,6 +106,13 @@ class Particles(Printing):
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
 
+    @property
+    def z_beamframe(self):
+        return self.z * self.gamma
+    @z_beamframe.setter
+    def z_beamframe(self, value):
+        self.z = value / self.gamma
+
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
         momentum arrays.
@@ -141,6 +149,37 @@ class Particles(Printing):
         #         slicer.add_statistics(self._slice_sets[slicer], self,
         #                               kwargs['statistics'])
         return self._slice_sets[slicer]
+
+
+    def extract_slices(self, slicer, *args, **kwargs):
+        '''Return a list Particles object with the different slices.
+        '''
+
+        slices = self.get_slices(slicer, *args, **kwargs)
+        self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
+        slice_object_list = []
+
+        for i_sl in xrange(slices.n_slices):
+
+            ix = slices.particle_indices_of_slice(i_sl)
+            macroparticlenumber = len(ix)
+
+            slice_object = Particles(macroparticlenumber=macroparticlenumber, 
+                particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+            
+            for coord in self_coords_n_momenta_dict.keys():
+                slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+
+            slice_object.slice_info = {\
+                    'z_bin_center': slices.z_centers[i_sl],\
+                    'z_bin_right':slices.z_bins[i_sl+1],\
+                    'z_bin_left':slices.z_bins[i_sl]}
+            
+            slice_object_list.append(slice_object)
+            
+
+        return slice_object_list
 
     def clean_slices(self):
         '''Erases the SliceSet records of this Particles instance.
@@ -194,7 +233,7 @@ class Particles(Printing):
                 continue
             reordered = getattr(self, attr)[permutation]
             setattr(self, attr, reordered)
-            
+
     def __add__(self, other):
         '''Merges two beams.
 		'''
@@ -202,33 +241,33 @@ class Particles(Printing):
 
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
-        
-        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber, 
+
+        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
 					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-        
-        
+
+
         for coord in self_coords_n_momenta_dict.keys():
             #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
             result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
-            
-        return result 
-    
+
+        return result
+
     def __radd__(self, other):
         if other==0:
             self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
-            result = Particles(macroparticlenumber=self.macroparticlenumber, 
+            result = Particles(macroparticlenumber=self.macroparticlenumber,
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                     mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-        
+
             for coord in self_coords_n_momenta_dict.keys():
                 #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
                 result.update({coord: self_coords_n_momenta_dict[coord].copy()})
         else:
             result = self.__add__(other)
-        
-        return result      
-  
+
+        return result
+
 
     # Statistics methods
 

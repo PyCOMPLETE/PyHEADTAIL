@@ -130,6 +130,7 @@ class TestSimpleLongTracking(unittest.TestCase):
         gamma = 19.
         rf = RFSystems(circumference, harmonic_list, voltage_list,
                        phi_offset_list, self.alpha_array, gamma,
+                       charge = e,
                        warningprinter=AccumulatorPrinter(),
                        printer=AccumulatorPrinter())
 

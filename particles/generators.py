@@ -18,7 +18,7 @@ from ..cobra_functions.pdf_integrators_2d import quad2d
 from . import Printing
 
 from functools import partial
-from scipy.constants import e, m_p, c
+from scipy.constants import e, c
 
 
 def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
@@ -33,7 +33,7 @@ def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
     Returns: A particle instance with the phase space matched to the arguments
     """
     beta = np.sqrt(1.-gamma**(-2))
-    p0 = np.sqrt(gamma**2 -1) * m_p * c
+    p0 = np.sqrt(gamma**2 -1) * mass * c
     eps_geo_x = epsn_x/(beta*gamma)
     eps_geo_y = epsn_y/(beta*gamma)
     eps_geo_z = epsn_z * e / (4. * np.pi * p0)
@@ -194,7 +194,8 @@ class ParticleGenerator(Printing):
                  circumference, gamma,
                  distribution_x=None, alpha_x=0., beta_x=1., D_x=None,
                  distribution_y=None, alpha_y=0., beta_y=1., D_y=None,
-                 distribution_z=None, Qs=None, eta=None):
+                 distribution_z=None, Qs=None, eta=None,
+                 *args, **kwargs):
         '''
         Specify the distribution for each phase space seperately. Only
         the phase spaces for which a distribution has been specified

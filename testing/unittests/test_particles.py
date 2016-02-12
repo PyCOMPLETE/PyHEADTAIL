@@ -20,7 +20,7 @@ from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
-
+from PyHEADTAIL.general.printers import SilentPrinter
 
 class TestParticles(unittest.TestCase):
 
@@ -99,15 +99,20 @@ class TestParticles(unittest.TestCase):
         for p in properties:
             self.setter_getter_test(p)
 
-    def setter_getter_test(self,prop):
+    def setter_getter_test(self, prop):
         '''Tests the setter/getter of property prop via the
         getattr()/setattr() functions. Called by test_setters_getters()
         '''
-        new_value = 0.9*getattr(self.bunch,prop)
-        setattr(self.bunch,prop,new_value)
-        self.assertAlmostEqual(getattr(self.bunch,prop),new_value,
-                               msg='getter/setter for property '
-                                   + prop + ' incorrect')
+        new_value = 0.9 * getattr(self.bunch, prop)
+        setattr(self.bunch, prop, new_value)
+        if isinstance(getattr(self.bunch, prop), np.ndarray):
+            self.assertTrue(np.allclose(getattr(self.bunch, prop), new_value),
+                            msg='getter/setter for property '
+                                + prop + ' incorrect')
+        else:
+            self.assertAlmostEqual(getattr(self.bunch, prop), new_value,
+                                   msg='getter/setter for property '
+                                       + prop + ' incorrect')
 
     def test_get_slices(self):
         '''Tests the get_slices() method on consistency after
