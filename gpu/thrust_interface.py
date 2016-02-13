@@ -45,7 +45,7 @@ def upper_bound_int(position, bounds, out):
     Returns: nothing
     Args: Particle positions, mesh bounds, output array (GPUArrays)
     '''
-    _libthrustwrap.thrust_lower_bound_int(int(position.gpudata),
+    _libthrustwrap.thrust_upper_bound_int(int(position.gpudata),
                                           np.int32(len(position)),
                                           int(bounds.gpudata),
                                           np.int32(len(bounds)),
