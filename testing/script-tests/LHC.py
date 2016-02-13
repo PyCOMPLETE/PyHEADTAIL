@@ -1,4 +1,4 @@
-from PyMachines.synchrotron import BasicSynchrotron
+from PyHEADTAIL.machines.synchrotron import BasicSynchrotron
 import numpy as np
 from scipy.constants import c, e, m_p
 
