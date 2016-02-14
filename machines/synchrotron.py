@@ -26,7 +26,7 @@ class BasicSynchrotron(Element):
             accQ_x=None, accQ_y=None, Qp_x=0, Qp_y=0, app_x=0, app_y=0, app_xy=0,
             alpha_mom_compaction=None, longitudinal_mode=None, Q_s=None,
             h_RF=None, V_RF=None, dphi_RF=None, p0=None, p_increment=None,
-            charge=None, mass=None, **kwargs):
+            charge=None, mass=None, RF_at='middle', **kwargs):
 
             
             self.optics_mode = optics_mode
@@ -50,7 +50,7 @@ class BasicSynchrotron(Element):
             
             # construct longitudinal map 
             self._contruct_longitudinal_map(alpha_mom_compaction=alpha_mom_compaction, longitudinal_mode=longitudinal_mode, Q_s=Q_s,
-            h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment)
+            h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment, RF_at=RF_at)
 
 
 
@@ -247,15 +247,24 @@ class BasicSynchrotron(Element):
             self.one_turn_map.append(m)
 
     def _contruct_longitudinal_map(self, alpha_mom_compaction=None, longitudinal_mode=None, Q_s=None,
-            h_RF=None, V_RF=None, dphi_RF=None, p_increment=None):
+            h_RF=None, V_RF=None, dphi_RF=None, p_increment=None, RF_at=None):
         
-        # compute the index of the element before which to insert
-        # the longitudinal map
-        if longitudinal_mode is not None:
-                for insert_before, si in enumerate(self.transverse_map.s):
-                        if si > 0.5 * self.circumference:
-                                break
+        if longitudinal_mode is None:
+			return
 
+        if RF_at == 'middle':
+			# compute the index of the element before which to insert
+			# the longitudinal map
+			if longitudinal_mode is not None:
+					for insert_before, si in enumerate(self.transverse_map.s):
+							if si > 0.5 * self.circumference:
+									break
+        elif RF_at == 'end_of_transverse':
+			insert_before = -1
+        else:
+			raise ValueError('RF_at=%s not recognized!')
+        
+        
         if longitudinal_mode == 'linear':
         	
         	eta = alpha_mom_compaction - self.gamma**-2
@@ -272,8 +281,7 @@ class BasicSynchrotron(Element):
                         self.circumference, Q_s,
                         D_x=self.transverse_map.D_x[insert_before],
                         D_y=self.transverse_map.D_y[insert_before])
-                        
-                        
+                                
         elif longitudinal_mode == 'non-linear':
                 self.longitudinal_map = RFSystems(
                         self.circumference, np.atleast_1d(h_RF),
@@ -286,5 +294,8 @@ class BasicSynchrotron(Element):
         else:
                 raise NotImplementedError(
                         'Something wrong with longitudinal_mode')
-                
-        self.one_turn_map.insert(insert_before, self.longitudinal_map)
+
+        if insert_before==-1:
+			self.one_turn_map.append(self.longitudinal_map)
+        else:
+			self.one_turn_map.insert(insert_before, self.longitudinal_map)
