@@ -15,8 +15,8 @@ sigma_z = 0.05
 
 intensity = 1e11
 
-#mode = 'smooth'
-mode = 'non-smooth'
+mode = 'smooth'
+#mode = 'non-smooth'
 
 import pickle
 from LHC import LHC
@@ -142,13 +142,13 @@ twax[0].set_ylabel(r'$\varepsilon_y$')
 axes[1].plot(sy)
 twax[1].plot(epsy, '-g')
 axes[1].set_xlabel('Turns')
-axes[1].set_ylabel(r'$\sigma_x$')
+axes[1].set_ylabel(r'$\sigma_y$')
 twax[1].set_ylabel(r'$\varepsilon_y$')
 axes[2].plot(sz)
 twax[2].plot(epsz, '-g')
 axes[2].set_xlabel('Turns')
-axes[2].set_ylabel(r'$\sigma_x$')
-twax[2].set_ylabel(r'$\varepsilon_y$')
+axes[2].set_ylabel(r'$\sigma_z$')
+twax[2].set_ylabel(r'$\varepsilon_z$')
 axes[0].grid()
 axes[1].grid()
 axes[2].grid()
