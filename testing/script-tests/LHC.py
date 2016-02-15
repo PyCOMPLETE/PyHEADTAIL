@@ -12,6 +12,7 @@ class LHC(BasicSynchrotron):
 		h_RF       	= 35640
 		mass 		= m_p
 		charge		= e
+		RF_at		= 'middle'
 		
 		if machine_configuration=='Injection':
 			p0 			= 450e9 * e /c
@@ -124,7 +125,7 @@ class LHC(BasicSynchrotron):
              accQ_x=accQ_x, accQ_y=accQ_y, Qp_x=Qp_x, Qp_y=Qp_y, app_x=app_x, app_y=app_y, app_xy=app_xy,
              alpha_mom_compaction=alpha, longitudinal_mode=longitudinal_mode,
              h_RF=np.atleast_1d(h_RF), V_RF=np.atleast_1d(V_RF), dphi_RF=np.atleast_1d(dphi_RF), p0=p0, p_increment=p_increment,
-             charge=charge, mass=mass)
+             charge=charge, mass=mass, RF_at=RF_at)
 		
 	def _anharmonicities_from_octupole_current_settings(self, i_octupole_focusing, i_octupole_defocusing):
 			"""Calculate the constants of proportionality app_x, app_y and
