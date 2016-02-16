@@ -62,11 +62,13 @@ plt.close('all')
 fig, axes = plt.subplots(2, sharex=True)
 
 axes[0].plot(np.array(beam_beta_x), 'bo')
-axes[0].plot(machine.transverse_map.beta_x, 'b-')
+axes[0].plot(machine.transverse_map.beta_x, 'b-', label='x')
 axes[0].plot(np.array(beam_beta_y), 'ro')
-axes[0].plot(machine.transverse_map.beta_y, 'r-')
+axes[0].plot(machine.transverse_map.beta_y, 'r-', label='y')
 axes[0].grid('on')
 axes[0].set_ylabel('beta_x, beta_y')
+axes[0].legend(bbox_to_anchor=(1, 1),loc='upper left',prop={'size':12})
+plt.subplots_adjust(right=.86)
 
 axes[1].plot(np.array(beam_alpha_x), 'bo')
 axes[1].plot(machine.transverse_map.alpha_x, 'b-')
@@ -134,18 +136,18 @@ plt.ylabel('Amplitude');plt.xlabel('Qz')
 
 fig, axes = plt.subplots(3, figsize=(16, 8), tight_layout=True)
 twax = [plt.twinx(ax) for ax in axes]
-axes[0].plot(sx)
-twax[0].plot(epsx, '-g')
+axes[0].plot(sx, label=r'$\sigma_x$' )
+twax[0].plot(epsx, '-g', label=r'$\varepsilon_x$')
 axes[0].set_xlabel('Turns')
 axes[0].set_ylabel(r'$\sigma_x$')
-twax[0].set_ylabel(r'$\varepsilon_y$')
-axes[1].plot(sy)
-twax[1].plot(epsy, '-g')
+twax[0].set_ylabel(r'$\varepsilon_x$')
+axes[1].plot(sy, label=r'$\sigma_y$' )
+twax[1].plot(epsy, '-g', label=r'$\varepsilon_y$')
 axes[1].set_xlabel('Turns')
 axes[1].set_ylabel(r'$\sigma_y$')
 twax[1].set_ylabel(r'$\varepsilon_y$')
-axes[2].plot(sz)
-twax[2].plot(epsz, '-g')
+axes[2].plot(sz, label=r'$\sigma_z$' )
+twax[2].plot(epsz, '-g', label=r'$\varepsilon_z$')
 axes[2].set_xlabel('Turns')
 axes[2].set_ylabel(r'$\sigma_z$')
 twax[2].set_ylabel(r'$\varepsilon_z$')
@@ -154,8 +156,11 @@ axes[1].grid()
 axes[2].grid()
 for ax in list(axes)+list(twax): 
     ax.ticklabel_format(useOffset=False, style='sci', scilimits=(0,0),axis='y')
-
-
+for ax in list(axes): 
+    ax.legend(loc='upper right',prop={'size':12})
+for ax in list(twax): 
+    ax.legend(loc='lower right',prop={'size':12})
+    
 #~ plt.figure(100)
 #~ plt.plot(optics['s'][:],optics['beta_x'][:], '-o')
 
