@@ -6,18 +6,6 @@ from scipy.constants import c, e
 from PyHEADTAIL.general.element import Element
 import PyHEADTAIL.particles.generators as gen
 
-try:
-        from PyHEADTAIL.trackers.transverse_tracking_cython import TransverseMap
-        from PyHEADTAIL.trackers.detuners_cython import (Chromaticity,
-                                                     AmplitudeDetuning)
-except ImportError as e:
-        print ("*** Warning: could not import cython variants of trackers, "
-           "did you cythonize (use the following command)?\n"
-           "$ ./install \n"
-           "Falling back to (slower) python version.")
-        from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-        from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
-
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap, RFSystems
 
 class BasicSynchrotron(Element):
@@ -26,7 +14,8 @@ class BasicSynchrotron(Element):
             accQ_x=None, accQ_y=None, Qp_x=0, Qp_y=0, app_x=0, app_y=0, app_xy=0,
             alpha_mom_compaction=None, longitudinal_mode=None, Q_s=None,
             h_RF=None, V_RF=None, dphi_RF=None, p0=None, p_increment=None,
-            charge=None, mass=None, **kwargs):
+            charge=None, mass=None, RF_at='middle', other_detuners=[], 
+            use_cython = True, **kwargs):
 
             
             self.optics_mode = optics_mode
@@ -36,23 +25,16 @@ class BasicSynchrotron(Element):
             self.p0 = p0
             
             self.one_turn_map = []
-            
-            detuners = []
-            if Qp_x != 0 or Qp_y != 0:
-                    detuners.append(Chromaticity(Qp_x, Qp_y))
-            if app_x != 0 or app_y != 0 or app_xy != 0:
-                    detuners.append(AmplitudeDetuning(app_x, app_y, app_xy))
 
             # construct transverse map 
             self._contruct_transverse_map(optics_mode=optics_mode, circumference=circumference, n_segments=n_segments, s=s, name=name,
                 alpha_x=alpha_x, beta_x=beta_x, D_x=D_x, alpha_y=alpha_y, beta_y=beta_y, D_y=D_y,
-                accQ_x=accQ_x, accQ_y=accQ_y, detuners=detuners)
+                accQ_x=accQ_x, accQ_y=accQ_y, Qp_x=Qp_x, Qp_y=Qp_y, app_x=app_x, app_y=app_y, app_xy=app_xy, other_detuners=other_detuners,
+                use_cython=use_cython)
             
             # construct longitudinal map 
             self._contruct_longitudinal_map(alpha_mom_compaction=alpha_mom_compaction, longitudinal_mode=longitudinal_mode, Q_s=Q_s,
-            h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment)
-
-
+				h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment, RF_at=RF_at)
 
     @property
     def gamma(self):
@@ -176,8 +158,27 @@ class BasicSynchrotron(Element):
     
     def _contruct_transverse_map(self, optics_mode=None, circumference=None, n_segments=None, s=None, name=None,
             alpha_x=None, beta_x=None, D_x=None, alpha_y=None, beta_y=None, D_y=None,
-            accQ_x=None, accQ_y=None, detuners=[]):    
-    
+            accQ_x=None, accQ_y=None, Qp_x=None, Qp_y=None, app_x=None, app_y=None, app_xy=None, other_detuners=None,
+            use_cython=None):    
+
+        if use_cython:    
+			try:
+				from PyHEADTAIL.trackers.transverse_tracking_cython import TransverseMap
+				from PyHEADTAIL.trackers.detuners_cython import (Chromaticity,
+															 AmplitudeDetuning)
+			except ImportError as e:
+				print ("*** Warning: could not import cython variants of trackers, "
+				   "did you cythonize (use the following command)?\n"
+				   "$ make \n"
+				   "Falling back to (slower) python version.")
+				from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
+				from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
+        else:
+			"Transverse tracking: forcing python implementation."
+			from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
+			from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning	
+			
+
         if optics_mode == 'smooth':
             if circumference is None:
                     raise ValueError('circumference has to be specified if optics_mode = "smooth"')
@@ -211,6 +212,13 @@ class BasicSynchrotron(Element):
 
         else:
             raise ValueError('optics_mode not recognized')
+            
+        detuners = []
+        if Qp_x != 0 or Qp_y != 0:
+			detuners.append(Chromaticity(Qp_x, Qp_y))
+        if app_x != 0 or app_y != 0 or app_xy != 0:
+			detuners.append(AmplitudeDetuning(app_x, app_y, app_xy))
+        detuners += other_detuners		
         
         self.transverse_map = TransverseMap(s=s,
             alpha_x=alpha_x,
@@ -247,15 +255,24 @@ class BasicSynchrotron(Element):
             self.one_turn_map.append(m)
 
     def _contruct_longitudinal_map(self, alpha_mom_compaction=None, longitudinal_mode=None, Q_s=None,
-            h_RF=None, V_RF=None, dphi_RF=None, p_increment=None):
+            h_RF=None, V_RF=None, dphi_RF=None, p_increment=None, RF_at=None):
         
-        # compute the index of the element before which to insert
-        # the longitudinal map
-        if longitudinal_mode is not None:
-                for insert_before, si in enumerate(self.transverse_map.s):
-                        if si > 0.5 * self.circumference:
-                                break
+        if longitudinal_mode is None:
+			return
 
+        if RF_at == 'middle':
+			# compute the index of the element before which to insert
+			# the longitudinal map
+			if longitudinal_mode is not None:
+					for insert_before, si in enumerate(self.transverse_map.s):
+							if si > 0.5 * self.circumference:
+									break
+        elif RF_at == 'end_of_transverse':
+			insert_before = -1
+        else:
+			raise ValueError('RF_at=%s not recognized!')
+        
+        
         if longitudinal_mode == 'linear':
         	
         	eta = alpha_mom_compaction - self.gamma**-2
@@ -272,8 +289,7 @@ class BasicSynchrotron(Element):
                         self.circumference, Q_s,
                         D_x=self.transverse_map.D_x[insert_before],
                         D_y=self.transverse_map.D_y[insert_before])
-                        
-                        
+                                
         elif longitudinal_mode == 'non-linear':
                 self.longitudinal_map = RFSystems(
                         self.circumference, np.atleast_1d(h_RF),
@@ -286,5 +302,8 @@ class BasicSynchrotron(Element):
         else:
                 raise NotImplementedError(
                         'Something wrong with longitudinal_mode')
-                
-        self.one_turn_map.insert(insert_before, self.longitudinal_map)
+
+        if insert_before==-1:
+			self.one_turn_map.append(self.longitudinal_map)
+        else:
+			self.one_turn_map.insert(insert_before, self.longitudinal_map)
