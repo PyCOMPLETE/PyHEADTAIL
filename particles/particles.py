@@ -151,20 +151,35 @@ class Particles(Printing):
         return self._slice_sets[slicer]
 
 
-    def extract_slices(self, slicer, *args, **kwargs):
+    def extract_slices(self, slicer, include_non_sliced='if_any', *args, **kwargs):
         '''Return a list Particles object with the different slices. 
         The last element of the list contains particles not assigned to any slice.
+        
+        include_non_sliced : {'always', 'never', 'if_any'}, optional
+        'always':
+          extra element in the list with particles not belonging to any slice 
+          is always inserted (it can be empty).
+        'never':
+          extra element in the list with particles not belonging to any slice 
+          is never inserted.
+        'if_any':
+          extra element in the list with particles not belonging to any slice 
+          is inserted only if such particles exist.       
         '''
-
+        
+        if include_non_sliced not in ['if_any', 'always', 'never']:
+        	raise ValueError("include_non_sliced=%s is not valid!\n"%include_non_sliced+
+        					"Possible values are {'always', 'never', 'if_any'}" )
+        
         slices = self.get_slices(slicer, *args, **kwargs)
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         slice_object_list = []
-
+        
         for i_sl in xrange(slices.n_slices):
-
+        
             ix = slices.particle_indices_of_slice(i_sl)
             macroparticlenumber = len(ix)
-
+            
             slice_object = Particles(macroparticlenumber=macroparticlenumber, 
                 particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                 mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
@@ -173,15 +188,27 @@ class Particles(Printing):
                 slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
             
             slice_object.id[:] = self.id[ix]
-
+            
             slice_object.slice_info = {\
                     'z_bin_center': slices.z_centers[i_sl],\
                     'z_bin_right':slices.z_bins[i_sl+1],\
                     'z_bin_left':slices.z_bins[i_sl]}
             
             slice_object_list.append(slice_object)
-            
-
+        
+        # handle unsliced
+        if include_non_sliced is not 'never':
+            ix = slices.particles_outside_cuts
+            if len(ix)>0 or include_non_sliced is 'always':
+                slice_object = Particles(macroparticlenumber=len(ix), 
+                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                    mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+                for coord in self_coords_n_momenta_dict.keys():
+                	slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+                slice_object.id[:] = self.id[ix]
+                slice_object.slice_info = 'unsliced' 
+            	slice_object_list.append(slice_object)
+        
         return slice_object_list
 
     def clean_slices(self):
