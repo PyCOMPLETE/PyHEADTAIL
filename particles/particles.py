@@ -152,7 +152,8 @@ class Particles(Printing):
 
 
     def extract_slices(self, slicer, *args, **kwargs):
-        '''Return a list Particles object with the different slices.
+        '''Return a list Particles object with the different slices. 
+        The last element of the list contains particles not assigned to any slice.
         '''
 
         slices = self.get_slices(slicer, *args, **kwargs)
@@ -170,6 +171,8 @@ class Particles(Printing):
             
             for coord in self_coords_n_momenta_dict.keys():
                 slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+            
+            slice_object.id[:] = self.id[ix]
 
             slice_object.slice_info = {\
                     'z_bin_center': slices.z_centers[i_sl],\
@@ -251,6 +254,8 @@ class Particles(Printing):
             #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
             result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
 
+        result.id = np.concatenate((self.id.copy(), other.id.copy()))
+        
         return result
 
     def __radd__(self, other):
@@ -263,6 +268,7 @@ class Particles(Printing):
             for coord in self_coords_n_momenta_dict.keys():
                 #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
                 result.update({coord: self_coords_n_momenta_dict[coord].copy()})
+            result.id = self.id.copy()
         else:
             result = self.__add__(other)
 
