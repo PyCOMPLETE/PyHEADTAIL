@@ -1,32 +1,35 @@
 from PyHEADTAIL.machines.synchrotron import BasicSynchrotron
 import numpy as np
-from scipy.constants import c, e, m_p
+from scipy.constants import c, e, m_e
 
 class CLIC_DR(BasicSynchrotron):
 
 	def __init__(self, machine_configuration=None, optics_mode='smooth', **kwargs):
 		
-		
-		longitudinal_mode = 'non-linear' 
-		alpha		= 3.225e-04
-		h_RF       	= 35640
-		mass 		= m_p
+		 
+		alpha		= 0.0001276102729
+		h_RF       	= 1465
+		mass 		= m_e
 		charge		= e
 		RF_at		= 'middle'
 		
-		if machine_configuration=='Injection':
-			p0 			= 450e9 * e /c
+		if machine_configuration=='3TeV':
+			longitudinal_mode = 'non-linear'				
+			p0 			= 2.86e9 * e /c
 			p_increment = 0.
-			accQ_x		= 64.28
-			accQ_y		= 59.31
-			V_RF		= 6e6
+			accQ_x		= 48.35
+			accQ_y		= 10.4
+			V_RF		= 5.1e6
 			dphi_RF		= 0.
-		elif machine_configuration=='6.5_TeV_collision_tunes':
-			p0 			= 6500e9 * e /c
+                        Q_s             = None
+		elif machine_configuration=='3TeV_linear':
+			Q_s		= 0.0059	
+			longitudinal_mode = 'linear'				
+			p0 			= 2.86e9 * e /c
 			p_increment = 0.
-			accQ_x		= 64.31
-			accQ_y		= 59.32
-			V_RF		= 12e6
+			accQ_x		= 48.35
+			accQ_y		= 10.4
+			V_RF		= 5.1e6
 			dphi_RF		= 0.
 		else:
 			raise ValueError('machine_configuration not recognized!')
@@ -37,13 +40,13 @@ class CLIC_DR(BasicSynchrotron):
 			if 's' in kwargs.keys(): raise ValueError('s vector cannot be provided if optics_mode = "smooth"')
 			
 			n_segments = kwargs['n_segments']
-			circumference = 26658.8832
+			circumference = 427.5
 			
 			name = None
 			
-			beta_x 		= 92.7 
+			beta_x 		= 3.475 
 			D_x 		= 0
-			beta_y 		= 93.2 
+			beta_y 		= 9.233
 			D_y 		= 0 
 			
 			alpha_x 	= None
@@ -102,11 +105,11 @@ class CLIC_DR(BasicSynchrotron):
 				
 		
 		
-		super(LHC, self).__init__(optics_mode=optics_mode, circumference=circumference, n_segments=n_segments, s=s, name=name,
+		super(CLIC_DR, self).__init__(optics_mode=optics_mode, circumference=circumference, n_segments=n_segments, s=s, name=name,
              alpha_x=alpha_x, beta_x=beta_x, D_x=D_x, alpha_y=alpha_y, beta_y=beta_y, D_y=D_y,
              accQ_x=accQ_x, accQ_y=accQ_y, Qp_x=Qp_x, Qp_y=Qp_y, app_x=app_x, app_y=app_y, app_xy=app_xy,
              alpha_mom_compaction=alpha, longitudinal_mode=longitudinal_mode,
              h_RF=np.atleast_1d(h_RF), V_RF=np.atleast_1d(V_RF), dphi_RF=np.atleast_1d(dphi_RF), p0=p0, p_increment=p_increment,
-             charge=charge, mass=mass, RF_at=RF_at)
+             charge=charge, mass=mass, RF_at=RF_at, Q_s=Q_s)
 		
 
