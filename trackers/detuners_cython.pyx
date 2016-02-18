@@ -41,7 +41,7 @@ The number of threads num_threads in the cython.parallel.prange for loops
 is hard-coded to 1 for the moment. Find a good way to make it controllable
 by the user.
 
-@author Kevin Li, Michael Schenk, Stefan Hegglin
+@author Kevin Li, Michael Schenk, Stefan Hegglin, Adrian Oeftiger
 @date 12. October 2014
 @brief Cython implementation of the detuners module to describe the
        elements/effects in an accelerator ring leading to an incoherent
@@ -58,25 +58,25 @@ from libc.math cimport cos, sin
 from collections import Iterable
 
 cdef class ChromaticitySegment(object):
-    """ Cython implementation of a detuning object for a segment of the
+    """Cython implementation of a detuning object for a segment of the
     accelerator ring to describe the incoherent detuning introduced by
-    chromaticity effects. """
+    chromaticity effects.
+    """
     cdef double[::1] coeffs_x, coeffs_y
     cdef int order_x, order_y
 
     def __init__(self, dQp_x, dQp_y):
-        """ Return an instance of a ChromaticitySegment. The dQp_{x,y}
-        denote numpy arrays containing first, second, third, ... order
-        chromaticity coefficients scaled to the segment length. """
-        if not (isinstance(dQp_x, Iterable) and isinstance(dQp_y, Iterable)):
-            raise TypeError("Scalar values are no longer accepted for dQp_x" +
-                            " and dQp_y. They must now be iterables (e.g." +
-                            " lists, tuples or numpy arrays) following the" +
-                            " correct order [Q', Q'', Q''', ...]. This is" +
-                            " true even if the only non-zero chromaticity" +
-                            " coefficient is the linear one.")
+        """Return an instance of a ChromaticitySegment. The dQp_{x,y}
+        denote resp. scalars / lists (or tuples, numpy arrays)
+        containing first, second, third, ... order chromaticity
+        coefficients scaled to the relative bare phase advance.
+        """
+        dQp_x = np.atleast_1d(dQp_x)
+        dQp_y = np.atleast_1d(dQp_y)
+
         self.order_x = dQp_x.shape[0]
         self.order_y = dQp_y.shape[0]
+
         self.coeffs_x = np.empty(self.order_x, dtype=np.double)
         self.coeffs_y = np.empty(self.order_y, dtype=np.double)
 
@@ -89,8 +89,9 @@ cdef class ChromaticitySegment(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def detune(self, beam):
-        """ Calculate for every particle the change in phase advance
-        (detuning) dQ_{x,y}  caused by chromaticity effects. """
+        """Calculate for every particle the change in phase advance
+        (detuning) dQ_{x,y} caused by chromaticity effects.
+        """
         cdef double[::1] dp = beam.dp
         cdef unsigned int n_particles = dp.shape[0]
         cdef double[::1] dQ_x = np.empty(n_particles, dtype=np.double)
@@ -110,7 +111,7 @@ cdef class ChromaticitySegment(object):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef double factorial(int n):
-    """ Calculate factorial of n. """
+    """Calculate factorial of n."""
     cdef double result = 1.
     cdef unsigned int i
     for i in xrange(1, n):
@@ -120,9 +121,10 @@ cdef double factorial(int n):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef double eval_poly(double[::1] coeffs, int n, double x) nogil:
-    """ Evaluate polynomial of order n with coefficients 'coeffs'
+    """Evaluate polynomial of order n with coefficients 'coeffs'
     at value x using Horner's method. Zeroth order coefficient is
-    assumed to be always 0, i.e. coeffs[0] is c1, ... """
+    assumed to be always 0, i.e. coeffs[0] is c1, ...
+    """
     cdef double result = 0.
     cdef unsigned int i
     for i in xrange(n, 0, -1):
@@ -132,23 +134,27 @@ cdef double eval_poly(double[::1] coeffs, int n, double x) nogil:
 
 
 cdef class AmplitudeDetuningSegment(object):
-    """ Cython implementation of a detuning object for a segment of
+    """Cython implementation of a detuning object for a segment of
     the accelerator ring to describe detuning with amplitude (e.g.
-    introduced by octupoles). """
+    introduced by octupoles).
+    """
 
-    cdef double dapp_x, dapp_y, dapp_xy
+    cdef double dapp_x, dapp_y, dapp_xy, dapp_yx
     cdef double beta_x, beta_y
     cdef double alpha_x, alpha_y
 
-    def __init__(self, dapp_x, dapp_y, dapp_xy, alpha_x, beta_x,
+    def __init__(self, dapp_x, dapp_y, dapp_xy, dapp_yx, alpha_x, beta_x,
                  alpha_y, beta_y):
-        """ Return an instance of an AmplitudeDetuningSegment by passing
-        the coefficients of detuning strength dapp_x, dapp_y, dapp_xy
-        (scaled to the segment length. NOT normalized to Beam.p0 yet).
+        """Return an instance of an AmplitudeDetuningSegment by passing
+        the coefficients of detuning strength dapp_x, dapp_y, dapp_xy,
+        dapp_yx (scaled to the segment length. NOT normalized to
+        beam.p0 yet).
         Note that beta_{x,y} are only used to correctly calculate the
         transverse actions J_{x,y}. Although they have an influence on
         the strength of detuning, they have no actual effect on the
-        strength of the octupoles (dapp_x, dapp_y, dapp_xy). """
+        integrated strength of the octupoles
+        (dapp_x, dapp_y, dapp_xy, dapp_yx).
+        """
         self.alpha_x = alpha_x
         self.alpha_y = alpha_y
 
@@ -158,17 +164,19 @@ cdef class AmplitudeDetuningSegment(object):
         self.dapp_x = dapp_x
         self.dapp_y = dapp_y
         self.dapp_xy = dapp_xy
+        self.dapp_yx = dapp_yx
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def detune(self, beam):
-        """ Linear amplitude detuning formula, usually used for detuning
+        """Linear amplitude detuning formula, usually used for detuning
         introduced by octupoles. The normalization of dapp_x, dapp_y,
-        dapp_xy to the reference momentum is done here (compare
+        dapp_xy, dapp_yx to the reference momentum is done here (compare
         documentation of AmplitudeDetuning class).
         J_x and J_y resp. denote the horizontal and vertical action of
-        a specific particle. """
+        a specific particle.
+        """
         cdef double[::1] x = beam.x
         cdef double[::1] y = beam.y
         cdef double[::1] xp = beam.xp
@@ -193,17 +201,17 @@ cdef class AmplitudeDetuningSegment(object):
                         + self.beta_y * yp[i]*yp[i]
                        )
             dQ_x[i] = (self.dapp_x*Jx + self.dapp_xy*Jy) / p0
-            dQ_y[i] = (self.dapp_y*Jy + self.dapp_xy*Jx) / p0
+            dQ_y[i] = (self.dapp_y*Jy + self.dapp_yx*Jx) / p0
 
         return dQ_x, dQ_y
 
 
-''' DetunerCollection classes '''
+# DetunerCollection classes
 
 from abc import abstractmethod, ABCMeta
 
 class DetunerCollection(object):
-    """ Abstract base class for a collection of SegmentDetuner objects
+    """Abstract base class for a collection of SegmentDetuner objects
     (see above). A detuner collection object defines the detuning for
     one complete turn around the accelerator ring for the given
     detuning element. Hence, the strength of detuning must be specified
@@ -212,32 +220,35 @@ class DetunerCollection(object):
     there is just 1). To apply the detuning segment-wise, a
     SegmentDetuner object is instantiated for each of the accelerator
     segments and the detuning strength is chosen to be proportional to
-    the segment_length (normalized to the circumference of the
-    accelerator). The instantiation of SegmentDetuner objects is handled
-    by the generate_segment_detuner method. This method is called by the
-    TransverseSegmentMap object as it contains the information of how
-    the segments of the accelerator are defined by the user. The
-    SegmentDetuner objects are stored in the segment_detuners list (in
-    order of segments along the ring) within the DetunerCollection.
+    the bare betatron phase advance per segment (normalized to the
+    respective tunes of the accelerator).
+    The instantiation of SegmentDetuner objects is
+    handled by the generate_segment_detuner method. This method is
+    called by the TransverseSegmentMap object as it contains the
+    information of how the segments of the accelerator are defined by
+    the user. The SegmentDetuner objects are stored in the
+    segment_detuners list (in order of segments along the ring) within
+    the DetunerCollection.
 
     Since the DetunerCollection is implemented as a sequence, the
     individual SegmentDetuner objects stored by a DetunerCollection can
     be accessed via square brackets [i] where i is the index of the
-    segment. """
-
+    segment.
+    """
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def generate_segment_detuner(self, segment_length, **kwargs):
-        """ Instantiates a SegmentDetuner of the given type for a
-        segment of the accelerator ring. Note that the segment_length
-        is given as a relative value, i.e. in units of accelerator
-        circumference. It scales the one turn value for the detuning
-        strength proportionally to the segment length. The method is
-        called by the TransverseMap object which manages the creation
-        of a detuner for every defined segment. The kwargs are used to
-        e.g. pass the beta functions from the TransverseMap where
-        necessary (e.g. for AmplitudeDetuning). """
+    def generate_segment_detuner(self, dmu_x, dmu_y, **kwargs):
+        """Instantiate a SegmentDetuner of the given type for a
+        segment of the accelerator ring. Note that the bare betatron
+        phase advances over the current segment, dmu_x and dmu_y, are
+        given as relative values, i.e. in units of the overall phase
+        advance around the whole accelerator (the betatron tune).
+        The method is called by the TransverseMap object which manages
+        the creation of a detuner for every defined segment.
+        The kwargs are used e.g. to pass the beta functions from the
+        TransverseMap where necessary (e.g. for AmplitudeDetuning).
+        """
         pass
 
     def __len__(self):
@@ -248,18 +259,20 @@ class DetunerCollection(object):
 
 
 class AmplitudeDetuning(DetunerCollection):
-    """ Collection class to contain/manage the segment-wise defined
+    """Collection class to contain/manage the segment-wise defined
     amplitude detuning elements (octupoles). They are stored in the
-    self.segment_detuners list. """
+    self.segment_detuners list.
+    """
 
     def __init__(self, app_x, app_y, app_xy):
-        """ Return an instance of the AmplitudeDetuning
+        """Return an instance of the AmplitudeDetuning
         DetunerCollection class. The coefficients app_x, app_y, app_xy
         are the detuning strengths (one-turn values). Note that the
         convention used here is such that they are NOT normalized to
         the reference momentum Beam.p0. The normalization to Beam.p0
         is done only in the detune(beam) method of the
-        AmplitudeDetuningSegment. """
+        AmplitudeDetuningSegment.
+        """
         self.app_x  = app_x
         self.app_y  = app_y
         self.app_xy = app_xy
@@ -268,12 +281,12 @@ class AmplitudeDetuning(DetunerCollection):
 
     @classmethod
     def from_octupole_currents_LHC(cls, i_focusing, i_defocusing):
-        """ Calculate the constants of proportionality app_x, app_y and
+        """Calculate the constants of proportionality app_x, app_y and
         app_xy (== app_yx) for the amplitude detuning introduced by the
         LHC octupole magnets (aka. LHC Landau octupoles) from the
         electric currents i_focusing [A] and i_defocusing [A] flowing
         through the magnets. The maximum current is given by
-        i_max = +/- 550 [A]. The values app_x, app_y, app_xy  obtained
+        i_max = +/- 550 [A]. The values app_x, app_y, app_xy obtained
         from the formulae are proportional to the strength of detuning
         for one complete turn around the accelerator, i.e. one-turn
         values.
@@ -290,7 +303,8 @@ class AmplitudeDetuning(DetunerCollection):
 
         More detailed explanations and references on how the formulae
         were obtained are given in the PhD thesis (pg. 85ff) cited
-        above. """
+        above.
+        """
         i_max = 550.  # [A]
         E_max = 7000. # [GeV]
 
@@ -309,56 +323,49 @@ class AmplitudeDetuning(DetunerCollection):
 
         return cls(app_x, app_y, app_xy)
 
-    def generate_segment_detuner(self, segment_length, **kwargs):
-        """ Instantiates an AmplitudeDetuningSegment for the specified
-        segment of the accelerator ring. Note that the segment_length
-        is given as a relative value, i.e. in units of accelerator
-        circumference. It scales the one-turn values for the detuning
-        strength proportionally to the segment length. The method is
-        called by the TransverseMap object which manages the creation
-        of a detuner for every defined segment. The kwargs are used to
-        pass the beta functions from the TransverseMap at the given
-        segment. """
-        dapp_x = self.app_x * segment_length
-        dapp_y = self.app_y * segment_length
-        dapp_xy = self.app_xy * segment_length
+    def generate_segment_detuner(self, dmu_x, dmu_y, **kwargs):
+        """Instantiate an AmplitudeDetuningSegment for the specified
+        segment of the accelerator ring. Note that the bare betatron
+        phase advances over the current segment, dmu_x and dmu_y, are
+        given as relative values, i.e. in units of the overall phase
+        advance around the whole accelerator (the betatron tune).
+        """
+        dapp_x = self.app_x * dmu_x
+        dapp_y = self.app_y * dmu_y
+        dapp_xy = self.app_xy * dmu_x
+        dapp_yx = self.app_xy * dmu_y
 
-        detuner = AmplitudeDetuningSegment(dapp_x, dapp_y, dapp_xy, **kwargs)
+        detuner = AmplitudeDetuningSegment(
+            dapp_x, dapp_y, dapp_xy, dapp_yx, **kwargs)
         self.segment_detuners.append(detuner)
 
 
 class Chromaticity(DetunerCollection):
-    """ Collection class to contain/manage the segment-wise defined
+    """Collection class to contain/manage the segment-wise defined
     elements that introduce detuning as a result of chromaticity
-    effects.  They are stored in the self.segment_detuners list. """
+    effects.  They are stored in the self.segment_detuners list.
+    """
 
     def __init__(self, Qp_x, Qp_y):
-        """ Return an instance of a Chromaticity DetunerCollection
-        class. The Qp_{x,y} are lists containing first, second, third,
-        ... order chromaticity coefficients (one-turn values), aka.
-        Q'_{x,y}, Q''_{x,y} (Q-prime, Q-double-prime), .... """
-        if not (isinstance(Qp_x, Iterable) and isinstance(Qp_y, Iterable)):
-            raise TypeError("Scalar values are no longer accepted for Qp_x" +
-                            " and Qp_y. They must now be iterables (e.g." +
-                            " lists, tuples or numpy arrays) following the" +
-                            " correct order [Q', Q'', Q''', ...]. This is" +
-                            " true even if the only non-zero chromaticity" +
-                            " coefficient is the linear one.")
-        self.Qp_x = Qp_x
-        self.Qp_y = Qp_y
+        """Return an instance of a Chromaticity DetunerCollection
+        class. The Qp_{x,y} are resp. scalars / lists containing first,
+        second, third, ... order chromaticity coefficients (one-turn
+        values), aka. Q'_{x,y}, Q''_{x,y} (Q-prime, Q-double-prime), ...
+        """
+        self.Qp_x = np.atleast_1d(Qp_x)
+        self.Qp_y = np.atleast_1d(Qp_y)
 
         self.segment_detuners = []
 
-    def generate_segment_detuner(self, segment_length, **kwargs):
-        """ Instantiates a ChromaticitySegment for the specified
-        segment of the accelerator ring. Note that the segment_length
-        is given as a relative value, i.e. in units of accelerator
-        circumference. It scales the one-turn values for the detuning
-        strength proportionally to the segment length. The method is
-        called by the TransverseMap object which manages the creation
-        of a detuner for every defined segment. """
-        dQp_x = np.array([ Qp * segment_length for Qp in self.Qp_x ])
-        dQp_y = np.array([ Qp * segment_length for Qp in self.Qp_y ])
+    def generate_segment_detuner(self, dmu_x, dmu_y, **kwargs):
+        """Instantiate a ChromaticitySegment for the specified
+        segment of the accelerator ring. Note that the bare betatron
+        phase advances over the current segment, dmu_x and dmu_y, are
+        given as relative values, i.e. in units of the overall phase
+        advance around the whole accelerator (the betatron tune).
+        """
+        dQp_x = [ Qp * dmu_x for Qp in self.Qp_x ]
+        dQp_y = [ Qp * dmu_y for Qp in self.Qp_y ]
 
         detuner = ChromaticitySegment(dQp_x, dQp_y)
         self.segment_detuners.append(detuner)

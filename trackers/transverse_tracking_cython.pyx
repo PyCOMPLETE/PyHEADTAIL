@@ -1,5 +1,5 @@
 """
-@author Kevin Li, Michael Schenk
+@author Kevin Li, Michael Schenk, Stefan Hegglin
 @date 07. January 2014
 @brief Description of the transport of transverse phase spaces using
        Cython functions (prepared for OpenMP).
@@ -7,12 +7,16 @@
 """
 from __future__ import division
 
+from . import Element, Printing
+
 cimport cython
 from cython.parallel cimport prange
 import numpy as np
 cimport numpy as np
 from libc.math cimport cos, sin
-
+diff = np.diff
+ndim = np.ndim
+atleast_1d = np.atleast_1d
 
 class TransverseSegmentMap(object):
     """ Class to transport/track the particles of the beam in the
@@ -88,6 +92,13 @@ class TransverseSegmentMap(object):
         self.D_y_s1 = D_y_s1
         self.dQ_x = dQ_x
         self.dQ_y = dQ_y
+
+        # HACK: flag to check for dispersion
+        if np.allclose([D_x_s0, D_x_s1, D_y_s0, D_y_s1],
+                       np.zeros(4), atol=1e-3):
+            self.has_dispersion = False
+        else:
+            self.has_dispersion = True
 
         self._build_segment_map(alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                                 alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1)
@@ -183,14 +194,24 @@ class TransverseSegmentMap(object):
         dphi_y *= 2. * np.pi
 
         # Call Cython method to do the tracking.
-        beam.x += -self.D_x_s0 * beam.dp
-        beam.y += -self.D_y_s0 * beam.dp
 
-        cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
+        # HACK continue...
+        if self.has_dispersion:
+
+            beam.x += -self.D_x_s0 * beam.dp
+            beam.y += -self.D_y_s0 * beam.dp
+
+            cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                               dphi_x, dphi_y, self.I, self.J)
 
-        beam.x += self.D_x_s1 * beam.dp
-        beam.y += self.D_y_s1 * beam.dp
+            beam.x += self.D_x_s1 * beam.dp
+            beam.y += self.D_y_s1 * beam.dp
+
+        else :
+            cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
+                                  dphi_x, dphi_y, self.I, self.J)
+
+
 
     def track_without_detuners(self, beam):
         """ This method is bound to the self.track(self, beam) method
@@ -198,15 +219,22 @@ class TransverseSegmentMap(object):
         the transport matrix self.M is a constant and can be directly
         used. """
 
-        # Call Cython method to do the tracking.
-        beam.x += -self.D_x_s0 * beam.dp
-        beam.y += -self.D_y_s0 * beam.dp
+        # HACK continue...
 
-        cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
+        if self.has_dispersion:
+
+            beam.x += -self.D_x_s0 * beam.dp
+            beam.y += -self.D_y_s0 * beam.dp
+
+            cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                  self.M)
 
-        beam.x += self.D_x_s1 * beam.dp
-        beam.y += self.D_y_s1 * beam.dp
+            beam.x += self.D_x_s1 * beam.dp
+            beam.y += self.D_y_s1 * beam.dp
+
+        else :
+            cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
+                                 self.M)
 
 
 @cython.boundscheck(False)
@@ -287,7 +315,7 @@ cpdef cytrack_without_detuners(double[::1] x, double[::1] xp, double[::1] y,
         yp[i] = M[3,2] * y_tmp + M[3,3] * yp_tmp
 
 
-class TransverseMap(object):
+class TransverseMap(Printing):
     """ Collection class for TransverseSegmentMap objects. This class is
     used to define a one turn map for transverse particle tracking. An
     accelerator ring is divided into segments (1 or more). They are
@@ -314,8 +342,8 @@ class TransverseMap(object):
     self.segment_maps) can be accessed using the notation
     TransverseMap(...)[i] (with i the index of the accelerator
     segment). """
-    def __init__(self, C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
-                 Q_x, Q_y, *detuner_collections):
+    def __init__(self, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y,
+                 accQ_x, accQ_y, detuners=[]):
         """ Create a one-turn map that manages the transverse tracking
         for each of the accelerator segments defined by s.
           - s is the array of positions defining the boundaries of the
@@ -326,22 +354,23 @@ class TransverseMap(object):
             beta. They are arrays of size len(s) as these parameters
             must be defined at every segment boundary of the
             accelerator.
+          - accQ_{x,y} are arrays with the accumulating phase advance
+            in units of 2 \pi (i.e. mu_{x,y} / 2 \pi) at each segment
+            boundary. The respective last entry gives the betatron tune
+            Q_{x,y} .
+            Note: instead of arrays of length len(s) it is possible
+            to provide solely the scalar one-turn betatron tune Q_{x,y}
+            directly. Then the phase advances are smoothly distributed
+            over the segments (proportional to the respective s length).
           - D_{x,y} are the dispersion coefficients. They are arrays of
             size len(s) as these parameters must be defined at every
             segment boundary of the accelerator.
-            WARNING: Dispersion effects are not yet implemented.
-          - Q_{x,y} are scalar values and define the betatron tunes
-            (i.e. the number of betatron oscillations in one complete
-            turn).
           - detuner_collections is a list of DetunerCollection objects
             that are present in the accelerator. Each DetunerCollection
             knows how to generate and store its SegmentDetuner objects
             to 'distribute' the detuning proportionally along the
             accelerator circumference. """
-        if not np.allclose([s[0], s[-1]], [0., C]):
-            raise ValueError('The first element of s must be zero \n' +
-                'and the last element must be equal to the \n' +
-                'accelerator circumference C. \n')
+
         self.s = s
         self.alpha_x = alpha_x
         self.beta_x = beta_x
@@ -349,9 +378,9 @@ class TransverseMap(object):
         self.alpha_y = alpha_y
         self.beta_y = beta_y
         self.D_y = D_y
-        self.Q_x = Q_x
-        self.Q_y = Q_y
-        self.detuner_collections = detuner_collections
+        self.accQ_x = accQ_x
+        self.accQ_y = accQ_y
+        self.detuner_collections = detuners
 
         # List to store TransverseSegmentMap objects.
         self.segment_maps = []
@@ -378,18 +407,30 @@ class TransverseMap(object):
         the accelerator circumference s[-1]). """
         segment_length = np.diff(self.s) / self.s[-1]
 
-        # Betatron motion normalized to this particular segment.
-        dQ_x = self.Q_x * segment_length
-        dQ_y = self.Q_y * segment_length
+        if ndim(self.accQ_x) == 0:
+            # smooth approximation for phase advance (proportional to s)
+            dQ_x = self.accQ_x * segment_length
+        else:
+            dQ_x = diff(self.accQ_x)
+        if ndim(self.accQ_y) == 0:
+            # smooth approximation for phase advance (proportional to s)
+            dQ_y = self.accQ_y * segment_length
+        else:
+            dQ_y = diff(self.accQ_y)
 
         n_segments = len(self.s) - 1
+        # relative phase advances for detuners:
+        dmu_x = dQ_x / atleast_1d(self.accQ_x)[-1]
+        dmu_y = dQ_y / atleast_1d(self.accQ_y)[-1]
+
         for seg in range(n_segments):
             s0 = seg % n_segments
             s1 = (seg + 1) % n_segments
 
             # Instantiate SegmentDetuner objects.
             for detuner in self.detuner_collections:
-                detuner.generate_segment_detuner(segment_length[s0],
+                detuner.generate_segment_detuner(
+                    dmu_x[s0], dmu_y[s0],
                     alpha_x=self.alpha_x[s0], alpha_y=self.alpha_y[s0],
                     beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
 
@@ -409,9 +450,14 @@ class TransverseMap(object):
         """ Return a tuple with the transverse TWISS parameters
         (alpha_x, beta_x, alpha_y, beta_y) from the beginning of the
         first segment (injection point). """
-        return (self.alpha_x[0], self.beta_x[0],
-                self.alpha_y[0], self.beta_y[0])
-
+        return {
+            'alpha_x': self.alpha_x[0], 
+            'beta_x': self.beta_x[0], 
+            'D_x': self.D_x[0],
+            'alpha_y': self.alpha_y[0], 
+            'beta_y': self.beta_y[0], 
+            'D_y': self.D_y[0]}
+        
     def __len__(self):
         return len(self.segment_maps)
 

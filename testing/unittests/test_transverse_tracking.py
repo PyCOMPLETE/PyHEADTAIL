@@ -39,7 +39,7 @@ class TestTransverseTracking(unittest.TestCase):
         self.beta_y = self.beta_x.copy()
         self.Qx = 17.89
         self.Qy = 19.11
-        self.Dx = np.zeros(len(self.alpha_x)) # or len(self.s)?
+        self.Dx = 100*np.ones(len(self.alpha_x)) # or len(self.s)?
         self.Dy = self.Dx.copy()
 
     def tearDown(self):
@@ -51,11 +51,11 @@ class TestTransverseTracking(unittest.TestCase):
         without detuners
         '''
         pure_python_map = pure_py.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
         )
         cython_map = cy.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
         )
         beam_c = self.create_bunch()
@@ -88,12 +88,12 @@ class TestTransverseTracking(unittest.TestCase):
         '''
         adetuner = AmplitudeDetuning(1e-2, 5e-2, 1e-3)
         pure_python_map = pure_py.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
             adetuner
         )
         cython_map = cy.TransverseMap(
-            self.circumference, self.s, self.alpha_x, self.beta_x,
+            self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
             adetuner
         )

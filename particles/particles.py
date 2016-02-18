@@ -6,10 +6,14 @@ Created on 17.10.2014
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-from scipy.constants import c, e, m_p
+from scipy.constants import c, e
 
 from ..cobra_functions import stats as cp
 from . import Printing
+
+arange = np.arange
+mean = np.mean
+std = cp.std
 
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
@@ -17,7 +21,8 @@ class Particles(Printing):
     Designed to describe beams, electron clouds, ... '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma, coords_n_momenta_dict={}):
+                 mass, circumference, gamma, coords_n_momenta_dict={},
+                 *args, **kwargs):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
@@ -33,10 +38,10 @@ class Particles(Printing):
                        'consistently replaced by "beam.charge"!')
         self.charge_per_mp = particlenumber_per_mp * charge
         self.mass = mass
-        if not np.allclose(self.charge, m_p): #, atol=1e-24):
-            self.warns('PyHEADTAIL currently features many "m_p" ' +
-                       'in the various modules, these need to be ' +
-                       'consistently replaced by "beam.mass"!')
+#         if not np.allclose(self.charge, m_p): #, atol=1e-24):
+#             self.warns('PyHEADTAIL currently features many "m_p" ' +
+#                        'in the various modules, these need to be ' +
+#                        'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
         self.gamma = gamma
@@ -58,9 +63,10 @@ class Particles(Printing):
         '''ID of particles in order to keep track of single entries
         in the coordinate and momentum arrays.
         '''
-        self.id = np.arange(1, self.macroparticlenumber+1, dtype=np.int32)
+        self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
 
         self.update(coords_n_momenta_dict)
+
 
     @property
     def intensity(self):
@@ -100,19 +106,12 @@ class Particles(Printing):
     def p0(self, value):
         self.gamma = value / (self.mass * self.beta * c)
 
-    # @property
-    # def theta(self):
-    #     return self.z/self.ring_radius
-    # @theta.setter
-    # def theta(self, value):
-    #     self.z = value*self.ring_radius
-
-    # @property
-    # def delta_E(self):
-    #     return self.dp * self.beta*c*self.p0
-    # @delta_E.setter
-    # def delta_E(self, value):
-    #     self.dp = value / (self.beta*c*self.p0)
+    @property
+    def z_beamframe(self):
+        return self.z * self.gamma
+    @z_beamframe.setter
+    def z_beamframe(self, value):
+        self.z = value / self.gamma
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -151,6 +150,37 @@ class Particles(Printing):
         #                               kwargs['statistics'])
         return self._slice_sets[slicer]
 
+
+    def extract_slices(self, slicer, *args, **kwargs):
+        '''Return a list Particles object with the different slices.
+        '''
+
+        slices = self.get_slices(slicer, *args, **kwargs)
+        self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
+        slice_object_list = []
+
+        for i_sl in xrange(slices.n_slices):
+
+            ix = slices.particle_indices_of_slice(i_sl)
+            macroparticlenumber = len(ix)
+
+            slice_object = Particles(macroparticlenumber=macroparticlenumber, 
+                particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+            
+            for coord in self_coords_n_momenta_dict.keys():
+                slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+
+            slice_object.slice_info = {\
+                    'z_bin_center': slices.z_centers[i_sl],\
+                    'z_bin_right':slices.z_bins[i_sl+1],\
+                    'z_bin_left':slices.z_bins[i_sl]}
+            
+            slice_object_list.append(slice_object)
+            
+
+        return slice_object_list
+
     def clean_slices(self):
         '''Erases the SliceSet records of this Particles instance.
         Any longitudinal trackers (or otherwise modifying elements)
@@ -185,43 +215,141 @@ class Particles(Printing):
                              " Use self.update(...) for this purpose.")
         self.update(coords_n_momenta_dict)
 
+    def sort_for(self, attr):
+        '''Sort the named particle attribute (coordinate / momentum)
+        array and reorder all particles accordingly.
+        '''
+        permutation = np.argsort(getattr(self, attr))
+        self.reorder(permutation)
+
+    def reorder(self, permutation, except_for_attrs=[]):
+        '''Reorder all particle coordinate and momentum arrays
+        (in self.coords_n_momenta) and ids except for except_for_attrs
+        according to the given index array permutation.
+        '''
+        to_be_reordered = ['id'] + list(self.coords_n_momenta)
+        for attr in to_be_reordered:
+            if attr in except_for_attrs:
+                continue
+            reordered = getattr(self, attr)[permutation]
+            setattr(self, attr, reordered)
+
+    def __add__(self, other):
+        '''Merges two beams.
+		'''
+        #print 'Checks still to be added!!!!!!'
+
+        self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
+        other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
+
+        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
+                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+
+
+        for coord in self_coords_n_momenta_dict.keys():
+            #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
+            result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
+
+        return result
+
+    def __radd__(self, other):
+        if other==0:
+            self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
+            result = Particles(macroparticlenumber=self.macroparticlenumber,
+                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                    mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+
+            for coord in self_coords_n_momenta_dict.keys():
+                #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
+                result.update({coord: self_coords_n_momenta_dict[coord].copy()})
+        else:
+            result = self.__add__(other)
+
+        return result
+
+
     # Statistics methods
 
     def mean_x(self):
-        return cp.mean(self.x)
+        return mean(self.x)
 
     def mean_xp(self):
-        return cp.mean(self.xp)
+        return mean(self.xp)
 
     def mean_y(self):
-        return cp.mean(self.y)
+        return mean(self.y)
 
     def mean_yp(self):
-        return cp.mean(self.yp)
+        return mean(self.yp)
 
     def mean_z(self):
-        return cp.mean(self.z)
+        return mean(self.z)
 
     def mean_dp(self):
-        return cp.mean(self.dp)
+        return mean(self.dp)
 
     def sigma_x(self):
-        return cp.std(self.x)
+        return std(self.x)
 
     def sigma_y(self):
-        return cp.std(self.y)
+        return std(self.y)
 
     def sigma_z(self):
-        return cp.std(self.z)
+        return std(self.z)
+
+    def sigma_xp(self):
+        return std(self.xp)
+
+    def sigma_yp(self):
+        return std(self.yp)
 
     def sigma_dp(self):
-        return cp.std(self.dp)
+        return std(self.dp)
+
+    def effective_normalized_emittance_x(self):
+        return cp.emittance(self.x, self.xp, None) * self.betagamma
+
+    def effective_normalized_emittance_y(self):
+        return cp.emittance(self.y, self.yp, None) * self.betagamma
+
+    def effective_normalized_emittance_z(self):
+        return(4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
 
     def epsn_x(self):
-        return cp.emittance(self.x, self.xp) * self.betagamma
+        return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
+               * self.betagamma)
 
     def epsn_y(self):
-        return cp.emittance(self.y, self.yp) * self.betagamma
+        return (cp.emittance(self.y, self.yp, getattr(self, 'dp', None))
+               * self.betagamma)
 
     def epsn_z(self):
-        return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
+        # always use the effective emittance
+        return self.effective_normalized_emittance_z()
+
+    def dispersion_x(self):
+        return cp.dispersion(self.x, self.dp)
+
+    def dispersion_y(self):
+        return cp.dispersion(self.y, self.dp)
+
+    def alpha_Twiss_x(self):
+        return cp.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
+
+    def alpha_Twiss_y(self):
+        return cp.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
+
+    def beta_Twiss_x(self):
+        return cp.get_beta(self.x, self.xp, getattr(self, 'dp', None))
+
+    def beta_Twiss_y(self):
+        return cp.get_beta(self.y, self.yp, getattr(self, 'dp', None))
+
+    def gamma_Twiss_x(self):
+        return cp.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
+
+    def gamma_Twiss_y(self):
+        return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
+
+

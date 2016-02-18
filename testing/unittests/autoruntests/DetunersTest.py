@@ -19,14 +19,14 @@ from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 import PyHEADTAIL.particles.generators as generators
 
 
-# In[24]:
+# In[3]:
+
+# HELPERS
 def run():
-    # HELPERS
     def track(bunch, map_):
         for i in range(n_turns):
             for m in map_:
                 m.track(bunch)
-
 
     def generate_bunch(n_macroparticles, alpha_x, alpha_y, beta_x, beta_y, alpha_0, Q_s, R):
         intensity = 1.05e11
@@ -42,23 +42,23 @@ def run():
         epsn_y = 3.75e-6 # [m rad]
         epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e)
 
-        bunch = generators.Gaussian6DTwiss(
+        bunch = generators.generate_Gaussian6DTwiss(
             macroparticlenumber=n_macroparticles, intensity=intensity, charge=e,
             gamma=gamma, mass=m_p, circumference=C,
             alpha_x=alpha_x, beta_x=beta_x, epsn_x=epsn_x,
             alpha_y=alpha_y, beta_y=beta_y, epsn_y=epsn_y,
-            beta_z=beta_z, epsn_z=epsn_z).generate()
+            beta_z=beta_z, epsn_z=epsn_z)
         #print bunch.sigma_z()
 
         return bunch
 
 
-    # In[25]:
+    # In[4]:
 
-# Basic parameters.
-    n_turns = 2
+    # Basic parameters.
+    n_turns = 3
     n_segments = 1
-    n_macroparticles = 20
+    n_macroparticles = 10
 
     Q_x = 64.28
     Q_y = 59.31
@@ -74,7 +74,7 @@ def run():
     alpha_0 = 0.0003225
 
 
-    # In[26]:
+    # In[5]:
 
     # Parameters for transverse map.
     s = np.arange(0, n_segments + 1) * C / n_segments
@@ -88,7 +88,7 @@ def run():
     D_y = np.zeros(n_segments)
 
 
-    # In[27]:
+    # In[6]:
 
     # CASE I
     # With amplitude detuning (python implementation)
@@ -101,7 +101,7 @@ def run():
 
     ampl_det = AmplitudeDetuning.from_octupole_currents_LHC(i_focusing=400, i_defocusing=-400)
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, ampl_det)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, [ampl_det])
 
     trans_one_turn = [ m for m in trans_map ]
     map_ = trans_one_turn
@@ -109,7 +109,7 @@ def run():
     track(bunch, map_)
 
 
-    # In[53]:
+    # In[7]:
 
     # CASE II
     # With first order Chromaticity (python implementation)
@@ -119,7 +119,7 @@ def run():
 
     chroma = Chromaticity(Qp_x=[6], Qp_y=[3])
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, chroma)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, [chroma])
 
     trans_one_turn = [ m for m in trans_map ]
     map_ = trans_one_turn
@@ -127,7 +127,7 @@ def run():
     track(bunch, map_)
 
 
-    # In[56]:
+    # In[8]:
 
     # CASE III
     # With higher order Chromaticity (python implementation)
@@ -137,7 +137,7 @@ def run():
 
     chroma = Chromaticity(Qp_x=[6., 4e4], Qp_y=[3., 0., 2e8])
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, chroma)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, [chroma])
 
     trans_one_turn = [ m for m in trans_map ]
     map_ = trans_one_turn
@@ -145,21 +145,10 @@ def run():
     track(bunch, map_)
 
 
-    # In[58]:
 
-    # CASE IV
-    # detuning functions for higher order chroma.
+    # In[ ]:
 
-    chroma = Chromaticity(Qp_x=[6., 4e4], Qp_y=[3., 0., 2e8])
-    chroma.generate_segment_detuner(segment_length=1)
-
-    dp = np.linspace(-5e-4, 5e-4, 500)
-
-    dQx = chroma.segment_detuners[0].calc_detuning_x(dp)
-    dQy = chroma.segment_detuners[0].calc_detuning_y(dp)
 
 if __name__ == '__main__':
     run()
 
-
-# In[ ]:

@@ -25,7 +25,7 @@ kick, i.e. a change in a particle's normalized momentum dp. For model
 (II), the incoherent betatron detuning is not applied directly, but is
 a consequence of the change in momenta xp and yp.
 
-@author Michael Schenk
+@author Michael Schenk, Adrian Oeftiger
 @date July, 10th 2014
 @brief Cython implementation of a pillbox cavity RF quadrupole for
        Landau damping.
@@ -45,15 +45,16 @@ from ..trackers.detuners import DetunerCollection
 
 
 class RFQTransverseDetuner(DetunerCollection):
-    """ Collection class to contain/manage the segment-wise defined
+    """Collection class to contain/manage the segment-wise defined
     RFQ elements RFQTransverseDetunerSegment acting on the
     betatron tunes (detuner model of the RFQ). This is a pure
     Python class and it derives from the DetunerCollection class
-    defined in the module PyHEADTAIL.trackers.detuners. """
+    defined in the module PyHEADTAIL.trackers.detuners.
+    """
 
     def __init__(self, v_2, omega, phi_0, beta_x_RFQ, beta_y_RFQ,
                  n_threads=1):
-        """ An RFQ element is fully characterized by the parameters
+        """An RFQ element is fully characterized by the parameters
           v_2:   quadrupolar expansion coefficient of the accelerating
                  voltage (~strength of the RFQ), in [V/m^2]. One-turn
                  value.
@@ -67,7 +68,8 @@ class RFQTransverseDetuner(DetunerCollection):
 
         n_threads defines the number of threads to be used to execute
         the for-loop on the number of particles with cython OpenMP. It
-        is set to 1 by default. """
+        is set to 1 by default.
+        """
         self.v_2 = v_2
         self.omega = omega
         self.phi_0 = phi_0
@@ -78,19 +80,20 @@ class RFQTransverseDetuner(DetunerCollection):
         self.n_threads = n_threads
         self.segment_detuners = []
 
-    def generate_segment_detuner(self, segment_length, **kwargs):
-        """ Instantiates a RFQTransverseSegmentDetuner for the
-        specified segment of the accelerator ring. Note that the
-        segment_length is given as a relative value, i.e. in units
-        of accelerator circumference. It scales the one turn value
-        for the detuning strength proportionally to the segment
-        length. The method is called by the TransverseMap object
-        which manages the creation of a detuner for every defined
-        segment. """
+    def generate_segment_detuner(self, dmu_x, dmu_y, **kwargs):
+        """Instantiate a RFQTransverseSegmentDetuner for the
+        specified segment of the accelerator ring.
+        Note that the bare betatron
+        phase advances over the current segment, dmu_x and dmu_y, are
+        given as relative values, i.e. in units of the overall phase
+        advance around the whole accelerator (the betatron tune).
+        The method is called by the TransverseMap object which manages
+        the creation of a detuner for every defined segment.
+        """
         dapp_xz = self.beta_x_RFQ * self.v_2 * e / (2.*np.pi*self.omega)
         dapp_yz = -self.beta_y_RFQ * self.v_2 * e / (2.*np.pi*self.omega)
-        dapp_xz *= segment_length
-        dapp_yz *= segment_length
+        dapp_xz *= dmu_x
+        dapp_yz *= dmu_y
 
         detuner = RFQTransverseDetunerSegment(
             dapp_xz, dapp_yz, self.omega, self.phi_0, n_threads=self.n_threads)
@@ -98,26 +101,28 @@ class RFQTransverseDetuner(DetunerCollection):
 
 
 cdef class RFQTransverseDetunerSegment(object):
-    """ Cython implementation of the RFQ element acting directly on the
-    particles' betatron tunes (i.e. RFQ detuner model). """
+    """Cython implementation of the RFQ element acting directly on the
+    particles' betatron tunes (i.e. RFQ detuner model).
+    """
 
     cdef double dapp_xz, dapp_yz, omega, phi_0
     cdef int n_threads
 
     def __init__(self, dapp_xz, dapp_yz, omega, phi_0, n_threads):
-        """ Creates an instance of the RFQTransverseDetunerSegment
+        """Creates an instance of the RFQTransverseDetunerSegment
         class. The RFQ is characterized by
           omega:   Angular frequency of the RF wave, in [rad/s].
           phi_0:   Constant phase offset wrt. bunch center (z=0), in
                    [rad].
           dapp_xz: Strength of detuning in the horizontal plane, scaled
-                   to the relative segment length.
+                   to the relative bare betatron phase advance in x.
           dapp_yz: Strength of detuning in the vertical plane, scaled
-                   to the relative segment length.
+                   to the relative bare betatron phase advance in y.
 
         n_threads defines the number of threads to be used to execute
         the for-loop on the number of particles with cython OpenMP. It
-        is set to 1 by default. """
+        is set to 1 by default.
+        """
         self.dapp_xz = dapp_xz
         self.dapp_yz = dapp_yz
 
@@ -166,16 +171,17 @@ cdef class RFQTransverseDetunerSegment(object):
 
 
 cdef class RFQKick(object):
-    """ Cython base class to describe the RFQ element in the
+    """Cython base class to describe the RFQ element in the
     localized kick model for both the transverse and the
     longitudinal coordinates. This class should be considered
     an abstract base class and not be instantiated by the
-    user (note: ABCs are not yet supported in Cython). """
+    user (note: ABCs are not yet supported in Cython).
+    """
     cdef double v_2, omega, phi_0
     cdef int n_threads
 
     def __init__(self, v_2, omega, phi_0, n_threads=1):
-        """ An RFQ element is fully characterized by the parameters
+        """An RFQ element is fully characterized by the parameters
           v_2:   quadrupolar expansion coefficient of the
                  accelerating voltage (~strength of the RFQ), in
                  [V/m^2].
@@ -185,7 +191,8 @@ cdef class RFQKick(object):
 
         n_threads defines the number of threads to be used to execute
         the for-loop on the number of particles with cython OpenMP. It
-        is set to 1 by default. """
+        is set to 1 by default.
+        """
         self.v_2 = v_2
         self.omega = omega
         self.phi_0 = phi_0
@@ -197,14 +204,15 @@ cdef class RFQKick(object):
 
 
 cdef class RFQTransverseKick(RFQKick):
-    """ Cython implementation of the RFQ element acting on the
+    """Cython implementation of the RFQ element acting on the
     particles' transverse coordinates (i.e. localized kick
-    model). """
+    model).
+    """
 
     @cython.boundscheck(False)
     @cython.cdivision(True)
     def track(self, beam):
-        """ The formula that describes the transverse kick experienced
+        """The formula that describes the transverse kick experienced
         by an ultra-relativistic particle traversing the RFQ
         longitudinally is based on the thin-lens approximation
             \Delta p_x = -x*(2 e v_2 / omega) *
@@ -214,7 +222,8 @@ cdef class RFQTransverseKick(RFQKick):
 
         The for loop on the number of particles can make use of cython
         OpenMP with the number of threads defined by self.n_threads. It
-        is set to 1 by default. """
+        is set to 1 by default.
+        """
         cdef double[::1] x = beam.x
         cdef double[::1] y = beam.y
         cdef double[::1] z = beam.z
@@ -241,20 +250,21 @@ cdef class RFQTransverseKick(RFQKick):
 
 
 cdef class RFQLongitudinalKick(RFQKick):
-    """ Cython implementation of the RFQ element acting on the
-    particles' longitudinal coordinate dp. """
+    """Cython implementation of the RFQ element acting on the
+    particles' longitudinal coordinate dp."""
 
     @cython.boundscheck(False)
     @cython.cdivision(True)
     def track(self, beam):
-        """ The formula used to describe the longitudinal kick is given
+        """The formula used to describe the longitudinal kick is given
         by
             \Delta p_z = -(x^2 - y^2) (e v_2 / (beta c)) *
                 sin(omega z / (beta c) + phi_0).
 
         The for loop on the number of particles can make use of cython
         OpenMP with the number of threads defined by self.n_threads. It
-        is set to 1 by default. """
+        is set to 1 by default.
+        """
         cdef double[::1] x = beam.x
         cdef double[::1] y = beam.y
         cdef double[::1] z = beam.z

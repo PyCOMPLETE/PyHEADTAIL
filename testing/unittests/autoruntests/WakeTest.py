@@ -65,12 +65,12 @@ def run():
         epsn_y = 3.75e-6 # [m rad]
         epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e)
 
-        bunch = generators.Gaussian6DTwiss(
+        bunch = generators.generate_Gaussian6DTwiss(
             macroparticlenumber=n_macroparticles, intensity=intensity, charge=e,
             gamma=gamma, mass=m_p, circumference=C,
             alpha_x=alpha_x, beta_x=beta_x, epsn_x=epsn_x,
             alpha_y=alpha_y, beta_y=beta_y, epsn_y=epsn_y,
-            beta_z=beta_z, epsn_z=epsn_z).generate()
+            beta_z=beta_z, epsn_z=epsn_z)
         # print ('bunch sigma_z=' + bunch.sigma_z())
 
         return bunch
@@ -154,7 +154,7 @@ def run():
 
     # CASE TEST SETUP
     trans_map = TransverseMap(
-        C, s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
     long_map = LinearMap(alpha_0, C, Q_s)
 
     bunch = generate_bunch(
@@ -354,7 +354,7 @@ def run():
 
     # Definition of WakeField as a composition of different sources.
     resis_circ = CircularResistiveWall(pipe_radius=5e-2, resistive_wall_length=C,
-                                        conductivity=1e6, dz_min=1e-3)
+                                        conductivity=1e6, dt_min=1e-3)
     wake_field = WakeField(uniform_bin_slicer, resis_circ)
 
 
@@ -376,7 +376,7 @@ def run():
 
     # Definition of WakeField as a composition of different sources.
     resis_para = ParallelPlatesResistiveWall(pipe_radius=5e-2, resistive_wall_length=C,
-                                        conductivity=1e6, dz_min=1e-3)
+                                        conductivity=1e6, dt_min=1e-3)
     wake_field = WakeField(uniform_bin_slicer, resis_para)
 
 
@@ -398,7 +398,7 @@ def run():
 
     # Definition of WakeField as a composition of different sources.
     resis_circ = CircularResistiveWall(pipe_radius=5e-2, resistive_wall_length=C,
-                                        conductivity=1e6, dz_min=1e-3)
+                                        conductivity=1e6, dt_min=1e-3)
     reson_para = ParallelPlatesResonator(R_shunt=1e6, frequency=1e8, Q=1)
     wake_file_columns = ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y',
                          'dipole_xy', 'dipole_yx']

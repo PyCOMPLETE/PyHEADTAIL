@@ -4,14 +4,23 @@ import numpy as np
 from _version import __version__
 
 import re, os, sys, subprocess
-#import cython_gsl
 import numpy as np
 
-from distutils.core import setup
-from distutils.extension import Extension
+#from distutils.core import setup
+#from distutils.extension import Extension
+from setuptools import setup, Extension
+
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 
+
+import platform
+if platform.system() is 'Darwin':
+    print ("Info: since you are running Mac OS, you "
+           "may have to install with the following line:\n\n"
+           "$ CC=gcc-4.9 ./install\n"
+           "(or any equivalent version of gcc)")
+    raw_input('Hit any key to continue...')
 
 VERSIONFILE="_version.py"
 #verstrline = open(VERSIONFILE, "rt").read()
@@ -23,6 +32,9 @@ VERSIONFILE="_version.py"
 #    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 execfile(VERSIONFILE)
 verstr = __version__
+if not verstr[0].isdigit():
+    raise RuntimeError("Unable to determine version from _version.py, "
+                       "perhaps no git-describe available?")
 
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
@@ -51,14 +63,6 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 # Set up extension and build
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 cy_ext = [
-        # Extension("beams.bunch",
-        #           ["beams/bunch.pyx"],
-        #          include_dirs=[np.get_include()],
-        #          #extra_compile_args=["-g"],
-        #          #extra_link_args=["-g"],
-        #          libraries=["m"],
-        #          library_dirs=[],
-        #          ),
         Extension("solvers.grid_functions",
                  ["solvers/grid_functions.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
@@ -70,59 +74,32 @@ cy_ext = [
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  extra_compile_args=["-fopenmp"],
                  extra_link_args=["-fopenmp"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
                  ),
-        #Extension("cobra_functions.random",
-                 #["cobra_functions/random.pyx"],
-                 #include_dirs=[np.get_include(), cython_gsl.get_cython_include_dir()],
-                 ##extra_compile_args=["-g"],
-                 ##extra_link_args=["-g"],
-                 #library_dirs=[], libraries=["gsl", "gslcblas"],
-                 #),
         Extension("solvers.compute_potential_fgreenm2m",
                  ["solvers/compute_potential_fgreenm2m.pyx"],
                   include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
                  ),
-#        Extension("cobra_functions.interp1d",
-#                 ["cobra_functions/interp1d.pyx"],
-#                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-#                 #extra_compile_args=["-g"],
-#                 #extra_link_args=["-g"],
-#                 ),
         Extension("trackers.transverse_tracking_cython",
                  ["trackers/transverse_tracking_cython.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  extra_compile_args=["-fopenmp"],
                  extra_link_args=["-fopenmp"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
                  ),
         Extension("trackers.detuners_cython",
                  ["trackers/detuners_cython.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  extra_compile_args=["-fopenmp"],
                  extra_link_args=["-fopenmp"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
                  ),
-        Extension("rfq.rfq",
-                 ["rfq/rfq.pyx"],
+        Extension("rfq.rfq_cython",
+                 ["rfq/rfq_cython.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  extra_compile_args=["-fopenmp"],
                  extra_link_args=["-fopenmp"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
                  ),
         Extension("aperture.aperture",
                  ["aperture/aperture.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 #extra_compile_args=["-fopenmp"],
-                 #extra_link_args=["-fopenmp"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
                  )
           ]
 
@@ -134,4 +111,11 @@ setup(
     packages=['PyHEADTAIL'],
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
+    install_requires=[
+        'numpy',
+        'scipy',
+        'hdf5',
+        'h5py',
+        'cython'
+    ]
     )

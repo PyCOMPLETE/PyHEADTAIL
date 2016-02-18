@@ -1,7 +1,5 @@
 import numpy as np
-from scipy.constants import c, e
-
-
+from scipy.constants import c
 
 class TransverseSpaceCharge(object):
     def __init__(self, L_interaction, slicer, pyPICsolver, flag_clean_slices = False):
@@ -16,6 +14,12 @@ class TransverseSpaceCharge(object):
 
         self.flag_clean_slices = flag_clean_slices
 
+    def get_beam_x(self, beam):
+        return beam.x
+
+    def get_beam_y(self, beam):
+        return beam.y
+
 #	@profile
     def track(self, beam):
 
@@ -27,9 +31,6 @@ class TransverseSpaceCharge(object):
             self.phi_last_track = []
             self.Ex_last_track = []
             self.Ey_last_track = []
-
-
-
 
         if hasattr(beam.particlenumber_per_mp, '__iter__'):
             raise ValueError('spacecharge module assumes same size for all beam MPs')
@@ -49,9 +50,9 @@ class TransverseSpaceCharge(object):
             dt = dz / (beam.beta * c)
 
             # beam field
-            x_mp = beam.x[ix]
-            y_mp = beam.y[ix]
-            n_mp = beam.x[ix]*0.+beam.particlenumber_per_mp/dz#they have to become cylinders
+            x_mp = self.get_beam_x(beam)[ix]
+            y_mp = self.get_beam_y(beam)[ix]
+            n_mp = x_mp*0.+beam.particlenumber_per_mp/dz#they have to become cylinders
             N_mp = slices.n_macroparticles_per_slice[i]
 
             #compute beam field (it assumes electrons!)

@@ -10,7 +10,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 from scipy.optimize import brentq
-from scipy.constants import c, e, m_p
+from scipy.constants import c
 
 from . import Element, clean_slices, utils
 from rf_bucket import RFBucket, attach_clean_buckets
@@ -141,7 +141,26 @@ class Kick(LongitudinalMap):
     """
 
     def __init__(self, alpha_array, circumference, harmonic, voltage,
-                 phi_offset=0, p_increment=0, *args, **kwargs):
+                 phi_offset=0, p_increment=0, D_x=0, D_y=0, *args, **kwargs):
+        '''D_x, D_y: horizontal and vertical dispersion
+
+        !! Attention !!
+        The user is responsible of making sure the dispersions match the
+        dispersions of the beam which were added in the track() of the last map.
+        This corresponds to the dispersion of the transverse/longitudinal map
+        !following! this Kick (D_x_s1 of the preceding transverse map)
+        Example:
+        dx = np.array([1, 2., 5]) #the dispersions at the TransverseSegmentMaps
+        trans_map = TransverseMap(C, segments, ax, bx, dx, ay, by, Q_x, Q_y)
+        map_ = [m for m in trans_map] + [LinearMap(alpha_0, C, Q_s, D_x=???)]
+        D_x = 1. # if we place the LinearMap after the transverse maps, we
+                 # need to make sure the dispersion matches the dispersion
+                 # added in this transverse map. This corresponds to the
+                 # dispersion of the first segment of the transverse map!
+
+        Or simply: Match the dispersion of this Element with the dispersion
+        of the following transverse element.
+        '''
         super(Kick, self).__init__(alpha_array, *args, **kwargs)
         self.circumference = circumference
         self.harmonic = harmonic
@@ -149,9 +168,36 @@ class Kick(LongitudinalMap):
         self.phi_offset = phi_offset
         self.p_increment = p_increment
         self._phi_lock = 0
+        self.D_x = D_x
+        self.D_y = D_y
+        if not D_x and not D_y:
+            self.track = self.track_without_dispersion
 
     def track(self, beam):
-        amplitude = e*self.voltage / (beam.beta*c)
+        try:
+            self.track_with_dispersion(beam)
+            self.track = self.track_with_dispersion
+        except AttributeError as e:
+            self.warns("Failed to apply transverse dispersion correction "
+                       "during longitudinal tracking. Caught AttributeError: \n"
+                       + e.message + "\nContinue without adjusting dispersion "
+                       "contribution when changing beam.dp...")
+            self.track = self.track_without_dispersion
+
+    def track_with_dispersion(self, beam):
+        ''' Subtract the dispersion before computing a new dp, then add
+        the dispersion using the new dp
+        '''
+        beam.x -= self.D_x*beam.dp
+        beam.y -= self.D_y*beam.dp
+
+        self.track_without_dispersion(beam)
+
+        beam.x += self.D_x*beam.dp
+        beam.y += self.D_y*beam.dp
+
+    def track_without_dispersion(self, beam):
+        amplitude = beam.charge*self.voltage / (beam.beta*c)
         phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
                + self.phi_offset + self._phi_lock)
 
@@ -249,6 +295,7 @@ class RFSystems(LongitudinalOneTurnMap):
                  phi_offset_list, alpha_array, gamma_reference,
                  p_increment=0, phase_lock=True,
                  shrink_transverse=True, shrink_longitudinal=False,
+                 D_x=0, D_y=0, charge=None, mass=None,
                  *args, **kwargs):
         """
         The first entry in harmonic_list, voltage_list and
@@ -294,8 +341,18 @@ class RFSystems(LongitudinalOneTurnMap):
         In this case take care about all Kick.p_increment attributes --
         highly non-trivial, as all other p_increment functionality
         in RFSystems is broken. So take care, you're on your own! :-)
+        - D_x, D_y: horizontal and vertical dispersion. These arguments
+          are passed to the Kicks class. Because both kicks are applied
+          consecutively, the dispersion will be the same for both kicks and
+          it is therefore sufficient to specify only one dispersion.
+          The dispersion must match the dispersion of the following transverse
+          map. See the docstring of the Kick class for a more detailed
+          description.
         """
-
+        
+        self.charge = charge
+        self.mass = mass
+        
         super(RFSystems, self).__init__(
 			alpha_array, circumference, *args, **kwargs)
 
@@ -307,7 +364,8 @@ class RFSystems(LongitudinalOneTurnMap):
         if not shrink_transverse:
             self.track = self.track_no_transverse_shrinking
 
-        self._kicks = [Kick(alpha_array, self.circumference, h, V, dphi)
+        self._kicks = [Kick(alpha_array, self.circumference, h, V, dphi,
+                            D_x=D_x, D_y=D_y)
                       for h, V, dphi in
                       zip(harmonic_list, voltage_list, phi_offset_list)]
         self._elements = ( [Drift(alpha_array, 0.5 * self.circumference)]
@@ -320,7 +378,7 @@ class RFSystems(LongitudinalOneTurnMap):
         self.p_increment = p_increment
 
         if phase_lock:
-            self._phaselock(gamma_reference)
+            self._phaselock(gamma_reference, charge)
 
         '''Take care of possible memory leakage when accessing with many
         different gamma values without tracking while setting
@@ -403,7 +461,22 @@ class RFSystems(LongitudinalOneTurnMap):
         if self._shrinking:
             self._shrinking_drift.shrinkage_p_increment = value
 
-    def get_bucket(self, bunch=None, gamma=None, mass=m_p, charge=e,
+    def pop_kick(self, index):
+        '''Remove a Kick instance from this RFSystems instance.
+        Return the removed Kick instance.
+        Arguments:
+            - index: the index according to the defining lists
+            voltages, harmonics, phi_offsets.
+        Note: can only remove kicks that are not index == 0.
+        The accelerating / fundamental kick cannot be removed.
+        '''
+        if index == 0:
+            raise ValueError('Cannot remove accelerating / fundamental kick, '
+                             'remove_kick(0) is not accepted.')
+        kick = self._kicks.pop(index)
+        return kick
+
+    def get_bucket(self, bunch=None, gamma=None, mass=None, charge=None,
                    *args, **kwargs):
         '''Return an RFBucket instance which contains all information
         and all physical parameters of the current longitudinal RF
@@ -421,6 +494,13 @@ class RFSystems(LongitudinalOneTurnMap):
         (gamma, mass, charge) explicitely to return a bucket
         defined by these.
         '''
+        
+        if charge is None:
+            charge = self.charge
+            
+        if mass is None:
+            mass = self.mass
+        
         try:
             bunch_signature = (bunch.gamma, bunch.mass, bunch.charge)
         except AttributeError:
@@ -447,7 +527,7 @@ class RFSystems(LongitudinalOneTurnMap):
         '''
         self._rfbuckets = {}
 
-    def phi_s(self, gamma):
+    def phi_s(self, gamma, charge):
         beta = np.sqrt(1 - gamma**-2)
         eta0 = self.eta(0, gamma)
 
@@ -457,12 +537,8 @@ class RFSystems(LongitudinalOneTurnMap):
             return 0
 
         deltaE = self.p_increment * beta * c
-        phi_rel = np.arcsin(deltaE / (e * V))
+        phi_rel = np.arcsin(deltaE / (charge * V))
 
-        # if eta0<0:
-        #     # return np.sign(deltaE) * np.pi - phi_rel
-        #     return np.pi - phi_rel
-        # else:
         return phi_rel
 
     @staticmethod
@@ -501,7 +577,7 @@ class RFSystems(LongitudinalOneTurnMap):
         if self.p_increment:
             self.clean_buckets()
 
-    def _phaselock(self, gamma):
+    def _phaselock(self, gamma, charge):
         '''Put all _kicks other than the accelerating kick to
         zero phase difference w.r.t. the accelerating kick.
         Attention: Make sure the p_increment of each non-accelerating
@@ -511,7 +587,8 @@ class RFSystems(LongitudinalOneTurnMap):
         non_accelerating_kicks = (k for k in self._kicks if k is not acc)
 
         for kick in non_accelerating_kicks:
-            kick._phi_lock -= kick.harmonic/acc.harmonic * self.phi_s(gamma)
+            kick._phi_lock -= (kick.harmonic/acc.harmonic *
+                               self.phi_s(gamma, charge))
 
 
     # --- INTERFACE CHANGE notifications to update users of previous versions
@@ -520,7 +597,7 @@ class RFSystems(LongitudinalOneTurnMap):
     def rfbucket(self):
         '''non-existent anymore!'''
         raise RuntimeError('Interface change: ' +
-                           'Use the get_bucket(gamma_reference) method ' +
+                           'Use the get_bucket(beam) method ' +
                            'to obtain a (constant) blueprint of the ' +
                            'current state of the ' +
                            'longitudinal RF configuration.')
@@ -600,17 +677,42 @@ class LinearMap(LongitudinalOneTurnMap):
     \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
-    def __init__(self, alpha_array, circumference, Qs, *args, **kwargs):
-        '''Qs is the synchrotron tune.'''
+    def __init__(self, alpha_array, circumference, Qs, D_x=0, D_y=0,*args, **kwargs):
+        '''Qs is the synchrotron tune.
+        D_x, D_y are the dispersions in horizontal and vertical direction.
+
+        !! Attention !!
+        The user is responsible of making sure the dispersions match the
+        dispersions of the beam which were added in the track() of the last map.
+        This corresponds to the dispersion of the transverse/longitudinal map
+        !following! this LinearMap (D_x_s1 of the preceding transverse map)
+        Example:
+        dx = np.array([1, 2., 5]) #the dispersions at the TransverseSegmentMaps
+        trans_map = TransverseMap(C, segments, ax, bx, dx, ay, by, Q_x, Q_y)
+        map_ = [m for m in trans_map] + [LinearMap(alpha_0, C, Q_s, D_x=???)]
+        D_x = 1. # if we place the LinearMap after the transverse maps, we
+                 # need to make sure the dispersion matches the dispersion
+                 # added in this transverse map. This corresponds to the
+                 # dispersion of the first segment of the transverse map!
+
+        Or simply: Match the dispersion of this Element with the dispersion
+        of the following transverse element.
+
+        '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
         self.Qs = Qs
+        self.D_x = D_x
+        self.D_y = D_y
         if len(alpha_array) > 1:
             self.warns('The higher orders in the given alpha_array are ' +
                        'manifestly neglected.')
 
     @clean_slices
     def track(self, beam):
+        ''' Subtract the dispersion before computing a new dp, then add
+        the dispersion using the new dp
+        '''
         omega_0 = 2 * np.pi * beam.beta * c / self.circumference
         omega_s = self.Qs * omega_0
 
@@ -624,5 +726,11 @@ class LinearMap(LongitudinalOneTurnMap):
         # self.eta(0, beam.gamma) is identical to using first order eta!
         beam.z = (z0 * cosdQs - self.eta(0, beam.gamma) * beam.beta * c /
                   omega_s * dp0 * sindQs)
+
+
+        beam.x -= self.D_x*beam.dp
+        beam.y -= self.D_y*beam.dp
         beam.dp = (dp0 * cosdQs + omega_s / self.eta(0, beam.gamma) /
                    (beam.beta * c) * z0 * sindQs)
+        beam.x += self.D_x*beam.dp
+        beam.y += self.D_y*beam.dp
