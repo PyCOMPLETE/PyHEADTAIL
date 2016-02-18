@@ -14,6 +14,8 @@ import sys
 from abc import ABCMeta, abstractmethod
 from . import Printing
 
+# from .. import cobra_functions.stats.calc_cell_stats as calc_cell_stats
+
 
 class Monitor(Printing):
     """ Abstract base class for monitors. A monitor can request
@@ -543,7 +545,8 @@ class CellMonitor(Monitor):
         them to file. The buffer is implemented as a shift register. The
         cell-specific data are computed by a cython function. """
 
-        n_cl, x_cl, y_cl, z_cl, dp_cl = cp.calc_cell_stats(bunch, self.beta_z,
+        from PyHEADTAIL.cobra_functions.stats import calc_cell_stats
+        n_cl, x_cl, y_cl, z_cl, dp_cl = calc_cell_stats(bunch, self.beta_z,
             self.radial_cut, self.n_radial_slices, self.n_azimuthal_slices)
 
         self.buffer_cell['mean_x'][:,:,0] = x_cl[:,:]
