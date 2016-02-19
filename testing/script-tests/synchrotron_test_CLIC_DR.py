@@ -15,15 +15,13 @@ sigma_z = 1.8e-3
 
 intensity = 4.1e9
 
-mode = 'smooth'
-#mode = 'non-smooth'
 
 import pickle
 from CLIC_DR import CLIC_DR
 
 
-machine = CLIC_DR(machine_configuration='3TeV', n_segments=29)
-                  #charge=-e, longitudinal_mode = 'linear')
+machine = CLIC_DR(machine_configuration='3TeV', n_segments=29,
+                  charge=-e)
 
 
 print 'Create bunch for optics...'
