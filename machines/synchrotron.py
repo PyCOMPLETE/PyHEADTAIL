@@ -101,15 +101,19 @@ class BasicSynchrotron(Element):
         '''
         if self.longitudinal_mode == 'linear':
             check_inside_bucket = lambda z,dp : np.array(len(z)*[True])
+            Qs = self.longitudinal_map.Qs
         elif self.longitudinal_mode == 'non-linear':
-            check_inside_bucket = self.longitudinal_map.get_bucket(
-                gamma=self.gamma).make_is_accepted(margin=0.05)
+            bucket = self.longitudinal_map.get_bucket(
+                gamma=self.gamma, mass=self.mass, charge=self.charge)
+            check_inside_bucket = bucket.make_is_accepted(margin=0.05)
+            Qs = bucket.Qs
+
         else:
             raise NotImplementedError(
                 'Something wrong with self.longitudinal_mode')
     
         eta = self.longitudinal_map.alpha_array[0] - self.gamma**-2
-        beta_z    = np.abs(eta)*self.circumference/2./np.pi/self.longitudinal_map.Qs
+        beta_z    = np.abs(eta)*self.circumference/2./np.pi/Qs
         sigma_dp  = sigma_z/beta_z
         epsx_geo = epsn_x/self.betagamma
         epsy_geo = epsn_y/self.betagamma
