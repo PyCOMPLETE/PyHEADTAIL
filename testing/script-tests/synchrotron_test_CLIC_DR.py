@@ -21,18 +21,13 @@ mode = 'smooth'
 import pickle
 from CLIC_DR import CLIC_DR
 
-if mode == 'smooth':
-    machine = CLIC_DR(machine_configuration='3TeV', n_segments=29)
-#    machine = CLIC_DR(machine_configuration='3TeV_linear', n_segments=29)
-elif mode == 'non-smooth':
-    with open('lhc_2015_80cm_optics.pkl') as fid:
-        optics = pickle.load(fid)
-    optics.pop('circumference')
 
-    machine = CLIC_DR(machine_configuration='Injection', optics_mode = 'non-smooth', V_RF=10e6,  **optics)
+machine = CLIC_DR(machine_configuration='3TeV', n_segments=29)
+                  #charge=-e, longitudinal_mode = 'linear')
+
 
 print 'Create bunch for optics...'
-bunch   = machine.generate_6D_Gaussian_bunch_matched(
+bunch   = machine.generate_6D_Gaussian_bunch(
     macroparticlenumber_optics, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 print 'Done.'
 
@@ -89,7 +84,7 @@ plt.show()
 
 
 machine.one_turn_map.insert(ix, machine.longitudinal_map)
-bunch   = machine.generate_6D_Gaussian_bunch_matched(
+bunch   = machine.generate_6D_Gaussian_bunch(
     macroparticlenumber_track, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 
 beam_x = []
