@@ -5,8 +5,8 @@ sys.path.append(BIN)
 
 from scipy.constants import e,c
 
-macroparticlenumber_track = 50000
-macroparticlenumber_optics = 2000000
+macroparticlenumber_track = 2000
+macroparticlenumber_optics = 2000
 n_turns = 512*4
 
 epsn_x  = 0.456e-6
@@ -25,7 +25,7 @@ machine = CLIC_DR(machine_configuration='3TeV', n_segments=29,
 
 
 print 'Create bunch for optics...'
-bunch   = machine.generate_6D_Gaussian_bunch(
+bunch   = machine.generate_6D_Gaussian_bunch_matched(
     macroparticlenumber_optics, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 print 'Done.'
 
@@ -82,7 +82,7 @@ plt.show()
 
 
 machine.one_turn_map.insert(ix, machine.longitudinal_map)
-bunch   = machine.generate_6D_Gaussian_bunch(
+bunch   = machine.generate_6D_Gaussian_bunch_matched(
     macroparticlenumber_track, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 
 beam_x = []
