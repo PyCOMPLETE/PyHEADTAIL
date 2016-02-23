@@ -18,7 +18,7 @@ from abc import ABCMeta, abstractmethod
 from functools import partial, wraps
 
 from ..cobra_functions import stats as cp
-#from ..general.decorators import memoize
+# from ..general.decorators import memoize
 from . import Printing
 
 from scipy import interpolate
@@ -176,7 +176,19 @@ class SliceSet(Printing):
             )[0])
         return particles_within_cuts_
     
-    
+
+    @property
+    # @memoize
+    def particles_outside_cuts(self):
+        '''All particle indices which are situated outside the slicing
+        region defined by [z_cut_tail, z_cut_head).'''
+        particles_ouside_cuts_ = make_int32(np.where(np.logical_not(
+                (self.slice_index_of_particle > -1) &
+                (self.slice_index_of_particle < self.n_slices))
+            )[0])
+        return particles_ouside_cuts_
+
+
     @property
     #@profile
     def particle_indices_by_slice(self):
@@ -251,7 +263,6 @@ class SliceSet(Printing):
         lp_of_z = interpolate.splev(z, tck, der=0, ext=1)
         return lp_of_z
         
-    #@profile    
     def particle_indices_of_slice(self, slice_index):
         '''Return an array of particle indices which are located in the
         slice defined by the given slice_index.

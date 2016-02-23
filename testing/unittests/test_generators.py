@@ -20,7 +20,7 @@ import numpy as np
 import scipy.constants as constants
 from PyHEADTAIL.trackers.simple_long_tracking import RFSystems
 import PyHEADTAIL.particles.generators as gf
-
+from PyHEADTAIL.general.printers import SilentPrinter
 
 class TestParticleGenerators(unittest.TestCase):
     '''Test class for the new ParticleGenerator (generator_functional.py)'''
@@ -37,7 +37,8 @@ class TestParticleGenerators(unittest.TestCase):
             self.nparticles, self.intensity,
             self.charge, self.mass, self.circumference, self.gamma,
             distribution_x=gf.gaussian2D(0.5),alpha_x=-0.7, beta_x=4, D_x=0,
-            distribution_z=gf.gaussian2D(3.0))
+            distribution_z=gf.gaussian2D(3.0),
+            printer=SilentPrinter())
         self.beam = self.generator.generate()
 
     def tearDown(self):
@@ -124,7 +125,7 @@ class TestParticleGenerators(unittest.TestCase):
         alpha = 0.00308
         p_increment = 0
         long_map = RFSystems(self.circumference, [h1, h2], [V1, V2],
-                [dphi1, dphi2], [alpha], self.gamma, p_increment)
+                [dphi1, dphi2], [alpha], self.gamma, p_increment, charge=self.charge, mass=self.mass)
         bucket = long_map.get_bucket(gamma=self.gamma)
         bunch = gf.ParticleGenerator(
                 nparticles, 1e11, constants.e, constants.m_p,
@@ -143,7 +144,7 @@ class TestParticleGenerators(unittest.TestCase):
         alpha = 0.00308
         p_increment = 0
         long_map = RFSystems(self.circumference, [h1, h2], [V1, V2],
-                [dphi1, dphi2], [alpha], self.gamma, p_increment)
+                [dphi1, dphi2], [alpha], self.gamma, p_increment, charge=self.charge, mass=self.mass)
         bucket = long_map.get_bucket(gamma=self.gamma)
         is_accepted_fn = bucket.make_is_accepted(margin=0.)
         bunch = gf.ParticleGenerator(

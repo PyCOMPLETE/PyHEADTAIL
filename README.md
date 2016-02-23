@@ -20,7 +20,7 @@ $ git clone https://github.com/PyCOMPLETE/PyHEADTAIL
 
 $ cd PyHEADTAIL
 
-$ ./install
+$ make
 
 And there you go, start using PyHEADTAIL!
 
