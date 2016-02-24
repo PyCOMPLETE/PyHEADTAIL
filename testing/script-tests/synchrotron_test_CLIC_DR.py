@@ -32,7 +32,7 @@ elif mode == 'non-smooth':
     machine = CLIC_DR(machine_configuration='Injection', optics_mode = 'non-smooth', V_RF=10e6,  **optics)
 
 print 'Create bunch for optics...'
-bunch   = machine.generate_6D_Gaussian_bunch_matched(
+bunch   = machine.generate_6D_Gaussian_bunch(
     macroparticlenumber_optics, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 print 'Done.'
 
@@ -89,7 +89,7 @@ plt.show()
 
 
 machine.one_turn_map.insert(ix, machine.longitudinal_map)
-bunch   = machine.generate_6D_Gaussian_bunch_matched(
+bunch   = machine.generate_6D_Gaussian_bunch(
     macroparticlenumber_track, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 
 beam_x = []
