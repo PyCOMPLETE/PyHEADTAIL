@@ -15,21 +15,14 @@ sigma_z = 1.8e-3
 
 intensity = 4.1e9
 
-mode = 'smooth'
-#mode = 'non-smooth'
 
 import pickle
 from CLIC_DR import CLIC_DR
 
-if mode == 'smooth':
-    machine = CLIC_DR(machine_configuration='3TeV', n_segments=29)
-#    machine = CLIC_DR(machine_configuration='3TeV_linear', n_segments=29)
-elif mode == 'non-smooth':
-    with open('lhc_2015_80cm_optics.pkl') as fid:
-        optics = pickle.load(fid)
-    optics.pop('circumference')
 
-    machine = CLIC_DR(machine_configuration='Injection', optics_mode = 'non-smooth', V_RF=10e6,  **optics)
+machine = CLIC_DR(machine_configuration='3TeV', n_segments=29,
+                  charge=-e)
+
 
 print 'Create bunch for optics...'
 bunch   = machine.generate_6D_Gaussian_bunch(
