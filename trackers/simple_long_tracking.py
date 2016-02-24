@@ -271,7 +271,7 @@ class LongitudinalOneTurnMap(LongitudinalMap):
     def __init__(self, alpha_array, circumference, *args, **kwargs):
         """LongitudinalOneTurnMap objects know their circumference."""
         super(LongitudinalOneTurnMap, self).__init__(
-			alpha_array, *args, **kwargs)
+            alpha_array, *args, **kwargs)
         self.circumference = circumference
 
     @abstractmethod
@@ -349,12 +349,12 @@ class RFSystems(LongitudinalOneTurnMap):
           map. See the docstring of the Kick class for a more detailed
           description.
         """
-        
+
         self.charge = charge
         self.mass = mass
-        
+
         super(RFSystems, self).__init__(
-			alpha_array, circumference, *args, **kwargs)
+            alpha_array, circumference, *args, **kwargs)
 
         if not len(harmonic_list) == len(voltage_list) == len(phi_offset_list):
             self.warns("Parameter lists for RFSystems do not have the " +
@@ -494,13 +494,13 @@ class RFSystems(LongitudinalOneTurnMap):
         (gamma, mass, charge) explicitely to return a bucket
         defined by these.
         '''
-        
+
         if charge is None:
             charge = self.charge
-            
+
         if mass is None:
             mass = self.mass
-        
+
         try:
             bunch_signature = (bunch.gamma, bunch.mass, bunch.charge)
         except AttributeError:
@@ -589,7 +589,6 @@ class RFSystems(LongitudinalOneTurnMap):
         for kick in non_accelerating_kicks:
             kick._phi_lock -= (kick.harmonic/acc.harmonic *
                                self.phi_s(gamma, charge))
-
 
     # --- INTERFACE CHANGE notifications to update users of previous versions
     # --- to use the right new methods
