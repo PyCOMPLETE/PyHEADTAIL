@@ -3,7 +3,7 @@ BIN=os.path.expanduser('../../../')
 sys.path.append(BIN)
 
 from scipy.constants import e,c
-from PyHEADTAIL.synch_rad.synch_rad import Sync_rad_transverse, Sync_rad_longitudinal
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse, SynchrotronRadiationLongitudinal
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -35,15 +35,15 @@ bunch.z  += 0.02
 
 # SYNCHROTRON RADIATION
 # =====================
-synchdamp_z = (1e-3*(c/machine.circumference))
-E_loss = 3.98e6
+damping_time_z_turns = (1e-3*(c/machine.circumference))
+E_loss_eV = 3.98e6
 eq_sig_dp=1.074e-3
-sync_rad_longitudinal = Sync_rad_longitudinal(
-	eq_sig_dp=eq_sig_dp, synchdamp_z=synchdamp_z, E_loss=E_loss)
+SynchrotronRadiationLongitudinal = SynchrotronRadiationLongitudinal(
+	eq_sig_dp=eq_sig_dp, damping_time_z_turns=damping_time_z_turns, E_loss_eV=E_loss_eV)
 dp_before = bunch.mean_dp()
-sync_rad_longitudinal.track(bunch)
+SynchrotronRadiationLongitudinal.track(bunch)
 dp_after = bunch.mean_dp()
 
 print 'Energy loss\nEvaluated :%.6e [eV]\nExpected :%.6e [eV]\nERROR :%.2f'%((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge),
-		E_loss,(E_loss-((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge)))*100/E_loss)+'%'
+		E_loss_eV,(E_loss_eV-((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge)))*100/E_loss_eV)+'%'
 

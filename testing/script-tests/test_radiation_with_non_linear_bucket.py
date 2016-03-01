@@ -5,7 +5,7 @@ BIN=os.path.expanduser('../../../')
 sys.path.append(BIN)
 
 from scipy.constants import e,c
-from PyHEADTAIL.synch_rad.synch_rad import Sync_rad_transverse, Sync_rad_longitudinal
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse, SynchrotronRadiationLongitudinal
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -22,15 +22,15 @@ n_turns_vec = np.arange(0, n_turns, 1)*(machine.circumference/c)*1e3
 
 # SYNCHROTRON RADIATION
 # =====================
-synchdamp_z = (1e-3*(c/machine.circumference))
-E_loss = 3.98e6
+damping_time_z_turns = (1e-3*(c/machine.circumference))
+E_loss_eV = 3.98e6
 eq_sig_dp=1.074e-3
-sync_rad_longitudinal = Sync_rad_longitudinal(
-	eq_sig_dp=eq_sig_dp, synchdamp_z=synchdamp_z, E_loss=E_loss)
+SynchrotronRadiationLongitudinal = SynchrotronRadiationLongitudinal(
+	eq_sig_dp=eq_sig_dp, damping_time_z_turns=damping_time_z_turns, E_loss_eV=E_loss_eV)
 
 # EVALUATE STABLE PHASE AND Z
 # ===========================
-phi_s = np.arcsin(E_loss/machine.longitudinal_map.voltages[0])
+phi_s = np.arcsin(E_loss_eV/machine.longitudinal_map.voltages[0])
 z_s = (machine.circumference)*phi_s/(2*np.pi*machine.longitudinal_map.harmonics[0])
 print z_s
 
@@ -48,13 +48,13 @@ bunch.x  += 1.e-6
 bunch.xp += 1.e-6
 bunch.y  += 1.e-6
 bunch.yp += 1.e-6
-#bunch.z  *= 0.5
+# bunch.z  *= 0.
 bunch.dp *= 0.
 bunch.z  += z_s
 
 # TRACKING LOOP
 # =============
-machine.one_turn_map.append(sync_rad_longitudinal)
+machine.one_turn_map = [SynchrotronRadiationLongitudinal]+machine.one_turn_map
 
 # Tracking
 # ========
@@ -100,63 +100,7 @@ for i in range(n_turns):
         ax2.cla()
         ax3.cla()
         ax4.cla()
-        #ax.set_title('Turn: ' + str(i))
-        '''
-        ax = ax1
-        ax.set_xlim(-9e-4, 9e-4)
-        ax.set_ylim(-1e-4, 1e-4)
-        ax.scatter(bunch.x, bunch.xp, lw=0., s=8)
-        ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y')
 
-        ax = ax2
-        ax.set_xlim(0, n_turns)
-        ax.set_xlabel('turn')
-        ax.plot(sigma_x)
-        ax.set_ylabel('sigma_x [m]')
-        ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y')
-        
-        ax = ax3
-        ax.set_xlim(0, n_turns)
-        ax.set_xlabel('turn')
-        ax.plot(mean_x)
-        ax.set_ylabel('mean_x')
-        ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y')  
-        
-        ax = ax4
-        ax.set_xlim(0, n_turns)
-        ax.set_xlabel('turn')
-        ax.plot(epsn_x)
-        ax.set_ylabel('epsn_x')
-        ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y')
-        ''
-
-        ax = ax1
-        ax.set_xlim(-5e-5, 5e-5)
-        ax.set_ylim(-5e-6, 5e-6)
-        ax.scatter(bunch.y, bunch.yp, lw=0., s=8)
-        ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y')
-
-        ax = ax2
-        ax.set_xlim(0, n_turns)
-        ax.set_xlabel('turn')
-        ax.plot(sigma_y)
-        ax.set_ylabel('sigma_y [m]')
-        ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y')
-        
-        ax = ax3
-        ax.set_xlim(0, n_turns)
-        ax.set_xlabel('turn')
-        ax.plot(mean_y)
-        ax.set_ylabel('mean_y')
-        ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y')  
-        
-        ax = ax4
-        ax.set_xlim(0, n_turns)
-        ax.set_xlabel('turn')
-        ax.plot(epsn_y)
-        ax.set_ylabel('epsn_y')
-        ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y')
-        '''
         size_font = 15
         
         ax = ax1
@@ -175,8 +119,10 @@ for i in range(n_turns):
         ax.set_xlim(0, n_turns_vec[-1])
         ax.set_xlabel('t [ms]', fontsize=size_font)
         ax.plot(n_turns_vec, mean_z)
+	ax.axhline(z_s, label= 'Equilibrium z\nExpected :%.2e [m]'%(z_s), lw=2, color = 'red')
         ax.set_ylabel('$<z>$ [m]', fontsize=size_font)
         ax.ticklabel_format(style='sci', scilimits=(0,0),axis='y', useOffset = False)
+	ax.legend (loc=0, fontsize = 10)
         
         ax = ax3
         plt.rc("font", size=size_font)
@@ -184,8 +130,11 @@ for i in range(n_turns):
         ax.set_xlabel('t [ms]', fontsize=size_font)
         ax.plot(n_turns_vec, mean_dp)
         ax.set_ylabel('mean_dp', fontsize=size_font)
+	ax.axhline(E_loss_eV/(machine.p0*c/np.abs(machine.charge))/2., 
+		label= 'Equilibrium dp\nExpected :%.2e'%(E_loss_eV/(machine.p0*c/np.abs(machine.charge))/2.), lw=2, color = 'red')
         ax.ticklabel_format(style='sci', scilimits=(0,0), axis='y', useOffset = False)  
-        
+	ax.legend (loc=0, fontsize = 10)        
+
         ax = ax4
         plt.rc("font", size=size_font)
         ax.set_xlim(0, n_turns_vec[-1])
@@ -195,7 +144,8 @@ for i in range(n_turns):
         ax.legend (loc=0, fontsize = 10)
         ax.set_ylabel('$\sigma_{dp}$', fontsize=size_font)
         ax.ticklabel_format(style='sci', scilimits=(0,0), axis='y', useOffset = False)
-        ''
+        
+	plt.suptitle('Longitudinal phase space is samples "opposite" to the kicks (half drift occurred).')	
 
         #plt.savefig('mismatched_nonlinear_' + '%02d'%i + '.png', dpi=150)
         
