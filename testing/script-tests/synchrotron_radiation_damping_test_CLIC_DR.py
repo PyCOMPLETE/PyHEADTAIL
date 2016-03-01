@@ -79,11 +79,24 @@ for i_turn in xrange(n_turns):
 
 # PARAMETER EVALUATION
 # ====================
+
+n_turns_damping = int(2*synchdamp_x) #number of turns to evaluate the damping time
+n_intervals_damping = 10             #number of intervals to evaluate the damping time
+interval_vector_damping = np.arange(0, (n_turns_damping), (n_turns_damping/n_intervals_damping))
+N_interval_damping = len(interval_vector_damping)
+xx_x = beam_x
+xx_y = beam_y
+xx_x_env_damping = []
+xx_y_env_damping = []
+for j in range(N_interval_damping): #for loop to evaluate the envelope of centroid position in x and y
+    xx_x_env_damping.append(np.max(xx_x[((n_turns_damping/n_intervals_damping)*j):((n_turns_damping/n_intervals_damping)*(j+1))])) # take the maximum in each interval
+    xx_y_env_damping.append(np.max(xx_y[((n_turns_damping/n_intervals_damping)*j):((n_turns_damping/n_intervals_damping)*(j+1))]))
+xx_x_env_log_damping = np.log(np.abs(xx_x_env_damping) + sys.float_info.epsilon) #exponential fit using linear fit (exp->log)
+p0_x, p1_x = np.polyfit(interval_vector_damping, xx_x_env_log_damping, 1)
+xx_y_env_log_damping = np.log(np.abs(xx_y_env_damping) + sys.float_info.epsilon)
+p0_y, p1_y = np.polyfit(interval_vector_damping, xx_y_env_log_damping, 1)
+
 tt = np.arange(n_turns)
-xx_x = np.log(np.abs(beam_x))
-p0_x, p1_x = np.polyfit(tt, xx_x, 1)
-xx_y = np.log(np.abs(beam_y))
-p0_y, p1_y = np.polyfit(tt, xx_y, 1)
 mean_z_shift = (beam_z - beam_z[-1] + np.finfo(float).eps)
 xx_z = np.log(np.abs(mean_z_shift))
 p0_z, p1_z = np.polyfit(tt, xx_z, 1)
@@ -95,14 +108,14 @@ plt.figure(1, figsize=(16, 8), tight_layout=True)
 plt.subplot(2,3,1)
 plt.plot(beam_x)
 plt.plot(np.max(beam_x)*np.exp(-tt/synchdamp_x), label= 'Damping time\nExpected :%.2e [s]'%(synchdamp_x*(machine.circumference/c)), lw=2, color = 'black')
-plt.plot(2*np.exp(p1_x + tt * p0_x), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_x)*(machine.circumference/c),np.abs((synchdamp_x)-(-1/p0_x))*100/(synchdamp_x))+'%', lw=2, color = 'red', linestyle = '--')
+plt.plot(np.exp(p1_x + tt * p0_x), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_x)*(machine.circumference/c),np.abs((synchdamp_x)-(-1/p0_x))*100/(synchdamp_x))+'%', lw=2, color = 'red', linestyle = '--')
 plt.legend (loc=0, fontsize = 10)
 plt.ylabel('x [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
 plt.subplot(2,3,2)
 plt.plot(beam_y)
 plt.plot(np.max(beam_y)*np.exp(-tt/synchdamp_y), label= 'Damping time\nExpected :%.2e [s]'%(synchdamp_y*(machine.circumference/c)), lw=2, color = 'black')
-plt.plot(2*np.exp(p1_y + tt * p0_y), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_y)*(machine.circumference/c),np.abs((synchdamp_y)-(-1/p0_y))*100/(synchdamp_y))+'%', lw=2, color = 'red', linestyle = '--')
+plt.plot(np.exp(p1_y + tt * p0_y), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_y)*(machine.circumference/c),np.abs((synchdamp_y)-(-1/p0_y))*100/(synchdamp_y))+'%', lw=2, color = 'red', linestyle = '--')
 plt.legend (loc=0, fontsize = 10)
 plt.ylabel('y [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
