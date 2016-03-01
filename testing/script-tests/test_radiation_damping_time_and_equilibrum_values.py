@@ -4,7 +4,7 @@ sys.path.append(BIN)
 
 
 from scipy.constants import e,c
-from PyHEADTAIL.synch_rad.synch_rad import Sync_rad_transverse, Sync_rad_longitudinal
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse, SynchrotronRadiationLongitudinal
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -37,23 +37,23 @@ bunch.yp += 1.e-6
 
 # SYNCHROTRON RADIATION
 # =====================
-synchdamp_x = (2e-3*(c/machine.circumference))
-synchdamp_y = (2e-3*(c/machine.circumference))
-synchdamp_z = (1e-3*(c/machine.circumference))
-E_loss = 3.98e6
+damping_time_x_turns = (2e-3*(c/machine.circumference))
+damping_time_y_turns = (2e-3*(c/machine.circumference))
+damping_time_z_turns = (1e-3*(c/machine.circumference))
+E_loss_eV = 3.98e6
 eq_emit_x=0.456e-6
 eq_emit_y=0.0048e-6
 eq_sig_dp=1.074e-3
-sync_rad_transverse = Sync_rad_transverse(eq_emit_x=eq_emit_x, eq_emit_y=eq_emit_y, 
-	synchdamp_x=synchdamp_x, synchdamp_y=synchdamp_y, beta_x=machine.transverse_map.beta_x[-1], 
+SynchrotronRadiationTransverse = SynchrotronRadiationTransverse(eq_emit_x=eq_emit_x, eq_emit_y=eq_emit_y, 
+	damping_time_x_turns=damping_time_x_turns, damping_time_y_turns=damping_time_y_turns, beta_x=machine.transverse_map.beta_x[-1], 
 	beta_y=machine.transverse_map.beta_y[-1])
-sync_rad_longitudinal = Sync_rad_longitudinal(
-	eq_sig_dp=eq_sig_dp, synchdamp_z=synchdamp_z, E_loss=E_loss)
+SynchrotronRadiationLongitudinal = SynchrotronRadiationLongitudinal(
+	eq_sig_dp=eq_sig_dp, damping_time_z_turns=damping_time_z_turns, E_loss_eV=E_loss_eV)
 
 # TRACKING LOOP
 # =============
-machine.one_turn_map.append(sync_rad_transverse)
-machine.one_turn_map.append(sync_rad_longitudinal)
+machine.one_turn_map.append(SynchrotronRadiationTransverse)
+machine.one_turn_map.append(SynchrotronRadiationLongitudinal)
 
 beam_x = []
 beam_y = []
@@ -80,7 +80,7 @@ for i_turn in xrange(n_turns):
 # PARAMETER EVALUATION
 # ====================
 
-n_turns_damping = int(2*synchdamp_x) #number of turns to evaluate the damping time
+n_turns_damping = int(2*damping_time_x_turns) #number of turns to evaluate the damping time
 n_intervals_damping = 10             #number of intervals to evaluate the damping time
 interval_vector_damping = np.arange(0, (n_turns_damping), (n_turns_damping/n_intervals_damping))
 N_interval_damping = len(interval_vector_damping)
@@ -107,22 +107,22 @@ p0_z, p1_z = np.polyfit(tt, xx_z, 1)
 plt.figure(1, figsize=(16, 8), tight_layout=True)
 plt.subplot(2,3,1)
 plt.plot(beam_x)
-plt.plot(np.max(beam_x)*np.exp(-tt/synchdamp_x), label= 'Damping time\nExpected :%.2e [s]'%(synchdamp_x*(machine.circumference/c)), lw=2, color = 'black')
-plt.plot(np.exp(p1_x + tt * p0_x), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_x)*(machine.circumference/c),np.abs((synchdamp_x)-(-1/p0_x))*100/(synchdamp_x))+'%', lw=2, color = 'red', linestyle = '--')
+plt.plot(np.max(beam_x)*np.exp(-tt/damping_time_x_turns), label= 'Damping time\nExpected :%.2e [s]'%(damping_time_x_turns*(machine.circumference/c)), lw=2, color = 'black')
+plt.plot(np.exp(p1_x + tt * p0_x), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_x)*(machine.circumference/c),np.abs((damping_time_x_turns)-(-1/p0_x))*100/(damping_time_x_turns))+'%', lw=2, color = 'red', linestyle = '--')
 plt.legend (loc=0, fontsize = 10)
 plt.ylabel('x [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
 plt.subplot(2,3,2)
 plt.plot(beam_y)
-plt.plot(np.max(beam_y)*np.exp(-tt/synchdamp_y), label= 'Damping time\nExpected :%.2e [s]'%(synchdamp_y*(machine.circumference/c)), lw=2, color = 'black')
-plt.plot(np.exp(p1_y + tt * p0_y), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_y)*(machine.circumference/c),np.abs((synchdamp_y)-(-1/p0_y))*100/(synchdamp_y))+'%', lw=2, color = 'red', linestyle = '--')
+plt.plot(np.max(beam_y)*np.exp(-tt/damping_time_y_turns), label= 'Damping time\nExpected :%.2e [s]'%(damping_time_y_turns*(machine.circumference/c)), lw=2, color = 'black')
+plt.plot(np.exp(p1_y + tt * p0_y), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_y)*(machine.circumference/c),np.abs((damping_time_y_turns)-(-1/p0_y))*100/(damping_time_y_turns))+'%', lw=2, color = 'red', linestyle = '--')
 plt.legend (loc=0, fontsize = 10)
 plt.ylabel('y [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
 plt.subplot(2,3,3)
 plt.plot(beam_z)
-plt.plot((np.max(beam_z)-beam_z[-1])*np.exp(-tt/synchdamp_z)+beam_z[-1], label= 'Damping time\nExpected :%.2e [s]'%(synchdamp_z*(machine.circumference/c)), lw=2, color = 'black')
-plt.plot(2*np.exp(p1_z + tt * p0_z)+ beam_z[-1], label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_z)*(machine.circumference/c),np.abs((synchdamp_z)-(-1/p0_z))*100/(synchdamp_z))+'%', lw=2, color = 'red', linestyle = '--')
+plt.plot((np.max(beam_z)-beam_z[-1])*np.exp(-tt/damping_time_z_turns)+beam_z[-1], label= 'Damping time\nExpected :%.2e [s]'%(damping_time_z_turns*(machine.circumference/c)), lw=2, color = 'black')
+plt.plot(2*np.exp(p1_z + tt * p0_z)+ beam_z[-1], label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-1/p0_z)*(machine.circumference/c),np.abs((damping_time_z_turns)-(-1/p0_z))*100/(damping_time_z_turns))+'%', lw=2, color = 'red', linestyle = '--')
 plt.legend (loc=0, fontsize = 10)
 plt.ylabel('z [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
