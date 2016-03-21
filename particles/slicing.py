@@ -344,7 +344,7 @@ class Slicer(Printing):
         Valid list entries are all statistics functions of Particles.
         '''
         sliceset_kwargs = self.compute_sliceset_kwargs(beam)
-        if not isinstance(beam.x, np.ndarray):
+        if not isinstance(beam.z, np.ndarray):
             #print 'IS (probably) a GPUARRAY, sort it'
             s_idx_of_p = sliceset_kwargs['slice_index_of_particle']
             perm = pm.argsort(s_idx_of_p)
