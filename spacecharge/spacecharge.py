@@ -12,18 +12,15 @@ from scipy.constants import c, epsilon_0, pi
 from scipy.interpolate import splrep, splev
 from functools import wraps
 
-log = np.log
-exp = np.exp
-take = np.take
+from ..general import pmath as pm
 
-try:
-    from ..general.errfff import errf as errf_f
-    errf = np.vectorize(errf_f)
-except ImportError:
-    errf = None
-from scipy.special import erfc, wofz
-def errfadd(z):
-    return np.exp(-z**2) * erfc(z * -1j)
+log = pm.log
+exp = pm.exp
+take = pm.take
+
+errf = pm._errf
+errfadd = pm._errfadd
+wofz = pm.wofz
 
 
 class LongSpaceCharge(Element):
