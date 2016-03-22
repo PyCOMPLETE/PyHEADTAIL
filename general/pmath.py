@@ -24,6 +24,18 @@ except ImportError:
 
 from functools import wraps
 
+# FADDEEVA error function (wofz) business (used a.o. in spacecharge module)
+try:
+    from errfff import errf as _errf_f
+    _errf = np.vectorize(_errf_f)
+except ImportError:
+    _errf = None
+from scipy.special import erfc as _erfc
+from scipy.special import wofz as _wofz
+def _errfadd(z):
+    return np.exp(-z**2) * _erfc(z * -1j)
+
+
 def _mean_per_slice_cpu(sliceset, u, **kwargs):
     '''
     CPU Wrapper for the mean per slice function.
@@ -135,6 +147,7 @@ _CPU_numpy_func_dict = {
     'searchsortedleft': _searchsortedleft,
     'searchsortedright': _searchsortedright,
     'cumsum': np.cumsum,
+    'wofz': _wofz,
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -177,6 +190,7 @@ if has_pycuda:
         'searchsortedleft': gpu_wrap.searchsortedleft,
         'searchsortedright': gpu_wrap.searchsortedright,
         'cumsum': skcuda.misc.cumsum,
+        'wofz': gpu_wrap.wofz,
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################

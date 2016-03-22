@@ -162,6 +162,27 @@ if has_pycuda:
                       stream=stream)
         return out
 
+    _wofz = pycuda.elementwise.ElementwiseKernel(
+        arguments='double* in_real, double* in_imag, double* out_real, '
+                  'double* out_imag',
+        operation='wofz(in_real[i], in_imag[i], &out_real[i], &out_imag[i]);',
+        name='wofz_kernel',
+        preamble=open(where + 'wofz.cu', 'r').read()
+    )
+    def wofz(z, out_real=None, out_imag=None):
+        '''Faddeeva error function, equivalent to scipy.special.wofz.
+        If both out arrays are given, this function does not construct
+        a complex number out of these to return.'''
+        in_real = z.real
+        in_imag = z.imag
+        if out_real is None:
+            out_real = pycuda.gpuarray.empty_like(in_real)
+        if out_imag is None:
+            out_imag = pycuda.gpuarray.empty_like(in_imag)
+        _wofz(in_real, in_imag, out_real, out_imag)
+        if out_real is None or out_imag is None:
+            return out_real + 1j*out_imag
+
 
 def _inplace_pow(x_gpu, p, stream=None):
     '''
