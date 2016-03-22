@@ -122,8 +122,8 @@ class SpaceCharge25D(Element):
             en_x *= beam.gamma**-2
             en_y *= beam.gamma**-2
 
-            beam.dx += en_x * kick_factor
-            beam.dy += en_y * kick_factor
+            beam.xp += en_x * kick_factor
+            beam.yp += en_y * kick_factor
 
 
 
@@ -205,6 +205,6 @@ class SpaceCharge3D(Element):
         kick_factor = (self.length / (beam.beta*c) *
                        beam.charge_per_mp / beam.p0)
 
-        beam.x += en_x * kick_factor
-        beam.y += en_y * kick_factor
-        beam.z += en_z * kick_factor
+        beam.xp += en_x * kick_factor
+        beam.yp += en_y * kick_factor
+        beam.dp += en_z * kick_factor
