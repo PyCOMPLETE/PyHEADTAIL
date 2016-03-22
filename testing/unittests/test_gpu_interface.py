@@ -27,6 +27,7 @@ except ImportError:
 else:
     has_pycuda = True
 
+from PyHEADTAIL.general.printers import SilentPrinter
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.general.printers import AccumulatorPrinter
 from PyHEADTAIL.general.contextmanager import GPU
@@ -130,7 +131,8 @@ class TestGPUInterface(unittest.TestCase):
         bunch_cpu = self.create_all1_bunch()
         bunch_gpu = self.create_all1_bunch()
         transverse_map = tt.TransverseMap(self.s, self.alpha_x, self.beta_x,
-            self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy)
+            self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
+            printer=SilentPrinter())
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
             bunch_gpu), 'Transverse tracking w/o detuning CPU/GPU differs')
 
@@ -149,12 +151,12 @@ class TestGPUInterface(unittest.TestCase):
         lhc = m.LHC(n_segments=self.nsegments, machine_configuration='450GeV',
                     app_x=1e-9, app_y=2e-9, app_xy=-1.5e-11,
                     chromaticity_on=False, amplitude_detuning_on=True,
-                    alpha_x=1.2*np.ones(self.nsegments), D_x=Dx)
+                    alpha_x=1.2*np.ones(self.nsegments), D_x=Dx, printer=SilentPrinter())
         # create pure Python map, PyCERNmachine uses Cython.
         adetuner = AmplitudeDetuning(lhc.app_x, lhc.app_y, lhc.app_xy)
         transverse_map = tt.TransverseMap(lhc.s, lhc.alpha_x, lhc.beta_x,
             lhc.D_x, lhc.alpha_y, lhc.beta_y, lhc.D_y, lhc.Q_x, lhc.Q_y,
-            adetuner)
+            adetuner, printer=SilentPrinter())
         bunch_cpu = self.create_lhc_bunch(lhc)
         bunch_gpu = self.create_lhc_bunch(lhc)
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
@@ -170,7 +172,7 @@ class TestGPUInterface(unittest.TestCase):
         detuner = Chromaticity(Qp_x=[5, 1], Qp_y=[7, 2])
         transverse_map = tt.TransverseMap(self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
-            detuner)
+            detuner, printer=SilentPrinter())
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
             bunch_gpu), 'Transverse tracking with chromaticity CPU/GPU differs')
         #self.assertTrue(False, 'check')
@@ -215,6 +217,7 @@ class TestGPUInterface(unittest.TestCase):
         self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
             bunch_gpu), 'Longitudinal tracking RFSystems CPU/GPU differs')
 
+    @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
     def test_wakefield_platesresonator(self):
         '''
         Track through a ParallelPlatesResonator wakefield
@@ -224,7 +227,7 @@ class TestGPUInterface(unittest.TestCase):
         lhc = m.LHC(n_segments=self.nsegments, machine_configuration='450GeV',
                     app_x=1e-9, app_y=2e-9, app_xy=-1.5e-11,
                     chromaticity_on=False, amplitude_detuning_on=True,
-                    alpha_x=1.2*np.ones(self.nsegments), D_x=Dx)
+                    alpha_x=1.2*np.ones(self.nsegments), D_x=Dx, printer=SilentPrinter())
 
 
         self.n_macroparticles = 200000
@@ -244,6 +247,7 @@ class TestGPUInterface(unittest.TestCase):
     @unittest.skipUnless(os.path.isfile(
         './wakeforhdtl_PyZbase_Allthemachine_450GeV_B1_LHC_inj_450GeV_B1.dat'),
         'Wakefile not found')
+    @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
     def test_wakefield_wakefile(self):
         '''
         Track an LHC bunch and a LHC wakefield
@@ -257,7 +261,7 @@ class TestGPUInterface(unittest.TestCase):
         machine = m.LHC(n_segments=1, machine_configuration='450GeV',
                   longitudinal_focusing=longitudinal_focusing,
                   Qp_x=[Qp_x], Qp_y=[Qp_y], Q_s=Qs,
-                  beta_x=[65.9756], beta_y=[71.5255])
+                  beta_x=[65.9756], beta_y=[71.5255], printer=SilentPrinter())
         epsn_x  = 3.5e-6
         epsn_y  = 3.5e-6
         sigma_z = 1.56e-9*c / 4.
@@ -308,7 +312,7 @@ class TestGPUInterface(unittest.TestCase):
 
     @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
     def test_SPS_nonlinear(self):
-        sps = m.SPS(n_segments=self.nsegments,
+        sps = m.SPS(n_segments=self.nsegments, printer=SilentPrinter(),
             machine_configuration='Q26-injection', Qp_x=2, Qp_y=-2.2,
             )
         bunch_cpu = self.create_all1_bunch()
@@ -320,7 +324,7 @@ class TestGPUInterface(unittest.TestCase):
 
     @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
     def test_PSB_linear(self):
-        psb = m.PSB(n_segments=self.nsegments,
+        psb = m.PSB(n_segments=self.nsegments, printer=SilentPrinter(),
             machine_configuration='160MeV', longitudinal_focusing='linear')
         bunch_cpu = self.create_all1_bunch()
         bunch_gpu = self.create_all1_bunch()
@@ -386,7 +390,7 @@ class TestGPUInterface(unittest.TestCase):
             phi_0=-np.pi/4, beta_x_RFQ=200., beta_y_RFQ=99.)
         transverse_map = tt.TransverseMap(self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
-            detuner)
+            detuner, printer=SilentPrinter())
         self.assertTrue(self._track_cpu_gpu(transverse_map, bunch_cpu,
             bunch_gpu), 'Transverse tracking with RFQDetuner CPU/GPU differs')
 
