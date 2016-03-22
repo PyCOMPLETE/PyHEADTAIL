@@ -35,10 +35,11 @@ try:
         sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
         has_pycuda = True
     except pycuda._driver.LogicError: #the error pycuda throws if no context initialized
-        # print ('No context initialized. Please import pycuda.autoinit at the '
-        #        'beginning of your script if you want to use GPU functionality')
+        print ('Warning: GPU is in principle available but no context has been '
+               'initialized. Please import pycuda.autoinit at the '
+               'beginning of your script before importing PyHEADTAIL '
+               'if you want to use GPU functionality.\n')
         has_pycuda = False
-
 
 except ImportError:
     # print ('Either pycuda, skcuda or thrust not found! '

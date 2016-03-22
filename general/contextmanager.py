@@ -13,7 +13,7 @@ try:
     import pycuda.elementwise
     has_pycuda = True
 except ImportError:
-    print('pycuda not found, GPU context unavailable')
+    # print ('pycuda not found, GPU context unavailable')
     has_pycuda = False
 
 if has_pycuda:
