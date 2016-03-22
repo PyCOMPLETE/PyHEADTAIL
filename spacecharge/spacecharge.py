@@ -17,7 +17,7 @@ exp = np.exp
 take = np.take
 
 try:
-    from errfff import errf as errf_f
+    from ..general.errfff import errf as errf_f
     errf = np.vectorize(errf_f)
 except ImportError:
     errf = None

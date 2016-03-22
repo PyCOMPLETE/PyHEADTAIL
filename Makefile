@@ -3,7 +3,7 @@ NVCC_RESULT := $(shell which nvcc 2> NULL)
 NVCC_TEST := $(notdir $(NVCC_RESULT))
 
 
-all: PyHEADTAIL PyHEADTAILGPU
+all: PyHEADTAIL PyHEADTAILGPU errfff
 
 PyHEADTAIL:
 	python setup.py build_ext --inplace
@@ -14,6 +14,11 @@ ifeq ($(NVCC_TEST),nvcc)
 else
 	@echo "Thrust interface not compiled because nvcc was not found"
 endif
+
+errfff:
+	f2py -c general/errfff.f -m errfff
+	mv errfff.so general/
+
 clean: remove_so
 	python setup.py build_ext --inplace cleanall
 
