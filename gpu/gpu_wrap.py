@@ -459,9 +459,9 @@ def argsort(to_sort):
     elif dtype.itemsize == 4 and dtype.kind is 'i':
         thrust.get_sort_perm_int(to_sort.copy(), permutation)
     else:
-        print array.dtype
-        print array.dtype.itemsize
-        print array.dtype.kind
+        print to_sort.dtype
+        print to_sort.dtype.itemsize
+        print to_sort.dtype.kind
         raise TypeError('Currently only float64 and int32 types can be sorted')
     return permutation
 
