@@ -97,8 +97,8 @@ cy_ext = [
                  extra_compile_args=["-fopenmp"],
                  extra_link_args=["-fopenmp"],
                  ),
-        Extension("aperture.aperture",
-                 ["aperture/aperture.pyx"],
+        Extension("aperture.aperture_cython",
+                 ["aperture/aperture_cython.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  )
           ]
