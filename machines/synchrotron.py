@@ -3,10 +3,10 @@ from __future__ import division
 import numpy as np
 from scipy.constants import c, e
 
+from PyHEADTAIL.particles import generators
 from PyHEADTAIL.general.element import Element
-import PyHEADTAIL.particles.generators as gen
-
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap, RFSystems
+
 
 class BasicSynchrotron(Element):
     def __init__(self, optics_mode, circumference=None, n_segments=None, s=None, name=None,
@@ -15,8 +15,7 @@ class BasicSynchrotron(Element):
             alpha_mom_compaction=None, longitudinal_mode=None, Q_s=None,
             h_RF=None, V_RF=None, dphi_RF=None, p0=None, p_increment=None,
             charge=None, mass=None, RF_at='middle', other_detuners=[],
-                 use_cython = True, verbose=False, **kwargs):
-
+                 use_cython = True, verbose=False):
 
             self.optics_mode = optics_mode
             self.longitudinal_mode = longitudinal_mode
@@ -124,12 +123,12 @@ class BasicSynchrotron(Element):
 
         injection_optics = self.transverse_map.get_injection_optics()
 
-        bunch = gen.ParticleGenerator(macroparticlenumber=n_macroparticles,
+        bunch = generators.ParticleGenerator(macroparticlenumber=n_macroparticles,
                                      intensity=intensity, charge=self.charge, mass=self.mass,
                                      circumference=self.circumference, gamma=self.gamma,
-                                     distribution_x = gen.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
-                                     distribution_y = gen.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-                                     distribution_z = gen.cut_distribution(gen.gaussian2D_asymmetrical(sigma_u=sigma_z, sigma_up=sigma_dp),is_accepted=check_inside_bucket),
+                                     distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
+                                     distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
+                                     distribution_z = generators.cut_distribution(generators.gaussian2D_asymmetrical(sigma_u=sigma_z, sigma_up=sigma_dp),is_accepted=check_inside_bucket),
                                      ).generate()
 
         return bunch
@@ -154,12 +153,12 @@ class BasicSynchrotron(Element):
 
         injection_optics = self.transverse_map.get_injection_optics()
 
-        bunch = gen.ParticleGenerator(macroparticlenumber=n_macroparticles,
+        bunch = generators.ParticleGenerator(macroparticlenumber=n_macroparticles,
                                      intensity=intensity, charge=self.charge, mass=self.mass,
                                      circumference=self.circumference, gamma=self.gamma,
-                                     distribution_x = gen.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
-                                     distribution_y = gen.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-                                     distribution_z = gen.RF_bucket_distribution(self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z),
+                                     distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
+                                     distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
+                                     distribution_z = generators.RF_bucket_distribution(self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z),
                                      ).generate()
 
         return bunch
