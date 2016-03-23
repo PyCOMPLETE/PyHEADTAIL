@@ -33,6 +33,21 @@ class ThinQuadrupole(Element):
         beam.xp -= self.kL * beam.x
         beam.yp += self.kL * beam.y
 
+
+class SkewThinQuadrupole(Element):
+    '''Thin skew quadrupolar map.'''
+    def __init__(self, k1sl, *args, **kwargs):
+        '''Arguments:
+            - k1sl: normalised strength times the length of the
+                    skew quadrupole magnet [1/m]
+        '''
+        self.kL = k1sl
+
+    def track(self, beam):
+        beam.xp += self.kL * beam.y
+        beam.yp += self.kL * beam.x
+
+
 class ThinSextupole(Element):
     '''Thin sextupolar map.'''
     def __init__(self, k2l, *args, **kwargs):
