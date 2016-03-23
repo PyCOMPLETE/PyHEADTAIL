@@ -212,7 +212,7 @@ class TestGPUInterface(unittest.TestCase):
         longitudinal_map = lt.RFSystems(
                 self.circumference, [self.h1, self.h2], [self.V1, self.V2],
                 [self.dphi1, self.dphi2], [0.05], self.gamma, 0,
-                D_x=self.Dx[0], D_y=self.Dy[0]
+                D_x=self.Dx[0], D_y=self.Dy[0], charge=e, mass=m_p
             )
         self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
             bunch_gpu), 'Longitudinal tracking RFSystems CPU/GPU differs')
@@ -227,7 +227,8 @@ class TestGPUInterface(unittest.TestCase):
         lhc = m.LHC(n_segments=self.nsegments, machine_configuration='450GeV',
                     app_x=1e-9, app_y=2e-9, app_xy=-1.5e-11,
                     chromaticity_on=False, amplitude_detuning_on=True,
-                    alpha_x=1.2*np.ones(self.nsegments), D_x=Dx, printer=SilentPrinter())
+                    alpha_x=1.2*np.ones(self.nsegments), D_x=Dx,
+                    printer=SilentPrinter())
 
 
         self.n_macroparticles = 200000
@@ -239,20 +240,22 @@ class TestGPUInterface(unittest.TestCase):
         Q = 1.
         unif_bin_slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=1)
         #res = CircularResonator(R_shunt=R_shunt, frequency=frequency, Q=Q)
-        res = ParallelPlatesResonator(R_shunt=R_shunt, frequency=frequency, Q=Q)
+        res = ParallelPlatesResonator(R_shunt=R_shunt, frequency=frequency, Q=Q,
+                                      printer=SilentPrinter())
         wake_field = WakeField(unif_bin_slicer, res)
         self.assertTrue(self._track_cpu_gpu([wake_field], bunch_cpu, bunch_gpu),
             'Tracking Wakefield CircularResonator CPU/GPU differs')
 
     @unittest.skipUnless(os.path.isfile(
-        './wakeforhdtl_PyZbase_Allthemachine_450GeV_B1_LHC_inj_450GeV_B1.dat'),
+        './autoruntests/wake_table.dat'),
+        #wakeforhdtl_PyZbase_Allthemachine_450GeV_B1_LHC_inj_450GeV_B1.dat'),
         'Wakefile not found')
     @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
     def test_wakefield_wakefile(self):
         '''
         Track an LHC bunch and a LHC wakefield
         '''
-        wakefile = './wakeforhdtl_PyZbase_Allthemachine_450GeV_B1_LHC_inj_450GeV_B1.dat'
+        wakefile = 'autoruntests/wake_table.dat'#'./wakeforhdtl_PyZbase_Allthemachine_450GeV_B1_LHC_inj_450GeV_B1.dat'
         Qp_x, Qp_y = 1., 1.
         Qs = 0.0049
         n_macroparticles = 10
@@ -314,6 +317,7 @@ class TestGPUInterface(unittest.TestCase):
     def test_SPS_nonlinear(self):
         sps = m.SPS(n_segments=self.nsegments, printer=SilentPrinter(),
             machine_configuration='Q26-injection', Qp_x=2, Qp_y=-2.2,
+            charge=e, mass=m_p
             )
         bunch_cpu = self.create_all1_bunch()
         bunch_gpu = self.create_all1_bunch()
