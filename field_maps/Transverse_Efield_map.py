@@ -8,7 +8,8 @@ from PyPIC.PyPIC_Scatter_Gather import PyPIC_Scatter_Gather
 
 class Transverse_Efield_map(object):
 	def __init__(self, xg, yg, Ex, Ey, n_slices, z_cut,
-		L_interaction, flag_clean_slices = False, wrt_slice_centroid = False):
+		L_interaction, flag_clean_slices = False, wrt_slice_centroid = False,
+		x_beam_offset = 0., y_beam_offset = 0.):
 			
 		if type(z_cut) is float:
 			z_cuts = (-z_cut, z_cut)
@@ -25,6 +26,9 @@ class Transverse_Efield_map(object):
 		self.Ex = Ex
 		self.Ey = Ey
 		self.pic = PyPIC_Scatter_Gather(xg=xg, yg=yg)
+		
+		self.x_beam_offset = x_beam_offset
+		self.y_beam_offset = y_beam_offset
 
 
 	def get_beam_x(self, beam):
@@ -58,9 +62,9 @@ class Transverse_Efield_map(object):
 			self.pic.efx = np.squeeze(self.Ex[i,:,:])
 			self.pic.efy = np.squeeze(self.Ey[i,:,:])
 			if self.wrt_slice_centroid:
-				Ex_sc_p, Ey_sc_p = self.pic.gather(x-np.mean(x), y-np.mean(y))
+				Ex_sc_p, Ey_sc_p = self.pic.gather(x-np.mean(x)+self.x_beam_offset, y-np.mean(y)+self.y_beam_offset)
 			else:
-				Ex_sc_p, Ey_sc_p = self.pic.gather(x, y)
+				Ex_sc_p, Ey_sc_p = self.pic.gather(x+self.x_beam_offset, y+self.y_beam_offset)
 
 			## kick beam particles
 			fact_kick = beam.charge/(beam.mass*beam.beta*beam.beta*beam.gamma*c*c)*self.L_interaction

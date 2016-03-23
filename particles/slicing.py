@@ -174,6 +174,17 @@ class SliceSet(Printing):
                 (self.slice_index_of_particle < self.n_slices)
             )[0])
         return particles_within_cuts_
+    
+    @property
+    # @memoize
+    def particles_outside_cuts(self):
+        '''All particle indices which are situated outside the slicing
+        region defined by [z_cut_tail, z_cut_head).'''
+        particles_ouside_cuts_ = make_int32(np.where(np.logical_not(
+                (self.slice_index_of_particle > -1) &
+                (self.slice_index_of_particle < self.n_slices))
+            )[0])
+        return particles_ouside_cuts_
 
     @property
     # @memoize

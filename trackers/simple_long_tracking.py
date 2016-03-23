@@ -197,7 +197,7 @@ class Kick(LongitudinalMap):
         beam.y += self.D_y*beam.dp
 
     def track_without_dispersion(self, beam):
-        amplitude = beam.charge*self.voltage / (beam.beta*c)
+        amplitude = np.abs(beam.charge)*self.voltage / (beam.beta*c)
         phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
                + self.phi_offset + self._phi_lock)
 
@@ -537,7 +537,7 @@ class RFSystems(LongitudinalOneTurnMap):
             return 0
 
         deltaE = self.p_increment * beta * c
-        phi_rel = np.arcsin(deltaE / (charge * V))
+        phi_rel = np.arcsin(deltaE / (np.abs(charge) * V))
 
         return phi_rel
 
