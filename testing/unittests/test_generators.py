@@ -125,7 +125,7 @@ class TestParticleGenerators(unittest.TestCase):
         alpha = 0.00308
         p_increment = 0
         long_map = RFSystems(self.circumference, [h1, h2], [V1, V2],
-                [dphi1, dphi2], [alpha], self.gamma, p_increment)
+                [dphi1, dphi2], [alpha], self.gamma, p_increment, charge=self.charge, mass=self.mass)
         bucket = long_map.get_bucket(gamma=self.gamma)
         bunch = gf.ParticleGenerator(
                 nparticles, 1e11, constants.e, constants.m_p,
@@ -144,7 +144,7 @@ class TestParticleGenerators(unittest.TestCase):
         alpha = 0.00308
         p_increment = 0
         long_map = RFSystems(self.circumference, [h1, h2], [V1, V2],
-                [dphi1, dphi2], [alpha], self.gamma, p_increment)
+                [dphi1, dphi2], [alpha], self.gamma, p_increment, charge=self.charge, mass=self.mass)
         bucket = long_map.get_bucket(gamma=self.gamma)
         is_accepted_fn = bucket.make_is_accepted(margin=0.)
         bunch = gf.ParticleGenerator(

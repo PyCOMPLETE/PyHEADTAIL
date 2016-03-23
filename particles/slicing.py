@@ -25,7 +25,15 @@ from . import Printing
 
 from scipy import interpolate
 
+
+floor = np.floor
+empty_like = np.empty_like
+min_ = np.min
+max_ = np.max
+arange = np.arange
+diff = np.diff
 def make_int32(array):
+    # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
 
 
@@ -394,11 +402,7 @@ class Slicer(Printing):
             z_cut_tail = pm.min(beam.z)
             z_cut_head = pm.max(beam.z)
             z_cut_head += abs(z_cut_head) * 1e-15
-        try:
-            #return z_cut_tail.get(), z_cut_head.get()
-            return z_cut_tail, z_cut_head
-        except:
-            return z_cut_tail, z_cut_head
+        return z_cut_tail, z_cut_head
 
     def __hash__(self):
         '''Identifies different instantiations of Slicer objects via
@@ -582,6 +586,7 @@ class UniformBinSlicer(Slicer):
         z_cuts = (aa, bb)
 
         return n_slices, z_cuts
+
     #@profile
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
@@ -595,6 +600,7 @@ class UniformBinSlicer(Slicer):
         slice_index_of_particle = make_int32(pm.floor(
                 (beam.z - z_cut_tail) / slice_width
             ))
+
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
                     mode='uniform_bin')

@@ -10,7 +10,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 from scipy.optimize import brentq
-from scipy.constants import c, e, m_p
+from scipy.constants import c
 
 from . import Element, clean_slices, utils
 from rf_bucket import RFBucket, attach_clean_buckets
@@ -199,7 +199,7 @@ class Kick(LongitudinalMap):
         beam.y += self.D_y*beam.dp
 
     def track_without_dispersion(self, beam):
-        amplitude = e*self.voltage / (beam.beta*c)
+        amplitude = np.abs(beam.charge)*self.voltage / (beam.beta*c)
         phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
                + self.phi_offset + self._phi_lock)
 
@@ -297,7 +297,7 @@ class RFSystems(LongitudinalOneTurnMap):
                  phi_offset_list, alpha_array, gamma_reference,
                  p_increment=0, phase_lock=True,
                  shrink_transverse=True, shrink_longitudinal=False,
-                 D_x=0, D_y=0, charge=e,
+                 D_x=0, D_y=0, charge=None, mass=None,
                  *args, **kwargs):
         """
         The first entry in harmonic_list, voltage_list and
@@ -351,7 +351,10 @@ class RFSystems(LongitudinalOneTurnMap):
           map. See the docstring of the Kick class for a more detailed
           description.
         """
-
+        
+        self.charge = charge
+        self.mass = mass
+        
         super(RFSystems, self).__init__(
 			alpha_array, circumference, *args, **kwargs)
 
@@ -475,7 +478,7 @@ class RFSystems(LongitudinalOneTurnMap):
         kick = self._kicks.pop(index)
         return kick
 
-    def get_bucket(self, bunch=None, gamma=None, mass=m_p, charge=e,
+    def get_bucket(self, bunch=None, gamma=None, mass=None, charge=None,
                    *args, **kwargs):
         '''Return an RFBucket instance which contains all information
         and all physical parameters of the current longitudinal RF
@@ -493,6 +496,13 @@ class RFSystems(LongitudinalOneTurnMap):
         (gamma, mass, charge) explicitely to return a bucket
         defined by these.
         '''
+        
+        if charge is None:
+            charge = self.charge
+            
+        if mass is None:
+            mass = self.mass
+        
         try:
             bunch_signature = (bunch.gamma, bunch.mass, bunch.charge)
         except AttributeError:
@@ -519,7 +529,7 @@ class RFSystems(LongitudinalOneTurnMap):
         '''
         self._rfbuckets = {}
 
-    def phi_s(self, gamma, charge=e):
+    def phi_s(self, gamma, charge):
         beta = np.sqrt(1 - gamma**-2)
         eta0 = self.eta(0, gamma)
 
@@ -529,7 +539,7 @@ class RFSystems(LongitudinalOneTurnMap):
             return 0
 
         deltaE = self.p_increment * beta * c
-        phi_rel = np.arcsin(deltaE / (charge * V))
+        phi_rel = np.arcsin(deltaE / (np.abs(charge) * V))
 
         return phi_rel
 
@@ -569,7 +579,7 @@ class RFSystems(LongitudinalOneTurnMap):
         if self.p_increment:
             self.clean_buckets()
 
-    def _phaselock(self, gamma, charge=e):
+    def _phaselock(self, gamma, charge):
         '''Put all _kicks other than the accelerating kick to
         zero phase difference w.r.t. the accelerating kick.
         Attention: Make sure the p_increment of each non-accelerating

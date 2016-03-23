@@ -200,7 +200,7 @@ class RFBucket(Printing):
         ix = np.argmax(self.V)
         V = self.V[ix]
         h = self.h[ix]
-        return np.sqrt( self.charge*V*np.abs(self.eta0)*h /
+        return np.sqrt( np.abs(self.charge)*V*np.abs(self.eta0)*h /
                        (2*np.pi*self.p0*self.beta*c) )
 
     def add_fields(self, add_forces, add_potentials):
@@ -241,7 +241,7 @@ class RFBucket(Printing):
         RF element as a function of z in units of Coul*Volt/metre.
         '''
         def force(z):
-            return (self.charge * V / self.circumference
+            return (np.abs(self.charge) * V / self.circumference
                     * np.sin(h * z / self.R + dphi))
         return force
 
@@ -282,7 +282,7 @@ class RFBucket(Printing):
         RF element as a function of z in units of Coul*Volt.
         '''
         def potential(z):
-            return (self.charge * V / (2 * np.pi * h)
+            return (np.abs(self.charge) * V / (2 * np.pi * h)
                     * np.cos(h * z / self.R + dphi))
         return potential
 
@@ -433,7 +433,7 @@ class RFBucket(Printing):
         algorithms in the generators module.
         """
         # to be replaced with something more flexible (add_forces etc.)
-        z0 = np.sqrt(epsn/(4.*np.pi) * self.beta_z * self.charge/self.p0)
+        z0 = np.sqrt(epsn/(4.*np.pi) * self.beta_z * np.abs(self.charge)/self.p0)
         h0 = self.beta*c * (z0/self.beta_z)**2
         if make_convex:
             h0 *= np.abs(self.eta0)
@@ -501,4 +501,4 @@ class RFBucket(Printing):
         Q, error = dblquad(lambda y, x: 1, self.zleft, self.zright, lambda x: 0,
                            self.separatrix)
 
-        return Q * 2*self.p0/self.charge
+        return Q * 2*self.p0/np.abs(self.charge)
