@@ -197,6 +197,8 @@ class WakeTable(WakeSource):
         The parameter 'n_turns_wake' defines how many turns are
         considered for the multiturn wakes. It is 1 by default, i.e.
         multiturn wakes are off. """
+        super(WakeTable, self).__init__(*args, **kwargs)
+
         self.wake_table = {}
 
         wake_data = np.loadtxt(wake_file)
@@ -386,6 +388,8 @@ class Resonator(WakeSource):
         The parameter 'n_turns_wake' defines how many turns are
         considered for the multiturn wakes. It is 1 by default, i.e.
         multiturn wakes are off. """
+        super(Resonator, self).__init__(*args, **kwargs)
+
         self.R_shunt = R_shunt
         self.frequency = frequency
         self.Q = Q
@@ -496,7 +500,7 @@ class CircularResonator(Resonator):
 
         super(CircularResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake)
+            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake, *args, **kwargs)
 
 
 class ParallelPlatesResonator(Resonator):
@@ -512,7 +516,7 @@ class ParallelPlatesResonator(Resonator):
 
         super(ParallelPlatesResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake)
+            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake, *args, **kwargs)
 
 
 class ResistiveWall(WakeSource):
@@ -528,6 +532,8 @@ class ResistiveWall(WakeSource):
         The parameter 'n_turns_wake' defines how many turns are
         considered for the multiturn wakes. It is 1 by default, i.e.
         multiturn wakes are off. """
+        super(ResistiveWall, self).__init__(*args, **kwargs)
+
         self.pipe_radius = np.array([pipe_radius]).flatten()
         self.resistive_wall_length = resistive_wall_length
         self.conductivity = conductivity
@@ -601,7 +607,8 @@ class CircularResistiveWall(ResistiveWall):
 
         super(CircularResistiveWall, self).__init__(
             pipe_radius, resistive_wall_length, conductivity, dt_min,
-            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake)
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake,
+            *args, **kwargs)
 
 
 class ParallelPlatesResistiveWall(ResistiveWall):
@@ -616,4 +623,5 @@ class ParallelPlatesResistiveWall(ResistiveWall):
 
         super(ParallelPlatesResistiveWall, self).__init__(
             pipe_radius, resistive_wall_length, conductivity, dt_min,
-            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake)
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake,
+            *args, **kwargs)
