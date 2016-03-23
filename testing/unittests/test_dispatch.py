@@ -62,16 +62,22 @@ class TestDispatch(unittest.TestCase):
     @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_equivalency_CPU_GPU_functions(self):
         '''
-        Check that CPU/GPU functions yield the same result (if both exist)
-        No complete tracking, only bare functions. Only single param funnctions.
-        Use a large sample size to account for std/mean fluctuations due to
-        different algorithms (single pass/shifted/...)
+        Check that CPU/GPU functions yield the same result (if both
+        exist)
+
+        No complete tracking, only bare functions. Only single param
+        functions. Use a large sample size to account for std/mean
+        fluctuations due to different algorithms
+        (single pass/shifted/...)
         '''
-        multi_param_fn = ['emittance', 'apply_permutation', 'mean_per_slice',
+        multi_param_fn = [
+            'emittance', 'apply_permutation', 'mean_per_slice',
             'std_per_slice', 'emittance_per_slice', 'particles_within_cuts',
             'macroparticles_per_slice', 'take', 'convolve', 'arange', 'zeros',
-            'init_bunch_buffer', 'init_slice_buffer', 'device',
-            'searchsortedright', 'searchsortedleft', 'cumsum', 'ones']
+            'seq', 'init_bunch_buffer', 'init_slice_buffer', 'device',
+            'searchsortedright', 'searchsortedleft', 'cumsum', 'ones', 'wofz',
+            'log' # does not take negative args!
+        ]
         np.random.seed(0)
         parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
