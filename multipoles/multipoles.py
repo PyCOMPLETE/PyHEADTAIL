@@ -4,7 +4,13 @@ For formulae see e.g. SIXTRACK:
 
 SixTrack Physics Manual
 R. De. Maria and M. Fjellstrom
-February 21, 2014
+August 18, 2015
+
+or, likewise,
+
+A Symplectic Six-Dimensional Thin-Lens Formalism for Tracking
+G. Ripken, F. Schmidt
+April 5, 1995
 
 @authors: Adrian Oeftiger
 @date:    23/03/2016
@@ -16,12 +22,12 @@ from . import Element
 
 class ThinQuadrupole(Element):
     '''Thin quadrupolar map.'''
-    def __init__(self, length, k1, *args, **kwargs):
+    def __init__(self, k1l, *args, **kwargs):
         '''Arguments:
-            - length: interval in s along accelerator over which to integrate
-            - k1: normalised strength [1/m] of the quadrupole magnet
+            - k1l: normalised strength times the length of the
+                   quadrupole magnet [1/m]
         '''
-        self.kL = k1 * length
+        self.kL = k1l
 
     def track(self, beam):
         beam.xp -= self.kL * beam.x
@@ -29,26 +35,28 @@ class ThinQuadrupole(Element):
 
 class ThinSextupole(Element):
     '''Thin sextupolar map.'''
-    def __init__(self, length, k2, *args, **kwargs):
+    def __init__(self, k2l, *args, **kwargs):
         '''Arguments:
-            - length: interval in s along accelerator over which to integrate
-            - k2: normalised strength [1/m^2] of the sextupole magnet
+            - k2l: normalised strength times the length of the
+                   sextupole magnet [1/m^2]
         '''
-        self.kL = k2 / 2. * length
+        self.kL = k2l
 
     def track(self, beam):
-        beam.xp -= self.kL * (beam.x*beam.x - beam.y*beam.y)
+        beam.xp -= 0.5 * self.kL * (beam.x*beam.x - beam.y*beam.y)
         beam.yp += self.kL * beam.x * beam.y
+
 
 class ThinOctupole(Element):
     '''Thin octupolar map.'''
-    def __init__(self, length, k3, *args, **kwargs):
+    def __init__(self, k3l, *args, **kwargs):
         '''Arguments:
-            - length: interval in s along accelerator over which to integrate
-            - k3: normalised strength [1/m^3] of the octupole magnet
+            - k3l: normalised strength times the length of the
+                   octupole magnet [1/m^3]
         '''
-        self.kL = k3 / 6. * length
+        self.kL = k3l
+        self.kL6 = k3l / 6.
 
     def track(self, beam):
-        beam.xp -= self.kL * (beam.x*beam.x*beam.x - 3*beam.x*beam.y*beam.y)
-        beam.yp += self.kL * (beam.y*beam.y*beam.y - 3*beam.x*beam.x*beam.y)
+        beam.xp -= self.kL6 * (beam.x*beam.x*beam.x - 3*beam.x*beam.y*beam.y)
+        beam.yp -= self.kL6 * (beam.y*beam.y*beam.y - 3*beam.x*beam.x*beam.y)
