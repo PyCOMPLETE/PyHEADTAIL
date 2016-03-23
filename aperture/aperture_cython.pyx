@@ -17,67 +17,10 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
-from . import Element
-
-from abc import ABCMeta, abstractmethod
-
-class Aperture(Element):
-    ''' Abstract base class for Aperture elements. An aperture is
-    generally defined as a condition on the phase space coordinates.
-    Particles not fulfilling this condition are tagged as lost and
-    are removed from the beam directly after. '''
-
-    __metaclass__ = ABCMeta
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def track(self, beam):
-        ''' Tag particles not passing through the aperture as lost. If
-        there are any losses, the corresponding particles are removed
-        from the beam by updating the beam.u arrays, s.t.
-        beam.u = beam.u[:n_alive] after relocating lost particles to
-        the end of these arrays. 'n_alive' denotes the number of alive
-        particles after the given aperture element. In addition, the
-        currently cached slice_sets of the beam are cleaned since losses
-        change its (longitudinal) state. '''
-        alive = self.tag_lost_particles(beam)
+import aperture
 
 
-        if not np.all(alive):
-            # check whether all particles are lost, it's not safe to call
-            # relocate_all_particles in this case
-            if not np.any(alive):
-                self.warns('ALL particles were lost')
-                n_alive = 0
-            else :
-                # Move lost particles to the end of the beam.u arrays.
-                n_alive = relocate_lost_particles(beam, alive)
-            # Update beam.u arrays, i.e. remove lost particles.
-            beam.macroparticlenumber = n_alive
-            beam.x = beam.x[:n_alive]
-            beam.y = beam.y[:n_alive]
-            beam.z = beam.z[:n_alive]
-            beam.xp = beam.xp[:n_alive]
-            beam.yp = beam.yp[:n_alive]
-            beam.dp = beam.dp[:n_alive]
-            beam.id = beam.id[:n_alive]
-
-            # Empty slice_set cache of the beam.
-            beam.clean_slices()
-
-    @abstractmethod
-    def tag_lost_particles(self, beam):
-        ''' This method is called by Aperture.track(beam) to identify
-        particles not passing through the aperture. The aperture condition
-        on the phase space coordinates is defined by the given Aperture
-        element. Returns a np.int32 array 'alive' which contains the
-        information on whether a particle is lost (0) or not (1).
-        '''
-        pass
-
-
-class RectangularApertureX(Aperture):
+class RectangularApertureX(aperture.Aperture):
     ''' Mark particles with transverse spatial coord (x) outside the
     interval (x_high, x_low) as lost and remove them from the beam.
     '''
@@ -100,7 +43,7 @@ class RectangularApertureX(Aperture):
         return cytag_lost_rectangular(beam.x, self.x_low, self.x_high)
 
 
-class RectangularApertureY(Aperture):
+class RectangularApertureY(aperture.Aperture):
     ''' Mark particles with transverse spatial coord (y) outside the
     interval (y_high, y_low) as lost and remove them from the beam.
     '''
@@ -123,7 +66,7 @@ class RectangularApertureY(Aperture):
         return cytag_lost_rectangular(beam.y, self.y_low, self.y_high)
 
 
-class RectangularApertureZ(Aperture):
+class RectangularApertureZ(aperture.Aperture):
     ''' Mark particles with longitudinal spatial coord (z) outside the
     interval (z_high, z_low) as lost and remove them from the beam.
     '''
@@ -146,7 +89,7 @@ class RectangularApertureZ(Aperture):
         return cytag_lost_rectangular(beam.z, self.z_low, self.z_high)
 
 
-class CircularApertureXY(Aperture):
+class CircularApertureXY(aperture.Aperture):
     ''' Mark particles with transverse spatial coords (x, y) outside a
     circle of specified radius, i.e. x**2 + y**2 > radius**2, as lost
     and remove them from the beam. '''
@@ -167,7 +110,7 @@ class CircularApertureXY(Aperture):
         return cytag_lost_circular(beam.x, beam.y, self.radius_square)
 
 
-class EllipticalApertureXY(Aperture):
+class EllipticalApertureXY(aperture.Aperture):
     ''' Mark particles with transverse spatial coords (x, y) outside a
     ellipse of specified radius, i.e. (x/x_aper)**2 + (y/y_aper)**2 > 1.,
     as lost and remove them from the beam. '''
@@ -256,6 +199,8 @@ def relocate_lost_particles(beam, int[::1] alive):
 
     return n_alive_post
 
+aperture.relocate_lost_particles = relocate_lost_particles
+
 
 ''' Cython functions for fast id and tagging of lost particles. '''
 
@@ -304,7 +249,7 @@ cpdef cytag_lost_circular(double[::1] u, double[::1] v,
 cpdef cytag_lost_ellipse(double[::1] u, double[::1] v,
                          double u_aper, double v_aper):
     ''' Cython function for fast identification and tagging of particles
-    lost at a elliptical transverse aperture element lost. Returns a
+    lost at a elliptical transverse aperture element. Returns a
     np array 'alive' containing the information of alive / lost for
     each particle in the beam after the aperture. '''
     cdef int n = u.shape[0]
