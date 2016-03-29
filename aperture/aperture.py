@@ -32,14 +32,15 @@ class Aperture(Element):
 
     @clean_slices
     def track(self, beam):
-        ''' Tag particles not passing through the aperture as lost. If
+        '''Tag particles not passing through the aperture as lost. If
         there are any losses, the corresponding particles are removed
         from the beam by updating the beam.u arrays, s.t.
         beam.u = beam.u[:n_alive] after relocating lost particles to
         the end of these arrays. 'n_alive' denotes the number of alive
         particles after the given aperture element. In addition, the
         currently cached slice_sets of the beam are cleaned since losses
-        change its (longitudinal) state. '''
+        change its (longitudinal) state.
+        '''
         alive = self.tag_lost_particles(beam)
 
         if not pm.all(alive):
@@ -188,9 +189,20 @@ def relocate_lost_particles(beam, alive):
     '''Relocate particles marked as lost to the end of the beam.u arrays
     (u = x, y, z, ...). Return the number of alive particles
     n_alive_post after considering the losses.
-    '''
 
-    pass
+    Arguments:
+        - beam: Particles instance
+        - alive: boolean mask with length n_particles where 1 means alive
+    '''
+    # descending sort to have alive particles (the 1 entries) in the front
+    perm = pm.argsort(-alive)
+
+    for u in beam.get_coords_n_momenta_dict().itervalues():
+        u[:] = pm.take(u, perm)
+    beam.id = pm.take(beam.id, perm)
+
+    n_alive = pm.sum(alive)
+    return n_alive
 
 
 def tag_lost_rectangular(u, low_lim, high_lim):
