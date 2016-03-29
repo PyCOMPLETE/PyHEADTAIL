@@ -35,7 +35,7 @@ class ThinQuadrupole(Element):
         beam.yp += self.kL * beam.y
 
 
-class SkewThinQuadrupole(Element):
+class ThinSkewQuadrupole(Element):
     '''Thin skew quadrupolar map.'''
     def __init__(self, k1sl, *args, **kwargs):
         '''Arguments:
