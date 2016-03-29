@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# thanks to Nick Foti for his cython skeleton, cf.
+# http://nfoti.github.io/a-creative-blog-name/posts/2013/02/07/cleaning-cython-build-files/
+
 import numpy as np
 from _version import __version__
 
@@ -43,8 +46,8 @@ if "cleanall" in args:
     # Just in case the build directory was created by accident,
     # note that shell=True should be OK here because the command is constant.
     subprocess.Popen("rm -rf ./build", shell=True, executable="/bin/bash")
-    subprocess.Popen("find ./ -name *.c | xargs rm", shell=True)
-    subprocess.Popen("find ./ -name *.so | xargs rm", shell=True)
+    subprocess.Popen("find ./ -name *.c | xargs rm -f", shell=True)
+    subprocess.Popen("find ./ -name *.so | xargs rm -f", shell=True)
 
     # Now do a normal clean
     sys.argv[1] = "clean"
