@@ -19,8 +19,79 @@ cimport numpy as np
 
 import aperture
 
+class Aperture(aperture.Aperture):
+    '''Pendant to aperture.Aperture with the relocate algorithm
+    implemented in cython for more efficiency.
+    '''
+    @staticmethod
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def relocate_lost_particles(beam, int[::1] alive):
+        ''' Memory efficient (and fast) cython function to relocate
+        particles marked as lost to the end of the beam.u arrays (u = x, y,
+        z, ...). Returns the number of alive particles n_alive_post after
+        considering the losses.
 
-class RectangularApertureX(aperture.Aperture):
+        Precondition:
+        - At least one particle must be tagged as alive, otherwise bad things
+          might happen...
+
+        Description of the algorithm:
+        (1) Starting from the end of the numpy array 'alive', find the index
+            of the last particle in the array which is still alive. Store its
+            array index in last_alive.
+        (2) Loop through the 'alive' array from there (continuing in reverse
+            order). If a particle i is found for which alive[i] == 0, i.e.
+            it is a lost one, swap its position (and data x, y, z, ...) with
+            the one located at index last_alive.
+        (3) Move last_alive by -1. Due to the chosen procedure, the particle
+            located at the new last_alive index is known to be alive.
+        (4) Repeat steps (2) and (3) until index i = 0 is reached.
+        '''
+        cdef double[::1] x = beam.x
+        cdef double[::1] y = beam.y
+        cdef double[::1] z = beam.z
+        cdef double[::1] xp = beam.xp
+        cdef double[::1] yp = beam.yp
+        cdef double[::1] dp = beam.dp
+        cdef int[::1] id = beam.id
+
+        # Temporary variables for swapping entries.
+        cdef double t_x, t_xp, t_y, t_yp, t_z, t_dp
+        cdef int t_alive, t_id
+
+        # Find last_alive index.
+        cdef int n_alive_pri = alive.shape[0]
+        cdef int last_alive = n_alive_pri - 1
+        while not alive[last_alive]:
+            last_alive -= 1
+
+        # Identify particles marked as lost and relocate them.
+        cdef int n_alive_post = last_alive + 1
+        cdef int i
+        for i in xrange(last_alive-1, -1, -1):
+            if not alive[i]:
+                # Swap lost particle coords with last_alive.
+                t_x, t_y, t_z = x[i], y[i], z[i]
+                t_xp, t_yp, t_dp = xp[i], yp[i], dp[i]
+                t_id, t_alive = id[i], alive[i]
+
+                x[i], y[i], z[i] = x[last_alive], y[last_alive], z[last_alive]
+                xp[i], yp[i], dp[i] = xp[last_alive], yp[last_alive], dp[last_alive]
+                id[i], alive[i] = id[last_alive], alive[last_alive]
+
+                x[last_alive], y[last_alive], z[last_alive] = t_x, t_y, t_z
+                xp[last_alive], yp[last_alive], dp[last_alive] = t_xp, t_yp, t_dp
+                id[last_alive], alive[last_alive] = t_id, t_alive
+
+                # Move last_alive pointer and update number of alive
+                # particles.
+                last_alive -= 1
+                n_alive_post -= 1
+
+        return n_alive_post
+
+class RectangularApertureX(Aperture):
     ''' Mark particles with transverse spatial coord (x) outside the
     interval (x_high, x_low) as lost and remove them from the beam.
     '''
@@ -43,7 +114,7 @@ class RectangularApertureX(aperture.Aperture):
         return cytag_lost_rectangular(beam.x, self.x_low, self.x_high)
 
 
-class RectangularApertureY(aperture.Aperture):
+class RectangularApertureY(Aperture):
     ''' Mark particles with transverse spatial coord (y) outside the
     interval (y_high, y_low) as lost and remove them from the beam.
     '''
@@ -66,7 +137,7 @@ class RectangularApertureY(aperture.Aperture):
         return cytag_lost_rectangular(beam.y, self.y_low, self.y_high)
 
 
-class RectangularApertureZ(aperture.Aperture):
+class RectangularApertureZ(Aperture):
     ''' Mark particles with longitudinal spatial coord (z) outside the
     interval (z_high, z_low) as lost and remove them from the beam.
     '''
@@ -89,7 +160,7 @@ class RectangularApertureZ(aperture.Aperture):
         return cytag_lost_rectangular(beam.z, self.z_low, self.z_high)
 
 
-class CircularApertureXY(aperture.Aperture):
+class CircularApertureXY(Aperture):
     ''' Mark particles with transverse spatial coords (x, y) outside a
     circle of specified radius, i.e. x**2 + y**2 > radius**2, as lost
     and remove them from the beam. '''
@@ -110,7 +181,7 @@ class CircularApertureXY(aperture.Aperture):
         return cytag_lost_circular(beam.x, beam.y, self.radius_square)
 
 
-class EllipticalApertureXY(aperture.Aperture):
+class EllipticalApertureXY(Aperture):
     ''' Mark particles with transverse spatial coords (x, y) outside a
     ellipse of specified radius, i.e. (x/x_aper)**2 + (y/y_aper)**2 > 1.,
     as lost and remove them from the beam. '''
@@ -130,76 +201,6 @@ class EllipticalApertureXY(aperture.Aperture):
         '''
         return cytag_lost_ellipse(beam.x, beam.y,
                                   self.x_aper, self.y_aper)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def relocate_lost_particles(beam, int[::1] alive):
-    ''' Memory efficient (and fast) cython function to relocate
-    particles marked as lost to the end of the beam.u arrays (u = x, y,
-    z, ...). Returns the number of alive particles n_alive_post after
-    considering the losses.
-
-    Precondition:
-    - At least one particle must be tagged as alive, otherwise bad things
-      might happen...
-
-    Description of the algorithm:
-    (1) Starting from the end of the numpy array 'alive', find the index
-        of the last particle in the array which is still alive. Store its
-        array index in last_alive.
-    (2) Loop through the 'alive' array from there (continuing in reverse
-        order). If a particle i is found for which alive[i] == 0, i.e.
-        it is a lost one, swap its position (and data x, y, z, ...) with
-        the one located at index last_alive.
-    (3) Move last_alive by -1. Due to the chosen procedure, the particle
-        located at the new last_alive index is known to be alive.
-    (4) Repeat steps (2) and (3) until index i = 0 is reached.
-    '''
-    cdef double[::1] x = beam.x
-    cdef double[::1] y = beam.y
-    cdef double[::1] z = beam.z
-    cdef double[::1] xp = beam.xp
-    cdef double[::1] yp = beam.yp
-    cdef double[::1] dp = beam.dp
-    cdef int[::1] id = beam.id
-
-    # Temporary variables for swapping entries.
-    cdef double t_x, t_xp, t_y, t_yp, t_z, t_dp
-    cdef int t_alive, t_id
-
-    # Find last_alive index.
-    cdef int n_alive_pri = alive.shape[0]
-    cdef int last_alive = n_alive_pri - 1
-    while not alive[last_alive]:
-        last_alive -= 1
-
-    # Identify particles marked as lost and relocate them.
-    cdef int n_alive_post = last_alive + 1
-    cdef int i
-    for i in xrange(last_alive-1, -1, -1):
-        if not alive[i]:
-            # Swap lost particle coords with last_alive.
-            t_x, t_y, t_z = x[i], y[i], z[i]
-            t_xp, t_yp, t_dp = xp[i], yp[i], dp[i]
-            t_id, t_alive = id[i], alive[i]
-
-            x[i], y[i], z[i] = x[last_alive], y[last_alive], z[last_alive]
-            xp[i], yp[i], dp[i] = xp[last_alive], yp[last_alive], dp[last_alive]
-            id[i], alive[i] = id[last_alive], alive[last_alive]
-
-            x[last_alive], y[last_alive], z[last_alive] = t_x, t_y, t_z
-            xp[last_alive], yp[last_alive], dp[last_alive] = t_xp, t_yp, t_dp
-            id[last_alive], alive[last_alive] = t_id, t_alive
-
-            # Move last_alive pointer and update number of alive
-            # particles.
-            last_alive -= 1
-            n_alive_post -= 1
-
-    return n_alive_post
-
-aperture.relocate_lost_particles = relocate_lost_particles
 
 
 ''' Cython functions for fast id and tagging of lost particles. '''

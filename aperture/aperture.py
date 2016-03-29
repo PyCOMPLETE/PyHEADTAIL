@@ -22,11 +22,13 @@ def make_int32(array):
     # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
 
+
 class Aperture(Element):
-    ''' Abstract base class for Aperture elements. An aperture is
+    '''Abstract base class for Aperture elements. An aperture is
     generally defined as a condition on the phase space coordinates.
     Particles not fulfilling this condition are tagged as lost and
-    are removed from the beam directly after. '''
+    are removed from the beam directly after.
+    '''
 
     __metaclass__ = ABCMeta
 
@@ -51,7 +53,7 @@ class Aperture(Element):
                 n_alive = 0
             else:
                 # Move lost particles to the end of the beam.u arrays.
-                n_alive = relocate_lost_particles(beam, alive)
+                n_alive = self.relocate_lost_particles(beam, alive)
             # Update beam.u arrays, i.e. remove lost particles.
             beam.macroparticlenumber = n_alive
             beam.x = beam.x[:n_alive]
@@ -71,6 +73,26 @@ class Aperture(Element):
         information on whether a particle is lost (0) or not (1).
         '''
         pass
+
+    @staticmethod
+    def relocate_lost_particles(beam, alive):
+        '''Relocate particles marked as lost to the end of the beam.u arrays
+        (u = x, y, z, ...). Return the number of alive particles
+        n_alive_post after considering the losses.
+
+        Arguments:
+            - beam: Particles instance
+            - alive: boolean mask with length n_particles where 1 means alive
+        '''
+        # descending sort to have alive particles (the 1 entries) in the front
+        perm = pm.argsort(-alive)
+
+        for u in beam.get_coords_n_momenta_dict().itervalues():
+            u[:] = pm.take(u, perm)
+        beam.id = pm.take(beam.id, perm)
+
+        n_alive = make_int32(pm.sum(alive))
+        return n_alive
 
 
 class RectangularApertureX(Aperture):
@@ -183,26 +205,6 @@ class EllipticalApertureXY(Aperture):
         '''
         return tag_lost_ellipse(beam.x, beam.y,
                                   self.x_aper, self.y_aper)
-
-
-def relocate_lost_particles(beam, alive):
-    '''Relocate particles marked as lost to the end of the beam.u arrays
-    (u = x, y, z, ...). Return the number of alive particles
-    n_alive_post after considering the losses.
-
-    Arguments:
-        - beam: Particles instance
-        - alive: boolean mask with length n_particles where 1 means alive
-    '''
-    # descending sort to have alive particles (the 1 entries) in the front
-    perm = pm.argsort(-alive)
-
-    for u in beam.get_coords_n_momenta_dict().itervalues():
-        u[:] = pm.take(u, perm)
-    beam.id = pm.take(beam.id, perm)
-
-    n_alive = pm.sum(alive)
-    return n_alive
 
 
 def tag_lost_rectangular(u, low_lim, high_lim):
