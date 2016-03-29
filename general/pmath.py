@@ -192,7 +192,9 @@ if has_pycuda:
         'init_slice_buffer': gpu_wrap.init_slice_buffer,
         'searchsortedleft': gpu_wrap.searchsortedleft,
         'searchsortedright': gpu_wrap.searchsortedright,
-        'sum': pycuda.gpuarray.sum,
+        'sum': wraps(pycuda.gpuarray.sum)(
+            lambda *args, **kwargs: pycuda.gpuarray.sum(*args, **kwargs).get()
+        ),
         'cumsum': skcuda.misc.cumsum,
         'wofz': gpu_wrap.wofz,
         'all': lambda array: pycuda.gpuarray.sum(array == 0).get() == 0,
