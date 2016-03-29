@@ -3,56 +3,57 @@ from __future__ import division
 Aperture module to manage particle losses. An aperture is
 defined as a condition on the phase space coordinates. Particles
 not fulfilling this condition are tagged as lost and are removed
-from the beam. Parts of this module are implemented in cython for
-better performance.
+from the beam. Parts of this module are implemented in cython
+under aperture_cython.pyx for better performance.
 
-@date: Created on 04.12.2014
-@author: Hannes Bartosik, Giovanni Iadarola, Kevin Li, Michael Schenk
-
-TODO:
-  - Store the information on a lost particle in the corresponding
-    aperture element instance, incl. time / turn number.
+@date: Created on 23.03.2016
+@author: Hannes Bartosik, Giovanni Iadarola, Kevin Li, Adrian Oeftiger,
+         Michael Schenk
 '''
-cimport cython
-import numpy as np
-cimport numpy as np
 
-from . import Element
+from . import Element, clean_slices
 
 from abc import ABCMeta, abstractmethod
 
+from ..general import pmath as pm
+import numpy as np
+
+def make_int32(array):
+    # return np.array(array, dtype=np.int32)
+    return array.astype(np.int32)
+
+
 class Aperture(Element):
-    ''' Abstract base class for Aperture elements. An aperture is
+    '''Abstract base class for Aperture elements. An aperture is
     generally defined as a condition on the phase space coordinates.
     Particles not fulfilling this condition are tagged as lost and
-    are removed from the beam directly after. '''
+    are removed from the beam directly after.
+    '''
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, *args, **kwargs):
-        pass
-
+    @clean_slices
     def track(self, beam):
-        ''' Tag particles not passing through the aperture as lost. If
+        '''Tag particles not passing through the aperture as lost. If
         there are any losses, the corresponding particles are removed
         from the beam by updating the beam.u arrays, s.t.
         beam.u = beam.u[:n_alive] after relocating lost particles to
         the end of these arrays. 'n_alive' denotes the number of alive
         particles after the given aperture element. In addition, the
         currently cached slice_sets of the beam are cleaned since losses
-        change its (longitudinal) state. '''
+        change its (longitudinal) state.
+        '''
         alive = self.tag_lost_particles(beam)
 
-
-        if not np.all(alive):
+        if not pm.all(alive):
             # check whether all particles are lost, it's not safe to call
-            # relocate_all_particles in this case
-            if not np.any(alive):
+            # the cython version of relocate_all_particles in this case
+            if not pm.any(alive):
                 self.warns('ALL particles were lost')
                 n_alive = 0
-            else :
+            else:
                 # Move lost particles to the end of the beam.u arrays.
-                n_alive = relocate_lost_particles(beam, alive)
+                n_alive = self.relocate_lost_particles(beam, alive)
             # Update beam.u arrays, i.e. remove lost particles.
             beam.macroparticlenumber = n_alive
             beam.x = beam.x[:n_alive]
@@ -63,9 +64,6 @@ class Aperture(Element):
             beam.dp = beam.dp[:n_alive]
             beam.id = beam.id[:n_alive]
 
-            # Empty slice_set cache of the beam.
-            beam.clean_slices()
-
     @abstractmethod
     def tag_lost_particles(self, beam):
         ''' This method is called by Aperture.track(beam) to identify
@@ -75,6 +73,26 @@ class Aperture(Element):
         information on whether a particle is lost (0) or not (1).
         '''
         pass
+
+    @staticmethod
+    def relocate_lost_particles(beam, alive):
+        '''Relocate particles marked as lost to the end of the beam.u arrays
+        (u = x, y, z, ...). Return the number of alive particles
+        n_alive_post after considering the losses.
+
+        Arguments:
+            - beam: Particles instance
+            - alive: boolean mask with length n_particles where 1 means alive
+        '''
+        # descending sort to have alive particles (the 1 entries) in the front
+        perm = pm.argsort(-alive)
+
+        for u in beam.get_coords_n_momenta_dict().itervalues():
+            u[:] = pm.take(u, perm)
+        beam.id = pm.take(beam.id, perm)
+
+        n_alive = make_int32(pm.sum(alive))
+        return n_alive
 
 
 class RectangularApertureX(Aperture):
@@ -97,7 +115,7 @@ class RectangularApertureX(Aperture):
         element. Returns a np.int32 array 'alive' which contains the
         information on whether a particle is lost (0) or not (1).
         '''
-        return cytag_lost_rectangular(beam.x, self.x_low, self.x_high)
+        return tag_lost_rectangular(beam.x, self.x_low, self.x_high)
 
 
 class RectangularApertureY(Aperture):
@@ -120,7 +138,7 @@ class RectangularApertureY(Aperture):
         element. Returns a np.int32 array 'alive' which contains the
         information on whether a particle is lost (0) or not (1).
         '''
-        return cytag_lost_rectangular(beam.y, self.y_low, self.y_high)
+        return tag_lost_rectangular(beam.y, self.y_low, self.y_high)
 
 
 class RectangularApertureZ(Aperture):
@@ -143,7 +161,7 @@ class RectangularApertureZ(Aperture):
         element. Returns a np.int32 array 'alive' which contains the
         information on whether a particle is lost (0) or not (1).
         '''
-        return cytag_lost_rectangular(beam.z, self.z_low, self.z_high)
+        return tag_lost_rectangular(beam.z, self.z_low, self.z_high)
 
 
 class CircularApertureXY(Aperture):
@@ -164,7 +182,7 @@ class CircularApertureXY(Aperture):
         element. Returns a np.int32 array 'alive' which contains the
         information on whether a particle is lost (0) or not (1).
         '''
-        return cytag_lost_circular(beam.x, beam.y, self.radius_square)
+        return tag_lost_circular(beam.x, beam.y, self.radius_square)
 
 
 class EllipticalApertureXY(Aperture):
@@ -185,136 +203,37 @@ class EllipticalApertureXY(Aperture):
         element. Returns a np.int32 array 'alive' which contains the
         information on whether a particle is lost (0) or not (1).
         '''
-        return cytag_lost_ellipse(beam.x, beam.y,
+        return tag_lost_ellipse(beam.x, beam.y,
                                   self.x_aper, self.y_aper)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def relocate_lost_particles(beam, int[::1] alive):
-    ''' Memory efficient (and fast) cython function to relocate
-    particles marked as lost to the end of the beam.u arrays (u = x, y,
-    z, ...). Returns the number of alive particles n_alive_post after
-    considering the losses.
-
-    Precondition:
-    - At least one particle must be tagged as alive, otherwise bad things
-      might happen...
-
-    Description of the algorithm:
-    (1) Starting from the end of the numpy array 'alive', find the index
-        of the last particle in the array which is still alive. Store its
-        array index in last_alive.
-    (2) Loop through the 'alive' array from there (continuing in reverse
-        order). If a particle i is found for which alive[i] == 0, i.e.
-        it is a lost one, swap its position (and data x, y, z, ...) with
-        the one located at index last_alive.
-    (3) Move last_alive by -1. Due to the chosen procedure, the particle
-        located at the new last_alive index is known to be alive.
-    (4) Repeat steps (2) and (3) until index i = 0 is reached.
-    '''
-    cdef double[::1] x = beam.x
-    cdef double[::1] y = beam.y
-    cdef double[::1] z = beam.z
-    cdef double[::1] xp = beam.xp
-    cdef double[::1] yp = beam.yp
-    cdef double[::1] dp = beam.dp
-    cdef int[::1] id = beam.id
-
-    # Temporary variables for swapping entries.
-    cdef double t_x, t_xp, t_y, t_yp, t_z, t_dp
-    cdef int t_alive, t_id
-
-    # Find last_alive index.
-    cdef int n_alive_pri = alive.shape[0]
-    cdef int last_alive = n_alive_pri - 1
-    while not alive[last_alive]:
-        last_alive -= 1
-
-    # Identify particles marked as lost and relocate them.
-    cdef int n_alive_post = last_alive + 1
-    cdef int i
-    for i in xrange(last_alive-1, -1, -1):
-        if not alive[i]:
-            # Swap lost particle coords with last_alive.
-            t_x, t_y, t_z = x[i], y[i], z[i]
-            t_xp, t_yp, t_dp = xp[i], yp[i], dp[i]
-            t_id, t_alive = id[i], alive[i]
-
-            x[i], y[i], z[i] = x[last_alive], y[last_alive], z[last_alive]
-            xp[i], yp[i], dp[i] = xp[last_alive], yp[last_alive], dp[last_alive]
-            id[i], alive[i] = id[last_alive], alive[last_alive]
-
-            x[last_alive], y[last_alive], z[last_alive] = t_x, t_y, t_z
-            xp[last_alive], yp[last_alive], dp[last_alive] = t_xp, t_yp, t_dp
-            id[last_alive], alive[last_alive] = t_id, t_alive
-
-            # Move last_alive pointer and update number of alive
-            # particles.
-            last_alive -= 1
-            n_alive_post -= 1
-
-    return n_alive_post
-
-
-''' Cython functions for fast id and tagging of lost particles. '''
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef cytag_lost_rectangular(double[::1] u,
-                             double low_lim, double high_lim):
-    ''' Cython function for fast identification and tagging of particles
-    lost at a rectangular aperture element, i.e. it tags particles with
+def tag_lost_rectangular(u, low_lim, high_lim):
+    '''Identify and tag particles lost at a rectangular aperture
+    element, i.e. particles with
     a spatial coord u (beam.x, beam.y or beam.z) lying outside the
-    interval (low_lim, high_lim) as lost. Returns a np array 'alive'
+    interval (low_lim, high_lim). Return a np array mask 'alive'
     containing the information of alive / lost for each particle in the
-    beam after the aperture. '''
-    cdef int n = u.shape[0]
-    cdef int[::1] alive = np.ones(n, dtype=np.int32)
+    beam after the aperture.
+    '''
+    dead = (u < low_lim) + (u > high_lim)
+    return make_int32(1 - dead)
 
-    cdef int i
-    for i in xrange(n):
-        if u[i] < low_lim or u[i] > high_lim:
-            alive[i] = 0
+def tag_lost_circular(u, v, radius_square):
+    '''Identify and tag particles lost at a circular transverse aperture
+    element of a given radius, i.e. particles with
+    spatial coords u, v (usually (beam.x, beam.y)) fulfilling
+    u**2 + v**2 > radius_square. Return a np array mask 'alive'
+    containing the information of alive / lost for each particle in the
+    beam after the aperture.
+    '''
+    alive = (u*u + v*v) <= radius_square
+    return make_int32(alive)
 
-    return alive
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef cytag_lost_circular(double[::1] u, double[::1] v,
-                          double radius_square):
-    ''' Cython function for fast identification and tagging of particles
-    lost at a circular transverse aperture element of a given radius,
-    i.e. it tags particles with spatial coords u, v (usually (beam.x,
-    beam.y)) fulfilling u**2 + v**2 > radius_square as lost. Returns a
-    np array 'alive' containing the information of alive / lost for
-    each particle in the beam after the aperture. '''
-    cdef int n = u.shape[0]
-    cdef int[::1] alive = np.ones(n, dtype=np.int32)
-
-    cdef int i
-    for i in xrange(n):
-        if (u[i]*u[i] + v[i]*v[i]) > radius_square:
-            alive[i] = 0
-
-    return alive
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef cytag_lost_ellipse(double[::1] u, double[::1] v,
-                         double u_aper, double v_aper):
-    ''' Cython function for fast identification and tagging of particles
-    lost at a elliptical transverse aperture element lost. Returns a
-    np array 'alive' containing the information of alive / lost for
-    each particle in the beam after the aperture. '''
-    cdef int n = u.shape[0]
-    cdef int[::1] alive = np.ones(n, dtype=np.int32)
-    cdef double u_aper_sq_rec = 1./(u_aper*u_aper)
-    cdef double v_aper_sq_rec = 1./(v_aper*v_aper)
-
-    cdef int i
-    for i in xrange(n):
-        if (u[i]*u[i]*u_aper_sq_rec + v[i]*v[i]*v_aper_sq_rec) > 1.:
-            alive[i] = 0
-
-    return alive
+def tag_lost_ellipse(u, v, u_aper, v_aper):
+    '''Identify and tag particles lost at an elliptical transverse
+    aperture element. Return a np array mask 'alive'
+    containing the information of alive / lost for each particle in the
+    beam after the aperture.
+    '''
+    alive = (u*u / (u_aper*u_aper) + v*v / (v_aper*v_aper)) <= 1.
+    return make_int32(alive)

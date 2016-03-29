@@ -36,7 +36,8 @@ class TestDispatch(unittest.TestCase):
     '''Test Class for the function dispatch functionality in general.pmath'''
     def setUp(self):
         self.available_CPU = pm._CPU_numpy_func_dict.keys()
-        self.available_GPU = pm._GPU_func_dict.keys()
+        if has_pycuda:
+            self.available_GPU = pm._GPU_func_dict.keys()
 
     def test_set_CPU(self):
         pm.update_active_dict(pm._CPU_numpy_func_dict)
@@ -46,6 +47,7 @@ class TestDispatch(unittest.TestCase):
             'were spilled to pm.globals()'
             )
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_set_GPU(self):
         pm.update_active_dict(pm._GPU_func_dict)
         self.assertTrue(

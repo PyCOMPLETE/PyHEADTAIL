@@ -146,8 +146,11 @@ _CPU_numpy_func_dict = {
     'init_slice_buffer': lambda slice_set, slice_stats, buffer_size: _init_slice_buffer(slice_stats, slice_set.n_slices, buffer_size),
     'searchsortedleft': _searchsortedleft,
     'searchsortedright': _searchsortedright,
+    'sum': np.sum,
     'cumsum': np.cumsum,
     'wofz': _wofz,
+    'all': np.all,
+    'any': np.any,
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -189,8 +192,13 @@ if has_pycuda:
         'init_slice_buffer': gpu_wrap.init_slice_buffer,
         'searchsortedleft': gpu_wrap.searchsortedleft,
         'searchsortedright': gpu_wrap.searchsortedright,
+        'sum': wraps(pycuda.gpuarray.sum)(
+            lambda *args, **kwargs: pycuda.gpuarray.sum(*args, **kwargs).get()
+        ),
         'cumsum': skcuda.misc.cumsum,
         'wofz': gpu_wrap.wofz,
+        'all': lambda array: pycuda.gpuarray.sum(array == 0).get() == 0,
+        'any': lambda array: pycuda.gpuarray.sum(array != 0).get() > 0,
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################
