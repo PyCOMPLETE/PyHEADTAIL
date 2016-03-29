@@ -195,8 +195,8 @@ if has_pycuda:
         'sum': pycuda.gpuarray.sum,
         'cumsum': skcuda.misc.cumsum,
         'wofz': gpu_wrap.wofz,
-        'all': lambda array: gpuarray.sum(array == 0).get() == 0,
-        'any': lambda array: gpuarray.sum(array != 0).get() > 0,
+        'all': lambda array: pycuda.gpuarray.sum(array == 0).get() == 0,
+        'any': lambda array: pycuda.gpuarray.sum(array != 0).get() > 0,
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################
