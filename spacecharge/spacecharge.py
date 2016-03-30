@@ -197,15 +197,15 @@ class TransverseGaussianSpaceCharge(Element):
         y = yr - mean_y
 
         # absolute values for convergence reasons of erfc
-        en_x, en_y = self._efieldn(np.abs(x), np.abs(y), sig_x, sig_y)
-        en_x = np.abs(en_x) * np.sign(x)
-        en_y = np.abs(en_y) * np.sign(y)
+        en_x, en_y = self._efieldn(pm.abs(x), pm.abs(y), sig_x, sig_y)
+        en_x = pm.abs(en_x) * pm.sign(x)
+        en_y = pm.abs(en_y) * pm.sign(y)
 
         return en_x, en_y
 
     @staticmethod
     def _sig_sqrt(sig_x, sig_y):
-        return np.sqrt(2 * (sig_x**2 - sig_y**2))
+        return pm.sqrt(2 * (sig_x**2 - sig_y**2))
 
     @staticmethod
     def _efieldn_mit(x, y, sig_x, sig_y):
@@ -230,7 +230,7 @@ class TransverseGaussianSpaceCharge(Element):
         ex = exp(-x**2 / (2 * sig_x**2) +
                  -y**2 / (2 * sig_y**2))
         w2 = wofz(x * sig_y/(sig_x*sig_sqrt) +
-                    y * sig_x/(sig_y*sig_sqrt) * 1j)
+                  y * sig_x/(sig_y*sig_sqrt) * 1j)
         val = (w1 - ex * w2) / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
         return val.imag, val.real
 
@@ -254,7 +254,7 @@ class TransverseGaussianSpaceCharge(Element):
         ex = exp(-x**2 / (2 * sig_x**2) +
                  -y**2 / (2 * sig_y**2))
         w2 = errfadd(x * sig_y/(sig_x*sig_sqrt) +
-                    y * sig_x/(sig_y*sig_sqrt) * 1j)
+                     y * sig_x/(sig_y*sig_sqrt) * 1j)
         val = (w1 - ex * w2) / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
         return val.imag, val.real
 
