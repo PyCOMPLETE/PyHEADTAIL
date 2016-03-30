@@ -125,5 +125,5 @@ setup(
 
 from numpy.distutils.core import setup, Extension
 setup(
-    ext_modules = [Extension('general.errfff', ['general/errfff.f'])],
+    ext_modules = [Extension('general.errfff', ['general/errfff.f90'])],
 )
