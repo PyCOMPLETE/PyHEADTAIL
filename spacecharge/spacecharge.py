@@ -166,8 +166,8 @@ class TransverseGaussianSpaceCharge(Element):
         '''
         slices = beam.get_slices(
             self.slicer, statistics=["mean_x", "mean_y", "sigma_x", "sigma_y"])
-        prefactor = (beam.particlenumber_per_mp * beam.charge
-                     / beam.p0 * self.length / (beam.beta * c)**2)
+        prefactor = (slices.charge_per_mp * self.length /
+                     (beam.p0 * beam.gamma*beam.gamma * beam.beta * c))
 
         for s_i, Q_sl, mean_x, mean_y, sig_x, sig_y \
                 in zip(xrange(slices.n_slices),
