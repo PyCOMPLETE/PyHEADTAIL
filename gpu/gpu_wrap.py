@@ -10,6 +10,7 @@ import numpy as np
 import os
 import gpu_utils
 import math
+from functools import wraps
 try:
     import skcuda.misc
     import pycuda.gpuarray
@@ -169,7 +170,7 @@ if has_pycuda:
         name='wofz_kernel',
         preamble=open(where + 'wofz.cu', 'r').read()
     )
-    def wofz(z, out_real=None, out_imag=None):
+    def wofz(z, out_real=None, out_imag=None, stream=None):
         '''Faddeeva error function, equivalent to scipy.special.wofz.
         If both out arrays are given, this function does not construct
         a complex number out of these to return.'''
@@ -179,10 +180,41 @@ if has_pycuda:
             out_real = pycuda.gpuarray.empty_like(in_real)
         if out_imag is None:
             out_imag = pycuda.gpuarray.empty_like(in_imag)
-        _wofz(in_real, in_imag, out_real, out_imag)
+        _wofz(in_real, in_imag, out_real, out_imag, stream=stream)
         if out_real is None or out_imag is None:
             return out_real + 1j*out_imag
 
+    _sign = pycuda.elementwise.ElementwiseKernel(
+        arguments='double* in, double* out',
+        operation='out[i] = ((in[i]) > 0. ? +1. : ((in[i]) < 0. ? -1. : 0.));',
+        name='sign_kernel',
+    )
+    def sign(array, out=None, stream=None):
+        if out is None:
+            out = pycuda.gpuarray.empty_like(array)
+        _sign(array, out, stream=stream)
+        return out
+
+    _allclose = pycuda.elementwise.ElementwiseKernel(
+        arguments='double* a, double* b, int* notclose, '
+                  'const double atol, const double rtol',
+        # max(x, -x) is the quickest implementation of abs, cf. CUDA doc
+        operation='const double absdiff = max(a[i] - b[i], b[i] - a[i]);'
+                  'const double limit = atol + rtol * max(b[i], -b[i]);'
+                  'if (absdiff > limit) notclose[i] = 1;'
+                  'else notclose[i] = 0;',
+        name='allclose_kernel'
+    )
+    np_allclose_defaults = np.allclose.func_defaults # (rtol, atol, equal_nan)
+    @wraps(np.allclose)
+    def allclose(a, b, rtol=np_allclose_defaults[0],
+                 atol=np_allclose_defaults[1], out=None, stream=None):
+        assert a.shape == b.shape
+        if out is None:
+            out = pycuda.gpuarray.empty(a.shape, dtype=np.int32)
+        _allclose(a, b, out, atol, rtol)
+        how_many_not_close = pycuda.gpuarray.sum(out).get()
+        return how_many_not_close == 0
 
 def _inplace_pow(x_gpu, p, stream=None):
     '''

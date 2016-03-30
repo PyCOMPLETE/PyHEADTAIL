@@ -154,6 +154,7 @@ _CPU_numpy_func_dict = {
     'indexify': lambda array: array.astype(np.int32),
     'abs': np.abs,
     'sign': np.sign,
+    'allclose': np.allclose,
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -204,7 +205,8 @@ if has_pycuda:
         'any': lambda array: pycuda.gpuarray.sum(array != 0).get() > 0,
         'indexify': lambda array: array.astype(np.int32).get(), # indices cannot be GPUArrays
         'abs': lambda array: abs(array),
-        'sign': lambda array: array / abs(array),
+        'sign': gpu_wrap.sign,
+        'allclose': gpu_wrap.allclose,
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################
