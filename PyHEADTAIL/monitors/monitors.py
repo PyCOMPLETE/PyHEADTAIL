@@ -502,7 +502,10 @@ class CellMonitor(Monitor):
                               contents are actually written to file.
           buffer_size:        Number of steps to be buffered. """
         self.stats_to_store = [
-            'mean_x', 'mean_y', 'mean_z', 'mean_dp', 'macroparticlenumber' ]
+            'mean_x', 'mean_xp',
+            'mean_y', 'mean_yp',
+            'mean_z', 'mean_dp',
+            'macroparticlenumber']
 
         self.filename = filename
         self.n_steps = n_steps
