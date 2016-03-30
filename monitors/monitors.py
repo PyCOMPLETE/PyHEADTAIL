@@ -498,8 +498,7 @@ class CellMonitor(Monitor):
 
         for stats in self.stats_to_store:
             self.buffer_cell[stats] = (
-                np.zeros((self.n_azimuthal_slices, self.n_radial_slices,
-                          self.buffer_size)))
+                np.zeros((self.n_azimuthal_slices, self.n_radial_slices, self.buffer_size)))
         self._create_file_structure(parameters_dict)
 
     def dump(self, bunch):
@@ -549,11 +548,13 @@ class CellMonitor(Monitor):
         cell-specific data are computed by a cython function. """
 
         from PyHEADTAIL.cobra_functions.stats import calc_cell_stats
-        n_cl, x_cl, y_cl, z_cl, dp_cl = calc_cell_stats(bunch, self.beta_z,
-            self.radial_cut, self.n_radial_slices, self.n_azimuthal_slices)
+        n_cl, x_cl, xp_cl, y_cl, yp_cl, z_cl, dp_cl = calc_cell_stats(
+            bunch, self.beta_z, self.radial_cut, self.n_radial_slices, self.n_azimuthal_slices)
 
         self.buffer_cell['mean_x'][:,:,0] = x_cl[:,:]
+        self.buffer_cell['mean_xp'][:,:,0] = xp_cl[:,:]
         self.buffer_cell['mean_y'][:,:,0] = y_cl[:,:]
+        self.buffer_cell['mean_yp'][:,:,0] = yp_cl[:,:]
         self.buffer_cell['mean_z'][:,:,0] = z_cl[:,:]
         self.buffer_cell['mean_dp'][:,:,0] = dp_cl[:,:]
         self.buffer_cell['macroparticlenumber'][:,:,0] = n_cl[:,:]

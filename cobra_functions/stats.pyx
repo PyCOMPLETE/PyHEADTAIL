@@ -423,19 +423,25 @@ cpdef calc_cell_stats(bunch, double beta_z, double radial_cut,
 
     # Prepare arrays to store cell statistics.
     cdef int[:,::1] n_particles_cell = np.zeros((n_azim_slices, n_rings),
-                                               dtype=np.int32)
+                                                dtype=np.int32)
     cdef double[:,::1] mean_x_cell = np.zeros((n_azim_slices, n_rings),
+                                              dtype=np.double)
+    cdef double[:,::1] mean_xp_cell = np.zeros((n_azim_slices, n_rings),
                                                dtype=np.double)
     cdef double[:,::1] mean_y_cell = np.zeros((n_azim_slices, n_rings),
+                                              dtype=np.double)
+    cdef double[:,::1] mean_yp_cell = np.zeros((n_azim_slices, n_rings),
                                                dtype=np.double)
     cdef double[:,::1] mean_z_cell = np.zeros((n_azim_slices, n_rings),
-                                               dtype=np.double)
+                                              dtype=np.double)
     cdef double[:,::1] mean_dp_cell = np.zeros((n_azim_slices, n_rings),
-                                                dtype=np.double)
+                                               dtype=np.double)
 
     # Declare datatypes of bunch coords.
     cdef double[::1] x = bunch.x
+    cdef double[::1] xp = bunch.xp
     cdef double[::1] y = bunch.y
+    cdef double[::1] yp = bunch.yp
     cdef double[::1] z = bunch.z
     cdef double[::1] dp = bunch.dp
     cdef unsigned int n_particles = x.shape[0]
@@ -458,22 +464,26 @@ cpdef calc_cell_stats(bunch, double beta_z, double radial_cut,
             continue
 
         # Slice azimuthally.
-        if (z_i > 0. and dp_i > 0.):
-            azim_idx = <int>cmath.floor(
-                cmath.atan(beta_z*dp_i / z_i) / azim_width)
-        elif (z_i < 0. and dp_i > 0.):
-            azim_idx = <int>cmath.floor(
-                (cmath.M_PI - cmath.atan(-beta_z*dp_i / z_i)) / azim_width)
-        elif (z_i < 0. and dp_i <= 0.):
-            azim_idx = <int>cmath.floor(
-                (cmath.M_PI + cmath.atan(beta_z*dp_i / z_i)) / azim_width)
-        elif (z_i > 0. and dp_i < 0.):
-            azim_idx = <int>cmath.floor(
-                (2.*cmath.M_PI - cmath.atan(-beta_z*dp_i / z_i)) / azim_width)
+        azim_idx = <int>cmath.floor(
+            (cmath.M_PI + cmath.atan2(beta_z*dp_i, z_i)) / azim_width)
+        # if (z_i > 0. and dp_i > 0.):
+        #     azim_idx = <int>cmath.floor(
+        #         cmath.atan(beta_z*dp_i / z_i) / azim_width)
+        # elif (z_i < 0. and dp_i > 0.):
+        #     azim_idx = <int>cmath.floor(
+        #         (cmath.M_PI - cmath.atan(-beta_z*dp_i / z_i)) / azim_width)
+        # elif (z_i < 0. and dp_i <= 0.):
+        #     azim_idx = <int>cmath.floor(
+        #         (cmath.M_PI + cmath.atan(beta_z*dp_i / z_i)) / azim_width)
+        # elif (z_i > 0. and dp_i < 0.):
+        #     azim_idx = <int>cmath.floor(
+        #         (2.*cmath.M_PI - cmath.atan(-beta_z*dp_i / z_i)) / azim_width)
 
         n_particles_cell[azim_idx, ring_idx] += 1
         mean_x_cell[azim_idx, ring_idx] += x[p_idx]
+        mean_xp_cell[azim_idx, ring_idx] += xp[p_idx]
         mean_y_cell[azim_idx, ring_idx] += y[p_idx]
+        mean_yp_cell[azim_idx, ring_idx] += yp[p_idx]
         mean_z_cell[azim_idx, ring_idx] += z_i
         mean_dp_cell[azim_idx, ring_idx] += dp_i
 
@@ -481,8 +491,10 @@ cpdef calc_cell_stats(bunch, double beta_z, double radial_cut,
         for ring_idx in xrange(n_rings):
             if n_particles_cell[azim_idx, ring_idx] > 0:
                 mean_x_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
+                mean_xp_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
                 mean_y_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
+                mean_yp_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
                 mean_z_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
                 mean_dp_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
 
-    return n_particles_cell, mean_x_cell, mean_y_cell, mean_z_cell, mean_dp_cell
+    return n_particles_cell, mean_x_cell, mean_xp_cell, mean_y_cell, mean_yp_cell, mean_z_cell, mean_dp_cell
