@@ -26,14 +26,7 @@ from . import Printing
 from scipy import interpolate
 
 
-floor = np.floor
-empty_like = np.empty_like
-min_ = np.min
-max_ = np.max
-arange = np.arange
-diff = np.diff
 def make_int32(array):
-    # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
 
 
@@ -144,8 +137,8 @@ class SliceSet(Printing):
         '''Position of the respective slice start within the array
         self.particle_indices_by_slice .
         '''
-        slice_positions_ = pm.zeros(self.n_slices + 1, dtype=np.int32)
-        slice_positions_[1:] = make_int32(
+        slice_positions_ = np.zeros(self.n_slices + 1, dtype=np.int32)
+        slice_positions_[1:] = pm.indexify(
             pm.cumsum(self.n_macroparticles_per_slice))
         return slice_positions_
 
@@ -299,7 +292,7 @@ class SliceSet(Printing):
         '''
         if empty_particles == None:
             empty_particles = pm.empty_like(
-                self.slice_index_of_particle, dtype=np.float)
+                self.slice_index_of_particle, dtype=np.float64)
         particle_array = empty_particles
         p_id = self.particles_within_cuts
         s_id = self.slice_index_of_particle.take(p_id)
