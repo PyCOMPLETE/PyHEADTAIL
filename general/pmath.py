@@ -151,6 +151,9 @@ _CPU_numpy_func_dict = {
     'wofz': _wofz,
     'all': np.all,
     'any': np.any,
+    'indexify': lambda array: array.astype(np.int32),
+    'abs': np.abs,
+    'sign': np.sign,
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -199,6 +202,9 @@ if has_pycuda:
         'wofz': gpu_wrap.wofz,
         'all': lambda array: pycuda.gpuarray.sum(array == 0).get() == 0,
         'any': lambda array: pycuda.gpuarray.sum(array != 0).get() > 0,
+        'indexify': lambda array: array.astype(np.int32).get(), # indices cannot be GPUArrays
+        'abs': lambda array: abs(array),
+        'sign': lambda array: array / abs(array),
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################
