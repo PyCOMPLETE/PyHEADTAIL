@@ -18,11 +18,23 @@ except ImportError:
 
 if has_pycuda:
     def create_kernel(operator):
-        '''Return a elementwisekernel with the operator being one of +, -, /, * as a string'''
+        '''Return a elementwisekernel with the operator being one of
+        +, -, /, * as a string.
+        '''
         _ker = pycuda.elementwise.ElementwiseKernel(
                 'double* out, double* a, const double* b',
-                'out[i] = a[i] %s b[0]' %operator,
-                '_scalar_custom'
+                'out[i] = a[i] %s b[0]' %operator
+            )
+        return _ker
+
+    def create_ckernel(operator):
+        '''Return a complex elementwisekernel with the operator being
+        one of +, -, /, * as a string.
+        '''
+        _ker = pycuda.elementwise.ElementwiseKernel(
+                'pycuda::complex<double>* out, pycuda::complex<double>* a, '
+                'const pycuda::complex<double>* b',
+                'out[i] = a[i] %s b[0]' % operator
             )
         return _ker
 
@@ -31,10 +43,23 @@ if has_pycuda:
         func_name: one of __isub__, __iadd__, __imul__, __idiv__
         '''
         _kernel = create_kernel(op)
+        _ckernel = create_ckernel(op)
         old_v = getattr(pycuda.gpuarray.GPUArray, func_name)
         def _patch(self, other):
             if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape is ():
-                _kernel(self, self, other)
+                if 'c' in (self.dtype.kind, other.dtype.kind):
+                    self = self.astype(complex)
+                    _ckernel(self, self, other.astype(complex))
+                else:
+                    if self.dtype != np.float64 or other.dtype != np.float64:
+                        raise NotImplementedError(
+                            'pmath: Oops. So far only double or complex '
+                            'operations with GPU scalars have been '
+                            'implemented. Please convert both operands at '
+                            'least to np.float64. Or implement a more '
+                            'general monkey patching of GPUArray operators.'
+                        )
+                    _kernel(self, self, other)
             else:
                 old_v(self, other)
             return self
@@ -43,11 +68,25 @@ if has_pycuda:
     def patch_binop(op, func_name):
         '''monkey patch __sub__, __add__, ...'''
         _kernel = create_kernel(op)
+        _ckernel = create_ckernel(op)
         old_v = getattr(pycuda.gpuarray.GPUArray, func_name)
         def _patch_binop(self, other):
             if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape in [(),(1,)]:
-                out = pycuda.gpuarray.empty_like(self)
-                _kernel(out, self, other)
+                if 'c' in (self.dtype.kind, other.dtype.kind):
+                    self = self.astype(complex)
+                    out = pycuda.gpuarray.empty_like(self)
+                    _ckernel(out, self, other.astype(complex))
+                else:
+                    if self.dtype != np.float64 or other.dtype != np.float64:
+                        raise NotImplementedError(
+                            'pmath: Oops. So far only double or complex '
+                            'operations with GPU scalars have been '
+                            'implemented. Please convert both operands at '
+                            'least to np.float64. Or implement a more '
+                            'general monkey patching of GPUArray operators.'
+                        )
+                    out = pycuda.gpuarray.empty_like(self)
+                    _kernel(out, self, other)
                 return out
             else:
                 return old_v(self, other)
