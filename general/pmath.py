@@ -154,6 +154,7 @@ _CPU_numpy_func_dict = {
     'indexify': lambda array: array.astype(np.int32),
     'abs': np.abs,
     'sign': np.sign,
+    'sqrt': np.sqrt,
     'allclose': np.allclose,
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
@@ -204,8 +205,9 @@ if has_pycuda:
         'all': lambda array: pycuda.gpuarray.sum(array == 0).get() == 0,
         'any': lambda array: pycuda.gpuarray.sum(array != 0).get() > 0,
         'indexify': lambda array: array.astype(np.int32).get(), # indices cannot be GPUArrays
-        'abs': lambda array: abs(array),
+        'abs': lambda array: array.__abs__(),
         'sign': gpu_wrap.sign,
+        'sqrt': pycuda.cumath.sqrt,
         'allclose': gpu_wrap.allclose,
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }

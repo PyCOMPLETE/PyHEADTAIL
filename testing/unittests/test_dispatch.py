@@ -79,14 +79,9 @@ class TestDispatch(unittest.TestCase):
             'seq', 'init_bunch_buffer', 'init_slice_buffer', 'device',
             'searchsortedright', 'searchsortedleft', 'cumsum', 'ones', 'wofz',
             'allclose',
-            'log', # does not take negative args!
-            'abs', # some weird stuff --
-                   # TypeError: ufunc 'isfinite' not supported for the input types,
-                   # and the inputs could not be safely coerced to any
-                   # supported types according to the casting rule ''safe''
         ]
         np.random.seed(0)
-        parameter_cpu = np.random.normal(loc=1., scale=1., size=100000)
+        parameter_cpu = np.random.uniform(low=1e-15, high=1., size=100000)
         parameter_gpu = pycuda.gpuarray.to_gpu(parameter_cpu)
         common_functions = [fn for fn in self.available_CPU
                             if fn in self.available_GPU]
