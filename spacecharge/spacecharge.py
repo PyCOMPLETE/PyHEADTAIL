@@ -14,14 +14,6 @@ from functools import wraps
 
 from ..general import pmath as pm
 
-log = pm.log
-exp = pm.exp
-take = pm.take
-
-errf = pm._errf
-errfadd = pm._errfadd
-wofz = pm.wofz
-
 
 class LongSpaceCharge(Element):
     '''Contains longitudinal space charge (SC) via Chao's expression:
@@ -62,10 +54,6 @@ class LongSpaceCharge(Element):
 
         kicks = slices.convert_to_particles(slice_kicks)
         beam.dp -= kicks
-#        p_id = slices.particles_within_cuts
-#        s_id = slices.slice_index_of_particle.take(p_id)
-
-#        beam.dp[p_id] -= slice_kicks.take(s_id)
 
     @staticmethod
     def _prefactor(sliceset):
@@ -100,8 +88,8 @@ class LongSpaceCharge(Element):
         """
         slice_radius = 0.5 * (sliceset.sigma_x + sliceset.sigma_y)
         # the following line prevents ZeroDivisionError for pencil slices
-        slice_radius[slice_radius == 0] = exp(-0.25) * self.pipe_radius
-        return directSC + 2. * log(self.pipe_radius / slice_radius)
+        slice_radius[slice_radius == 0] = pm.exp(-0.25) * self.pipe_radius
+        return directSC + 2. * pm.log(self.pipe_radius / slice_radius)
 
     def make_force(self, sliceset):
         '''Return the electric force field due to space charge
@@ -133,6 +121,18 @@ class TransverseGaussianSpaceCharge(Element):
     Applies the Bassetti-Erskine electric field expression slice-wise
     for each particle centred around the slice centre.
     '''
+
+    '''Threshold for relative transverse beam size difference
+    below which the beam is assumed to be round:
+    abs(1 - sig_y / sig_x) < ratio_threshold ==> round beam
+    '''
+    ratio_threshold = 1e-3
+
+    '''Threshold for absolute transverse beam size difference
+    below which the beam is assumed to be round:
+    abs(sig_y - sig_x) < absolute_threshold ==> round beam
+    '''
+    absolute_threshold = 1e-10
 
     def __init__(self, slicer, length, sig_check=True, other_efieldn=None):
         '''Arguments:
@@ -179,7 +179,7 @@ class TransverseGaussianSpaceCharge(Element):
                 continue
 
             en_x, en_y = self.get_efieldn(
-                take(beam.x, p_id), take(beam.y, p_id),
+                pm.take(beam.x, p_id), pm.take(beam.y, p_id),
                 mean_x, mean_y, sig_x, sig_y)
 
             beam.xp[p_id] += prefactor * (Q_sl * en_x)
@@ -226,13 +226,13 @@ class TransverseGaussianSpaceCharge(Element):
         # sig_x = 1.2e-6
         # sig_y = 1e-6
         sig_sqrt = TransverseGaussianSpaceCharge._sig_sqrt(sig_x, sig_y)
-        w1 = wofz((x + 1j * y) / sig_sqrt)
-        ex = exp(-x**2 / (2 * sig_x**2) +
-                 -y**2 / (2 * sig_y**2))
-        w2 = wofz(x * sig_y/(sig_x*sig_sqrt) +
-                  y * sig_x/(sig_y*sig_sqrt) * 1j)
-        val = (w1 - ex * w2) / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
-        return val.imag, val.real
+        w1re, w1im = pm.wofz(x / sig_sqrt, y / sig_sqrt)
+        ex = pm.exp(-x*x / (2 * sig_x*sig_x) +
+                    -y*y / (2 * sig_y*sig_y))
+        w2re, w2im = pm.wofz(x * sig_y/(sig_x*sig_sqrt),
+                             y * sig_x/(sig_y*sig_sqrt))
+        pref = 1. / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
+        return pref * (w1im - ex * w2im), pref * (w1re - ex * w2re)
 
     @staticmethod
     def _efieldn_mitmod(x, y, sig_x, sig_y):
@@ -250,11 +250,11 @@ class TransverseGaussianSpaceCharge(Element):
         '''
         # timing was ~1.01ms for same situation as _efieldn_mit
         sig_sqrt = TransverseGaussianSpaceCharge._sig_sqrt(sig_x, sig_y)
-        w1 = errfadd((x + 1j * y) / sig_sqrt)
-        ex = exp(-x**2 / (2 * sig_x**2) +
-                 -y**2 / (2 * sig_y**2))
-        w2 = errfadd(x * sig_y/(sig_x*sig_sqrt) +
-                     y * sig_x/(sig_y*sig_sqrt) * 1j)
+        w1 = pm._errfadd((x + 1j * y) / sig_sqrt)
+        ex = pm.exp(-x*x / (2 * sig_x*sig_x) +
+                    -y*y / (2 * sig_y*sig_y))
+        w2 = pm._errfadd(x * sig_y/(sig_x*sig_sqrt) +
+                         y * sig_x/(sig_y*sig_sqrt) * 1j)
         val = (w1 - ex * w2) / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
         return val.imag, val.real
 
@@ -272,16 +272,16 @@ class TransverseGaussianSpaceCharge(Element):
         Uses CERN library from K. Koelbig.
         '''
         # timing was ~3.35ms for same situation as _efieldn_mit
-        if not errf:
+        if not pm.errf:
             raise ImportError('errfff cannot be imported for using ' +
                               'TransverseSpaceCharge._efield_koelbig .' +
                               'Did you f2py errfff.f?')
         sig_sqrt = TransverseGaussianSpaceCharge._sig_sqrt(sig_x, sig_y)
-        w1re, w1im = errf(x/sig_sqrt, y/sig_sqrt)
-        ex = exp(-x**2 / (2 * sig_x**2) +
-                 -y**2 / (2 * sig_y**2))
-        w2re, w2im = errf(x * sig_y/(sig_x*sig_sqrt),
-                          y * sig_x/(sig_y*sig_sqrt))
+        w1re, w1im = pm.errf(x/sig_sqrt, y/sig_sqrt)
+        ex = pm.exp(-x*x / (2 * sig_x*sig_x) +
+                    -y*y / (2 * sig_y*sig_y))
+        w2re, w2im = pm.errf(x * sig_y/(sig_x*sig_sqrt),
+                             y * sig_x/(sig_y*sig_sqrt))
         pref = 1. / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
         return pref * (w1im - ex * w2im), pref * (w1re - ex * w2re)
 
@@ -290,11 +290,11 @@ class TransverseGaussianSpaceCharge(Element):
         '''FADDEEVA function as implemented in PyECLOUD, vectorised.'''
         x=z.real
         y=z.imag
-        if not errf:
+        if not pm._errf:
             raise ImportError('errfff cannot be imported for using ' +
-                              'TransverseSpaceCharge._efield_koelbig .' +
+                              'TransverseSpaceCharge._efield_pyecloud .' +
                               'Did you f2py errfff.f?')
-        wx,wy=errf(x,y) # was only errf_f
+        wx,wy=pm._errf(x,y) # in PyECLOUD only pm._errf_f (not vectorised)
         return wx+1j*wy
 
     @staticmethod
@@ -339,26 +339,29 @@ class TransverseGaussianSpaceCharge(Element):
         '''Return (E_x / Q, E_y / Q) for a round distribution
         with sigma_x == sigma_y == sig_r .
         '''
-        r2 = x**2 + y**2
-        amplitude = (1 - exp(-r2/(2*sig_r**2))) / (2*pi*epsilon_0 * r2)
+        r2 = x*x + y*y
+        amplitude = (1 - pm.exp(-r2/(2*sig_r*sig_r))) / (2*pi*epsilon_0 * r2)
         return x * amplitude, y * amplitude
 
     @staticmethod
     def add_sigma_check(efieldn):
-        '''Exchanges x and y quantities if sigma_x < sigma_y.
-        Applies round beam field instead when sigma_x == sigma_y.
+        '''Wrapper for a normalised electric field function.
+
+        Adds the following actions before calculating the field:
+        - exchange x and y quantities if sigma_x < sigma_y
+        - apply round beam field formula when sigma_x close to sigma_y
         '''
         efieldn_round = TransverseGaussianSpaceCharge._efieldn_round
         @wraps(efieldn)
         def efieldn_checked(x, y, sig_x, sig_y, *args, **kwargs):
-            if sig_x == sig_y:
-                if sig_x == 0:
-                    en_x, en_y = 0, 0
-                else:
-                    en_x, en_y = efieldn_round(x, y, sig_x)
-            elif sig_x < sig_y:
-                en_y, en_x = efieldn(y, x, sig_y, sig_x)
+            if pm.allclose(
+                    sig_y, sig_x,
+                    rtol=TransverseGaussianSpaceCharge.ratio_threshold,
+                    atol=TransverseGaussianSpaceCharge.absolute_threshold):
+                en_x, en_y = efieldn_round(x, y, sig_x, *args, **kwargs)
+            elif pm.all(sig_x < sig_y):
+                en_y, en_x = efieldn(y, x, sig_y, sig_x, *args, **kwargs)
             else:
-                en_x, en_y = efieldn(x, y, sig_x, sig_y)
+                en_x, en_y = efieldn(x, y, sig_x, sig_y, *args, **kwargs)
             return en_x, en_y
         return efieldn_checked
