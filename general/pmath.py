@@ -7,7 +7,7 @@ Dispatches for CPU/GPU versions
 import numpy as np
 from ..cobra_functions import stats as cp
 from ..gpu import gpu_utils
-from ..gpu import gpu_wrap as gpu_wrap
+from ..gpu import gpu_wrap
 try:
     import pycuda.cumath
     import pycuda.gpuarray
@@ -31,7 +31,10 @@ try:
 except ImportError:
     _errf = None
 from scipy.special import erfc as _erfc
-from scipy.special import wofz as _wofz
+from scipy.special import wofz as _scipy_wofz
+def _wofz(x, y):
+    res = _scipy_wofz(x + 1j*y)
+    return res.real, res.imag
 def _errfadd(z):
     return np.exp(-z**2) * _erfc(z * -1j)
 

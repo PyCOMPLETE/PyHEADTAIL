@@ -95,9 +95,11 @@ if has_pycuda:
     # patch the GPUArray to be able to cope with gpuarrays of size 1 as ops
     pycuda.gpuarray.GPUArray.__isub__ = patch_op('-', '__isub__')
     pycuda.gpuarray.GPUArray.__iadd__ = patch_op('+', '__iadd__')
-    #pycuda.gpuarray.GPUArray.__imul__ = patch_op('*', '__imul__')
-    #pycuda.gpuarray.GPUArray.__idiv__ = patch_op('/', '__idiv__')
+    # pycuda.gpuarray.GPUArray.__imul__ = patch_op('*', '__imul__')
+    # pycuda.gpuarray.GPUArray.__idiv__ = patch_op('/', '__idiv__')
     pycuda.gpuarray.GPUArray.__sub__ = patch_binop('-', '__sub__')
+    # pycuda.gpuarray.GPUArray.__add__ = patch_binop('+', '__add__')
+    # pycuda.gpuarray.GPUArray.__mul__ = patch_binop('*', '__mul__')
     pycuda.gpuarray.GPUArray.__div__ = patch_binop('/', '__div__')
     pycuda.gpuarray.GPUArray.__truediv__ = pycuda.gpuarray.GPUArray.__div__
 

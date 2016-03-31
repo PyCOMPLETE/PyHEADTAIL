@@ -170,16 +170,17 @@ if has_pycuda:
         name='wofz_kernel',
         preamble=open(where + 'wofz.cu', 'r').read()
     )
-    def wofz(z, out_real=None, out_imag=None, stream=None):
-        '''Faddeeva error function, equivalent to scipy.special.wofz.'''
-        in_real = z.real
-        in_imag = z.imag
+    def wofz(in_real, in_imag, out_real=None, out_imag=None, stream=None):
+        '''Faddeeva error function, equivalent to scipy.special.wofz.
+        Instead of a complex argument z, it takes the real and imaginary
+        part of z.
+        '''
         if out_real is None:
             out_real = pycuda.gpuarray.empty_like(in_real)
         if out_imag is None:
             out_imag = pycuda.gpuarray.empty_like(in_imag)
         _wofz(in_real, in_imag, out_real, out_imag, stream=stream)
-        return out_real + 1j*out_imag
+        return out_real, out_imag
 
     _sign = pycuda.elementwise.ElementwiseKernel(
         arguments='double* in, double* out',
