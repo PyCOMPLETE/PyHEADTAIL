@@ -359,6 +359,60 @@ def uniform2D(low, high):
         return coords
     return _uniform2D
 
+
+'''
+Why we have this ll algo in here? We had a better one (Knuth):
+
+import numpy as np
+
+
+def transform_into_kv(bunch, a_x, a_xp, a_y, a_yp):
+
+    # KV distribution
+    # ==================================================
+    d = 4
+    for i in range(bunch.macroparticlenumber):
+       u = np.random.normal(size=d)
+       r = np.sqrt(np.sum(u**2))
+       u *= 1./r
+
+       bunch.x[i]  = u[0]
+       bunch.xp[i] = u[1]
+       bunch.y[i]  = u[2]
+       bunch.yp[i] = u[3]
+    # ==================================================
+
+    bunch.x  *= a_x
+    bunch.xp *= a_xp
+    bunch.y  *= a_y
+    bunch.yp *= a_yp
+
+
+def transform_into_waterbag(bunch, a_x, a_xp, a_y, a_yp):
+
+    # waterbag distribution
+    # ==================================================
+    d = 4
+    for i in range(bunch.macroparticlenumber):
+        u = np.random.normal(size=d)
+        r = np.sqrt(np.sum(u**2))
+        u *= (np.random.rand(1))**(1./d)/r
+
+        bunch.x[i]  = u[0]
+        bunch.xp[i] = u[1]
+        bunch.y[i]  = u[2]
+        bunch.yp[i] = u[3]
+    # ==================================================
+
+    bunch.x  *= a_x
+    bunch.xp *= a_xp
+    bunch.y  *= a_y
+    bunch.yp *= a_yp
+
+Want to get this back in the near future...
+'''
+
+
 def kv2D(r_u, r_up):
     '''Closure which generates a Kapchinski-Vladimirski-type uniform
     distribution in 2D. The extent is determined by the arguments.
