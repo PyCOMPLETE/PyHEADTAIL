@@ -46,11 +46,8 @@ if has_pycuda:
         _ckernel = create_ckernel(op)
         old_v = getattr(pycuda.gpuarray.GPUArray, func_name)
         def _patch(self, other):
-            #print 'calling ', func_name, ', --- old version: ', old_v
             if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape in [(), (1,)]:
-                #print 'using patched version, other shape is () or (1,)'
                 if 'c' in (self.dtype.kind, other.dtype.kind):
-                    #print 'using complex patch'
                     self = self.astype(complex)
                     _ckernel(self, self, other.astype(complex))
                 else:
@@ -62,10 +59,8 @@ if has_pycuda:
                             'least to np.float64. Or implement a more '
                             'general monkey patching of GPUArray operators.'
                         )
-                    #print 'using normal patch'
                     _kernel(self, self, other)
             else:
-                #print 'using old version'
                 old_v(self, other)
             return self
         return _patch
@@ -76,11 +71,8 @@ if has_pycuda:
         _ckernel = create_ckernel(op)
         old_v = getattr(pycuda.gpuarray.GPUArray, func_name)
         def _patch_binop(self, other):
-            #print 'calling ', func_name, ', --- old version: ', old_v
             if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape in [(),(1,)]:
-                #print 'using patched version, other shape is () or (1,)'
                 if 'c' in (self.dtype.kind, other.dtype.kind):
-                    #print 'using complex patch'
                     self = self.astype(complex)
                     out = pycuda.gpuarray.empty_like(self)
                     _ckernel(out, self, other.astype(complex))
@@ -94,11 +86,9 @@ if has_pycuda:
                             'general monkey patching of GPUArray operators.'
                         )
                     out = pycuda.gpuarray.empty_like(self)
-                    #print 'using normal patch'
                     _kernel(out, self, other)
                 return out
             else:
-                #print 'using old version'
                 return old_v(self, other)
         return _patch_binop
 
