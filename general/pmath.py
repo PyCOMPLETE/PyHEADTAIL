@@ -204,7 +204,7 @@ if has_pycuda:
         'sum': wraps(pycuda.gpuarray.sum)(
             lambda *args, **kwargs: pycuda.gpuarray.sum(*args, **kwargs).get()
         ),
-        'cumsum': skcuda.misc.cumsum,
+        'cumsum': gpu_wrap.cumsum,
         'wofz': gpu_wrap.wofz,
         'all': lambda array: pycuda.gpuarray.sum(array == 0).get() == 0,
         'any': lambda array: pycuda.gpuarray.sum(array != 0).get() > 0,

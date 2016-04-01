@@ -472,6 +472,13 @@ def emittance_multistream(u, up, dp, stream=None):
         _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
     return out
 
+def cumsum(array):
+    '''Wrapper for scikit cuda misc's function cumsum which
+    works on the given array directly. This wrapper works on a copy.
+    '''
+    targetarray = array.copy()
+    return skcuda.misc.cumsum(targetarray)
+
 #@profile
 def argsort(to_sort):
     '''
