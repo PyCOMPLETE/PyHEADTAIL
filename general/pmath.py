@@ -159,6 +159,7 @@ _CPU_numpy_func_dict = {
     'sign': np.sign,
     'sqrt': np.sqrt,
     'allclose': np.allclose,
+    'put': np.put,
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -212,6 +213,7 @@ if has_pycuda:
         'sign': gpu_wrap.sign,
         'sqrt': pycuda.cumath.sqrt,
         'allclose': gpu_wrap.allclose,
+        'put': skcuda.misc.set_by_index,
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################
