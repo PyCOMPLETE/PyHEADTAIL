@@ -231,8 +231,8 @@ class TransverseGaussianSpaceCharge(Element):
                     -y*y / (2 * sig_y*sig_y))
         w2re, w2im = pm.wofz(x * sig_y/(sig_x*sig_sqrt),
                              y * sig_x/(sig_y*sig_sqrt))
-        pref = 1. / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
-        return pref * (w1im - ex * w2im), pref * (w1re - ex * w2re)
+        denom = 2. * epsilon_0 * np.sqrt(pi) * sig_sqrt
+        return (w1im - ex * w2im) / denom, (w1re - ex * w2re) / denom
 
     @staticmethod
     def _efieldn_mitmod(x, y, sig_x, sig_y):
