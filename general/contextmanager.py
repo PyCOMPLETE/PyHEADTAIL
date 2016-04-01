@@ -46,8 +46,11 @@ if has_pycuda:
         _ckernel = create_ckernel(op)
         old_v = getattr(pycuda.gpuarray.GPUArray, func_name)
         def _patch(self, other):
-            if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape is ():
+            #print 'calling ', func_name, ', --- old version: ', old_v
+            if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape in [(), (1,)]:
+                #print 'using patched version, other shape is () or (1,)'
                 if 'c' in (self.dtype.kind, other.dtype.kind):
+                    #print 'using complex patch'
                     self = self.astype(complex)
                     _ckernel(self, self, other.astype(complex))
                 else:
@@ -59,8 +62,10 @@ if has_pycuda:
                             'least to np.float64. Or implement a more '
                             'general monkey patching of GPUArray operators.'
                         )
+                    #print 'using normal patch'
                     _kernel(self, self, other)
             else:
+                #print 'using old version'
                 old_v(self, other)
             return self
         return _patch
@@ -71,8 +76,11 @@ if has_pycuda:
         _ckernel = create_ckernel(op)
         old_v = getattr(pycuda.gpuarray.GPUArray, func_name)
         def _patch_binop(self, other):
+            #print 'calling ', func_name, ', --- old version: ', old_v
             if isinstance(other, pycuda.gpuarray.GPUArray) and other.shape in [(),(1,)]:
+                #print 'using patched version, other shape is () or (1,)'
                 if 'c' in (self.dtype.kind, other.dtype.kind):
+                    #print 'using complex patch'
                     self = self.astype(complex)
                     out = pycuda.gpuarray.empty_like(self)
                     _ckernel(out, self, other.astype(complex))
@@ -86,20 +94,21 @@ if has_pycuda:
                             'general monkey patching of GPUArray operators.'
                         )
                     out = pycuda.gpuarray.empty_like(self)
+                    #print 'using normal patch'
                     _kernel(out, self, other)
                 return out
             else:
+                #print 'using old version'
                 return old_v(self, other)
         return _patch_binop
 
     # patch the GPUArray to be able to cope with gpuarrays of size 1 as ops
     pycuda.gpuarray.GPUArray.__isub__ = patch_op('-', '__isub__')
     pycuda.gpuarray.GPUArray.__iadd__ = patch_op('+', '__iadd__')
-    # pycuda.gpuarray.GPUArray.__imul__ = patch_op('*', '__imul__')
-    # pycuda.gpuarray.GPUArray.__idiv__ = patch_op('/', '__idiv__')
+    pycuda.gpuarray.GPUArray.__imul__ = patch_op('*', '__imul__')
+    pycuda.gpuarray.GPUArray.__idiv__ = patch_op('/', '__idiv__')
     pycuda.gpuarray.GPUArray.__sub__ = patch_binop('-', '__sub__')
-    # pycuda.gpuarray.GPUArray.__add__ = patch_binop('+', '__add__')
-    # pycuda.gpuarray.GPUArray.__mul__ = patch_binop('*', '__mul__')
+    pycuda.gpuarray.GPUArray.__mul__ = patch_binop('*', '__mul__')
     pycuda.gpuarray.GPUArray.__div__ = patch_binop('/', '__div__')
     pycuda.gpuarray.GPUArray.__truediv__ = pycuda.gpuarray.GPUArray.__div__
 
