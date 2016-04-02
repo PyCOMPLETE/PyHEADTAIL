@@ -182,8 +182,14 @@ class TransverseGaussianSpaceCharge(Element):
                 pm.take(beam.x, p_id), pm.take(beam.y, p_id),
                 mean_x, mean_y, sig_x, sig_y)
 
-            beam.xp[p_id] += prefactor * (Q_sl * en_x)
-            beam.yp[p_id] += prefactor * (Q_sl * en_y)
+            kicks_x = (en_x * Q_sl) * prefactor
+            kicks_y = (en_y * Q_sl) * prefactor
+
+            kicked_xp = pm.take(beam.xp, p_id) + kicks_x
+            kicked_yp = pm.take(beam.yp, p_id) + kicks_y
+
+            pm.put(beam.xp, p_id, kicked_xp)
+            pm.put(beam.yp, p_id, kicked_yp)
 
 
     def get_efieldn(self, xr, yr, mean_x, mean_y, sig_x, sig_y):
