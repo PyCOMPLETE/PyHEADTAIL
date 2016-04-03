@@ -153,3 +153,41 @@ def get_sort_perm_int(input, out):
     _libthrustwrap.thrust_get_sort_perm_int(int(input.gpudata),
                                             np.int32(len(input)),
                                             int(out.gpudata))
+
+
+#### thrust_cumsum_double ###############################################
+#void thrust_cumsum_double(double* data_ptr, int length, double* sum_ptr)
+_libthrustwrap.thrust_cumsum_double.restype = None
+_libthrustwrap.thrust_cumsum_double.argtypes = [
+    ctypes.c_void_p, #data_ptr
+    ctypes.c_int, #data_length
+    ctypes.c_void_p, #sum_ptr
+]
+def thrust_cumsum_double(data, out):
+    '''Return cumulative sum of 1-dimensional GPUArray data with dtype
+    np.float64.
+    '''
+    assert data.dtype == np.float64
+    assert data.ndim == 1
+    _libthrustwrap.thrust_cumsum_double(
+        int(data.gpudata), np.int32(len(data)), int(out.gpudata))
+    return out
+
+
+#### thrust_cumsum_int ###############################################
+#void thrust_cumsum_int(int* data_ptr, int length, int* sum_ptr)
+_libthrustwrap.thrust_cumsum_int.restype = None
+_libthrustwrap.thrust_cumsum_int.argtypes = [
+    ctypes.c_void_p, #data_ptr
+    ctypes.c_int, #data_length
+    ctypes.c_void_p, #sum_ptr
+]
+def thrust_cumsum_int(data, out):
+    '''Return cumulative sum of 1-dimensional GPUArray data with dtype
+    np.int32.
+    '''
+    assert data.dtype == np.int32
+    assert data.ndim == 1
+    _libthrustwrap.thrust_cumsum_int(
+        int(data.gpudata), np.int32(len(data)), int(out.gpudata))
+    return out
