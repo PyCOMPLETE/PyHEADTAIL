@@ -143,6 +143,8 @@ _CPU_numpy_func_dict = {
             np.arange(start, stop, step, dtype)
     ),
     'zeros': np.zeros,
+    'empty': np.empty,
+    'empty_like': np.empty_like,
     'ones': np.ones,
     'device': 'CPU',
     'init_bunch_buffer': lambda bunch, bunch_stats, buffer_size: _init_bunch_buffer(bunch_stats, buffer_size),
@@ -193,6 +195,11 @@ if has_pycuda:
             else pycuda.gpuarray.arange(start, stop, step, dtype=np.float64)
         ),
         'zeros': lambda *args, **kwargs: pycuda.gpuarray.zeros(*args,
+            allocator=gpu_utils.memory_pool.allocate, **kwargs),
+        'empty': lambda *args, **kwargs: pycuda.gpuarray.empty(*args,
+            allocator=gpu_utils.memory_pool.allocate, **kwargs),
+        'empty_like': lambda array, **kwargs: pycuda.gpuarray.empty(
+            array.shape, dtype=array.dtype,
             allocator=gpu_utils.memory_pool.allocate, **kwargs),
         'ones': lambda *args, **kwargs: pycuda.gpuarray.zeros(*args,
             allocator=gpu_utils.memory_pool.allocate, **kwargs) + 1,
