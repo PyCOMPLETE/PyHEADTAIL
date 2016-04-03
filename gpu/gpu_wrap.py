@@ -479,11 +479,11 @@ def cumsum(array, dest=None):
     '''
     if array.dtype == np.int32:
         if dest is None:
-            dest = pm.empty_like(array)
+            dest = pycuda.gpuarray.empty_like(array)
         thrust_interface.thrust_cumsum_int(array, dest)
     elif array.dtype == np.float64:
         if dest is None:
-            dest = pm.empty_like(array)
+            dest = pycuda.gpuarray.empty_like(array)
         thrust_interface.thrust_cumsum_double(array, dest)
     else:
         dest = array.copy()
