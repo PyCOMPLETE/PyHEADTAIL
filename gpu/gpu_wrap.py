@@ -472,12 +472,23 @@ def emittance_multistream(u, up, dp, stream=None):
         _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
     return out
 
-def cumsum(array):
-    '''Wrapper for scikit cuda misc's function cumsum which
-    works on the given array directly. This wrapper works on a copy.
+def cumsum(array, dest=None):
+    '''Return cumulative sum of 1-dimensional GPUArray data.
+    Works for dtypes np.int32 and np.float64. Wrapper for thrust
+    prefix sum via thrust::inclusive_scan.
     '''
-    targetarray = array.copy()
-    return skcuda.misc.cumsum(targetarray)
+    if array.dtype == np.int32:
+        if dest is None:
+            dest = pm.empty_like(array)
+        thrust_interface.thrust_cumsum_int(array, dest)
+    elif array.dtype == np.float64:
+        if dest is None:
+            dest = pm.empty_like(array)
+        thrust_interface.thrust_cumsum_double(array, dest)
+    else:
+        dest = array.copy()
+        skcuda.misc.cumsum(dest)
+    return dest
 
 #@profile
 def argsort(to_sort):
