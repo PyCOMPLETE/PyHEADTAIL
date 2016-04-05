@@ -42,10 +42,11 @@ try:
                'if you want to use GPU functionality.\n')
         has_pycuda = False
 
-except ImportError:
+except ImportError as e:
     # print ('Either pycuda, skcuda or thrust not found! '
     #        'No GPU capabilities available')
     has_pycuda = False
+
 
 if has_pycuda:
     _sub_1dgpuarr = pycuda.elementwise.ElementwiseKernel(
@@ -213,6 +214,58 @@ if has_pycuda:
         _allclose(a, b, out, atol, rtol)
         how_many_not_close = pycuda.gpuarray.sum(out).get()
         return how_many_not_close == 0
+
+    # assigns stat_noncontained entries to stat_contained
+    # only if the respective slice_ids entry is within the slicing region
+    _reassign_valid = pycuda.elementwise.ElementwiseKernel(
+        arguments="const int* slice_ids_noncontained, "
+                  "const double* stat_noncontained, "
+                  "const int n_slices, " # end inputs
+                  "double* stat_contained", # output
+        operation="if (0 <= slice_ids_noncontained[i] "
+                      "&& slice_ids_noncontained[i] < n_slices) "
+                  "stat_contained[slice_ids_noncontained[i]] = stat_noncontained[i];"
+    )
+    def thrust_mean_and_std_per_slice(sliceset, u, stream=None):
+        '''Compute mean and standard deviation per slice
+        using the thrust reduce_by_key reduction.
+        Args:
+            - sliceset: SliceSet instance specifying slices, has .n_slices
+              and .slice_index_of_particle
+            - u: the array of which to compute the mean and std
+
+        Return mean_u and sigma_u.
+        Does not make use of the thrust streams yet...
+
+        N.B.: memory-hungry as it allows all particles to lie outside of
+        slicing region.
+        '''
+        p_sids = sliceset.slice_index_of_particle
+        # slice_index_of_particle may have slice indices outside of slicing area,
+        # the following arrays therefore can comprise non valid slice entries
+        slice_ids_noncontained = pycuda.gpuarray.empty(
+            p_sids.shape, dtype=p_sids.dtype,
+            allocator=gpu_utils.memory_pool.allocate)
+        slice_means_noncontained = pycuda.gpuarray.empty(
+            u.shape, dtype=u.dtype, allocator=gpu_utils.memory_pool.allocate)
+        slice_stds_noncontained = pycuda.gpuarray.empty(
+            u.shape, dtype=u.dtype, allocator=gpu_utils.memory_pool.allocate)
+
+        (_, _, _, new_end) = thrust.thrust_stats_per_slice(
+            p_sids, u, slice_ids_noncontained, slice_means_noncontained,
+            slice_stds_noncontained)
+
+        mean_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64,
+                                       allocator=gpu_utils.memory_pool.allocate)
+        sigma_u = pycuda.gpuarray.zeros(sliceset.n_slices, dtype=np.float64,
+                                        allocator=gpu_utils.memory_pool.allocate)
+        _reassign_valid(slice_ids_noncontained[:new_end],
+                        slice_means_noncontained[:new_end],
+                        sliceset.n_slices, mean_u)
+        _reassign_valid(slice_ids_noncontained[:new_end],
+                        slice_stds_noncontained[:new_end],
+                        sliceset.n_slices, sigma_u)
+        return (mean_u, sigma_u)
 
 def _inplace_pow(x_gpu, p, stream=None):
     '''
@@ -594,7 +647,7 @@ def sorted_mean_per_slice(sliceset, u, stream=None):
     '''
     Computes the mean per slice of the array u
     Args:
-        sliceset specifying slices, has .nslices and .slice_index_of_particle
+        sliceset specifying slices, has .n_slices and .slice_index_of_particle
         u the array of which to compute the mean
     Returns the an array, res[i] stores the mean of slice i
     '''
