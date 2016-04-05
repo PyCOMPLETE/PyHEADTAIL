@@ -1,7 +1,6 @@
 import ctypes
 import numpy as np
 import os
-from ..general import pmath as pm
 
 _libthrustwrap = ctypes.cdll.LoadLibrary(
     os.path.dirname(os.path.abspath(__file__)) + '/thrust.so')
@@ -203,8 +202,8 @@ _libthrustwrap.thrust_stats_per_slice.argtypes = [
     ctypes.c_void_p, #slice_std_ptr
     ctypes.c_void_p, #n_relevant_entries
 ]
-def thrust_stats_per_slice(particle_slice_ids, u, slice_ids=None,
-                         slice_means=None, slice_stds=None):
+def thrust_stats_per_slice(particle_slice_ids, u, slice_ids,
+                           slice_means, slice_stds):
     '''
     Calculate slice means and standard deviations using Chan et al.'s
     parallel algorithm (cf. https://en.wikipedia.org/wiki/
@@ -216,15 +215,9 @@ def thrust_stats_per_slice(particle_slice_ids, u, slice_ids=None,
         - u: GPUArray of dtype np.float64, coordinate or momentum
           array of the beam (x, x', ..., macroparticlenumber length)
     '''
-    assert particle_slice_ids.dtype == np.int32
-    assert u.dtype == np.float64
+    assert particle_slice_ids.dtype == slice_ids.dtype == np.int32
+    assert u.dtype == slice_means.dtype == slice_stds.dtype == np.float64
     assert len(particle_slice_ids) == len(u)
-    if slice_ids is None:
-        slice_ids = pm.empty_like(particle_slice_ids)
-    if slice_means is None:
-        slice_means = pm.empty_like(u)
-    if slice_stds is None:
-        slice_stds = pm.empty_like(u)
     new_end = np.empty((), dtype=np.int32)
     _libthrustwrap.thrust_stats_per_slice(
         int(particle_slice_ids.gpudata),
