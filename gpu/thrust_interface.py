@@ -1,6 +1,7 @@
 import ctypes
 import numpy as np
 import os
+from ..general import pmath as pm
 
 _libthrustwrap = ctypes.cdll.LoadLibrary(
     os.path.dirname(os.path.abspath(__file__)) + '/thrust.so')
@@ -191,3 +192,47 @@ def thrust_cumsum_int(data, out):
     _libthrustwrap.thrust_cumsum_int(
         int(data.gpudata), np.int32(len(data)), int(out.gpudata))
     return out
+
+_libthrustwrap.thrust_stats_per_slice.restype = None
+_libthrustwrap.thrust_stats_per_slice.argtypes = [
+    ctypes.c_void_p, #particle_slice_id_ptr
+    ctypes.c_void_p, #u
+    ctypes.c_int,    #int n_mp
+    ctypes.c_void_p, #slice_id_ptr
+    ctypes.c_void_p, #slice_mean_ptr
+    ctypes.c_void_p, #slice_std_ptr
+    ctypes.c_void_p, #n_relevant_entries
+]
+def thrust_stats_per_slice(particle_slice_ids, u, slice_ids=None,
+                         slice_means=None, slice_stds=None):
+    '''
+    Calculate slice means and standard deviations using Chan et al.'s
+    parallel algorithm (cf. https://en.wikipedia.org/wiki/
+    Algorithms_for_calculating_variance#Parallel_algorithm).
+
+    Arguments:
+        - particle_slice_ids: GPUArray of dtype np.int32 with the
+          slice ids of each particle (macroparticlenumber length)
+        - u: GPUArray of dtype np.float64, coordinate or momentum
+          array of the beam (x, x', ..., macroparticlenumber length)
+    '''
+    assert particle_slice_ids.dtype == np.int32
+    assert u.dtype == np.float64
+    assert len(particle_slice_ids) == len(u)
+    if slice_ids is None:
+        slice_ids = pm.empty_like(particle_slice_ids)
+    if slice_means is None:
+        slice_means = pm.empty_like(u)
+    if slice_stds is None:
+        slice_stds = pm.empty_like(u)
+    new_end = np.empty((), dtype=np.int32)
+    _libthrustwrap.thrust_stats_per_slice(
+        int(particle_slice_ids.gpudata),
+        int(u.gpudata),
+        np.int32(len(u)),
+        int(slice_ids.gpudata),
+        int(slice_means.gpudata),
+        int(slice_stds.gpudata),
+        int(new_end.ctypes.data),
+    )
+    return (slice_ids, slice_means, slice_stds, new_end)

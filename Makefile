@@ -10,7 +10,7 @@ PyHEADTAIL:
 
 PyHEADTAILGPU:
 ifeq ($(NVCC_TEST),nvcc)
-	nvcc -Xcompiler '-fPIC' -shared -o gpu/thrust.so gpu/thrust_code.cu
+	nvcc -Xcompiler '-fPIC' -shared -lm -o gpu/thrust.so gpu/thrust_code.cu
 else
 	@echo "Thrust interface not compiled because nvcc was not found"
 endif
