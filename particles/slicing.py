@@ -432,7 +432,8 @@ class Slicer(Printing):
         attribute to the SliceSet instance. The nomenclature must be
         followed. The following names are possible:
             mean_x, mean_y, mean_z, mean_xp, mean_yp, mean_dp, sigma_x,
-            sigma_y, sigma_z, sigma_dp, epsn_x, epsn_y, epsn_z.
+            sigma_y, sigma_z, sigma_dp, epsn_x, epsn_y, epsn_z,
+            eff_epsn_x, eff_epsn_y.
 
         statistics=True adds all at once.
         '''
