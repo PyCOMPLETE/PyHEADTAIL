@@ -10,6 +10,7 @@ from __future__ import division
 
 import numpy as np
 from scipy.constants import c
+from scipy.signal import fftconvolve
 from abc import ABCMeta, abstractmethod
 
 from . import Printing
@@ -38,7 +39,10 @@ class WakeKick(Printing):
 
         if (slicer.mode == 'uniform_bin' and
             (n_turns_wake == 1 or slicer.z_cuts)):
-            self._convolution = self._convolution_numpy
+            if slicer.n_slices < 400:
+                self._convolution = self._convolution_numpy
+            else:
+                self._convolution = self._convolution_scipy
             self.warns('Acceleration not handled properly' +
                        ' by this kind of convolution due to changing' +
                        ' bunch length!')
@@ -63,19 +67,19 @@ class WakeKick(Printing):
                        (bunch.beta * c)**2) * bunch.particlenumber_per_mp)
         return wake_factor
 
-    def _convolution_dot_product(self, target_times, source_times,
-                                 source_moments, source_beta):
+    def _convolution_dot_product(self, target_times,
+                                 source_times, source_moments):
         """ Implementation of the convolution of wake and source_moments
         (beam profile) using the numpy dot product. To be used with the
         'uniform_charge' slicer mode. """
         dt_to_target_slice = (
             [target_times] - np.transpose([source_times]))
-        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
+        wake = self.wake_function(dt_to_target_slice)
 
         return np.dot(source_moments, wake)
 
-    def _convolution_numpy(self, target_times, source_times,
-                           source_moments, source_beta):
+    def _convolution_numpy(self, target_times,
+                           source_times, source_moments):
         """ Implementation of the convolution of wake and source_moments
         (longitudinal beam profile) using the numpy built-in
         numpy.convolve method. Recommended use with the 'uniform_bin'
@@ -83,12 +87,53 @@ class WakeKick(Printing):
         must be fulfilled: fixed z_cuts and no acceleration!) for
         higher performance. Question: how about interpolation to avoid
         expensive dot product in most cases? """
+        tmin, tmax = source_times[0], source_times[-1]
         dt_to_target_slice = np.concatenate(
-            (target_times - source_times[-1],
-            (target_times - source_times[0])[1:]))
-        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
+            (target_times-tmax, (target_times - tmin)[1:]))
+        wake = self.wake_function(dt_to_target_slice)
 
         return np.convolve(source_moments, wake, 'valid')
+
+    def _convolution_scipy(self, target_times,
+                           source_times, source_moments):
+        """Implementation of the convolution of wake and source_moments (longitudinal
+        beam profile) using the scipy.signal built-in fftconvolve method. This
+        should be faster than the numpy version since it exploits the fft for
+        perforing the convolution. It starts paying off for n_slices>400
+        (empirically) e.g. factor 2 for n_slices=600.
+
+        """
+        tmin, tmax = source_times[0], source_times[-1]
+        dt_to_target_slice = np.concatenate(
+            (target_times-tmax, (target_times-tmin)[1:]))
+        wake = self.wake_function(dt_to_target_slice)
+
+        return fftconvolve(wake, source_moments, 'valid')
+
+    def _convolve_multibunch(self, times, moments, dt=None,
+                             f_convolution=None):
+        """Multibunch convolution according to Notebook implementation.
+
+        Takes a list of times and moments from all bunches and performs the
+        (multibunch) convolution accordingly.
+
+        """
+        kick = []
+
+        if dt is None: dt = 0.*np.array(times)
+        if f_convolution: f_convolution = self._convolution
+
+        for i in xrange(len(times)):
+            z = 0.*times[i]
+            target_times = times[i]
+            for j in range(i+1):
+                source_times = times[j] + (dt[i] - dt[j])
+                source_moments = moments[j]
+                z += f_convolution(target_times, source_times, source_moments)
+
+            kick.append(z)
+
+        return kick
 
     def _accumulate_source_signal(self, bunch, times_list, ages_list,
                                   moments_list, betas_list):
@@ -104,6 +149,7 @@ class WakeKick(Printing):
         else:
             n_turns = self.n_turns_wake
 
+        # Source beta is not needed?!?!
         for i in range(n_turns):
             source_times = times_list[i] + ages_list[i]
             source_beta = betas_list[i]
@@ -114,7 +160,11 @@ class WakeKick(Printing):
         return self._wake_factor(bunch) * accumulated_signal
 
 
-""" Constant wake kicks """
+'''
+==============================================================
+Below we are to put the implemetation of any order wake kicks.
+==============================================================
+'''
 
 class ConstantWakeKickX(WakeKick):
 
@@ -173,8 +223,6 @@ class ConstantWakeKickZ(WakeKick):
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.dp[p_idx] += constant_kick.take(s_idx)
 
-
-""" Dipolar wake kicks """
 
 class DipoleWakeKickX(WakeKick):
 
@@ -251,8 +299,6 @@ class DipoleWakeKickYX(WakeKick):
         s_idx = slice_set_list[0].slice_index_of_particle.take(p_idx)
         bunch.yp[p_idx] += dipole_kick_yx.take(s_idx)
 
-
-""" Quadrupolar wake kicks """
 
 class QuadrupoleWakeKickX(WakeKick):
 

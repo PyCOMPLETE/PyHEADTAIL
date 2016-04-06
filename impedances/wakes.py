@@ -34,10 +34,10 @@ sin = np.sin
 cos = np.cos
 
 
-def check_wake_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=False):
-    '''
-    Handy function for quick visual check of sampling of the wake functions.
-    For now only implemented for wake table type wakes.
+def check_waketable_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=False):
+    '''Handy function for quick visual check of sampling of the wake functions from
+    wake tables.  For now only implemented for wake table type wakes.
+
     '''
     from scipy.constants import c
     import matplotlib.pyplot as plt
@@ -84,50 +84,57 @@ class WakeField(Element):
     longitudinal bunch distribution (SliceSet instances) a number of
     turns back. """
 
-    def __init__(self, slicer, *wake_sources):
-        """ Accepts a list of WakeSource objects. Each WakeSource object
+    def __init__(self, slicer, wake_sources_list, circumference=None):
+        """Accepts a list of WakeSource objects. Each WakeSource object
         knows how to generate its corresponding WakeKick objects. The
         collection of all the WakeKick objects of each of the passed
         WakeSource objects defines the WakeField.
+
         When instantiating the WakeField object, the WakeKick objects
         for each WakeSource defined in wake_sources are requested. The
         returned WakeKick lists are all stored in the
         WakeField.wake_kicks list. The WakeField itself forgets about
         the origin (WakeSource) of the kicks as soon as they have been
         generated.
+
         Exactly one instance of the Slicer class must be passed to the
         WakeField constructor. All the wake field components (kicks)
         hence use the same slicing and thus the same slice_set to
         calculate the strength of the kicks.
-        To calculate the contributions from multiturn wakes, the
-        longitudinal beam distributions (SliceSet instances) are
-        archived in a deque. In parallel to the slice_set_deque,
-        there is a slice_set_age_deque to keep track of the age of
-        each of the SliceSet instances."""
+
+        To calculate the contributions from multiturn wakes, the longitudinal
+        beam distributions (SliceSet instances) are archived in a deque. In
+        parallel to the slice_set_deque, there is a slice_set_age_deque to keep
+        track of the age of each of the SliceSet instances.
+        """
         self.slicer = slicer
 
+        # Assemble from all wake sources all wake kicks
         self.wake_kicks = []
-        for source in wake_sources:
+        for source in wake_sources_list:
             kicks = source.get_wake_kicks(self.slicer)
             self.wake_kicks.extend(kicks)
 
+        # Prepare wake register
         n_turns_wake_max = max([ source.n_turns_wake
                                  for source in wake_sources ])
         self.slice_set_deque = deque([], maxlen=n_turns_wake_max)
         self.slice_set_age_deque = deque([], maxlen=n_turns_wake_max)
 
+        if n_turns_wake_max>1 and circumference is None:
+            raise ValueError("Circumference must be provided for multi turn wakes!")
+
     def track(self, bunch):
-        """ Calls the WakeKick.apply(bunch, slice_set) method of each of
-        the WakeKick objects stored in self.wake_kicks. A slice_set is
-        necessary to perform this operation. It is requested from the
-        bunch (instance of the Particles class) using the
-        Particles.get_slices(self.slicer) method, where self.slicer is
-        the instance of the Slicer class used for this particluar
-        WakeField object. A slice_set is returned according to the
+        """Calls the WakeKick.apply(bunch, slice_set) method of each of the WakeKick
+        objects stored in self.wake_kicks. A slice_set is necessary to perform
+        this operation. It is requested from the bunch (instance of the
+        Particles class) using the Particles.get_slices(self.slicer) method,
+        where self.slicer is the instance of the Slicer class used for this
+        particluar WakeField object. A slice_set is returned according to the
         self.slicer configuration. The statistics mean_x and mean_y are
-        requested to be calculated and saved in the SliceSet instance,
-        too, s.t. the first moments x, y can be calculated by the
-        WakeKick instances. """
+        requested to be calculated and saved in the SliceSet instance, too,
+        s.t. the first moments x, y can be calculated by the WakeKick instances.
+        """
 
         # Update ages of stored SliceSet instances.
         for i in xrange(len(self.slice_set_age_deque)):
@@ -320,14 +327,14 @@ class WakeTable(WakeSource):
         wake_strength = -convert_to_V_per_Cm * self.wake_table[wake_component]
 
         if (time[0] == 0) and (wake_strength[0] == 0):
-            def wake(dt, *args, **kwargs):
+            def wake(dt):
                 dt = dt.clip(max=0)
                 return interp1d(time, wake_strength)(-dt)
             self.prints(wake_component +
                   ' Assuming ultrarelativistic wake.')
 
         elif (time[0] < 0):
-            def wake(dt, *args, **kwargs):
+            def wake(dt):
                 return interp1d(time, wake_strength)(-dt)
             self.prints(wake_component +  ' Found low beta wake.')
 
@@ -355,7 +362,7 @@ class WakeTable(WakeSource):
         time = convert_to_s * self.wake_table['time']
         wake_strength = -convert_to_V_per_C * self.wake_table['longitudinal']
 
-        def wake(dt, *args, **kwargs):
+        def wake(dt):
             wake_interpolated = interp1d(time, wake_strength)(-dt)
             if time[0] == 0:
                 # Beam loading theorem: Half value of wake strength at
@@ -448,7 +455,7 @@ class Resonator(WakeSource):
         alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
-        def wake(dt, *args, **kwargs):
+        def wake(dt):
             dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
@@ -470,7 +477,7 @@ class Resonator(WakeSource):
         alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
-        def wake(dt, *args, **kwargs):
+        def wake(dt):
             dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (-(np.sign(dt) - 1) * self.R_shunt * alpha *
@@ -586,7 +593,7 @@ class ResistiveWall(WakeSource):
         lambda_s = 1. / (Z0 * self.conductivity)
         mu_r = 1
 
-        def wake(dt, *args, **kwargs):
+        def wake(dt):
             y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
                  kwargs['beta'] * c * Z0 * self.resistive_wall_length / np.pi /
                  self.pipe_radius**3 * np.sqrt(-lambda_s * mu_r / np.pi /
