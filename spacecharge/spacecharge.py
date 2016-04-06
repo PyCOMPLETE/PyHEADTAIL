@@ -166,14 +166,14 @@ class TransverseGaussianSpaceCharge(Element):
         '''
         slices = beam.get_slices(
             self.slicer, statistics=["mean_x", "mean_y", "sigma_x", "sigma_y"])
-        prefactor = (slices.charge_per_mp * self.length /
-                     (beam.p0 * beam.gamma*beam.gamma * beam.beta * c))
+        prefactor = (slices.charge * self.length /
+                     (beam.p0 * beam.betagamma * beam.gamma * c))
 
-        for s_i, Q_sl, mean_x, mean_y, sig_x, sig_y \
-                in zip(xrange(slices.n_slices),
-                       slices.lambda_bins(smoothen=False),
-                       slices.mean_x, slices.mean_y,
-                       slices.sigma_x, slices.sigma_y):
+        # Nlambda_i is the line density [Coul/m] for the current slice
+        for s_i, (Nlambda_i, mean_x, mean_y, sig_x, sig_y) in enumerate(zip(
+                slices.lambda_bins(smoothen=False)/slices.slice_widths,
+                slices.mean_x, slices.mean_y,
+                slices.sigma_x, slices.sigma_y)):
             p_id = slices.particle_indices_of_slice(s_i)
             if len(p_id) == 0:
                 continue
@@ -182,8 +182,8 @@ class TransverseGaussianSpaceCharge(Element):
                 pm.take(beam.x, p_id), pm.take(beam.y, p_id),
                 mean_x, mean_y, sig_x, sig_y)
 
-            kicks_x = (en_x * Q_sl) * prefactor
-            kicks_y = (en_y * Q_sl) * prefactor
+            kicks_x = (en_x * Nlambda_i) * prefactor
+            kicks_y = (en_y * Nlambda_i) * prefactor
 
             kicked_xp = pm.take(beam.xp, p_id) + kicks_x
             kicked_yp = pm.take(beam.yp, p_id) + kicks_y
@@ -360,11 +360,14 @@ class TransverseGaussianSpaceCharge(Element):
         efieldn_round = TransverseGaussianSpaceCharge._efieldn_round
         @wraps(efieldn)
         def efieldn_checked(x, y, sig_x, sig_y, *args, **kwargs):
-            if pm.allclose(
-                    sig_y, sig_x,
-                    rtol=TransverseGaussianSpaceCharge.ratio_threshold,
-                    atol=TransverseGaussianSpaceCharge.absolute_threshold):
-                en_x, en_y = efieldn_round(x, y, sig_x, *args, **kwargs)
+            rtol=TransverseGaussianSpaceCharge.ratio_threshold
+            atol=TransverseGaussianSpaceCharge.absolute_threshold
+            if pm.allclose(sig_y, sig_x, rtol=rtol, atol=atol):
+                if pm.allclose(sig_y, pm.zeros(1, dtype=np.float64),
+                               rtol=rtol, atol=atol):
+                    en_x = en_y = pm.zeros(x.shape, dtype=np.float64)
+                else:
+                    en_x, en_y = efieldn_round(x, y, sig_x, *args, **kwargs)
             elif pm.all(sig_x < sig_y):
                 en_y, en_x = efieldn(y, x, sig_y, sig_x, *args, **kwargs)
             else:
