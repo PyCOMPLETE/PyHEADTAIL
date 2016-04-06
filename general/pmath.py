@@ -162,6 +162,7 @@ _CPU_numpy_func_dict = {
     'sqrt': np.sqrt,
     'allclose': np.allclose,
     'put': np.put,
+    'almost_zero': lambda array, *args, **kwargs: np.allclose(array, 0, *args, **kwargs),
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -220,6 +221,11 @@ if has_pycuda:
         'sqrt': pycuda.cumath.sqrt,
         'allclose': gpu_wrap.allclose,
         'put': skcuda.misc.set_by_index,
+        'almost_zero': lambda array, *args, **kwargs: gpu_wrap.allclose(
+            array, pycuda.gpuarray.zeros(
+                array.shape, dtype=array.dtype,
+                allocator=gpu_utils.memory_pool.allocate),
+            *args, **kwargs),
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################
