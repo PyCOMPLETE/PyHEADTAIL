@@ -124,13 +124,15 @@ class CPU(object):
     Does nothing but has the same interface as the GPU contextmanager
     '''
     def __init__(self, bunch):
-        pass
+        self.bunch = bunch
 
     def __enter__(self):
-        pass
+        '''Remove slice records from bunch.'''
+        self.bunch.clean_slices()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        '''Remove slice records from bunch.'''
+        self.bunch.clean_slices()
 
 
 class GPU(object):
@@ -157,7 +159,10 @@ class GPU(object):
         '''
         Move all data to the GPU (and monkey patch methods?)
         Returns self (eg. to provide info about gpu/status/...)
+
+        Remove slice records from bunch.
         '''
+        self.bunch.clean_slices()
         for coord in self.to_move:
             obj = getattr(self.bunch, coord, None)
             if isinstance(obj, np.ndarray):
@@ -172,7 +177,10 @@ class GPU(object):
         '''
         Move all data back to the CPU (and un-patch the methods?)
         Reestablish state of everything as it was before entering
+
+        Remove slice records from bunch.
         '''
+        self.bunch.clean_slices()
         for coord in self.to_move:
             obj = getattr(self.bunch, coord, None)
             if isinstance(obj, pycuda.gpuarray.GPUArray):
