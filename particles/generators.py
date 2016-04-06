@@ -409,7 +409,7 @@ def kv4D(r_x, r_xp, r_y, r_yp):
 class RFBucketMatcher(Printing):
 
     def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None,
-                 verbose_regeneration=False):
+                 verbose_regeneration=False, *args, **kwargs):
 
         self.rfbucket = rfbucket
         hamiltonian = partial(rfbucket.hamiltonian, make_convex=True)
