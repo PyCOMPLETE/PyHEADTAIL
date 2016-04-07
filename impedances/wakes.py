@@ -188,6 +188,19 @@ class WakeTable(WakeSource):
 
         self.n_turns_wake = n_turns_wake
 
+        self.wake_type = {
+            'constant_x':    ConstantWakeKickX,
+            'constant_y':    ConstantWakeKickY,
+            'longitudinal':  ConstantWakeKickZ,
+            'dipole_x':      DipoleWakeKickX,
+            'dipole_y':      DipoleWakeKickY,
+            'dipole_xy':     DipoleWakeKickXY,
+            'dipole_yx':     DipoleWakeKickYX,
+            'quadrupole_x':  QuadrupoleWakeKickX,
+            'quadrupole_x':  QuadrupoleWakeKickY,
+            'quadrupole_xy': QuadrupoleWakeKickXY,
+            'quadrupole_yx': QuadrupoleWakeKickYX}
+
     def get_wake_kicks(self, slicer):
         """ Factory method. Creates instances of the appropriate
         WakeKick objects for all the wake components provided by the
@@ -195,77 +208,15 @@ class WakeTable(WakeSource):
         returned as a list wake_kicks. """
         wake_kicks = []
 
-        # Constant wake kicks.
-        if self._is_provided('constant_x'):
-            wake_function = self.function_transverse('constant_x')
-            wake_kicks.append(ConstantWakeKickX(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('constant_y'):
-            wake_function = self.function_transverse('constant_y')
-            wake_kicks.append(ConstantWakeKickY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('longitudinal'):
-            wake_function = self.function_longitudinal()
-            wake_kicks.append(ConstantWakeKickZ(
-                wake_function, slicer, self.n_turns_wake))
-
-        # Dipolar wake kicks.
-        if self._is_provided('dipole_x'):
-            wake_function = self.function_transverse('dipole_x')
-            wake_kicks.append(DipoleWakeKickX(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('dipole_y'):
-            wake_function = self.function_transverse('dipole_y')
-            wake_kicks.append(DipoleWakeKickY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('dipole_xy'):
-            wake_function = self.function_transverse('dipole_xy')
-            wake_kicks.append(DipoleWakeKickXY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('dipole_yx'):
-            wake_function = self.function_transverse('dipole_yx')
-            wake_kicks.append(DipoleWakeKickYX(
-                wake_function, slicer, self.n_turns_wake))
-
-        # Quadrupolar wake kicks.
-        if self._is_provided('quadrupole_x'):
-            wake_function = self.function_transverse('quadrupole_x')
-            wake_kicks.append(QuadrupoleWakeKickX(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('quadrupole_y'):
-            wake_function = self.function_transverse('quadrupole_y')
-            wake_kicks.append(QuadrupoleWakeKickY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('quadrupole_xy'):
-            wake_function = self.function_transverse('quadrupole_xy')
-            self.kicks.append(QuadrupoleWakeKickXY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('quadrupole_yx'):
-            wake_function = self.function_transverse('quadrupole_yx')
-            wake_kicks.append(QuadrupoleWakeKickYX(
-                wake_function, slicer, self.n_turns_wake))
+        for name, function in wake_type.items():
+            if self._is_provided(name):
+                if name=='longitudinal':
+                    wake_function = self.function_longitudinal()
+                else:
+                    wake_function = self.function_transverse(name)
+                wake_kicks.append(function(wake_function, slicer, self.n_turns_wake))
 
         return wake_kicks
-
-    def _is_provided(self, wake_component):
-        """ Check whether wake_component is a valid name and available
-        in wake table data. Return 'True' if yes and 'False' if no. """
-        if wake_component in self.wake_table.keys():
-            return True
-        else:
-            # self.warns(wake_component + ' \n' +
-            #       'Wake component is either not provided or does not \n'+
-            #       'use correct nomenclature. See docstring of WakeTable \n' +
-            #       'constructor to display valid names. \n')
-            return False
 
     def function_transverse(self, wake_component):
         """ Defines and returns the wake(beta, dz) function for the
@@ -340,6 +291,18 @@ class WakeTable(WakeSource):
                 raise ValueError('Longitudinal wake component does not meet' +
                                  ' requirements.')
         return wake
+
+    def _is_provided(self, wake_component):
+        """ Check whether wake_component is a valid name and available
+        in wake table data. Return 'True' if yes and 'False' if no. """
+        if wake_component in self.wake_table.keys():
+            return True
+        else:
+            # self.warns(wake_component + ' \n' +
+            #       'Wake component is either not provided or does not \n'+
+            #       'use correct nomenclature. See docstring of WakeTable \n' +
+            #       'constructor to display valid names. \n')
+            return False
 
 
 class Resonator(WakeSource):
