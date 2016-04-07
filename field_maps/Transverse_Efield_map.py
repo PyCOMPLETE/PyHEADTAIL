@@ -11,7 +11,7 @@ class Transverse_Efield_map(object):
 		L_interaction, flag_clean_slices = False, wrt_slice_centroid = False,
 		x_beam_offset = 0., y_beam_offset = 0.):
 			
-		if type(z_cut) is float:
+		if isinstance(z_cut, float):
 			z_cuts = (-z_cut, z_cut)
 		elif type(z_cut) is tuple:
 			z_cuts = z_cut

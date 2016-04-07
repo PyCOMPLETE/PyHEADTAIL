@@ -362,6 +362,8 @@ def uniform2D(low, high):
 
 '''
 Why we have this ll algo in here? We had a better one (Knuth):
+http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.138.8671&rep=rep1&type=pdf
+
 
 import numpy as np
 
@@ -408,6 +410,7 @@ def transform_into_waterbag(bunch, a_x, a_xp, a_y, a_yp):
     bunch.xp *= a_xp
     bunch.y  *= a_y
     bunch.yp *= a_yp
+
 
 Want to get this back in the near future...
 '''
