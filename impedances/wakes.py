@@ -21,57 +21,22 @@ once they have been created).
 """
 from __future__ import division
 
-import numpy as np
-from collections import deque
-from scipy.constants import c, physical_constants
-from scipy.interpolate import interp1d
 from abc import ABCMeta, abstractmethod
 
+import numpy as np
+from collections import deque
+from scipy.interpolate import interp1d
+from scipy.constants import c, physical_constants
+
 from wake_kicks import *
-from . import Element, Printing
 
 sin = np.sin
 cos = np.cos
 
 
-def check_waketable_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=False):
-    '''Handy function for quick visual check of sampling of the wake functions from
-    wake tables.  For now only implemented for wake table type wakes.
-
-    '''
-    from scipy.constants import c
-    import matplotlib.pyplot as plt
-
-    ss = bunch.get_slices(slicer).z_centers
-    zz = bunch.get_slices(slicer).z_bins
-    ss = ss[:-1]
-    ll = bunch.get_slices(slicer).lambda_z(ss, sigma=100)
-    # ss = np.concatenate((s.z_centers-s.z_centers[-1], (s.z_centers-s.z_centers[0])[1:]))
-
-    A = [wakes.wake_table['time'] * beta*c*1e-9, wakes.wake_table[wake_column] * 1e15]
-    W = [ss[::-1], wakes.function_transverse(wake_column)(beta, ss)]
-
-
-    fig, (ax1, ax2) = plt.subplots(2, figsize=(16,12), sharex=True)
-
-    ax1.plot(ss, ll)
-
-    ax2.plot(A[0], (A[1]), 'b-+', ms=12)
-    ax2.plot(W[0][:-1], (-1*W[1][1:]), 'r-x')
-    if bins:
-        [ax2.axvline(z, color='g') for z in zz]
-
-    ax2.grid()
-    lgd = ['Table', 'Interpolated']
-    if bins:
-        lgd += ['Bin edges']
-    ax2.legend(lgd)
-
-    print '\n--> Resulting number of slices: {:g}'.format(len(ss))
-
-    return ax1
-
-
+# ==============================================================================
+# BASIC WAKE FIELD OBJECT
+# ==============================================================================
 class WakeField(Element):
     """ A WakeField is defined by elementary WakeKick objects that may
     originate from different WakeSource objects. Usually, there is
@@ -150,8 +115,9 @@ class WakeField(Element):
             kick.apply(bunch, self.slice_set_deque, self.slice_set_age_deque)
 
 
-''' WakeSource classes. '''
-
+# ==============================================================================
+# WAKE SOURCE BASE CLASS FOLOWED BY COLLECTION OF DIFFERENT WAKE SOURCES
+# ==============================================================================
 class WakeSource(Printing):
     """ Abstract base class for wake sources, such as WakeTable,
     Resonator or ResistiveWall. """
@@ -222,6 +188,19 @@ class WakeTable(WakeSource):
 
         self.n_turns_wake = n_turns_wake
 
+        self.wake_type = {
+            'constant_x':    ConstantWakeKickX,
+            'constant_y':    ConstantWakeKickY,
+            'longitudinal':  ConstantWakeKickZ,
+            'dipole_x':      DipoleWakeKickX,
+            'dipole_y':      DipoleWakeKickY,
+            'dipole_xy':     DipoleWakeKickXY,
+            'dipole_yx':     DipoleWakeKickYX,
+            'quadrupole_x':  QuadrupoleWakeKickX,
+            'quadrupole_x':  QuadrupoleWakeKickY,
+            'quadrupole_xy': QuadrupoleWakeKickXY,
+            'quadrupole_yx': QuadrupoleWakeKickYX}
+
     def get_wake_kicks(self, slicer):
         """ Factory method. Creates instances of the appropriate
         WakeKick objects for all the wake components provided by the
@@ -229,77 +208,15 @@ class WakeTable(WakeSource):
         returned as a list wake_kicks. """
         wake_kicks = []
 
-        # Constant wake kicks.
-        if self._is_provided('constant_x'):
-            wake_function = self.function_transverse('constant_x')
-            wake_kicks.append(ConstantWakeKickX(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('constant_y'):
-            wake_function = self.function_transverse('constant_y')
-            wake_kicks.append(ConstantWakeKickY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('longitudinal'):
-            wake_function = self.function_longitudinal()
-            wake_kicks.append(ConstantWakeKickZ(
-                wake_function, slicer, self.n_turns_wake))
-
-        # Dipolar wake kicks.
-        if self._is_provided('dipole_x'):
-            wake_function = self.function_transverse('dipole_x')
-            wake_kicks.append(DipoleWakeKickX(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('dipole_y'):
-            wake_function = self.function_transverse('dipole_y')
-            wake_kicks.append(DipoleWakeKickY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('dipole_xy'):
-            wake_function = self.function_transverse('dipole_xy')
-            wake_kicks.append(DipoleWakeKickXY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('dipole_yx'):
-            wake_function = self.function_transverse('dipole_yx')
-            wake_kicks.append(DipoleWakeKickYX(
-                wake_function, slicer, self.n_turns_wake))
-
-        # Quadrupolar wake kicks.
-        if self._is_provided('quadrupole_x'):
-            wake_function = self.function_transverse('quadrupole_x')
-            wake_kicks.append(QuadrupoleWakeKickX(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('quadrupole_y'):
-            wake_function = self.function_transverse('quadrupole_y')
-            wake_kicks.append(QuadrupoleWakeKickY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('quadrupole_xy'):
-            wake_function = self.function_transverse('quadrupole_xy')
-            self.kicks.append(QuadrupoleWakeKickXY(
-                wake_function, slicer, self.n_turns_wake))
-
-        if self._is_provided('quadrupole_yx'):
-            wake_function = self.function_transverse('quadrupole_yx')
-            wake_kicks.append(QuadrupoleWakeKickYX(
-                wake_function, slicer, self.n_turns_wake))
+        for name, function in wake_type.items():
+            if self._is_provided(name):
+                if name=='longitudinal':
+                    wake_function = self.function_longitudinal()
+                else:
+                    wake_function = self.function_transverse(name)
+                wake_kicks.append(function(wake_function, slicer, self.n_turns_wake))
 
         return wake_kicks
-
-    def _is_provided(self, wake_component):
-        """ Check whether wake_component is a valid name and available
-        in wake table data. Return 'True' if yes and 'False' if no. """
-        if wake_component in self.wake_table.keys():
-            return True
-        else:
-            # self.warns(wake_component + ' \n' +
-            #       'Wake component is either not provided or does not \n'+
-            #       'use correct nomenclature. See docstring of WakeTable \n' +
-            #       'constructor to display valid names. \n')
-            return False
 
     def function_transverse(self, wake_component):
         """ Defines and returns the wake(beta, dz) function for the
@@ -374,6 +291,18 @@ class WakeTable(WakeSource):
                 raise ValueError('Longitudinal wake component does not meet' +
                                  ' requirements.')
         return wake
+
+    def _is_provided(self, wake_component):
+        """ Check whether wake_component is a valid name and available
+        in wake table data. Return 'True' if yes and 'False' if no. """
+        if wake_component in self.wake_table.keys():
+            return True
+        else:
+            # self.warns(wake_component + ' \n' +
+            #       'Wake component is either not provided or does not \n'+
+            #       'use correct nomenclature. See docstring of WakeTable \n' +
+            #       'constructor to display valid names. \n')
+            return False
 
 
 class Resonator(WakeSource):
@@ -530,26 +459,43 @@ class ResistiveWall(WakeSource):
     """ Class to describe the wake functions originating from a
     resistive wall impedance. """
 
-    def __init__(self, pipe_radius, resistive_wall_length, conductivity,
-                 dt_min, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
+    def __init__(self, pipe_radius, resistive_wall_length, conductivity, dt_min,
+                 beta_beam, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
                  n_turns_wake=1, *args, **kwargs):
-        """ General constructor to create a ResistiveWall WakeSource
-        object describing the wake functions of a resistive wall
-        impedance.
-        The parameter 'n_turns_wake' defines how many turns are
-        considered for the multiturn wakes. It is 1 by default, i.e.
-        multiturn wakes are off. """
+        """Resistive wall wake fied contructor
+
+        General constructor to create a ResistiveWall WakeSource object
+        describing the wake functions of a resistive wall impedance. The wake
+        function is implemented according to A. Chao eq.(2.53) in SI
+        units. Since the function diverges at t=0, a cut-off time dt_min must be
+        specified below which the wake is assumed to be constant. The function
+        explicitly depends on the relativistic beta of the beam. This is a
+        peculiarity of the resistive wall wake, hence, a reference to the beta
+        of the beam must be given. The parameter 'n_turns_wake' defines how many
+        turns are considered for the multiturn wakes. It is 1 by default, i.e.
+        multiturn wakes are off.
+
+        Arguments:
+        pipe_radius -- the resistive wall pipe radius in [m]
+        resistive_wall_length -- the resistive wall pipe length in [m]
+        conductivity -- conductivity in [?]
+        dt_min -- the minimum slice width in [s]
+        beta_beam -- a reference to the relativistic beta of the beam
+        n-turns_wake -- number of turns for multiturn wake (1 by default)
+        """
         super(ResistiveWall, self).__init__(*args, **kwargs)
 
         self.pipe_radius = np.array([pipe_radius]).flatten()
         self.resistive_wall_length = resistive_wall_length
         self.conductivity = conductivity
+        self.beta = beta_beam
         self.dt_min = dt_min
 
         self.Yokoya_X1 = Yokoya_X1
         self.Yokoya_Y1 = Yokoya_Y1
         self.Yokoya_X2 = Yokoya_X2
         self.Yokoya_Y2 = Yokoya_Y2
+
         self.n_turns_wake = n_turns_wake
 
     def get_wake_kicks(self, slicer):
@@ -589,15 +535,13 @@ class ResistiveWall(WakeSource):
     def function_transverse(self, Yokoya_factor):
         """ Define the wake function (transverse) of a resistive wall
         with the given parameters. """
-        Z0 = physical_constants['characteristic impedance of vacuum'][0]
-        lambda_s = 1. / (Z0 * self.conductivity)
         mu_r = 1
 
         def wake(dt):
             y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
-                 kwargs['beta'] * c * Z0 * self.resistive_wall_length / np.pi /
-                 self.pipe_radius**3 * np.sqrt(-lambda_s * mu_r / np.pi /
-                 dt.clip(max=-abs(self.dt_min))))
+                 np.sqrt(self.beta) * self.resistive_wall_length / np.pi /
+                 self.pipe_radius**3 * np.sqrt(-mu_r / np.pi /
+                 self.conductivity / dt.clip(max=-abs(self.dt_min))))
             return y
         return wake
 
@@ -605,7 +549,7 @@ class ResistiveWall(WakeSource):
 class CircularResistiveWall(ResistiveWall):
     '''Circular resistive wall.'''
     def __init__(self, pipe_radius, resistive_wall_length, conductivity,
-                 dt_min, n_turns_wake=1, *args, **kwargs):
+                 dt_min, beta_beam, n_turns_wake=1, *args, **kwargs):
         """ Special case of a circular resistive wall. """
         Yokoya_X1 = 1.
         Yokoya_Y1 = 1.
@@ -613,7 +557,7 @@ class CircularResistiveWall(ResistiveWall):
         Yokoya_Y2 = 0.
 
         super(CircularResistiveWall, self).__init__(
-            pipe_radius, resistive_wall_length, conductivity, dt_min,
+            pipe_radius, resistive_wall_length, conductivity, dt_min, beta_beam,
             Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake,
             *args, **kwargs)
 
@@ -621,7 +565,7 @@ class CircularResistiveWall(ResistiveWall):
 class ParallelPlatesResistiveWall(ResistiveWall):
     '''Parallel plates resistive wall.'''
     def __init__(self, pipe_radius, resistive_wall_length, conductivity,
-                 dt_min, n_turns_wake=1, *args, **kwargs):
+                 dt_min, beta_beam, n_turns_wake=1, *args, **kwargs):
         """ Special case of a parallel plates resistive wall. """
         Yokoya_X1 = np.pi**2 / 24.
         Yokoya_Y1 = np.pi**2 / 12.
@@ -629,6 +573,44 @@ class ParallelPlatesResistiveWall(ResistiveWall):
         Yokoya_Y2 = np.pi**2 / 24.
 
         super(ParallelPlatesResistiveWall, self).__init__(
-            pipe_radius, resistive_wall_length, conductivity, dt_min,
+            pipe_radius, resistive_wall_length, conductivity, dt_min, beta_beam,
             Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake,
             *args, **kwargs)
+
+
+def check_waketable_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=False):
+    '''Handy function for quick visual check of sampling of the wake functions from
+    wake tables.  For now only implemented for wake table type wakes.
+
+    '''
+    from scipy.constants import c
+    import matplotlib.pyplot as plt
+
+    ss = bunch.get_slices(slicer).z_centers
+    zz = bunch.get_slices(slicer).z_bins
+    ss = ss[:-1]
+    ll = bunch.get_slices(slicer).lambda_z(ss, sigma=100)
+    # ss = np.concatenate((s.z_centers-s.z_centers[-1], (s.z_centers-s.z_centers[0])[1:]))
+
+    A = [wakes.wake_table['time'] * beta*c*1e-9, wakes.wake_table[wake_column] * 1e15]
+    W = [ss[::-1], wakes.function_transverse(wake_column)(beta, ss)]
+
+
+    fig, (ax1, ax2) = plt.subplots(2, figsize=(16,12), sharex=True)
+
+    ax1.plot(ss, ll)
+
+    ax2.plot(A[0], (A[1]), 'b-+', ms=12)
+    ax2.plot(W[0][:-1], (-1*W[1][1:]), 'r-x')
+    if bins:
+        [ax2.axvline(z, color='g') for z in zz]
+
+    ax2.grid()
+    lgd = ['Table', 'Interpolated']
+    if bins:
+        lgd += ['Bin edges']
+    ax2.legend(lgd)
+
+    print '\n--> Resulting number of slices: {:g}'.format(len(ss))
+
+    return ax1
