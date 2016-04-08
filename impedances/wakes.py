@@ -108,6 +108,7 @@ class WakeField(Element):
         track of the age of each of the SliceSet instances.
         """
         self.slicer = slicer
+        wake_sources_list = np.atleast_1d(wake_sources_list)
 
         # Assemble from all wake sources all wake kicks
         self.wake_kicks = []
@@ -116,8 +117,7 @@ class WakeField(Element):
             self.wake_kicks.extend(kicks)
 
         # Prepare wake register
-        n_turns_wake_max = max([ source.n_turns_wake
-                                 for source in wake_sources ])
+        n_turns_wake_max = max([source.n_turns_wake for source in wake_sources_list])
         self.slice_set_deque = deque([], maxlen=n_turns_wake_max)
         self.slice_set_age_deque = deque([], maxlen=n_turns_wake_max)
 
