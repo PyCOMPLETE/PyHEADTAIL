@@ -159,6 +159,42 @@ class WakeKick(Printing):
 
         return self._wake_factor(bunch) * accumulated_signal
 
+    def _accumulate_source_signal_multibunch(self,
+            bunch, times_list, ages_list, moments_list, betas_list):
+        """
+        Arguments:
+        bunch -- bunch or list of bunches
+        ages_list -- list with delay in [s] for each slice set since wake generation
+        times_list, moments_list, betas_list -- 2d array (turns x bunches) with history for each bunch"""
+
+        accumulated_signal_list = []
+        dt_list = [b.dt for b in bunch]
+
+        if len(ages_list) < self.n_turns_wake:
+            n_turns = len(ages_list)
+        else:
+            n_turns = self.n_turns_wake
+        n_bunches = len(np.atleast_1d(bunch))
+
+        for i, b in enumerate(np.atleast_1d(bunch)):
+            accumulated_signal = 0
+            target_times = times_list[0,i]
+
+            # Accumulate all bunches over all turns
+            for k in xrange(n_turns):
+                # for j in xrange(i+1): # watch out here - all bunches?
+                for j in xrange(n_bunches): # run over all bunches and take into account wake in front - test!
+                    source_times = times_list[k,j] + ages_list[k] + dt_list[i] - dt_list[j]
+                    source_moments = moments_list[k,j]
+                    source_beta = betas_list[k,j]
+
+                    accumulated_signal += self._convolution(target_times, source_times, source_moments,
+                                                            source_beta)
+
+            accumulated_signal_list.append(self._wake_factor(b) * accumulated_signal)
+
+        return accumulated_signal_list
+
 
 '''
 ==============================================================
