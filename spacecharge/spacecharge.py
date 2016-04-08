@@ -360,12 +360,13 @@ class TransverseGaussianSpaceCharge(Element):
         efieldn_round = TransverseGaussianSpaceCharge._efieldn_round
         @wraps(efieldn)
         def efieldn_checked(x, y, sig_x, sig_y, *args, **kwargs):
-            rtol=TransverseGaussianSpaceCharge.ratio_threshold
-            atol=TransverseGaussianSpaceCharge.absolute_threshold
-            if pm.allclose(sig_y, sig_x, rtol=rtol, atol=atol):
-                if pm.allclose(sig_y, pm.zeros(1, dtype=np.float64),
-                               rtol=rtol, atol=atol):
-                    en_x = en_y = pm.zeros(x.shape, dtype=np.float64)
+            tol_kwargs = dict(
+                rtol=TransverseGaussianSpaceCharge.ratio_threshold,
+                atol=TransverseGaussianSpaceCharge.absolute_threshold
+            )
+            if pm.allclose(sig_y, sig_x, **tol_kwargs):
+                if pm.almost_zero(sig_y, **tol_kwargs):
+                    en_x = en_y = pm.zeros(x.shape, dtype=x.dtype)
                 else:
                     en_x, en_y = efieldn_round(x, y, sig_x, *args, **kwargs)
             elif pm.all(sig_x < sig_y):
