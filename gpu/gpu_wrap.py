@@ -638,8 +638,8 @@ def _add_bounds_to_sliceset(sliceset):
                                             seq, lower_bounds)
     sliceset.upper_bounds = upper_bounds
     sliceset.lower_bounds = lower_bounds
-    sliceset._pidx_begin = lower_bounds.get()[0] # set those properties now!
-    sliceset._pidx_end = upper_bounds.get()[-1]  # this way .get() gets called only once
+    sliceset._pidx_begin = lower_bounds[0].get() # set those properties now!
+    sliceset._pidx_end = upper_bounds[-1].get()  # this way .get() gets called only once
     #print 'upper bounds ',sliceset.upper_bounds
     #print 'lower bounds ',sliceset.lower_bounds
 
