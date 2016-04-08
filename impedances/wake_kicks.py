@@ -8,12 +8,12 @@
 """
 from __future__ import division
 
+from abc import ABCMeta, abstractmethod
+
 import numpy as np
 from scipy.constants import c
 from scipy.signal import fftconvolve
-from abc import ABCMeta, abstractmethod
 
-from . import Printing
 
 class WakeKick(Printing):
     """ Abstract base class for wake kick classes, like e.g. the

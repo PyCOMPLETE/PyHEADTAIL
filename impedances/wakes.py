@@ -244,14 +244,14 @@ class WakeTable(WakeSource):
         wake_strength = -convert_to_V_per_Cm * self.wake_table[wake_component]
 
         if (time[0] == 0) and (wake_strength[0] == 0):
-            def wake(dt):
+            def wake(dt, *args, **kwargs):
                 dt = dt.clip(max=0)
                 return interp1d(time, wake_strength)(-dt)
             self.prints(wake_component +
                   ' Assuming ultrarelativistic wake.')
 
         elif (time[0] < 0):
-            def wake(dt):
+            def wake(dt, *args, **kwargs):
                 return interp1d(time, wake_strength)(-dt)
             self.prints(wake_component +  ' Found low beta wake.')
 
@@ -261,25 +261,26 @@ class WakeTable(WakeSource):
         return wake
 
     def function_longitudinal(self):
-        """ Defines and returns the wake(dt) function for the given
-        wake_component (longitudinal). Data from the wake table are
-        used, but first converted to SI units assuming that time is
-        specified in [ns] and longitudinal wake field strength in
-        [V/pC]. Sign conventions are applied (HEADTAIL conventions).
-        The wake(dt) uses the scipy.interpolate.interp1d linear
-        interpolation to calculate the wake strength at an arbitrary
-        value of dt (provided it is in the valid range). The valid range
-        of dt is given by the time range from the wake table. If values
-        of wake(dt) are requested for dt outside the valid range, a
-        ValueError is raised by interp1d.
-        The beam loading theorem is respected and applied for dt=0. """
+        """Defines and returns the wake(dt, *args, **kwargs) function for the given
+        wake_component (longitudinal). Data from the wake table are used, but
+        first converted to SI units assuming that time is specified in [ns] and
+        longitudinal wake field strength in [V/pC]. Sign conventions are applied
+        (HEADTAIL conventions).  The wake(dt, *args, **kwargs) uses the
+        scipy.interpolate.interp1d linear interpolation to calculate the wake
+        strength at an arbitrary value of dt (provided it is in the valid
+        range). The valid range of dt is given by the time range from the wake
+        table. If values of wake(dt, *args, **kwargs) are requested for dt
+        outside the valid range, a ValueError is raised by interp1d.  The beam
+        loading theorem is respected and applied for dt=0.
+
+        """
         convert_to_s = 1e-9
         convert_to_V_per_C = 1e12
 
         time = convert_to_s * self.wake_table['time']
         wake_strength = -convert_to_V_per_C * self.wake_table['longitudinal']
 
-        def wake(dt):
+        def wake(dt, *args, **kwargs):
             wake_interpolated = interp1d(time, wake_strength)(-dt)
             if time[0] == 0:
                 # Beam loading theorem: Half value of wake strength at
@@ -384,7 +385,7 @@ class Resonator(WakeSource):
         alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
-        def wake(dt):
+        def wake(dt, *args, **kwargs):
             dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
@@ -406,7 +407,7 @@ class Resonator(WakeSource):
         alpha = omega / (2 * self.Q)
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
-        def wake(dt):
+        def wake(dt, *args, **kwargs):
             dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (-(np.sign(dt) - 1) * self.R_shunt * alpha *
@@ -460,7 +461,7 @@ class ResistiveWall(WakeSource):
     resistive wall impedance. """
 
     def __init__(self, pipe_radius, resistive_wall_length, conductivity, dt_min,
-                 beta_beam, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
+                 Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
                  n_turns_wake=1, *args, **kwargs):
         """Resistive wall wake fied contructor
 
@@ -468,20 +469,17 @@ class ResistiveWall(WakeSource):
         describing the wake functions of a resistive wall impedance. The wake
         function is implemented according to A. Chao eq.(2.53) in SI
         units. Since the function diverges at t=0, a cut-off time dt_min must be
-        specified below which the wake is assumed to be constant. The function
-        explicitly depends on the relativistic beta of the beam. This is a
-        peculiarity of the resistive wall wake, hence, a reference to the beta
-        of the beam must be given. The parameter 'n_turns_wake' defines how many
-        turns are considered for the multiturn wakes. It is 1 by default, i.e.
-        multiturn wakes are off.
+        specified below which the wake is assumed to be constant. The parameter
+        'n_turns_wake' defines how many turns are considered for the multiturn
+        wakes. It is 1 by default, i.e.  multiturn wakes are off.
 
         Arguments:
         pipe_radius -- the resistive wall pipe radius in [m]
         resistive_wall_length -- the resistive wall pipe length in [m]
         conductivity -- conductivity in [?]
         dt_min -- the minimum slice width in [s]
-        beta_beam -- a reference to the relativistic beta of the beam
         n-turns_wake -- number of turns for multiturn wake (1 by default)
+
         """
         super(ResistiveWall, self).__init__(*args, **kwargs)
 
@@ -533,13 +531,20 @@ class ResistiveWall(WakeSource):
         return wake_kicks
 
     def function_transverse(self, Yokoya_factor):
-        """ Define the wake function (transverse) of a resistive wall
-        with the given parameters. """
+        """Define the wake function (transverse) of a resistive wall with the given
+        parameters. The function explicitly depends on the relativistic beta of
+        the beam. This is a peculiarity of the resistive wall wake. And in
+        particular for multi-turn wakes the history of the beam beta needs to be
+        passed. For this reason, beta needs to be provided at the wake function
+        level and as a consequence all wake functions need to be adapted not to
+        violate the interface.
+
+        """
         mu_r = 1
 
-        def wake(dt):
+        def wake(dt, *args, beta=beta, **kwargs):
             y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
-                 np.sqrt(self.beta) * self.resistive_wall_length / np.pi /
+                 np.sqrt(kwargs['beta']) * self.resistive_wall_length / np.pi /
                  self.pipe_radius**3 * np.sqrt(-mu_r / np.pi /
                  self.conductivity / dt.clip(max=-abs(self.dt_min))))
             return y
@@ -549,7 +554,7 @@ class ResistiveWall(WakeSource):
 class CircularResistiveWall(ResistiveWall):
     '''Circular resistive wall.'''
     def __init__(self, pipe_radius, resistive_wall_length, conductivity,
-                 dt_min, beta_beam, n_turns_wake=1, *args, **kwargs):
+                 dt_min, n_turns_wake=1, *args, **kwargs):
         """ Special case of a circular resistive wall. """
         Yokoya_X1 = 1.
         Yokoya_Y1 = 1.
@@ -565,7 +570,7 @@ class CircularResistiveWall(ResistiveWall):
 class ParallelPlatesResistiveWall(ResistiveWall):
     '''Parallel plates resistive wall.'''
     def __init__(self, pipe_radius, resistive_wall_length, conductivity,
-                 dt_min, beta_beam, n_turns_wake=1, *args, **kwargs):
+                 dt_min, n_turns_wake=1, *args, **kwargs):
         """ Special case of a parallel plates resistive wall. """
         Yokoya_X1 = np.pi**2 / 24.
         Yokoya_Y1 = np.pi**2 / 12.
