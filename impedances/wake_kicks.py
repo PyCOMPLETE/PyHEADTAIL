@@ -14,6 +14,8 @@ import numpy as np
 from scipy.constants import c
 from scipy.signal import fftconvolve
 
+from . import Printing
+
 
 class WakeKick(Printing):
     """ Abstract base class for wake kick classes, like e.g. the
@@ -68,18 +70,18 @@ class WakeKick(Printing):
         return wake_factor
 
     def _convolution_dot_product(self, target_times,
-                                 source_times, source_moments):
+                                 source_times, source_moments, source_beta):
         """ Implementation of the convolution of wake and source_moments
         (beam profile) using the numpy dot product. To be used with the
         'uniform_charge' slicer mode. """
         dt_to_target_slice = (
             [target_times] - np.transpose([source_times]))
-        wake = self.wake_function(dt_to_target_slice)
+        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
 
         return np.dot(source_moments, wake)
 
     def _convolution_numpy(self, target_times,
-                           source_times, source_moments):
+                           source_times, source_moments, source_beta):
         """ Implementation of the convolution of wake and source_moments
         (longitudinal beam profile) using the numpy built-in
         numpy.convolve method. Recommended use with the 'uniform_bin'
@@ -90,12 +92,12 @@ class WakeKick(Printing):
         tmin, tmax = source_times[0], source_times[-1]
         dt_to_target_slice = np.concatenate(
             (target_times-tmax, (target_times - tmin)[1:]))
-        wake = self.wake_function(dt_to_target_slice)
+        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
 
         return np.convolve(source_moments, wake, 'valid')
 
     def _convolution_scipy(self, target_times,
-                           source_times, source_moments):
+                           source_times, source_moments, source_beta):
         """Implementation of the convolution of wake and source_moments (longitudinal
         beam profile) using the scipy.signal built-in fftconvolve method. This
         should be faster than the numpy version since it exploits the fft for
@@ -106,7 +108,7 @@ class WakeKick(Printing):
         tmin, tmax = source_times[0], source_times[-1]
         dt_to_target_slice = np.concatenate(
             (target_times-tmax, (target_times-tmin)[1:]))
-        wake = self.wake_function(dt_to_target_slice)
+        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
 
         return fftconvolve(wake, source_moments, 'valid')
 
@@ -162,27 +164,34 @@ class WakeKick(Printing):
     def _accumulate_source_signal_multibunch(self,
             bunch, times_list, ages_list, moments_list, betas_list):
         """
+
         Arguments:
-        bunch -- bunch or list of bunches
+
+        bunch -- bunch or list of bunches - the order is important; index 0 is
+                 assumed to be the front most bunch i.e., the head of the b
         ages_list -- list with delay in [s] for each slice set since wake generation
-        times_list, moments_list, betas_list -- 2d array (turns x bunches) with history for each bunch"""
+        times_list, moments_list, betas_list -- 2d array (turns x bunches) with history for each bunch
+
+        """
 
         accumulated_signal_list = []
-        dt_list = [b.dt for b in bunch]
+        bunches = np.atleast_1d(bunch)
+        dt_list = [b.dt for b in bunches]
 
         if len(ages_list) < self.n_turns_wake:
             n_turns = len(ages_list)
         else:
             n_turns = self.n_turns_wake
-        n_bunches = len(np.atleast_1d(bunch))
 
-        for i, b in enumerate(np.atleast_1d(bunch)):
+        for i, b in enumerate(bunches):
+            n_bunches = i+1
             accumulated_signal = 0
             target_times = times_list[0,i]
 
             # Accumulate all bunches over all turns
             for k in xrange(n_turns):
-                # for j in xrange(i+1): # watch out here - all bunches?
+                if k>0:
+                    n_bunches = len(bunches)
                 for j in xrange(n_bunches): # run over all bunches and take into account wake in front - test!
                     source_times = times_list[k,j] + ages_list[k] + dt_list[i] - dt_list[j]
                     source_moments = moments_list[k,j]

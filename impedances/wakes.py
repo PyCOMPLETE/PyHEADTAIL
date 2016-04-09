@@ -29,6 +29,7 @@ from scipy.interpolate import interp1d
 from scipy.constants import c, physical_constants
 
 from wake_kicks import *
+from . import Element, Printing
 
 sin = np.sin
 cos = np.cos
@@ -542,7 +543,7 @@ class ResistiveWall(WakeSource):
         """
         mu_r = 1
 
-        def wake(dt, *args, beta=beta, **kwargs):
+        def wake(dt, beta=beta, **kwargs):
             y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
                  np.sqrt(kwargs['beta']) * self.resistive_wall_length / np.pi /
                  self.pipe_radius**3 * np.sqrt(-mu_r / np.pi /
