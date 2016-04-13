@@ -463,21 +463,18 @@ cpdef calc_cell_stats(bunch, double beta_z, double radial_cut,
         if ring_idx >= n_rings:
             continue
 
-        # Slice azimuthally.
+        # Slice azimuthally: atan 2 returns values in the interval [-pi, pi];
+        # hence, in order to avoid negative indices, we need to add an offset of
+        # +pi before performing the floor division (this consequently just adds
+        # an offset to the slices indices). The one-to-one mapping between
+        # angles and slice indices is retained as desired. In this
+        # interpretation, slice index 0 corresponds to -pi (i.e. starting in 3rd
+        # quadrant) and slice n-1 correspoinds to +pi (i.e. ending in 2nd
+        # quadrant). This needs to be taken into account when interpreting and
+        # plotting cell monitor data - for this, use
+        # theta = np.linspace(-np.pi, np.pi, n_azim_slices)
         azim_idx = <int>cmath.floor(
             (cmath.M_PI + cmath.atan2(beta_z*dp_i, z_i)) / azim_width)
-        # if (z_i > 0. and dp_i > 0.):
-        #     azim_idx = <int>cmath.floor(
-        #         cmath.atan(beta_z*dp_i / z_i) / azim_width)
-        # elif (z_i < 0. and dp_i > 0.):
-        #     azim_idx = <int>cmath.floor(
-        #         (cmath.M_PI - cmath.atan(-beta_z*dp_i / z_i)) / azim_width)
-        # elif (z_i < 0. and dp_i <= 0.):
-        #     azim_idx = <int>cmath.floor(
-        #         (cmath.M_PI + cmath.atan(beta_z*dp_i / z_i)) / azim_width)
-        # elif (z_i > 0. and dp_i < 0.):
-        #     azim_idx = <int>cmath.floor(
-        #         (2.*cmath.M_PI - cmath.atan(-beta_z*dp_i / z_i)) / azim_width)
 
         n_particles_cell[azim_idx, ring_idx] += 1
         mean_x_cell[azim_idx, ring_idx] += x[p_idx]
