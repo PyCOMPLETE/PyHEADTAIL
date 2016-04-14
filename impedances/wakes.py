@@ -471,7 +471,6 @@ class Resonator(WakeSource):
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         def wake(dt, *args, **kwargs):
-            dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (-(np.sign(dt) - 1) * self.R_shunt * alpha *
                      np.exp(alpha * dt) * (cos(omegabar * dt) +
