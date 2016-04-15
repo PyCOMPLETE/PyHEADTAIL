@@ -1,9 +1,4 @@
 """
-@class WakeKick
-@author Kevin Li, Michael Schenk
-@date July 2014
-@brief Implementation of the wake kicks, i.e. of the elementary objects
-       describing the effects of a wake field.
 @copyright CERN
 """
 from __future__ import division
@@ -178,27 +173,35 @@ class WakeKick(Printing):
         bunches = np.atleast_1d(bunch)
         dt_list = [b.dt for b in bunches]
 
+        # Check for strictly ascending order
+        try:
+            assert(all(earlier <= later for earlier, later in zip(dt_list, dt_list[1:])))
+        except AssertionError as err:
+            print err.message()
+            print "Bunches are not consecutive. I will re-arrange them now..."
+            bunches = sorted(bunches, key=dt_list)
+
         if len(ages_list) < self.n_turns_wake:
             n_turns = len(ages_list)
         else:
             n_turns = self.n_turns_wake
 
         for i, b in enumerate(bunches):
-            n_bunches = i+1
+            n_bunches_infront = i+1
             accumulated_signal = 0
             target_times = times_list[0,i]
 
             # Accumulate all bunches over all turns
             for k in xrange(n_turns):
                 if k>0:
-                    n_bunches = len(bunches)
-                for j in xrange(n_bunches): # run over all bunches and take into account wake in front - test!
+                    n_bunches_infront = len(bunches)
+                for j in xrange(n_bunches_infront): # run over all bunches and take into account wake in front - test!
                     source_times = times_list[k,j] + ages_list[k] + dt_list[i] - dt_list[j]
                     source_moments = moments_list[k,j]
                     source_beta = betas_list[k,j]
 
-                    accumulated_signal += self._convolution(target_times, source_times, source_moments,
-                                                            source_beta)
+                    accumulated_signal += self._convolution(
+                        target_times, source_times, source_moments, source_beta)
 
             accumulated_signal_list.append(self._wake_factor(b) * accumulated_signal)
 
