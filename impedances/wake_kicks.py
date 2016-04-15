@@ -198,7 +198,7 @@ class WakeKick(Printing):
                 for j in xrange(n_bunches_infront): # run over all bunches and take into account wake in front - test!
                     source_times = times_list[k,j] + ages_list[k] + dt_list[i] - dt_list[j]
                     source_moments = moments_list[k,j]
-                    source_beta = betas_list[k,j]
+                    source_beta = betas_list[k]
 
                     accumulated_signal += self._convolution(
                         target_times, source_times, source_moments, source_beta)
