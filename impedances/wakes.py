@@ -89,8 +89,9 @@ class WakeField(Element):
 
         if n_turns_wake_max>1 and circumference is None:
             raise ValueError("Circumference must be provided for multi turn wakes!")
+        self.circumference = circumference
 
-    def track(self, bunch):
+    def track(self, bunches):
         """Calls the WakeKick.apply(bunch, slice_set) method of each of the WakeKick
         objects stored in self.wake_kicks. A slice_set is necessary to perform
         this operation. It is requested from the bunch (instance of the
@@ -102,18 +103,24 @@ class WakeField(Element):
         s.t. the first moments x, y can be calculated by the WakeKick instances.
         """
 
+        bunches = np.atleast_1d(bunches)
+        beta = bunches[0].beta
+
         # Update ages of stored SliceSet instances.
         for i in xrange(len(self.slice_set_age_deque)):
             self.slice_set_age_deque[i] += (
-                bunch.circumference / (bunch.beta * c))
+                self.circumference / (beta * c))
 
-        slice_set = bunch.get_slices(self.slicer,
-                                     statistics=['mean_x', 'mean_y'])
+        slice_set = [b.get_slices(self.slicer,
+                                  statistics=['mean_x', 'mean_y'])
+                     for b in bunches]
         self.slice_set_deque.appendleft(slice_set)
         self.slice_set_age_deque.appendleft(0.)
 
         for kick in self.wake_kicks:
-            kick.apply(bunch, self.slice_set_deque, self.slice_set_age_deque)
+            aa, bb, cc, dd = kick.apply(bunches, self.slice_set_deque, self.slice_set_age_deque)
+
+        return aa, bb, cc, dd
 
 
 # ==============================================================================
