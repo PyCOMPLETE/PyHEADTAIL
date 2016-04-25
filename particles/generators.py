@@ -61,6 +61,11 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
                     phase space
     Returns: Matcher(closure) taking two parameters: coords and direction
     '''
+    if dispersion and alpha:
+        raise NotImplementedError('Transverse phase space matching: for '
+                                  'alpha != 0 we need to match including the '
+                                  'D\' (dispersion derivative). This is '
+                                  'currently not implemented.')
     sqrt = np.sqrt
     # build the M matrix: only depends on twiss parameters for the
     # special case of alpha0=0, beta0=1 and phi = 0 (=2pi)
@@ -86,9 +91,9 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
         momentum_coords = getattr(beam, direction[1])
         space_coords =    (M[0, 0]*space_coords + # copy if not using +=, *=..
                            M[0, 1]*momentum_coords)
-        momentum_coords = (M[1 ,0]*space_coords_copy +
+        momentum_coords = (M[1, 0]*space_coords_copy +
                            M[1, 1]*momentum_coords)
-        # add dispersion effects, raise exception of coords['dp'] inexistent
+        # add dispersion effects, raise exception if coords['dp'] inexistent
         if dispersion:
             try:
                 space_coords += dispersion * getattr(beam, 'dp')
