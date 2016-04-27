@@ -1,6 +1,4 @@
-"""
-@copyright CERN
-"""
+""".. copyright:: CERN"""
 from __future__ import division
 
 from abc import ABCMeta, abstractmethod
@@ -15,14 +13,14 @@ from . import Printing
 class WakeKick(Printing):
     """Abstract base class for wake kick classes, like e.g. the DipoleWakeKickX.
 
-    Provides the basic and universal methods to calculate magnitude and shape of
-    a wake kick via numerical convolution.
+    Provides the basic and universal methods to calculate magnitude and shape
+    of a wake kick via numerical convolution.
 
-    Several implementations of the convolutions are provided each with their own
-    advantages in terms of flexiility and performance. The fast convolutios such
-    as the numpy and scipy convolution functions require uniform sampling. Based
-    on the input slicer configuration the self._convolution method is bound to
-    one or the other convolution function.
+    Several implementations of the convolutions are provided each with their
+    own advantages in terms of flexiility and performance. The fast convolutios
+    such as the numpy and scipy convolution functions require uniform
+    sampling. Based on the input slicer configuration the self._convolution
+    method is bound to one or the other convolution function.
 
     The self.apply(bunch, slice_set) method calculates and applies the
     corresponding kick to all macroparticles located within the slicing region
@@ -36,15 +34,15 @@ class WakeKick(Printing):
 
     def __init__(self, wake_function, slicer, n_turns_wake,
                  *args, **kwargs):
-        """Universal constructor for WakeKick objects. The slicer_mode is passed only to
-        decide about which of the two implementations of the convolution the
+        """Universal constructor for WakeKick objects. The slicer_mode is passed only
+        to decide about which of the two implementations of the convolution the
         self._convolution method is bound to.
 
         """
         self.wake_function = wake_function
 
         if (slicer.mode == 'uniform_bin' and
-            (n_turns_wake == 1 or slicer.z_cuts)):
+           (n_turns_wake == 1 or slicer.z_cuts)):
             if slicer.n_slices < 400:
                 self._convolution = self._convolution_numpy
             else:
@@ -73,8 +71,8 @@ class WakeKick(Printing):
 
         """
         wake_factor = (-(bunch.charge)**2 /
-                       (bunch.mass * bunch.gamma * (bunch.beta*c)**2)
-                       * bunch.particlenumber_per_mp)
+                       (bunch.mass * bunch.gamma * (bunch.beta*c)**2) *
+                       bunch.particlenumber_per_mp)
         return wake_factor
 
     def _extract_slice_set_data(self, slice_set_list, moments=None):
@@ -88,56 +86,20 @@ class WakeKick(Printing):
         times_list = [[s.convert_to_time(s.z_centers) for s in t]
                       for t in slice_set_list]
         if moments is not None:
-            moments_list = [[s.n_macroparticles_per_slice*getattr(s, moments) for s in t]
-                            for t in slice_set_list]
+            moments_list = [[s.n_macroparticles_per_slice*getattr(s, moments)
+                             for s in t] for t in slice_set_list]
         else:
-            moments_list = [[s.n_macroparticles_per_slice for s in t]
-                            for t in slice_set_list]
+            moments_list = [[s.n_macroparticles_per_slice
+                             for s in t] for t in slice_set_list]
 
-        return np.array(times_list), np.array(ages_list), np.array(moments_list), np.array(betas_list)
-
-    # def _kick_in(bunches, slice_set_list, slice_set_age_list, target_plane, source_moments=None):
-    #     """Generalized wake kick function that applies wakes excited by a source
-    #     distribution to the target plane. The function is specialised and called
-    #     by the apply method in each in each wake kick class. Slice set list and
-    #     slice set quantities are of dimensionality n_turns x n_bunches each with
-    #     arrays of n_slices
-
-    #     """
-    #     if target_plane=='x':
-    #         quant_to_update = 'xp'
-    #     elif target_plane=='y':
-    #         quant_to_update = 'yp'
-    #     elif target_plane=='z':
-    #         quant_to_update = 'dp'
-
-    #     ages_list = None #[s[0].age for s in slice_set_list]
-    #     betas_list = [t[0].beta for t in slice_set_list]
-    #     times_list = [[s.convert_to_time(s.z_centers) for s in t]
-    #                   for t in slice_set_list]
-    #     if moments is not None:
-    #         moments_list = [[s.n_macroparticles_per_slice*getattr(s, moments) for s in t]
-    #                         for t in slice_set_list]
-    #     else:
-    #         moments_list = [[s.n_macroparticles_per_slice for s in t]
-    #                         for t in slice_set_list]
-
-    #     ages_list = slice_set_age_list#[s.age for s in slice_set_list]
-
-    #     kick = self._accumulate_source_signal_multibunch(
-    #         bunches, times_list, slice_set_age_list, moments_list, betas_list)
-
-    #     for i, s in enumerate(slice_set_list[0]):
-    #         qp = getattr(bunches[i], quant_to_update)
-    #         p_idx = s.particles_within_cuts
-    #         s_idx = s.slice_index_of_particle.take(p_idx)
-    #         qp[p_idx] += kick.take(s_idx)
+        return np.array(times_list), np.array(ages_list),\
+            np.array(moments_list), np.array(betas_list)
 
     def _convolution_dot_product(self, target_times,
                                  source_times, source_moments, source_beta):
         """Implementation of the convolution of wake and source_moments (beam profile)
-        using the numpy dot product. To be used with the 'uniform_charge' slicer
-        mode.
+        using the numpy dot product. To be used with the 'uniform_charge'
+        slicer mode.
 
         """
         dt_to_target_slice = (
@@ -179,31 +141,6 @@ class WakeKick(Printing):
 
         return fftconvolve(wake, source_moments, 'valid')
 
-    # def _convolve_multibunch(self, times, moments, dt=None,
-    #                          f_convolution=None):
-    #     """Multibunch convolution according to Notebook implementation.
-
-    #     Takes a list of times and moments from all bunches and performs the
-    #     (multibunch) convolution accordingly.
-
-    #     """
-    #     kick = []
-
-    #     if dt is None: dt = 0.*np.array(times)
-    #     if f_convolution: f_convolution = self._convolution
-
-    #     for i in xrange(len(times)):
-    #         z = 0.*times[i]
-    #         target_times = times[i]
-    #         for j in range(i+1):
-    #             source_times = times[j] + (dt[i] - dt[j])
-    #             source_moments = moments[j]
-    #             z += f_convolution(target_times, source_times, source_moments)
-
-    #         kick.append(z)
-
-    #     return kick
-
     def _accumulate_source_signal(self, bunch, times_list, ages_list,
                                   moments_list, betas_list):
         """Accumulate (multiturn-)wake signals left by source slices.  Takes a list of
@@ -229,16 +166,18 @@ class WakeKick(Printing):
 
         return self._wake_factor(bunch) * accumulated_signal
 
-    def _accumulate_source_signal_multibunch(self,
-            bunches, times_list, ages_list, moments_list, betas_list):
-        """
+    def _accumulate_source_signal_multibunch(
+            self, bunches, times_list, ages_list, moments_list, betas_list):
+        """Args:
 
-        Arguments:
+            bunches: bunch or list of bunches - the order is important; index 0
+                is assumed to be the front most bunch i.e., the head of the b
 
-        bunch -- bunch or list of bunches - the order is important; index 0 is
-                 assumed to be the front most bunch i.e., the head of the b
-        ages_list -- list with delay in [s] for each slice set since wake generation
-        times_list, moments_list, betas_list -- 2d array (turns x bunches) with history for each bunch
+            ages_list: list with delay in [s] for each slice set since
+                 wake generation
+
+            times_list, moments_list, betas_list: 2d array (turns x bunches)
+                with history for each bunch
 
         """
 
@@ -248,7 +187,8 @@ class WakeKick(Printing):
 
         # Check for strictly ascending order
         try:
-            assert(all(earlier <= later for earlier, later in zip(dt_list, dt_list[1:])))
+            assert(all(earlier <= later
+                       for earlier, later in zip(dt_list, dt_list[1:])))
         except AssertionError as err:
             print err.message()
             print "Bunches are not consecutive. I will re-arrange them now..."
@@ -262,32 +202,32 @@ class WakeKick(Printing):
         for i, b in enumerate(bunches):
             n_bunches_infront = i+1
             accumulated_signal = 0
-            target_times = times_list[0,i]
+            target_times = times_list[0, i]
 
             # Accumulate all bunches over all turns
             for k in xrange(n_turns):
-                if k>0:
+                if k > 0:
                     n_bunches_infront = len(bunches)
                 for j in xrange(n_bunches_infront): # run over all bunches and take into account wake in front - test!
-                    source_times = times_list[k,j] + ages_list[k] + dt_list[i] - dt_list[j]
-                    source_moments = moments_list[k,j]
+                    source_times = times_list[k, j] + ages_list[k] +\
+                                   dt_list[i] - dt_list[j]
+                    source_moments = moments_list[k, j]
                     source_beta = betas_list[k]
 
                     accumulated_signal += self._convolution(
-                        target_times, source_times, source_moments, source_beta)
+                        target_times, source_times,
+                        source_moments, source_beta)
 
-            accumulated_signal_list.append(self._wake_factor(b) * accumulated_signal)
+            accumulated_signal_list.append(
+                self._wake_factor(b) * accumulated_signal)
 
         self.dxp = accumulated_signal_list # For test and debugging purpose only
         return accumulated_signal_list
 
 
-'''
-==============================================================
-Below we are to put the implemetation of any order wake kicks.
-==============================================================
-'''
-
+# ==============================================================
+# Below we are to put the implemetation of any order wake kicks.
+# ==============================================================
 class ConstantWakeKickX(WakeKick):
 
     def apply(self, bunches, slice_set_list):
@@ -296,9 +236,8 @@ class ConstantWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list)
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list)
 
         constant_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -317,9 +256,8 @@ class ConstantWakeKickY(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list)
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list)
 
         constant_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -338,9 +276,8 @@ class ConstantWakeKickZ(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list)
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list)
 
         constant_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -359,9 +296,8 @@ class DipoleWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list, moments='mean_x')
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list, moments='mean_x')
 
         dipole_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -375,14 +311,14 @@ class DipoleWakeKickX(WakeKick):
 class DipoleWakeKickXY(WakeKick):
 
     def apply(self, bunches, slice_set_list):
-        """Calculates and applies a dipolar (cross term x-y) wake kick to bunch.xp using
-        the given slice_set. Only particles within the slicing region, i.e
-        particles_within_cuts (defined by the slice_set) experience the kick.
+        """Calculates and applies a dipolar (cross term x-y) wake kick to bunch.xp
+        using the given slice_set. Only particles within the slicing region,
+        i.e particles_within_cuts (defined by the slice_set) experience the
+        kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list, moments='mean_y')
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list, moments='mean_y')
 
         dipole_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -398,13 +334,11 @@ class DipoleWakeKickY(WakeKick):
     def apply(self, bunches, slice_set_list):
         """Calculates and applies a dipolar wake kick to bunch.yp using the given
         slice_set. Only particles within the slicing region, i.e
-        particles_within_cuts (defined by the slice_set) experience the
-        kick.
+        particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list, moments='mean_y')
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list, moments='mean_y')
 
         dipole_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -418,14 +352,14 @@ class DipoleWakeKickY(WakeKick):
 class DipoleWakeKickYX(WakeKick):
 
     def apply(self, bunches, slice_set_list):
-        """Calculates and applies a dipolar (cross term y-x) wake kick to bunch.yp using
-        the given slice_set. Only particles within the slicing region, i.e
-        particles_within_cuts (defined by the slice_set) experience the kick.
+        """Calculates and applies a dipolar (cross term y-x) wake kick to bunch.yp
+        using the given slice_set. Only particles within the slicing region,
+        i.e particles_within_cuts (defined by the slice_set) experience the
+        kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list, moments='mean_x')
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list, moments='mean_x')
 
         dipole_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -444,9 +378,8 @@ class QuadrupoleWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list)
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list)
 
         quadrupole_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -454,21 +387,21 @@ class QuadrupoleWakeKickX(WakeKick):
         for i, s in enumerate(slice_set_list[0]):
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            bunches[i].xp[p_idx] += quadrupole_kick[i].take(s_idx) * bunches[i].x.take(p_idx)
+            bunches[i].xp[p_idx] += (quadrupole_kick[i].take(s_idx) *
+                                     bunches[i].x.take(p_idx))
 
 
 class QuadrupoleWakeKickXY(WakeKick):
 
     def apply(self, bunches, slice_set_list):
         """Calculates and applies a quadrupolar (cross term x-y) wake kick to bunch.xp
-        using the given slice_set. Only particles within the slicing region, i.e
-        particles_within_cuts (defined by the slice_set) experience the
+        using the given slice_set. Only particles within the slicing region,
+        i.e particles_within_cuts (defined by the slice_set) experience the
         kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list)
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list)
 
         quadrupole_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -476,7 +409,8 @@ class QuadrupoleWakeKickXY(WakeKick):
         for i, s in enumerate(slice_set_list[0]):
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            bunches[i].xp[p_idx] += quadrupole_kick[i].take(s_idx) * bunches[i].y.take(p_idx)
+            bunches[i].xp[p_idx] += (quadrupole_kick[i].take(s_idx) *
+                                     bunches[i].y.take(p_idx))
 
 
 class QuadrupoleWakeKickY(WakeKick):
@@ -484,13 +418,11 @@ class QuadrupoleWakeKickY(WakeKick):
     def apply(self, bunches, slice_set_list):
         """Calculates and applies a quadrupolar wake kick to bunch.yp using the given
         slice_set. Only particles within the slicing region, i.e
-        particles_within_cuts (defined by the slice_set) experience the
-        kick.
+        particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list)
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list)
 
         quadrupole_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -498,21 +430,21 @@ class QuadrupoleWakeKickY(WakeKick):
         for i, s in enumerate(slice_set_list[0]):
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            bunches[i].yp[p_idx] += quadrupole_kick[i].take(s_idx) * bunches[i].y.take(p_idx)
+            bunches[i].yp[p_idx] += (quadrupole_kick[i].take(s_idx) *
+                                     bunches[i].y.take(p_idx))
 
 
 class QuadrupoleWakeKickYX(WakeKick):
 
     def apply(self, bunches, slice_set_list):
         """Calculates and applies a quadrupolar (cross term y-x) wake kick to bunch.yp
-        using the given slice_set. Only particles within the slicing region, i.e
-        particles_within_cuts (defined by the slice_set) experience the
+        using the given slice_set. Only particles within the slicing region,
+        i.e particles_within_cuts (defined by the slice_set) experience the
         kick.
 
         """
-        times_list, ages_list, moments_list, betas_list = self._extract_slice_set_data(
-            slice_set_list)
-        # ages_list = slice_set_age_list
+        times_list, ages_list, moments_list, betas_list\
+            = self._extract_slice_set_data(slice_set_list)
 
         quadrupole_kick = self._accumulate_source_signal_multibunch(
             bunches, times_list, ages_list, moments_list, betas_list)
@@ -520,4 +452,5 @@ class QuadrupoleWakeKickYX(WakeKick):
         for i, s in enumerate(slice_set_list[0]):
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            bunches[i].yp[p_idx] += quadrupole_kick[i].take(s_idx) * bunches[i].x.take(p_idx)
+            bunches[i].yp[p_idx] += (quadrupole_kick[i].take(s_idx) *
+                                     bunches[i].x.take(p_idx))
