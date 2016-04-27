@@ -26,7 +26,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 from collections import deque
 from scipy.interpolate import interp1d
-from scipy.constants import c, physical_constants
+from scipy.constants import c
 
 from wake_kicks import *
 from . import Element, Printing
@@ -85,7 +85,7 @@ class WakeField(Element):
         # Prepare wake register
         n_turns_wake_max = max([source.n_turns_wake for source in wake_sources_list])
         self.slice_set_deque = deque([], maxlen=n_turns_wake_max)
-        self.slice_set_age_deque = deque([], maxlen=n_turns_wake_max)
+        # self.slice_set_age_deque = deque([], maxlen=n_turns_wake_max)
 
         if n_turns_wake_max>1 and circumference is None:
             raise ValueError("Circumference must be provided for multi turn wakes!")
@@ -104,23 +104,25 @@ class WakeField(Element):
         """
 
         bunches = np.atleast_1d(bunches)
+
+        # Get beta and update ages for first bunch in list is sufficient
         beta = bunches[0].beta
+        for i, t in enumerate(self.slice_set_deque):
+            t[0].age += self.circumference/(beta*c)
 
         # Update ages of stored SliceSet instances.
-        for i in xrange(len(self.slice_set_age_deque)):
-            self.slice_set_age_deque[i] += (
-                self.circumference / (beta * c))
+        # for i in xrange(len(self.slice_set_age_deque)):
+        #     self.slice_set_age_deque[i] += (
+        #         self.circumference / (beta * c))
 
         slice_set = [b.get_slices(self.slicer,
                                   statistics=['mean_x', 'mean_y'])
                      for b in bunches]
         self.slice_set_deque.appendleft(slice_set)
-        self.slice_set_age_deque.appendleft(0.)
+        # self.slice_set_age_deque.appendleft(0.)
 
         for kick in self.wake_kicks:
-            aa, bb, cc, dd = kick.apply(bunches, self.slice_set_deque, self.slice_set_age_deque)
-
-        return aa, bb, cc, dd
+            kick.apply(bunches, self.slice_set_deque)
 
 
 # ==============================================================================
