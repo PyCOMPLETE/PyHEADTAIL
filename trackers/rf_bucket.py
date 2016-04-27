@@ -194,14 +194,12 @@ class RFBucket(Printing):
 
     @property
     def Qs(self):
-        """Neglects all other harmonics besides the maximum
-        voltage one.
+        """Synchrotron tunes for small amplitudes i.e., in the center of the bucket.
+
         """
-        ix = np.argmax(self.V)
-        V = self.V[ix]
-        h = self.h[ix]
-        return np.sqrt( np.abs(self.charge)*V*np.abs(self.eta0)*h /
-                       (2*np.pi*self.p0*self.beta*c) )
+        hV = sum([h * self.V[i] for i, h in enumerate(self.h)])
+        return np.sqrt(np.abs(self.charge)*np.abs(self.eta0)*hV /
+                       (2*np.pi*self.p0*self.beta*c))
 
     def add_fields(self, add_forces, add_potentials):
         '''Include additional (e.g. non-RF) effects to this RFBucket.
