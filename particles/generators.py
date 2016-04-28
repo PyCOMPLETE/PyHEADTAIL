@@ -61,11 +61,11 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
                     phase space
     Returns: Matcher(closure) taking two parameters: coords and direction
     '''
-    if dispersion and alpha:
-        raise NotImplementedError('Transverse phase space matching: for '
-                                  'alpha != 0 we need to match including the '
-                                  'D\' (dispersion derivative). This is '
-                                  'currently not implemented.')
+#    if dispersion and alpha:
+#        raise NotImplementedError('Transverse phase space matching: for '
+#                                  'alpha != 0 we need to match including the '
+#                                  'D\' (dispersion derivative). This is '
+#                                  'currently not implemented.')
     sqrt = np.sqrt
     # build the M matrix: only depends on twiss parameters for the
     # special case of alpha0=0, beta0=1 and phi = 0 (=2pi)
