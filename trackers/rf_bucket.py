@@ -1,15 +1,15 @@
+""".. copyright:: CERN"""
 from __future__ import division
 
 import numpy as np
 
-from scipy.optimize import brentq
 from scipy.constants import c
 from scipy.integrate import dblquad
+from functools import partial, wraps
 
+from cobra_functions.curve_tools import zero_crossings
 from . import Printing
 
-from functools import partial, wraps
-import operator
 
 def attach_clean_buckets(rf_parameter_changing_method, rfsystems_instance):
     '''Wrap an rf_parameter_changing_method (that changes relevant RF
@@ -25,6 +25,7 @@ def attach_clean_buckets(rf_parameter_changing_method, rfsystems_instance):
         rfsystems_instance.clean_buckets()
         return res
     return cleaned_rf_parameter_changing_method
+
 
 class RFBucket(Printing):
     """Holds a blueprint of the current RF bucket configuration.
@@ -369,13 +370,9 @@ class RFBucket(Printing):
                 subintervals = self.sampling_points
             x = np.linspace(*self.interval, num=subintervals)
 
-        y = f(x)
-        zix = np.where(np.abs(np.diff(np.sign(y))) == 2)[0]
+        x0, y0 = zero_crossings(f, x)
 
-        x0 = np.array([brentq(f, x[i], x[i+1]) for i in zix])
-        # y0 = np.array(f(i) for i in x0)
-
-        return x0 #, y0
+        return x0
 
     def _get_bucket_boundaries(self):
         '''Return the bucket boundaries as well as the whole list
