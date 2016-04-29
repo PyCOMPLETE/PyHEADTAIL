@@ -57,7 +57,7 @@ class BunchMonitor(Monitor):
                               contents are actually written to file.
           buffer_size:        Number of steps to be buffered.
 
-          optionally pass a list called stats_to_store which specifies
+          Optionally pass a list called stats_to_store which specifies
           which members/methods of the bunch will be called/stored.
           """
         stats_to_store = [
@@ -379,7 +379,7 @@ class SliceMonitor(Monitor):
 
 
 class ParticleMonitor(Monitor):
-    """ Class to store particle-specific data to a HDF5 file, i.e. the
+    """Class to store particle-specific data to a HDF5 file, i.e. the
     coordinates and conjugate momenta as well as the id of individual
     macroparticles of a bunch. """
 
@@ -394,8 +394,14 @@ class ParticleMonitor(Monitor):
           stride:          Only store data of macroparticles for which
                            id % stride == 0.
           parameters_dict: Metadata for HDF5 file containing main
-                           simulation parameters. """
-        self.quantities_to_store = [ 'x', 'xp', 'y', 'yp', 'z', 'dp', 'id' ]
+                           simulation parameters.
+
+          Optionally pass a list called quantities_to_store which
+          specifies which members of the bunch will be called/stored.
+                           """
+        quantities_to_store = [ 'x', 'xp', 'y', 'yp', 'z', 'dp', 'id' ]
+        self.quantities_to_store = kwargs.pop('quantities_to_store',
+                                              quantities_to_store)
         self.filename = filename
         self.stride = stride
         self.i_steps = 0
@@ -441,7 +447,13 @@ class ParticleMonitor(Monitor):
         all_quantities = {}
         for quant in self.quantities_to_store:
             quant_values = getattr(bunch, quant)
+            if pm.device is 'GPU':
+                stream = next(gpu_utils.stream_pool)
+                quant_values = quant_values.get_async(stream=stream)
             all_quantities[quant] = quant_values
+        if pm.device is 'GPU':
+            for stream in gpu_utils.streams:
+                stream.synchronize()
 
         if arrays_dict is not None:
             all_quantities.update(arrays_dict)
