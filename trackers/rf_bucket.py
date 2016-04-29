@@ -4,10 +4,11 @@ from __future__ import division
 import numpy as np
 
 from scipy.constants import c
+from scipy.optimize import newton
 from scipy.integrate import dblquad
 from functools import partial, wraps
 
-from cobra_functions.curve_tools import zero_crossings
+from ..cobra_functions.curve_tools import zero_crossings
 from . import Printing
 
 
@@ -255,35 +256,77 @@ class RFBucket(Printing):
 
     # FORCE FIELDS AND POTENTIALS OF MULTI-HARMONIC ACCELERATING BUCKET
     # =================================================================
-    def total_force(self, V, h, dphi, dp=0, ignore_add_forces=False):
+    def rf_force(self, V, h, dphi, dp):
         def f(z):
             factor = np.abs(self.charge)/self.circumference
-            capture_field = reduce(
+            focusing_field = reduce(
                 lambda x, y: x+y, [V[i]*np.sin(h[i]*z/self.R + dphi[i])
                                    for i in xrange(len(V))])
-            accelerating_field = -dp*self.beta*c/self.circumference
-
-            return factor * capture_field * accelerating_field
+            accelerating_field = -(dp*self.beta*c/self.circumference)
+            return factor * focusing_field * accelerating_field
         return f
 
-    def voltage(self, V, h, dphi, dp=0, ef=None):
+    def total_force(self, z, ignore_add_forces=False):
+        '''Return the total electric force field including
+        - the acceleration offset and
+        - the additional electric force fields (provided via
+        self.add_nonRF_influences),
+        evaluated at position z in units of Coul*Volt/metre.
+        '''
+        f = (self.rf_force(self.voltage_list,
+                           self.harmonic_list,
+                           self.phi_offset_list,
+                           self.p_increment)(z) +
+             sum(f(z) for f in self._add_forces
+                 if not ignore_add_forces))
+        return f
+
+    def rf_potential(self, V, h, dphi, dp):
         def vf(z):
             factor = np.abs(self.charge)/self.circumference
-            capture_potential = reduce(
+            focusing_potential = reduce(
                 lambda x, y: x+y, [self.R/h[i] *
                                    V[i]*np.cos(h[i]*z/self.R + dphi[i])
                                    for i in xrange(len(V))])
-            return factor * capture_potential
+            return factor * focusing_potential
 
-        if ef:
-            zmax = zufp_separatrix(ef)
-        else:
-            zmax = 0
+        zmax = self.z_ufp_separatrix
 
         def f(z):
             return (vf(z) - vf(zmax) +
-                    dp*self.beta*c/self.circumference * (z - zmax))
+                    (dp*self.beta*c/self.circumference * (z - zmax)))
         return f
+
+    def total_potential(self, z, ignore_add_potentials=False,
+                        make_convex=False):
+        '''Return the total electric potential energy including
+        - the linear acceleration slope and
+        - the additional electric potential energies (provided via
+        self.add_nonRF_influences),
+        evaluated at position z in units of Coul*Volt.
+
+        Note:
+        Adds a potential energy offset: this relocates the extremum
+        (defining the unstable fix point UFP of the bucket)
+        to obtain zero potential energy at the UFP.
+        Thus the Hamiltonian value of the separatrix is calibrated
+        to zero.
+
+        Arguments:
+        - make_convex: multiplies by sign(eta) for plotting etc.
+        To see a literal 'bucket structure' in the sense of a
+        local minimum in the Hamiltonian topology, set make_convex=True
+        in order to return sign(eta)*hamiltonian(z, dp).
+        '''
+        v = (self.rf_potential(self.voltage_list,
+                               self.harmonic_list,
+                               self.phi_offset_list,
+                               self.p_increment)(z) +
+             sum(pot(z) for pot in self._add_potentials
+                 if not ignore_add_potentials))
+        if make_convex:
+            v *= np.sign(self.eta0)
+        return v
 
     def make_singleharmonic_force(self, V, h, dphi):
         '''Return the electric force field of a single harmonic
@@ -381,8 +424,8 @@ class RFBucket(Printing):
         pot_tot = self.make_total_potential(
             ignore_add_potentials=ignore_add_potentials)
         z_boundary = self.z_ufp_separatrix
-        v_acc = (pot_tot(z) - pot_tot(z_boundary)
-                 + self.deltaE / self.circumference * (z - z_boundary))
+        v_acc = (pot_tot(z) - pot_tot(z_boundary) +
+                 self.deltaE / self.circumference * (z - z_boundary))
         if make_convex:
             v_acc *= np.sign(self.eta0)
         return v_acc
@@ -433,7 +476,7 @@ class RFBucket(Printing):
         z0odd = z0[::2]
         z0even = z0[1::2]
 
-        if len(z0) == 1: # exactly zero bucket area
+        if len(z0) == 1:  # exactly zero bucket area
             return z0, z0
 
         if self.eta0 * self.p_increment > 0:
@@ -458,33 +501,10 @@ class RFBucket(Printing):
         in order to return sign(eta)*hamiltonian(z, dp).
         '''
         h = (-0.5 * self.eta0 * self.beta * c * dp**2 +
-            self.acc_potential(z) / self.p0)
+             self.acc_potential(z) / self.p0)
         if make_convex:
             h *= np.sign(self.eta0)
         return h
-
-    def H0_from_sigma(self, z0, make_convex=True):
-        """Pure estimate value of H_0 starting from a bi-Gaussian bunch
-        in a linear "RF bucket". Intended for use by iterative matching
-        algorithms in the generators module.
-        """
-        # to be replaced with something more flexible (add_forces etc.)
-        h0 = self.beta*c * (z0/self.beta_z)**2
-        if make_convex:
-            h0 *= np.abs(self.eta0)
-        return h0
-
-    def H0_from_epsn(self, epsn, make_convex=True):
-        """Pure estimate value of H_0 starting from a bi-Gaussian bunch
-        in a linear "RF bucket". Intended for use by iterative matching
-        algorithms in the generators module.
-        """
-        # to be replaced with something more flexible (add_forces etc.)
-        z0 = np.sqrt(epsn/(4.*np.pi) * self.beta_z * np.abs(self.charge)/self.p0)
-        h0 = self.beta*c * (z0/self.beta_z)**2
-        if make_convex:
-            h0 *= np.abs(self.eta0)
-        return h0
 
     def equihamiltonian(self, zcut):
         '''Return a function dp_at that encodes the equi-Hamiltonian
@@ -496,7 +516,7 @@ class RFBucket(Printing):
         def dp_at(z):
             hcut = self.hamiltonian(zcut, 0)
             r = np.abs(2./(self.eta0*self.beta*c) *
-                 (-hcut - self.acc_potential(z)/self.p0))
+                       (self.acc_potential(z)/self.p0 - hcut))
             return np.sqrt(r.clip(min=0))
         return dp_at
 
@@ -544,8 +564,10 @@ class RFBucket(Printing):
         """
         return partial(self.is_in_separatrix, margin=margin)
 
-    def bucket_area(self, z=None):
+    def emittance_sp(self, z=None):
+        """The single particle emittance computed along a given equihamiltonian line
 
+        """
         if z is not None:
             zl = -z
             zr = +z
@@ -555,6 +577,49 @@ class RFBucket(Printing):
             zr = self.zright
             f = self.separatrix
 
-        Q, error = dblquad(lambda y, x: 1, z, zr, lambda x: 0, f)
+        Q, error = dblquad(lambda y, x: 1, zl, zr,
+                           lambda x: 0, f)
 
         return Q * 2*self.p0/np.abs(self.charge)
+
+    def bunch_lengt_sp(self, epsn_z, verbose=False):
+        """The corresponding rms bunch length computed form the single particle
+        emittance
+
+        """
+        def emittance_from_zcut(zcut):
+            emittance = self.emittance_sp(zcut)
+            if np.isnan(emittance): raise ValueError
+
+            if verbose:
+                self.prints('... distance to target emittance: ' +
+                            '{:.4e}'.format(emittance-epsn_z))
+            return emittance - epsn_z
+
+        sigma = newton(emittance_from_zcut, 1.)/2.
+
+        return sigma
+
+    def H0_from_sigma(self, z0, make_convex=True):
+        """Pure estimate value of H_0 starting from a bi-Gaussian bunch
+        in a linear "RF bucket". Intended for use by iterative matching
+        algorithms in the generators module.
+        """
+        # to be replaced with something more flexible (add_forces etc.)
+        h0 = self.beta*c * (z0/self.beta_z)**2
+        if make_convex:
+            h0 *= np.abs(self.eta0)
+        return h0
+
+    def H0_from_epsn(self, epsn, make_convex=True):
+        """Pure estimate value of H_0 starting from a bi-Gaussian bunch
+        in a linear "RF bucket". Intended for use by iterative matching
+        algorithms in the generators module.
+        """
+        # to be replaced with something more flexible (add_forces etc.)
+        z0 = np.sqrt(epsn/(4.*np.pi) * self.beta_z *
+                     np.abs(self.charge)/self.p0)
+        h0 = self.beta*c * (z0/self.beta_z)**2
+        if make_convex:
+            h0 *= np.abs(self.eta0)
+        return h0
