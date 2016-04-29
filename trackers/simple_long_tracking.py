@@ -18,7 +18,8 @@ from rf_bucket import RFBucket, attach_clean_buckets
 from types import MethodType
 import weakref
 
-from ..general import pmath as pm
+# from ..general import pmath as pm
+pm = np
 
 # @TODO
 # think about flexible design to separate numerical methods
