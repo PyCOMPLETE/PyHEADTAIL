@@ -544,8 +544,17 @@ class RFBucket(Printing):
         """
         return partial(self.is_in_separatrix, margin=margin)
 
-    def bucket_area(self):
-        Q, error = dblquad(lambda y, x: 1, self.zleft, self.zright, lambda x: 0,
-                           self.separatrix)
+    def bucket_area(self, z=None):
+
+        if z is not None:
+            zl = -z
+            zr = +z
+            f = self.equihamiltonian(z)
+        else:
+            zl = self.zleft
+            zr = self.zright
+            f = self.separatrix
+
+        Q, error = dblquad(lambda y, x: 1, z, zr, lambda x: 0, f)
 
         return Q * 2*self.p0/np.abs(self.charge)
