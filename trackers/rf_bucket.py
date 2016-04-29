@@ -257,6 +257,36 @@ class RFBucket(Printing):
 
     # FORCE FIELDS AND POTENTIALS OF MULTI-HARMONIC ACCELERATING BUCKET
     # =================================================================
+    def total_force(self, V, h, dphi, dp=0, ignore_add_forces=False):
+        def f(z):
+            factor = np.abs(self.charge)/self.circumference
+            capture_field = reduce(
+                lambda x, y: x+y, [V[i]*np.sin(h[i]*z/self.R + dphi[i])
+                                   for i in xrange(len(V))])
+            accelerating_field = -dp*self.beta*c/self.circumference
+
+            return factor * capture_field * accelerating_field
+        return f
+
+    def voltage(self, V, h, dphi, dp=0, ef=None):
+        def vf(z):
+            factor = np.abs(self.charge)/self.circumference
+            capture_potential = reduce(
+                lambda x, y: x+y, [self.R/h[i] *
+                                   V[i]*np.cos(h[i]*z/self.R + dphi[i])
+                                   for i in xrange(len(V))])
+            return factor * capture_potential
+
+        if ef:
+            zmax = zufp_separatrix(ef)
+        else:
+            zmax = 0
+
+        def f(z):
+            return (vf(z) - vf(zmax) +
+                    dp*self.beta*c/self.circumference * (z - zmax))
+        return f
+
     def make_singleharmonic_force(self, V, h, dphi):
         '''Return the electric force field of a single harmonic
         RF element as a function of z in units of Coul*Volt/metre.
