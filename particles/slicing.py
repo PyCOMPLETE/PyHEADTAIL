@@ -6,30 +6,33 @@
           Adrian Oeftiger,
           Michael Schenk
 @date:    01/10/2014
+@copyright CERN
 '''
 from __future__ import division
 
-import numpy as np
-import scipy.ndimage as ndimage
-from scipy.constants import c, e
-from random import sample
-
 from abc import ABCMeta, abstractmethod
+
+import numpy as np
+
+from scipy import ndimage
+from scipy import interpolate
+from scipy.constants import c, e
+
+from random import sample
 from functools import partial, wraps
 
-from ..cobra_functions import stats as cp
 # from ..general.decorators import memoize
+from ..cobra_functions import stats as cp
 from . import Printing
 
-from scipy import interpolate
 
-
-floor = np.floor
-empty_like = np.empty_like
 min_ = np.min
 max_ = np.max
-arange = np.arange
 diff = np.diff
+floor = np.floor
+arange = np.arange
+empty_like = np.empty_like
+
 def make_int32(array):
     # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
@@ -61,25 +64,29 @@ def clean_slices(long_track_method):
 
 
 class SliceSet(Printing):
-    '''Defines a set of longitudinal slices. It's a blueprint or photo
-    of a beam's longitudinal profile. It knows where the slices are
-    located, how many and which particles there are in which slice. All
-    its attributes refer to the state of the beam at creation time of
-    the SliceSet. Hence, it must never be updated with new
-    distributions, rather, a new SliceSet needs to be created.
+    '''Defines a set of longitudinal slices. It's a blueprint or photo of a beam's
+    longitudinal profile. It knows where the slices are located, how many and
+    which particles there are in which slice. All its attributes refer to the
+    state of the beam at creation time of the SliceSet. Hence, it must never be
+    updated with new distributions, rather, a new SliceSet needs to be created.
     '''
 
     def __init__(self, z_bins, slice_index_of_particle, mode,
                  n_macroparticles_per_slice=None,
                  beam_parameters={}):
-        '''Is intended to be created by the Slicer factory method.
-        A SliceSet is given a set of intervals defining the slicing
-        region and the histogram over the thereby defined slices.
+        '''Is intended to be created by the Slicer factory method.  A SliceSet is given
+        a set of intervals defining the slicing region and the histogram over
+        the thereby defined slices.
 
-        beam_parameters is a dictionary containing certain beam
-        parameters to be recorded with this SliceSet.
-        (e.g. beta being saved via beam_parameters['beta'] = beam.beta)
+        beam_parameters is a dictionary containing certain beam parameters to be
+        recorded with this SliceSet.  (e.g. beta being saved via
+        beam_parameters['beta'] = beam.beta)
         '''
+
+        '''The age of a slice set since its creation - this is used by multi-turn wakes
+        which actually store slice sets and keep them alive for several turns.
+        '''
+        self.age = 0
 
         '''Array of z values of each bin, goes from the left bin edge
         of the first bin to the right bin edge of the last bin.
@@ -174,7 +181,7 @@ class SliceSet(Printing):
                 (self.slice_index_of_particle < self.n_slices)
             )[0])
         return particles_within_cuts_
-    
+
     @property
     # @memoize
     def particles_outside_cuts(self):
