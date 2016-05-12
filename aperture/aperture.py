@@ -87,9 +87,7 @@ class Aperture(Element):
         # descending sort to have alive particles (the 1 entries) in the front
         perm = pm.argsort(-alive)
 
-        for u in beam.get_coords_n_momenta_dict().itervalues():
-            u[:] = pm.take(u, perm)
-        beam.id = pm.take(beam.id, perm)
+        beam.reorder(perm)
 
         n_alive = make_int32(pm.sum(alive))
         return n_alive
