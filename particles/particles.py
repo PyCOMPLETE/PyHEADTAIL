@@ -78,6 +78,9 @@ class Particles(Printing):
     @property
     def charge_per_mp(self):
         return self.particlenumber_per_mp * self.charge
+    @charge_per_mp.setter
+    def charge_per_mp(self, value):
+        self.particlenumber_per_mp = value / self.charge
 
     @property
     def gamma(self):
