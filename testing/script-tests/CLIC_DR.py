@@ -23,14 +23,14 @@ class CLIC_DR(BasicSynchrotron):
 			dphi_RF		= 0.
                         Q_s             = None
 		elif machine_configuration=='3TeV_linear':
-			Q_s		= 0.0059	
+			Q_s		  = 0.0059	
 			longitudinal_mode = 'linear'				
-			p0 			= 2.86e9 * e /c
-			p_increment = 0.
-			accQ_x		= 48.35
-			accQ_y		= 10.4
-			V_RF		= 5.1e6
-			dphi_RF		= 0.
+			p0 		  = 2.86e9 * e /c
+			p_increment       = 0.
+			accQ_x		  = 48.35
+			accQ_y		  = 10.4
+			V_RF		  = 5.1e6
+			dphi_RF		  = 0.
 		else:
 			raise ValueError('machine_configuration not recognized!')
 			

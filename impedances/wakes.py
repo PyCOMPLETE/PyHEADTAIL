@@ -197,6 +197,8 @@ class WakeTable(WakeSource):
         The parameter 'n_turns_wake' defines how many turns are
         considered for the multiturn wakes. It is 1 by default, i.e.
         multiturn wakes are off. """
+        super(WakeTable, self).__init__(*args, **kwargs)
+
         self.wake_table = {}
 
         wake_data = np.loadtxt(wake_file)
@@ -386,6 +388,8 @@ class Resonator(WakeSource):
         The parameter 'n_turns_wake' defines how many turns are
         considered for the multiturn wakes. It is 1 by default, i.e.
         multiturn wakes are off. """
+        super(Resonator, self).__init__(*args, **kwargs)
+
         self.R_shunt = R_shunt
         self.frequency = frequency
         self.Q = Q
@@ -467,7 +471,6 @@ class Resonator(WakeSource):
         omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
 
         def wake(dt, *args, **kwargs):
-            dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (-(np.sign(dt) - 1) * self.R_shunt * alpha *
                      np.exp(alpha * dt) * (cos(omegabar * dt) +
@@ -496,7 +499,7 @@ class CircularResonator(Resonator):
 
         super(CircularResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake)
+            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake, *args, **kwargs)
 
 
 class ParallelPlatesResonator(Resonator):
@@ -512,7 +515,7 @@ class ParallelPlatesResonator(Resonator):
 
         super(ParallelPlatesResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
-            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake)
+            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake, *args, **kwargs)
 
 
 class ResistiveWall(WakeSource):
@@ -528,6 +531,8 @@ class ResistiveWall(WakeSource):
         The parameter 'n_turns_wake' defines how many turns are
         considered for the multiturn wakes. It is 1 by default, i.e.
         multiturn wakes are off. """
+        super(ResistiveWall, self).__init__(*args, **kwargs)
+
         self.pipe_radius = np.array([pipe_radius]).flatten()
         self.resistive_wall_length = resistive_wall_length
         self.conductivity = conductivity
@@ -576,15 +581,13 @@ class ResistiveWall(WakeSource):
     def function_transverse(self, Yokoya_factor):
         """ Define the wake function (transverse) of a resistive wall
         with the given parameters. """
-        Z0 = physical_constants['characteristic impedance of vacuum'][0]
-        lambda_s = 1. / (Z0 * self.conductivity)
         mu_r = 1
 
         def wake(dt, *args, **kwargs):
             y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
-                 kwargs['beta'] * c * Z0 * self.resistive_wall_length / np.pi /
-                 self.pipe_radius**3 * np.sqrt(-lambda_s * mu_r / np.pi /
-                 dt.clip(max=-abs(self.dt_min))))
+                 np.sqrt(kwargs['beta']) * self.resistive_wall_length / np.pi /
+                 self.pipe_radius**3 * np.sqrt(-mu_r / np.pi /
+                 self.conductivity / dt.clip(max=-abs(self.dt_min))))
             return y
         return wake
 
@@ -601,7 +604,8 @@ class CircularResistiveWall(ResistiveWall):
 
         super(CircularResistiveWall, self).__init__(
             pipe_radius, resistive_wall_length, conductivity, dt_min,
-            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake)
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake,
+            *args, **kwargs)
 
 
 class ParallelPlatesResistiveWall(ResistiveWall):
@@ -616,4 +620,5 @@ class ParallelPlatesResistiveWall(ResistiveWall):
 
         super(ParallelPlatesResistiveWall, self).__init__(
             pipe_radius, resistive_wall_length, conductivity, dt_min,
-            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake)
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake,
+            *args, **kwargs)

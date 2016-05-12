@@ -61,6 +61,11 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
                     phase space
     Returns: Matcher(closure) taking two parameters: coords and direction
     '''
+#    if dispersion and alpha:
+#        raise NotImplementedError('Transverse phase space matching: for '
+#                                  'alpha != 0 we need to match including the '
+#                                  'D\' (dispersion derivative). This is '
+#                                  'currently not implemented.')
     sqrt = np.sqrt
     # build the M matrix: only depends on twiss parameters for the
     # special case of alpha0=0, beta0=1 and phi = 0 (=2pi)
@@ -86,9 +91,9 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
         momentum_coords = getattr(beam, direction[1])
         space_coords =    (M[0, 0]*space_coords + # copy if not using +=, *=..
                            M[0, 1]*momentum_coords)
-        momentum_coords = (M[1 ,0]*space_coords_copy +
+        momentum_coords = (M[1, 0]*space_coords_copy +
                            M[1, 1]*momentum_coords)
-        # add dispersion effects, raise exception of coords['dp'] inexistent
+        # add dispersion effects, raise exception if coords['dp'] inexistent
         if dispersion:
             try:
                 space_coords += dispersion * getattr(beam, 'dp')
@@ -131,7 +136,8 @@ def longitudinal_linear_matcher(Qs, eta, C):
         internal_transverse_matcher(beam, direction=['z', 'dp'])
     return _longitudinal_linear_matcher
 
-def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None, margin=0):
+def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
+                           margin=0, *args, **kwargs):
     '''Return a distribution function which generates particles
     which are matched to the specified bucket and target emittance or std
     Specify only one of sigma_z, epsn_z
@@ -147,7 +153,8 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None, margin=0):
         ValueError: If neither or both of sigma_z, epsn_z are specified
     '''
     rf_bucket_matcher_impl = RFBucketMatcher(rfbucket, StationaryExponential,
-                                             sigma_z=sigma_z, epsn_z=epsn_z)
+                                             sigma_z=sigma_z, epsn_z=epsn_z,
+                                             *args, **kwargs)
     def _RF_bucket_dist(n_particles):
         z, dp, _, _ = rf_bucket_matcher_impl.generate(n_particles, margin)
         return [z, dp]
@@ -407,7 +414,7 @@ def kv4D(r_x, r_xp, r_y, r_yp):
 class RFBucketMatcher(Printing):
 
     def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None,
-                 verbose_regeneration=False):
+                 verbose_regeneration=False, *args, **kwargs):
 
         self.rfbucket = rfbucket
         hamiltonian = partial(rfbucket.hamiltonian, make_convex=True)
