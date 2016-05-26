@@ -259,9 +259,9 @@ class RFBucket(Printing):
     def rf_force(self, V, h, dphi, dp):
         def f(z):
             factor = np.abs(self.charge)/self.circumference
-            focusing_field = reduce(
-                lambda x, y: x+y, [V[i]*np.sin(h[i]*z/self.R + dphi[i])
-                                   for i in xrange(len(V))])
+            focusing_field = reduce(lambda x, y: x+y, [
+                V_i*np.sin(h_i*z/self.R + dphi_i)
+                for V_i, h_i, dphi_i in zip(V, h, dphi)])
             accelerating_field = -(dp*self.beta*c/self.circumference)
             return factor * focusing_field * accelerating_field
         return f
@@ -284,10 +284,9 @@ class RFBucket(Printing):
     def rf_potential(self, V, h, dphi, dp):
         def vf(z):
             factor = np.abs(self.charge)/self.circumference
-            focusing_potential = reduce(
-                lambda x, y: x+y, [self.R/h[i] *
-                                   V[i]*np.cos(h[i]*z/self.R + dphi[i])
-                                   for i in xrange(len(V))])
+            focusing_potential = reduce(lambda x, y: x+y, [
+                self.R/h[i] * V[i]*np.cos(h[i]*z/self.R + dphi[i])
+                for i in xrange(len(V))])
             return factor * focusing_potential
 
         zmax = self.z_ufp_separatrix
@@ -552,8 +551,8 @@ class RFBucket(Printing):
         toward the extremal Hamiltonian value at self.z_sfp .)
         """
         within_interval = np.logical_and(self.zleft < z, z < self.zright)
-        within_separatrix = (self.hamiltonian(z, dp, make_convex=True)
-                             > margin * self.h_sfp(make_convex=True))
+        within_separatrix = (self.hamiltonian(z, dp, make_convex=True) >
+                             margin * self.h_sfp(make_convex=True))
         return np.logical_and(within_interval, within_separatrix)
 
     def make_is_accepted(self, margin=0):
@@ -564,7 +563,7 @@ class RFBucket(Printing):
         """
         return partial(self.is_in_separatrix, margin=margin)
 
-    def emittance_sp(self, z=None):
+    def emittance_single_particle(self, z=None):
         """The single particle emittance computed along a given equihamiltonian line
 
         """
@@ -582,14 +581,15 @@ class RFBucket(Printing):
 
         return Q * 2*self.p0/np.abs(self.charge)
 
-    def bunch_lengt_sp(self, epsn_z, verbose=False):
+    def bunchlength_single_particle(self, epsn_z, verbose=False):
         """The corresponding rms bunch length computed form the single particle
         emittance
 
         """
         def emittance_from_zcut(zcut):
-            emittance = self.emittance_sp(zcut)
-            if np.isnan(emittance): raise ValueError
+            emittance = self.emittance_single_particle(zcut)
+            if np.isnan(emittance):
+                raise ValueError
 
             if verbose:
                 self.prints('... distance to target emittance: ' +
