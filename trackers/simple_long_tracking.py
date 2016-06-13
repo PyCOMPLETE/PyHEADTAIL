@@ -18,8 +18,8 @@ from rf_bucket import RFBucket, attach_clean_buckets
 from types import MethodType
 import weakref
 
-sin = np.sin
-cos = np.cos
+#from ..general import pmath as pm
+import numpy as pm # as soon as pmath is in develop, replace this line with above line.
 
 # @TODO
 # think about flexible design to separate numerical methods
@@ -202,7 +202,7 @@ class Kick(LongitudinalMap):
                + self.phi_offset + self._phi_lock)
 
         delta_p = beam.dp * beam.p0
-        delta_p += amplitude * sin(phi) - self.p_increment
+        delta_p += amplitude * pm.sin(phi) - self.p_increment
         beam.p0 += self.p_increment
         beam.dp = delta_p / beam.p0
 
@@ -349,10 +349,10 @@ class RFSystems(LongitudinalOneTurnMap):
           map. See the docstring of the Kick class for a more detailed
           description.
         """
-        
+
         self.charge = charge
         self.mass = mass
-        
+
         super(RFSystems, self).__init__(
 			alpha_array, circumference, *args, **kwargs)
 
@@ -494,13 +494,13 @@ class RFSystems(LongitudinalOneTurnMap):
         (gamma, mass, charge) explicitely to return a bucket
         defined by these.
         '''
-        
+
         if charge is None:
             charge = self.charge
-            
+
         if mass is None:
             mass = self.mass
-        
+
         try:
             bunch_signature = (bunch.gamma, bunch.mass, bunch.charge)
         except AttributeError:
@@ -701,6 +701,7 @@ class LinearMap(LongitudinalOneTurnMap):
         '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
+        assert (np.isscalar(Qs)), "Qs has to be a scalar"
         self.Qs = Qs
         self.D_x = D_x
         self.D_y = D_y
@@ -717,8 +718,8 @@ class LinearMap(LongitudinalOneTurnMap):
         omega_s = self.Qs * omega_0
 
         dQs = 2 * np.pi * self.Qs
-        cosdQs = cos(dQs)
-        sindQs = sin(dQs)
+        cosdQs = np.cos(dQs) # use np because dQs is always a scalar
+        sindQs = np.sin(dQs) # use np because dQs is always a scalar
 
         z0 = beam.z
         dp0 = beam.dp
