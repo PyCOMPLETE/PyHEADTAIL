@@ -9,7 +9,8 @@ from . import Element
 class Transverse_Efield_map(Element):
     def __init__(self, xg, yg, Ex, Ey, L_interaction, slicer,
         	flag_clean_slices=False, wrt_slice_centroid=False,
-        	x_beam_offset=0., y_beam_offset=0., *args, **kwargs):
+        	x_beam_offset=0., y_beam_offset=0., verbose=False,
+            *args, **kwargs):
 
         self.slicer = slicer
         self.L_interaction = L_interaction
@@ -18,7 +19,7 @@ class Transverse_Efield_map(Element):
 
         self.Ex = Ex
         self.Ey = Ey
-        self.pic = PyPIC_Scatter_Gather(xg=xg, yg=yg)
+        self.pic = PyPIC_Scatter_Gather(xg=xg, yg=yg, verbose=verbose)
 
         self.x_beam_offset = x_beam_offset
         self.y_beam_offset = y_beam_offset
