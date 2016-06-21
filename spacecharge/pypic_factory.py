@@ -39,6 +39,12 @@ else:
         )
     mathlib = np
 
+def ensure_cpu(array):
+    try:
+        return array.get()
+    except:
+        return array
+
 def create_pypic(slices, context=None, **mesh_args):
     '''Factory method for PyPIC.pypic.PyPIC(_GPU) instances.
 
@@ -95,7 +101,8 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size,
         raise ValueError('All arguments for the mesh need to have as '
                          'many entries as the mesh should have dimensions!')
     mesh_class = getattr(meshing, 'RectMesh{dim}D'.format(dim=dim))
-    return mesh_class(mesh_origin, mesh_distances, mesh_size,
+    return mesh_class(map(ensure_cpu, mesh_origin),
+                      map(ensure_cpu, mesh_distances), mesh_size,
                       mathlib=mathlib)
 
 
