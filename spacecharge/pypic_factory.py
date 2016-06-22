@@ -15,14 +15,12 @@ import numpy as np
 from PyPIC import pypic, meshing
 from PyPIC.poisson_solver import FFT_solver
 
-i_gpu = True
-
-if i_gpu:
+try:
     pypic_algorithm_class = pypic.PyPIC_GPU
     solver_class = FFT_solver.GPUFFTPoissonSolver
     from pycuda import cumath as mathlib
-
-else:
+except ImportError:
+    print ('PyHEADTAIL -- PyPIC factory: GPU version not available.')
     pypic_algorithm_class = pypic.PyPIC
     def solver_class(mesh, context=None):
         if not np.isclose(mesh.dx, mesh.dy):
