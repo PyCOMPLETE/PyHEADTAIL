@@ -1,10 +1,13 @@
+from __future__ import division
+
+from . import Element
+
 import numpy as np
 from scipy.constants import c
 
-class TransverseSpaceCharge(object):
-    def __init__(self, L_interaction, slicer, pyPICsolver, flag_clean_slices = False):
-
-
+class TransverseSpaceCharge(Element):
+    def __init__(self, L_interaction, slicer, pyPICsolver,
+                 flag_clean_slices=False, *args, **kwargs):
         self.slicer = slicer
         self.L_interaction = L_interaction
         self.pyPICsolver = pyPICsolver
@@ -20,10 +23,7 @@ class TransverseSpaceCharge(object):
     def get_beam_y(self, beam):
         return beam.y
 
-#	@profile
     def track(self, beam):
-
-
         if self.save_distributions_last_track:
             self.rho_last_track = []
 
@@ -33,44 +33,42 @@ class TransverseSpaceCharge(object):
             self.Ey_last_track = []
 
         if hasattr(beam.particlenumber_per_mp, '__iter__'):
-            raise ValueError('spacecharge module assumes same size for all beam MPs')
+            raise ValueError('spacecharge module assumes same number of charges'
+                             ' for all beam macroparticles!')
 
         if self.flag_clean_slices:
             beam.clean_slices()
 
         slices = beam.get_slices(self.slicer)
 
-        for i in xrange(slices.n_slices-1, -1, -1):
+        for sid in xrange(slices.n_slices-1, -1, -1):
 
             # select particles in the slice
-            ix = slices.particle_indices_of_slice(i)
+            pid = slices.particle_indices_of_slice(sid)
 
-            # slice size and time step
-            dz = (slices.z_bins[i + 1] - slices.z_bins[i])
-            dt = dz / (beam.beta * c)
+            # slice size
+            dz = slices.slice_width[sid]
 
-            # beam field
-            x_mp = self.get_beam_x(beam)[ix]
-            y_mp = self.get_beam_y(beam)[ix]
-            n_mp = x_mp*0.+beam.particlenumber_per_mp/dz#they have to become cylinders
-            N_mp = slices.n_macroparticles_per_slice[i]
+            x = self.get_beam_x(beam)[pid]
+            y = self.get_beam_y(beam)[pid]
 
-            #compute beam field (it assumes electrons!)
-            self.pyPICsolver.scatter_and_solve(x_mp, y_mp, n_mp, beam.charge)
+            # the particles have to become cylinders:
+            n_mp = np.zeros_like(x) + beam.particlenumber_per_mp / dz
 
-            #gather to beam particles
-            Ex_n_beam, Ey_n_beam = self.pyPICsolver.gather(x_mp, y_mp)
+            # compute beam field (it assumes electrons!)
+            self.pyPICsolver.scatter_and_solve(x, y, n_mp, beam.charge)
 
+            # interpolate beam field to particles
+            Ex_n_beam, Ey_n_beam = self.pyPICsolver.gather(x, y)
 
             # go to actual beam particles and add relativistic (B field) factor
-            Ex_n_beam = Ex_n_beam/beam.gamma/beam.gamma
-            Ey_n_beam = Ey_n_beam/beam.gamma/beam.gamma
+            Ex_n_beam = Ex_n_beam / beam.gamma / beam.gamma
+            Ey_n_beam = Ey_n_beam / beam.gamma / beam.gamma
 
-
-            ## kick beam particles
-            fact_kick = beam.charge/(beam.mass*beam.beta*beam.beta*beam.gamma*c*c)*self.L_interaction
-            beam.xp[ix]+=fact_kick*Ex_n_beam
-            beam.yp[ix]+=fact_kick*Ex_n_beam
+            # kick beam particles
+            fact_kick = beam.charge / (beam.p0*beam.beta*c) * self.L_interaction
+            beam.xp[pid] += fact_kick * Ex_n_beam
+            beam.yp[pid] += fact_kick * Ey_n_beam
 
             if self.save_distributions_last_track:
                 self.rho_last_track.append(self.pyPICsolver.rho.copy())
@@ -78,9 +76,10 @@ class TransverseSpaceCharge(object):
 
             if self.save_potential_and_field:
                 self.phi_last_track.append(self.pyPICsolver.phi.copy())
-                self.Ex_last_track.append(self.pyPICsolver.efx.copy()/beam.gamma/beam.gamma)
-                self.Ey_last_track.append(self.pyPICsolver.efy.copy()/beam.gamma/beam.gamma)
-
+                self.Ex_last_track.append(
+                    self.pyPICsolver.efx.copy()/beam.gamma/beam.gamma)
+                self.Ey_last_track.append(
+                    self.pyPICsolver.efy.copy()/beam.gamma/beam.gamma)
 
         if self.save_distributions_last_track:
             self.rho_last_track = np.array(self.rho_last_track[::-1])
