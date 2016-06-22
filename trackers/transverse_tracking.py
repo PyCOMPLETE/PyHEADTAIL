@@ -332,15 +332,16 @@ class TransverseMap(Printing):
             self.segment_maps.append(transverse_segment_map)
 
     def get_injection_optics(self):
-        """ Return a tuple with the transverse TWISS parameters
-        (alpha_x, beta_x, alpha_y, beta_y) from the beginning of the
-        first segment (injection point). """
+        """Return a dict with the transverse TWISS parameters
+        alpha_x, beta_x, D_x, alpha_y, beta_y, D_y from the 
+        beginning of the first segment (injection point).
+        """
         return {
-            'alpha_x': self.alpha_x[0], 
-            'beta_x': self.beta_x[0], 
+            'alpha_x': self.alpha_x[0],
+            'beta_x': self.beta_x[0],
             'D_x': self.D_x[0],
-            'alpha_y': self.alpha_y[0], 
-            'beta_y': self.beta_y[0], 
+            'alpha_y': self.alpha_y[0],
+            'beta_y': self.beta_y[0],
             'D_y': self.D_y[0]}
 
     def __len__(self):

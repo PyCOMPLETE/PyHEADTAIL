@@ -20,9 +20,6 @@ import weakref
 
 from ..general import pmath as pm
 
-#sin = np.sin
-#cos = np.cos
-
 # @TODO
 # think about flexible design to separate numerical methods
 # and physical parameters (as before for the libintegrators.py)
@@ -351,10 +348,10 @@ class RFSystems(LongitudinalOneTurnMap):
           map. See the docstring of the Kick class for a more detailed
           description.
         """
-        
+
         self.charge = charge
         self.mass = mass
-        
+
         super(RFSystems, self).__init__(
 			alpha_array, circumference, *args, **kwargs)
 
@@ -496,13 +493,13 @@ class RFSystems(LongitudinalOneTurnMap):
         (gamma, mass, charge) explicitely to return a bucket
         defined by these.
         '''
-        
+
         if charge is None:
             charge = self.charge
-            
+
         if mass is None:
             mass = self.mass
-        
+
         try:
             bunch_signature = (bunch.gamma, bunch.mass, bunch.charge)
         except AttributeError:
@@ -703,7 +700,7 @@ class LinearMap(LongitudinalOneTurnMap):
         '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
-        assert (np.isscalar(Qs)), "Qs has to be a scalar"
+        assert (len(np.atleast_1d(Qs)) == 1), "Qs can only have one entry!"
         self.Qs = Qs
         self.D_x = D_x
         self.D_y = D_y

@@ -111,7 +111,7 @@ class Particles(Printing):
         return self._p0
     @p0.setter
     def p0(self, value):
-        self.gamma = value / (self.mass * self.beta * c)
+        self.gamma = np.sqrt(1 + (value / (self.mass * c))**2)
 
     @property
     def z_beamframe(self):
