@@ -47,7 +47,7 @@ class TransverseSpaceCharge(Element):
             pid = slices.particle_indices_of_slice(sid)
 
             # slice size
-            dz = slices.slice_width[sid]
+            dz = slices.slice_widths[sid]
 
             x = self.get_beam_x(beam)[pid]
             y = self.get_beam_y(beam)[pid]
