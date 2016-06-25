@@ -23,6 +23,33 @@ class LongSpaceCharge(Element):
     cf. the original HEADTAIL version.
     '''
 
+    '''Geometry factor for long bunched bunches.
+    Involved approximations:
+    - transversely round beam
+    - finite wall resistivity (perfectly conducting boundary)
+    - geometry factor averaged along z
+    (considering equivalent linear longitudinal electric field)
+
+    use directSC = 0.67 for further assumptions:
+    - ellipsoidally bunched beam of uniform density
+    - bunch length > 3/2 pipe radius
+    - transversely averaged contribution
+
+    use directSC = 0.5 for further assumptions:
+    - continuous beam
+    - low frequency disturbance (displacement currents neglected)
+    - emittance dominated beam
+    - transversely averaged contribution
+
+    use directSC = 1.0 for further assumptions:
+    - same as directSC = 0.5 only transversely maximum contribution
+    directly on z-axis
+
+    cf. Martin Reiser's discussion in
+    'Theory and Design of Charged Particle Beams'.
+    '''
+    directSC = 0.67
+
     def __init__(self, slicer, pipe_radius, length, n_slice_sigma=3,
                  *args, **kwargs):
         '''Arguments:
@@ -46,73 +73,51 @@ class LongSpaceCharge(Element):
         '''Add the longitudinal space charge contribution to the beam's
         dp kick.
         '''
-        slices = beam.get_slices(self.slicer,
-                                 statistics=['sigma_x', 'sigma_y'])
+        slices = beam.get_slices(self.slicer)
         lambda_prime = slices.lambda_prime_bins(sigma=self.n_slice_sigma)
-        slice_kicks = (self._prefactor(slices) * self._gfactor(slices) *
+        slice_kicks = (self._prefactor(slices) * self._gfactor(beam) *
                        lambda_prime) * (self.length / (beam.beta * c))
 
         kicks = slices.convert_to_particles(slice_kicks)
         beam.dp -= kicks
 
     @staticmethod
-    def _prefactor(sliceset):
-        return (sliceset.charge /
-                (4.*np.pi*epsilon_0 * sliceset.gamma**2 * sliceset.p0))
+    def _prefactor(beam):
+        return (beam.charge /
+                (4.*np.pi*epsilon_0 * beam.gamma**2 * beam.p0))
 
-    def _gfactor0(self, sliceset, directSC=0.67):
-        """Geometry factor for long bunched bunches.
-        Involved approximations:
-        - transversely round beam
-        - finite wall resistivity (perfectly conducting boundary)
-        - geometry factor averaged along z
-        (considering equivalent linear longitudinal electric field)
+    def _gfactor0(self, beam):
+        '''Geometry factor for circular vacuum pipe.'''
+        # transverse beam size: 
+        # (sigx+sigz)/2 * sqrt(2) <<< formula is for uniform distribution,
+        # corresponding Gaussian sigmae are sqrt(2) larger
+        r_beam = (beam.sigma_x() + beam.sigma_y()) / np.sqrt(8.)
+        return self.directSC + 2. * pm.log(self.pipe_radius / r_beam)
 
-        use directSC = 0.67 for further assumptions:
-        - ellipsoidally bunched beam of uniform density
-        - bunch length > 3/2 pipe radius
-        - transversely averaged contribution
-
-        use directSC = 0.5 for further assumptions:
-        - continuous beam
-        - low frequency disturbance (displacement currents neglected)
-        - emittance dominated beam
-        - transversely averaged contribution
-
-        use directSC = 1.0 for further assumptions:
-        - same as directSC = 0.5 only transversely maximum contribution
-        directly on z-axis
-
-        cf. Martin Reiser's discussion in
-        'Theory and Design of Charged Particle Beams'.
-        """
-        slice_radius = 0.5 * (sliceset.sigma_x + sliceset.sigma_y)
-        # the following line prevents ZeroDivisionError for pencil slices
-        slice_radius[slice_radius == 0] = pm.exp(-0.25) * self.pipe_radius
-        return directSC + 2. * pm.log(self.pipe_radius / slice_radius)
-
-    def make_force(self, sliceset):
+    def make_force(self, beam):
         '''Return the electric force field due to space charge
         of the given SliceSet instance as a function of z
         in units of Coul*Volt/metre.
         '''
-        gfac_spline = splrep(sliceset.z_centers, self._gfactor(sliceset), s=0)
+        sliceset = beam.get_slices(self.slicer)
+        gfac_spline = splrep(sliceset.z_centers, self._gfactor(beam), s=0)
         def force(z):
             gfac = splev(z, gfac_spline, ext=1)
-            return (self._prefactor(sliceset) * gfac *
-                    -sliceset.lambda_prime_z(z) * sliceset.p0)
+            return (self._prefactor(beam) * gfac *
+                    -sliceset.lambda_prime_z(z) * beam.p0)
         return force
 
-    def make_potential(self, sliceset):
+    def make_potential(self, beam):
         '''Return the electric potential energy due to space charge
         of the given SliceSet instance as a function of z
         in units of Coul*Volt.
         '''
-        gfac_spline = splrep(sliceset.z_centers, self._gfactor(sliceset), s=0)
+        sliceset = beam.get_slices(self.slicer)
+        gfac_spline = splrep(sliceset.z_centers, self._gfactor(beam), s=0)
         def potential(z):
             gfac = splev(z, gfac_spline, ext=1)
-            return (self._prefactor(sliceset) * gfac *
-                    sliceset.lambda_z(z) * sliceset.p0)
+            return (self._prefactor(beam) * gfac *
+                    sliceset.lambda_z(z) * beam.p0)
         return potential
 
 
@@ -166,7 +171,7 @@ class TransverseGaussianSpaceCharge(Element):
         '''
         slices = beam.get_slices(
             self.slicer, statistics=["mean_x", "mean_y", "sigma_x", "sigma_y"])
-        prefactor = (slices.charge * self.length /
+        prefactor = (beam.charge * self.length /
                      (beam.p0 * beam.betagamma * beam.gamma * c))
 
         # Nlambda_i is the line density [Coul/m] for the current slice
