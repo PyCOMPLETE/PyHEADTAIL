@@ -9,9 +9,8 @@ from __future__ import division
 import numpy as np
 
 from particles import Particles
-from ..trackers.rf_bucket import RFBucket
-
-from scipy.optimize import brentq, brenth, bisect, newton
+from scipy.optimize import brentq, newton
+# from ..trackers.rf_bucket import RFBucket
 
 from ..cobra_functions.pdf_integrators_2d import quad2d
 
