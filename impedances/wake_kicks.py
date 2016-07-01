@@ -208,7 +208,7 @@ class WakeKick(Printing):
             for k in xrange(n_turns):
                 if k > 0:
                     n_bunches_infront = len(bunches)
-                for j in xrange(n_bunches_infront): # run over all bunches and take into account wake in front - test!
+                for j in xrange(n_bunches_infront):  # run over all bunches and take into account wake in front - test!
                     source_times = times_list[k, j] + ages_list[k] +\
                                    dt_list[i] - dt_list[j]
                     source_moments = moments_list[k, j]
@@ -221,7 +221,7 @@ class WakeKick(Printing):
             accumulated_signal_list.append(
                 self._wake_factor(b) * accumulated_signal)
 
-        self.dxp = accumulated_signal_list # For test and debugging purpose only
+        self.dxp = accumulated_signal_list  # For test and debugging purpose only
         return accumulated_signal_list
 
 
