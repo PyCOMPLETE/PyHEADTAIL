@@ -606,26 +606,29 @@ class RFBucket(Printing):
 
         return sigma
 
-    def H0_from_sigma(self, z0, make_convex=True):
+    def guess_H0(self, var, from_variable='epsn', make_convex=True):
         """Pure estimate value of H_0 starting from a bi-Gaussian bunch
         in a linear "RF bucket". Intended for use by iterative matching
         algorithms in the generators module.
         """
-        # to be replaced with something more flexible (add_forces etc.)
-        h0 = self.beta*c * (z0/self.beta_z)**2
-        if make_convex:
-            h0 *= np.abs(self.eta0)
-        return h0
+        # If Qs = 0, get the fundamental harmonic
+        hV = sum([h * V for h, V in zip(self.h, self.V)])
+        if hV == 0:
+            ix = np.argmax(self.V)
+            hV = self.h[ix] * self.V[ix]
+        Qs = np.sqrt(np.abs(self.charge)*np.abs(self.eta0)*hV /
+                     (2*np.pi*self.p0*self.beta*c))
+        beta_z = np.abs(self.eta0 * self.R / Qs)
 
-    def H0_from_epsn(self, epsn, make_convex=True):
-        """Pure estimate value of H_0 starting from a bi-Gaussian bunch
-        in a linear "RF bucket". Intended for use by iterative matching
-        algorithms in the generators module.
-        """
         # to be replaced with something more flexible (add_forces etc.)
-        z0 = np.sqrt(epsn/(4.*np.pi) * self.beta_z *
-                     np.abs(self.charge)/self.p0)
-        h0 = self.beta*c * (z0/self.beta_z)**2
+        if from_variable == 'epsn':
+            epsn = var
+            z0 = np.sqrt(epsn/(4.*np.pi) * beta_z *
+                         np.abs(self.charge)/self.p0)  # gauss approx.
+        elif from_variable == 'sigma':
+            z0 = var
+
+        h0 = self.beta*c * (z0/beta_z)**2
         if make_convex:
             h0 *= np.abs(self.eta0)
         return h0

@@ -433,11 +433,11 @@ class RFBucketMatcher(Printing):
                              "distribution! (Don't provide both sigma_z " +
                              "and epsn_z!)")
 
-
     def psi_for_emittance_newton_method(self, epsn_z):
 
         # Maximum emittance
-        self._set_psi_sigma(self.rfbucket.circumference)
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            self.rfbucket.circumference, from_variable='sigma')
         epsn_max = self._compute_emittance(self.rfbucket, self.psi)
         if epsn_z > epsn_max:
             self.warns('Given RMS emittance does not fit into bucket. ' +
@@ -446,9 +446,9 @@ class RFBucketMatcher(Printing):
             epsn_z = epsn_max*0.99
         self.prints('*** Maximum RMS emittance ' + str(epsn_max) + 'eV s.')
 
-
         def get_zc_for_epsn_z(ec):
-            self._set_psi_epsn(ec)
+            self.psi_object.H0 = self.rfbucket.guess_H0(
+                ec, from_variable='epsn')
             emittance = self._compute_emittance(self.rfbucket, self.psi)
 
             self.prints('... distance to target emittance: ' +
@@ -464,18 +464,18 @@ class RFBucketMatcher(Printing):
                        'Instead trying classic Brent method...')
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
 
-        self._set_psi_epsn(ec_bar)
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            ec_bar, from_variable='epsn')
         emittance = self._compute_emittance(self.rfbucket, self.psi)
         self.prints('--> Emittance: ' + str(emittance))
         sigma = self._compute_sigma(self.rfbucket, self.psi)
         self.prints('--> Bunch length:' + str(sigma))
 
-
-    # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
 
         # Maximum bunch length
-        self._set_psi_sigma(self.rfbucket.circumference)
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            self.rfbucket.circumference, from_variable='sigma')
         sigma_max = self._compute_sigma(self.rfbucket, self.psi)
         if sigma > sigma_max:
             self.warns('Given RMS bunch length does not fit into bucket. ' +
@@ -484,10 +484,10 @@ class RFBucketMatcher(Printing):
             sigma = sigma_max*0.99
         self.prints('*** Maximum RMS bunch length ' + str(sigma_max) + 'm.')
 
-
         def get_zc_for_sigma(zc):
             '''Width for bunch length'''
-            self._set_psi_sigma(zc)
+            self.psi_object.H0 = self.rfbucket.guess_H0(
+                zc, from_variable='sigma')
             length = self._compute_sigma(self.rfbucket, self.psi)
 
             if np.isnan(length): raise ValueError
@@ -499,7 +499,8 @@ class RFBucketMatcher(Printing):
 
         zc_bar = newton(get_zc_for_sigma, sigma)
 
-        self._set_psi_sigma(zc_bar)
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            zc_bar, from_variable='sigma')
         sigma = self._compute_sigma(self.rfbucket, self.psi)
         self.prints('--> Bunch length: ' + str(sigma))
         emittance = self._compute_emittance(self.rfbucket, self.psi)
@@ -541,11 +542,11 @@ class RFBucketMatcher(Printing):
 
         if cutting_margin:
             mask_out_nocut = mask_out
+
             def mask_out(s, u, v):
                 return np.logical_or(
                     mask_out_nocut(s, u, v),
-                    ~self.rfbucket.is_in_separatrix(u, v, cutting_margin)
-                )
+                    ~self.rfbucket.is_in_separatrix(u, v, cutting_margin))
 
         # masked_out = ~(s<self.psi(u, v))
         masked_out = mask_out(s, u, v)
@@ -564,12 +565,6 @@ class RFBucketMatcher(Printing):
                             'Regenerating {0} macro-particles...'.format(n_gen))
 
         return u, v, self.psi, self.linedensity
-
-    def _set_psi_sigma(self, sigma):
-        self.psi_object.H0 = self.rfbucket.H0_from_sigma(sigma)
-
-    def _set_psi_epsn(self, epsn):
-        self.psi_object.H0 = self.rfbucket.H0_from_epsn(epsn)
 
     def _compute_sigma(self, rfbucket, psi):
 
@@ -609,6 +604,7 @@ class RFBucketMatcher(Printing):
         return (np.sqrt(var_x*var_y - mean_xy**2) *
                 4*np.pi*rfbucket.p0/rfbucket.charge)
 
+
 class StationaryExponential(object):
 
     def __init__(self, H, Hmax=None, width=1000, Hcut=0):
@@ -625,6 +621,7 @@ class StationaryExponential(object):
         psi = np.exp(self.H(z, dp).clip(min=0)/self.H0) - 1
         psi_norm = np.exp(self.Hmax/self.H0) - 1
         return psi/psi_norm
+
 
 class HEADTAILcoords(object):
     '''The classic HEADTAIL phase space.'''

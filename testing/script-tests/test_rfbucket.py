@@ -23,7 +23,7 @@ sns.set_style('darkgrid', {
 machine = 'HL-LHC-200'
 
 
-if machine is ('HL-LHC-200' or 'HL-LHC-400'):
+if machine is 'HL-LHC-200' or machine is 'HL-LHC-400':
     p0 = 7000e9 * e/c
     E0 = p0*c
     gamma = np.sqrt((p0/(m_p*c))**2 + 1)
@@ -36,20 +36,20 @@ if machine is ('HL-LHC-200' or 'HL-LHC-400'):
     alpha = 53.86**-2
     eta = alpha - gamma**-2
 
-    if machine is 'HL-LHC-200':
+    if machine == 'HL-LHC-200':
         V_RF = [6e6, -3e6]
         h_RF = [17820, 35640]
         dphi_RF = [0, 0*np.pi]
         epsn_z = 3.8
         zcut = 0.1500
-    elif machine is 'HL-LHC-400':
+    elif machine == 'HL-LHC-400':
         V_RF = [16e6, 0*8e6]
         h_RF = [35640, 71280]
         dphi_RF = [0, 0*np.pi]
         epsn_z = 2.5
         zcut = 0.0810
 
-elif machine is 'LHC':
+elif machine == 'LHC':
     p0 = 7000e9 * e/c
     E0 = p0*c
     gamma = np.sqrt((p0/(m_p*c))**2 + 1)
