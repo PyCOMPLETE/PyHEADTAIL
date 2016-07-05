@@ -40,6 +40,10 @@ class RFBucket(Printing):
     Kick objects, i.e. the left and right side of the bucket are not
     accordingly moved w.r.t. the harmonic phase offset.
     """
+
+    """Sampling points to find zero crossings."""
+    sampling_points = 1000
+
     def __init__(self, circumference, gamma, mass,
                  charge, alpha_array, p_increment,
                  harmonic_list, voltage_list, phi_offset_list,
@@ -49,10 +53,11 @@ class RFBucket(Printing):
         Arguments:
         - mass is the mass of the particle type in the beam
         - charge is the charge of the particle type in the beam
-        - z_offset determines where to start the root finding
-        (of the electric force field to calibrate the separatrix
-        Hamiltonian value to zero). z_offset is per default given by
-        the phase shift of the fundamental RF element.
+        - z_offset determines the centre for the bucket interval
+        over which the root finding (of the electric force field to
+        calibrate the separatrix Hamiltonian value to zero) is done.
+        z_offset is per default determined by the zero crossing located
+        closest to z == 0.
         '''
 
         self.circumference = circumference
@@ -79,25 +84,40 @@ class RFBucket(Printing):
         """
         self._add_potentials = []
 
-        if z_offset is None:
-            i_fund = np.argmin(self.h) # index of fundamental RF element
-            phi_offset = self.dphi[i_fund]
-            # account for bucket size between -pi and pi.
-            # below transition there should be no relocation of the
-            # bucket interval by an offset of pi! we only need relative
-            # offset w.r.t. normal phi setting at given gamma (0 resp. pi)
-            if self.eta0 < 0:
-                phi_offset -= np.pi
-            z_offset = -phi_offset * self.R / self.h[i_fund]
-        self.z_offset = z_offset
+        zmax = self.circumference / (2*np.amin(self.h))
 
-        zmax = self.circumference / (2*np.amin(harmonic_list))
+        if z_offset is None:
+            # i_fund = np.argmin(self.h) # index of fundamental RF element
+            # phi_offset = self.dphi[i_fund]
+            # # account for bucket size between -pi and pi.
+            # # below transition there should be no relocation of the
+            # # bucket interval by an offset of pi! we only need relative
+            # # offset w.r.t. normal phi setting at given gamma (0 resp. pi)
+            # if self.eta0 < 0:
+            #     phi_offset -= np.pi
+            # z_offset = -phi_offset * self.R / self.h[i_fund]
+            ### the above approach does not take into account higher harmonics!
+            ### Within a 2 bucket length interval we find all zero crossings
+            ### of the non-accelerated total_force and identify the outermost
+            ### separatrix UFPs via their minimal (convexified) potential value
+            domain_to_find_bucket_centre = np.linspace(-1.999*zmax, 1.999*zmax,
+                                                       self.sampling_points)
+            z0 = self.zero_crossings(self.make_total_force(),
+                                     domain_to_find_bucket_centre)
+            convex_pot0 = (np.array(self.make_total_potential()(z0)) *
+                           np.sign(self.eta0) / self.charge) # charge for numerical reasons
+            outer_separatrix_pot0 = np.min(convex_pot0)
+            outer_separatrix_z0 = z0[np.isclose(convex_pot0,
+                                                outer_separatrix_pot0)]
+            # outer_separatrix_z0 should contain exactly 2 entries
+            z_offset = np.mean(outer_separatrix_z0)
+        self.z_offset = z_offset
 
         """Minimum and maximum z values on either side of the
         stationary bucket to cover the maximally possible bucket area,
         defined by the fundamental harmonic.
-        (Does not necessarily coincide with the unstable fix points
-        of the real bucket including self.p_increment .)
+        (This range is always larger than the outmost unstable fix
+        points of the real bucket including self.p_increment .)
         """
         self.interval = (z_offset - 1.01*zmax, z_offset + 1.01*zmax)
 
@@ -141,8 +161,8 @@ class RFBucket(Printing):
 
     @property
     def z_ufp_separatrix(self):
-        '''Return the (left-most) unstable fix point at the separatrix
-        of the bucket.
+        '''Return the (left-most) unstable fix point at the outermost
+        separatrix of the bucket.
         (i.e. a bucket boundary defining unstable fix point)
         '''
         if self.eta0 * self.p_increment > 0:
@@ -340,11 +360,13 @@ class RFBucket(Printing):
 
     # ROOT AND BOUNDARY FINDING ROUTINES
     # ==================================
-    def zero_crossings(self, f, x=None, subintervals=1000):
+    def zero_crossings(self, f, x=None, subintervals=None):
         '''Determine roots of f along x.
         If x is not explicitely given, take stationary bucket interval.
         '''
         if x is None:
+            if subintervals is None:
+                subintervals = self.sampling_points
             x = np.linspace(*self.interval, num=subintervals)
 
         y = f(x)
