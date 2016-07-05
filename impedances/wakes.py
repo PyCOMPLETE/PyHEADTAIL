@@ -86,6 +86,8 @@ class WakeField(Element):
         if n_turns_wake_max > 1 and circumference is None:
             raise ValueError(
                 "Circumference must be provided for multi turn wakes!")
+        else:
+            circumference = 0
         self.circumference = circumference
 
     def track(self, bunches):
