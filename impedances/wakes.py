@@ -226,7 +226,7 @@ class WakeTable(WakeSource):
         """
         wake_kicks = []
 
-        for name, function in wake_type.items():
+        for name, function in self.wake_type.items():
             if self._is_provided(name):
                 if name == 'longitudinal':
                     wake_function = self.function_longitudinal()
