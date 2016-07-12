@@ -179,13 +179,13 @@ class BasicSynchrotron(Element):
 
         injection_optics = self.transverse_map.get_injection_optics()
 
-        bunch = generators.ParticleGenerator(macroparticlenumber=n_macroparticles,
-                                     intensity=intensity, charge=self.charge, mass=self.mass,
-                                     circumference=self.circumference, gamma=self.gamma,
-                                     distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
-                                     distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-                                     distribution_z = generators.RF_bucket_distribution(self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z),
-                                     ).generate()
+        bunch = generators.ParticleGenerator(
+            macroparticlenumber=n_macroparticles,
+            intensity=intensity, charge=self.charge, mass=self.mass,
+            circumference=self.circumference, gamma=self.gamma,
+            distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
+            distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
+            distribution_z = generators.RF_bucket_distribution(self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z)).generate()
 
         return bunch
 
@@ -312,6 +312,7 @@ class BasicSynchrotron(Element):
                 for insert_before, si in enumerate(self.transverse_map.s):
                     if si > 0.5 * self.circumference:
                         break
+            insert_before -= 1
         elif RF_at == 'end_of_transverse':
             insert_before = -1
         else:
