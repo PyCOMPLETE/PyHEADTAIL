@@ -33,7 +33,7 @@ class WakeField(Element):
 
     """
 
-    def __init__(self, slicer, wake_sources_list, circumference=None):
+    def __init__(self, slicer, wake_sources_list, circumference=0):
         """Collects slicer and wake sources.
 
         Exactly one instance of the Slicer class must be passed to the
@@ -83,11 +83,9 @@ class WakeField(Element):
                                 for source in wake_sources_list])
         self.slice_set_deque = deque([], maxlen=n_turns_wake_max)
 
-        if n_turns_wake_max > 1 and circumference is None:
+        if n_turns_wake_max > 1 and circumference == 0:
             raise ValueError(
                 "Circumference must be provided for multi turn wakes!")
-        else:
-            circumference = 0
         self.circumference = circumference
 
     def track(self, bunches):
