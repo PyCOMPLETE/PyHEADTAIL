@@ -5,6 +5,7 @@ from scipy.constants import c, e
 
 from PyHEADTAIL.particles import generators
 from PyHEADTAIL.general.element import Element
+from PyHEADTAIL.trackers.rf_bucket import RFBucket
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap, RFSystems
 from PyHEADTAIL.trackers.wrapper import LongWrapper
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -275,34 +276,30 @@ class BasicSynchrotron(Element):
                         return
 
         if RF_at == 'middle':
-                        # compute the index of the element before which to insert
-                        # the longitudinal map
-                        if longitudinal_mode is not None:
-                                        for insert_before, si in enumerate(self.transverse_map.s):
-                                                        if si > 0.5 * self.circumference:
-                                                                        break
+            # compute the index of the element before which to insert
+            # the longitudinal map
+            if longitudinal_mode is not None:
+                for insert_before, si in enumerate(self.transverse_map.s):
+                    if si > 0.5 * self.circumference:
+                        break
+            insert_before -= 1
         elif RF_at == 'end_of_transverse':
-                        insert_before = -1
+            insert_before = -1
         else:
-                        raise ValueError('RF_at=%s not recognized!')
-
+            raise ValueError('RF_at=%s not recognized!')
 
         if longitudinal_mode == 'linear':
+            if Q_s is None:
+                try:
+                    Q_s = self.rfbucket.Qs
+                except AttributeError:
+                    raise AttributeError('Qs not available!')
 
-                eta = alpha_mom_compaction - self.gamma**-2
-
-                if Q_s == None:
-                        if p_increment!=0 or dphi_RF!=0:
-                                raise ValueError('Formula not valid in this case!!!!')
-                        else:
-                                Q_s = np.sqrt( e*np.abs(eta)*(h_RF*V_RF)
-                                        / (2*np.pi*self.p0*self.beta*c) )
-
-                self.longitudinal_map = LinearMap(
-                        np.atleast_1d(alpha_mom_compaction),
-                        self.circumference, Q_s,
-                        D_x=self.transverse_map.D_x[insert_before],
-                        D_y=self.transverse_map.D_y[insert_before])
+            self.longitudinal_map = LinearMap(
+                np.atleast_1d(alpha_mom_compaction),
+                self.circumference, Q_s,
+                D_x=self.transverse_map.D_x[insert_before],
+                D_y=self.transverse_map.D_y[insert_before])
 
         elif longitudinal_mode == 'non-linear':
                 self.longitudinal_map = RFSystems(
@@ -317,30 +314,7 @@ class BasicSynchrotron(Element):
                 raise NotImplementedError(
                         'Something wrong with longitudinal_mode')
 
-        if insert_before==-1:
-                        self.one_turn_map.append(self.longitudinal_map)
+        if insert_before == -1:
+            self.one_turn_map.append(self.longitudinal_map)
         else:
-                        self.one_turn_map.insert(insert_before, self.longitudinal_map)
-
-
-    def _add_wrapper_and_buncher(self):
-
-        if self.longitudinal_mode is None:
-            return
-
-        elif self.longitudinal_mode == 'linear':
-            raise ValueError('Not implemented!!!!')
-         
-        elif self.longitudinal_mode == 'non-linear':
-            bucket = self.longitudinal_map.get_bucket(gamma=self.gamma, mass=self.mass, charge=self.charge)
-            harmonic = bucket.h[0]
-            bucket_length = self.circumference/harmonic
-            z_beam_center = bucket.z_ufp_separatrix + bucket_length - self.circumference/2.
-            self.z_wrapper = LongWrapper(circumference=self.circumference, z0=z_beam_center)
-            self.one_turn_map.append(self.z_wrapper)
-            self.buncher = UniformBinSlicer(harmonic, z_cuts=(self.z_wrapper.z_min,  self.z_wrapper.z_max))
-
-        else:
-            raise NotImplementedError(
-                'Something wrong with longitudinal_mode')
-
+            self.one_turn_map.insert(insert_before, self.longitudinal_map)
