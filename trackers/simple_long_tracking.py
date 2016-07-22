@@ -18,7 +18,8 @@ from rf_bucket import RFBucket, attach_clean_buckets
 from types import MethodType
 import weakref
 
-from ..general import pmath as pm
+#from ..general import pmath as pm
+import numpy as pm # as soon as pmath is in develop, replace this line with above line.
 
 # @TODO
 # think about flexible design to separate numerical methods
@@ -700,7 +701,7 @@ class LinearMap(LongitudinalOneTurnMap):
         '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
-        assert (np.isscalar(Qs)), "Qs has to be a scalar"
+        assert (len(np.atleast_1d(Qs)) == 1), "Qs can only have one entry!"
         self.Qs = Qs
         self.D_x = D_x
         self.D_y = D_y
