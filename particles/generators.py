@@ -607,7 +607,7 @@ class RFBucketMatcher(Printing):
         mean_xy = M
 
         return (np.sqrt(var_x*var_y - mean_xy**2) *
-                4*np.pi*rfbucket.p0/rfbucket.charge)
+                4*np.pi*rfbucket.p0/np.abs(rfbucket.charge))
 
 class StationaryExponential(object):
 

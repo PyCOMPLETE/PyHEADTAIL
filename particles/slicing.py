@@ -139,10 +139,11 @@ class SliceSet(Printing):
         '''Position of the respective slice start within the array
         self.particle_indices_by_slice .
         '''
-        slice_positions_ = np.zeros(self.n_slices + 1, dtype=np.int32)
-        slice_positions_[1:] = (
-                np.cumsum(self.n_macroparticles_per_slice).astype(np.int32))
-        return slice_positions_
+        if not hasattr(self, '_slice_positions'):
+            self._slice_positions = np.zeros(self.n_slices + 1, dtype=np.int32)
+            self._slice_positions[1:] = (
+                    np.cumsum(self.n_macroparticles_per_slice).astype(np.int32))
+        return self._slice_positions
 
     @property
     def n_macroparticles_per_slice(self):
@@ -175,6 +176,7 @@ class SliceSet(Printing):
             )[0])
         return particles_within_cuts_
     
+
     @property
     # @memoize
     def particles_outside_cuts(self):
@@ -186,18 +188,20 @@ class SliceSet(Printing):
             )[0])
         return particles_ouside_cuts_
 
+
     @property
-    # @memoize
+    #@profile
     def particle_indices_by_slice(self):
         '''Array of particle indices arranged / sorted according to
         their slice affiliation.
         '''
-        particle_indices_by_slice = np.zeros(len(self.particles_within_cuts),
-                                             dtype=np.int32)
-        cp.sort_particle_indices_by_slice(
-            self.slice_index_of_particle, self.particles_within_cuts,
-            self.slice_positions, particle_indices_by_slice)
-        return particle_indices_by_slice
+        if not hasattr(self, '_particle_indices_by_slice'):
+            self._particle_indices_by_slice = np.zeros(len(self.particles_within_cuts),
+                                                 dtype=np.int32)
+            cp.sort_particle_indices_by_slice(
+                self.slice_index_of_particle, self.particles_within_cuts,
+                self.slice_positions, self._particle_indices_by_slice)
+        return self._particle_indices_by_slice
 
     def lambda_bins(self, sigma=None, smoothen=True):
         '''Line charge density with respect to bins along the slices.'''
@@ -258,7 +262,7 @@ class SliceSet(Printing):
         tck = interpolate.splrep(self.z_centers, lp_along_bins, s=0)
         lp_of_z = interpolate.splev(z, tck, der=0, ext=1)
         return lp_of_z
-
+        
     def particle_indices_of_slice(self, slice_index):
         '''Return an array of particle indices which are located in the
         slice defined by the given slice_index.
