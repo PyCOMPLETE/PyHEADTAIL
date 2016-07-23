@@ -6,7 +6,9 @@ Printer functionality provides different means to control the flow of
 output streams.
 '''
 
+import warnings
 from abc import ABCMeta, abstractmethod
+
 
 class Printer(object):
     '''
@@ -30,6 +32,7 @@ class Printer(object):
         '''
         pass
 
+
 class ConsolePrinter(Printer):
     '''
     Redirects to console, equivalent to the print statement
@@ -42,6 +45,7 @@ class ConsolePrinter(Printer):
         '''
         print (output)
 
+
 class SilentPrinter(Printer):
     '''
     Mutes output.
@@ -51,6 +55,7 @@ class SilentPrinter(Printer):
         Accepts output and does nothing.
         '''
         pass
+
 
 class AccumulatorPrinter(Printer):
     '''
@@ -62,3 +67,10 @@ class AccumulatorPrinter(Printer):
     def prints(self,output):
         '''Stores warnings in list log'''
         self.log.append(output)
+
+
+def deprecation(message):
+    '''
+    Deprecation warning as as describen in warnings documentaion.
+    '''
+    warnings.warn(message, DeprecationWarning, stacklevel=2)
