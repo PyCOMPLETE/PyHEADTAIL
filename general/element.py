@@ -7,9 +7,9 @@ accelerator) for PyHeadtail. All implemented elements derive from this.
 Can be used for implementing general features that every derived element
 in PyHEADTAIL should have.
 '''
-
-from abc import ABCMeta, abstractmethod
 from printers import ConsolePrinter
+from abc import ABCMeta, abstractmethod
+
 
 class Printing(object):
     '''Provides prints(output) method in order to communicate any output
