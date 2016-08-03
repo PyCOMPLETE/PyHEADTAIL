@@ -127,6 +127,13 @@ Qs = rfbucket.Qs
 print Qs
 
 
+# # TEST DEPRECATIONS
+# # =================
+# rfbucket.make_singleharmonic_force(V_RF[0], h_RF[0], dphi_RF[0])
+# rfbucket.make_total_potential()
+# print rfbucket.zleft
+
+
 # COMPARE BUCKETS
 # ===============
 A = quad(eqH(phi_c), -phi_c, +phi_c)

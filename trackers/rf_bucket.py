@@ -9,6 +9,7 @@ from scipy.integrate import dblquad
 from functools import partial, wraps
 
 from ..cobra_functions.curve_tools import zero_crossings
+from ..general.printers import deprecated
 from . import Printing
 
 
@@ -62,7 +63,6 @@ class RFBucket(Printing):
         closest to z == 0.
         '''
 
-        self.circumference = circumference
         self.charge = charge
         self.mass = mass
 
@@ -73,6 +73,7 @@ class RFBucket(Printing):
         self.alpha0 = alpha_array[0]
         self.p_increment = p_increment
 
+        self.circumference = circumference
         self.h = harmonic_list
         self.V = voltage_list
         self.dphi = phi_offset_list
@@ -185,22 +186,42 @@ class RFBucket(Printing):
         return self.z_sfp[sfp_extr_index]
 
     @property
+    def z_left(self):
+        '''Return the left bucket boundary within self.interval .'''
+        try:
+            return self._z_left
+        except AttributeError:
+            self._z_left, self._z_right, _ = self._get_bucket_boundaries()
+            return self._z_left
+
+    @property
+    def z_right(self):
+        '''Return the right bucket boundary within self.interval .'''
+        try:
+            return self._z_right
+        except AttributeError:
+            self._z_left, self._z_right, _ = self._get_bucket_boundaries()
+            return self._z_right
+
+    @property
+    @deprecated("\n--> Will become z_left.\n")
     def zleft(self):
         '''Return the left bucket boundary within self.interval .'''
         try:
-            return self._zleft
+            return self._z_left
         except AttributeError:
-            self._zleft, self._zright, _ = self._get_bucket_boundaries()
-            return self._zleft
+            self._z_left, self._z_right, _ = self._get_bucket_boundaries()
+            return self._z_left
 
     @property
+    @deprecated("\n--> Will become z_right.\n")
     def zright(self):
         '''Return the right bucket boundary within self.interval .'''
         try:
-            return self._zright
+            return self._z_right
         except AttributeError:
-            self._zleft, self._zright, _ = self._get_bucket_boundaries()
-            return self._zright
+            self._z_left, self._z_right, _ = self._get_bucket_boundaries()
+            return self._z_right
 
     @property
     def R(self):
@@ -242,7 +263,7 @@ class RFBucket(Printing):
         add_potentials is expected to be an iterable of functions of z,
         in units of Coul*Volt.
 
-        Bucket shape parameters z_ufp, z_sfp, zleft and zright are
+        Bucket shape parameters z_ufp, z_sfp, z_left and z_right are
         recalculated.
         '''
         self._add_forces += add_forces
@@ -253,8 +274,8 @@ class RFBucket(Printing):
         except AttributeError:
             pass
         try:
-            delattr(self, "_zleft")
-            delattr(self, "_zright")
+            delattr(self, "_z_left")
+            delattr(self, "_z_right")
         except AttributeError:
             pass
 
@@ -273,15 +294,6 @@ class RFBucket(Printing):
             return coefficient * focusing_field + accelerating_field
         return f
 
-    # def make_singleharmonic_force(self, V, h, dphi):
-    #     '''Return the electric force field of a single harmonic
-    #     RF element as a function of z in units of Coul*Volt/metre.
-    #     '''
-    #     def force(z):
-    #         return (np.abs(self.charge) * V / self.circumference *
-    #                 np.sin(h * z / self.R + dphi))
-    #     return force
-
     def total_force(self, z, ignore_add_forces=False, acceleration_off=False):
         '''Return the total electric force field including
         - the acceleration offset and
@@ -295,37 +307,53 @@ class RFBucket(Printing):
                  if not ignore_add_forces))
         return f
 
-    # def make_total_force(self, ignore_add_forces=False):
-    #     '''Return the stationary total electric force field of
-    #     superimposed RF elements (multi-harmonics) as a function of z.
-    #     Parameters are taken from RF parameters of this
-    #     RFBucket instance.
 
-    #     Adds the additional electric force fields (provided via
-    #     self.add_nonRF_influences) on top.
-    #     Uses units of Coul*Volt/metre.
-    #     '''
-    #     def total_force(z):
-    #         '''Return stationary total electric force field of
-    #         superimposed RF elements (multi-harmonics) and additional
-    #         force fields as a function of z in units of Coul*Volt/metre.
-    #         '''
-    #         harmonics = (self.make_singleharmonic_force(V, h, dphi)(z)
-    #                      for V, h, dphi in zip(self.V, self.h, self.dphi))
-    #         return (sum(harmonics) + sum(f(z) for f in self._add_forces
-    #                                      if not ignore_add_forces))
-    #     return total_force
+    @deprecated('\n--> Replace with "rf_force(acceleration_off=True)" ' +
+                'as soon as possible.\n')
+    def make_singleharmonic_force(self, V, h, dphi):
+        '''Return the electric force field of a single harmonic
+        RF element as a function of z in units of Coul*Volt/metre.
+        '''
+        def force(z):
+            return (np.abs(self.charge) * V / self.circumference *
+                    np.sin(h * z / self.R + dphi))
+        return force
 
-    # def acc_force(self, z, ignore_add_forces=False):
-    #     '''Return the total electric force field including
-    #     - the acceleration offset and
-    #     - the additional electric force fields (provided via
-    #     self.add_nonRF_influences),
-    #     evaluated at position z in units of Coul*Volt/metre.
-    #     '''
-    #     total_force = self.make_total_force(
-    #         ignore_add_forces=ignore_add_forces)
-    #     return total_force(z) - self.deltaE / self.circumference
+    @deprecated('\n--> Replace with "total_force(acceleration_off=True)" ' +
+                'as soon as possible.\n')
+    def make_total_force(self, ignore_add_forces=False):
+        '''Return the stationary total electric force field of
+        superimposed RF elements (multi-harmonics) as a function of z.
+        Parameters are taken from RF parameters of this
+        RFBucket instance.
+
+        Adds the additional electric force fields (provided via
+        self.add_nonRF_influences) on top.
+        Uses units of Coul*Volt/metre.
+        '''
+        def total_force(z):
+            '''Return stationary total electric force field of
+            superimposed RF elements (multi-harmonics) and additional
+            force fields as a function of z in units of Coul*Volt/metre.
+            '''
+            harmonics = (self.make_singleharmonic_force(V, h, dphi)(z)
+                         for V, h, dphi in zip(self.V, self.h, self.dphi))
+            return (sum(harmonics) + sum(f(z) for f in self._add_forces
+                                         if not ignore_add_forces))
+        return total_force
+
+    @deprecated('\n--> Replace with "total_force" as soon as possible.\n')
+    def acc_force(self, z, ignore_add_forces=False):
+        '''Return the total electric force field including
+        - the acceleration offset and
+        - the additional electric force fields (provided via
+        self.add_nonRF_influences),
+        evaluated at position z in units of Coul*Volt/metre.
+        '''
+        total_force = self.make_total_force(
+            ignore_add_forces=ignore_add_forces)
+        return total_force(z) - self.deltaE / self.circumference
+
 
     def rf_potential(self, V, h, dphi, dp, acceleration_off=False):
         def vf(z):
@@ -374,66 +402,73 @@ class RFBucket(Printing):
             v *= np.sign(self.eta0)
         return v
 
-    # def make_singleharmonic_potential(self, V, h, dphi):
-    #     '''Return the electric potential energy of a single harmonic
-    #     RF element as a function of z in units of Coul*Volt.
-    #     '''
-    #     def potential(z):
-    #         return (np.abs(self.charge) * V / (2 * np.pi * h) *
-    #                 np.cos(h * z / self.R + dphi))
-    #     return potential
+    @deprecated('\n--> Replace with "rf_potential(acceleration_off=True)" ' +
+                'as soon as possible.\n')
+    def make_singleharmonic_potential(self, V, h, dphi):
+        '''Return the electric potential energy of a single harmonic
+        RF element as a function of z in units of Coul*Volt.
+        '''
+        def potential(z):
+            return (np.abs(self.charge) * V / (2 * np.pi * h) *
+                    np.cos(h * z / self.R + dphi))
+        return potential
 
-    # def make_total_potential(self, ignore_add_potentials=False):
-    #     '''Return the stationary total electric potential energy of
-    #     superimposed RF elements (multi-harmonics) as a function of z.
-    #     Parameters are taken from RF parameters of this
-    #     RFBucket instance.
+    @deprecated('\n--> Replace with ' +
+                '"total_potential(acceleration_off=True)" ' +
+                'as soon as possible.\n')
+    def make_total_potential(self, ignore_add_potentials=False):
+        '''Return the stationary total electric potential energy of
+        superimposed RF elements (multi-harmonics) as a function of z.
+        Parameters are taken from RF parameters of this
+        RFBucket instance.
 
-    #     Adds the additional electric potential energies
-    #     (provided via self.add_nonRF_influences) on top.
-    #     Uses units of Coul*Volt.
-    #     '''
-    #     def total_potential(z):
-    #         '''Return stationary total electric potential energy of
-    #         superimposed RF elements (multi-harmonics) and additional
-    #         electric potentials as a function of z
-    #         in units of Coul*Volt.
-    #         '''
-    #         harmonics = (self.make_singleharmonic_potential(V, h, dphi)(z)
-    #                      for V, h, dphi in zip(self.V, self.h, self.dphi))
-    #         return (sum(harmonics) + sum(pot(z) for pot in self._add_potentials
-    #                                      if not ignore_add_potentials))
-    #     return total_potential
+        Adds the additional electric potential energies
+        (provided via self.add_nonRF_influences) on top.
+        Uses units of Coul*Volt.
+        '''
+        def total_potential(z):
+            '''Return stationary total electric potential energy of
+            superimposed RF elements (multi-harmonics) and additional
+            electric potentials as a function of z
+            in units of Coul*Volt.
+            '''
+            harmonics = (self.make_singleharmonic_potential(V, h, dphi)(z)
+                         for V, h, dphi in zip(self.V, self.h, self.dphi))
+            return (sum(harmonics) + sum(pot(z) for pot in self._add_potentials
+                                         if not ignore_add_potentials))
+        return total_potential
 
-    # def acc_potential(self, z, ignore_add_potentials=False,
-    #                   make_convex=False):
-    #     '''Return the total electric potential energy including
-    #     - the linear acceleration slope and
-    #     - the additional electric potential energies (provided via
-    #     self.add_nonRF_influences),
-    #     evaluated at position z in units of Coul*Volt.
+    @deprecated('\n--> Replace with "total_potential as soon as possible.\n')
+    def acc_potential(self, z, ignore_add_potentials=False,
+                      make_convex=False):
+        '''Return the total electric potential energy including
+        - the linear acceleration slope and
+        - the additional electric potential energies (provided via
+        self.add_nonRF_influences),
+        evaluated at position z in units of Coul*Volt.
 
-    #     Note:
-    #     Adds a potential energy offset: this relocates the extremum
-    #     (defining the unstable fix point UFP of the bucket)
-    #     to obtain zero potential energy at the UFP.
-    #     Thus the Hamiltonian value of the separatrix is calibrated
-    #     to zero.
+        Note:
+        Adds a potential energy offset: this relocates the extremum
+        (defining the unstable fix point UFP of the bucket)
+        to obtain zero potential energy at the UFP.
+        Thus the Hamiltonian value of the separatrix is calibrated
+        to zero.
 
-    #     Arguments:
-    #     - make_convex: multiplies by sign(eta) for plotting etc.
-    #     To see a literal 'bucket structure' in the sense of a
-    #     local minimum in the Hamiltonian topology, set make_convex=True
-    #     in order to return sign(eta)*hamiltonian(z, dp).
-    #     '''
-    #     pot_tot = self.make_total_potential(
-    #         ignore_add_potentials=ignore_add_potentials)
-    #     z_boundary = self.z_ufp_separatrix
-    #     v_acc = (pot_tot(z) - pot_tot(z_boundary) +
-    #              self.deltaE / self.circumference * (z - z_boundary))
-    #     if make_convex:
-    #         v_acc *= np.sign(self.eta0)
-    #     return v_acc
+        Arguments:
+        - make_convex: multiplies by sign(eta) for plotting etc.
+        To see a literal 'bucket structure' in the sense of a
+        local minimum in the Hamiltonian topology, set make_convex=True
+        in order to return sign(eta)*hamiltonian(z, dp).
+        '''
+        pot_tot = self.make_total_potential(
+            ignore_add_potentials=ignore_add_potentials)
+        z_boundary = self.z_ufp_separatrix
+        v_acc = (pot_tot(z) - pot_tot(z_boundary) +
+                 self.deltaE / self.circumference * (z - z_boundary))
+        if make_convex:
+            v_acc *= np.sign(self.eta0)
+        return v_acc
+
 
     # ROOT AND BOUNDARY FINDING ROUTINES
     # ==================================
@@ -452,7 +487,7 @@ class RFBucket(Printing):
 
     def _get_bucket_boundaries(self):
         '''Return the bucket boundaries as well as the whole list
-        of acceleration voltage roots, (zleft, zright, z_roots).
+        of acceleration voltage roots, (z_left, z_right, z_roots).
         '''
         z0 = np.atleast_1d(self.zero_crossings(self.total_potential))
         z0 = np.append(z0, self.z_ufp)
@@ -556,7 +591,7 @@ class RFBucket(Printing):
         value at the stable fix point to move from the separatrix
         toward the extremal Hamiltonian value at self.z_sfp .)
         """
-        within_interval = np.logical_and(self.zleft < z, z < self.zright)
+        within_interval = np.logical_and(self.z_left < z, z < self.z_right)
         within_separatrix = (self.hamiltonian(z, dp, make_convex=True) >
                              margin * self.h_sfp(make_convex=True))
         return np.logical_and(within_interval, within_separatrix)
@@ -578,8 +613,8 @@ class RFBucket(Printing):
             zr = +sigma * z
             f = self.equihamiltonian(sigma * z)
         else:
-            zl = self.zleft
-            zr = self.zright
+            zl = self.z_left
+            zr = self.z_right
             f = self.separatrix
 
         Q, error = dblquad(lambda y, x: 1, zl, zr,

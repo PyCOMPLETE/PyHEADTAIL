@@ -69,8 +69,16 @@ class AccumulatorPrinter(Printer):
         self.log.append(output)
 
 
-def deprecation(message):
+def deprecated(message):
     '''
-    Deprecation warning as as describen in warnings documentaion.
+    Deprecation warning as described in warnings documentaion.
     '''
-    warnings.warn(message, DeprecationWarning, stacklevel=2)
+    def deprecation_decorator(function):
+        warnings.simplefilter('always', DeprecationWarning)
+        warnings.warn('Function "{:s}" '.format(function.__name__) +
+                      'is deprecated and will be replaced in the near future.',
+                      category=DeprecationWarning, stacklevel=2)
+        warnings.simplefilter('default', DeprecationWarning)
+        print message
+        return function
+    return deprecation_decorator
