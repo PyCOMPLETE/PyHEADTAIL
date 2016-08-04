@@ -18,7 +18,6 @@ from PyPIC.poisson_solver import FFT_solver
 try:
     pypic_algorithm_class = pypic.PyPIC_GPU
     solver_class = FFT_solver.GPUFFTPoissonSolver
-    from pycuda import cumath as mathlib
 except ImportError:
     print ('PyHEADTAIL -- PyPIC factory: GPU version not available.')
     pypic_algorithm_class = pypic.PyPIC
@@ -35,7 +34,8 @@ except ImportError:
             # we do not want exterior 5 and 4 cells from PyPIC <= v1.03:
             ext_boundary=False,
         )
-    mathlib = np
+
+from ..general import pmath as pm
 
 def ensure_cpu(array):
     try:
@@ -62,7 +62,7 @@ def create_pypic(slices, context=None, **mesh_args):
 
 
 def create_mesh(mesh_origin, mesh_distances, mesh_size,
-                slices=None):
+                slices=None, symmetrize_mesh_to_slices=False):
     '''Create a (PyPIC) rectangular mesh. The dimension is
     determined by the length of the list arguments.
 
@@ -93,6 +93,8 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size,
             (slices.z_cut_head - slices.z_cut_tail) / slices.n_slices *
             slices.gamma
         ]
+        if symmetrize_mesh_to_slices:
+            mesh_origin[-1] += mesh_distances[-1]/2.
         mesh_size = mesh_size + [slices.n_slices]
     dim = len(mesh_origin)
     if not dim == len(mesh_distances) == len(mesh_size):
@@ -101,10 +103,11 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size,
     mesh_class = getattr(meshing, 'RectMesh{dim}D'.format(dim=dim))
     return mesh_class(map(ensure_cpu, mesh_origin),
                       map(ensure_cpu, mesh_distances), mesh_size,
-                      mathlib=mathlib)
+                      mathlib=pm)
 
 
-def create_3dmesh_from_beam(beam, mesh_size, n_beam_sigma, slices=None):
+def create_3dmesh_from_beam(beam, mesh_size, n_beam_sigma, slices=None,
+                            symmetrize_mesh_to_slices=False):
     '''Create a (PyPIC) 3D rectangular mesh. The mesh is centered
     at the beam centroid and spans as many beam size sigma as indicated.
 
@@ -133,5 +136,8 @@ def create_3dmesh_from_beam(beam, mesh_size, n_beam_sigma, slices=None):
         length_z = 2. * beam.gamma * beam.sigma_z() * n_beam_sigma[2]
         mesh_origin += [beam.gamma * beam.mean_z() - length_z / 2.]
         mesh_distances += [length_z / mesh_size[2]]
+        if symmetrize_mesh_to_slices:
+            mesh_origin[-1] += mesh_distances[-1]/2.
 
-    return create_mesh(mesh_origin, mesh_distances, mesh_size, slices)
+    return create_mesh(mesh_origin, mesh_distances, mesh_size, slices,
+                       symmetrize_mesh_to_slices)
