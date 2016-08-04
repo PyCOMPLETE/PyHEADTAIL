@@ -105,5 +105,7 @@ class SpaceChargePIC(Element):
         beam.xp += force_fields[0] * kick_factor
         beam.yp += force_fields[1] * kick_factor
         if not self.is_25D:
-            beam.dp += force_fields[2] * kick_factor
+            # need 1/gamma^2: one gamma factor is contained in d/dz_beamframe
+            # gradient in PyPIC, another gamma factor included here:
+            beam.dp += force_fields[2] * kick_factor/beam.gamma
 
