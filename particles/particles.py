@@ -271,6 +271,7 @@ class Particles(Printing):
                 continue
             reordered = pm.apply_permutation(getattr(self, attr), permutation)
             setattr(self, attr, reordered)
+        self.clean_slices()
 
     def __add__(self, other):
         '''Merges two beams.
