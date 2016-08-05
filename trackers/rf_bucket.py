@@ -9,7 +9,7 @@ from scipy.integrate import dblquad
 from functools import partial, wraps
 
 from ..cobra_functions.curve_tools import zero_crossings
-from ..general.printers import deprecated
+from ..general.decorators import deprecated
 from . import Printing
 
 
@@ -204,7 +204,7 @@ class RFBucket(Printing):
             return self._z_right
 
     @property
-    @deprecated("\n--> Will become z_left.\n")
+    @deprecated("--> Will become z_left.\n")
     def zleft(self):
         '''Return the left bucket boundary within self.interval .'''
         try:
@@ -214,7 +214,7 @@ class RFBucket(Printing):
             return self._z_left
 
     @property
-    @deprecated("\n--> Will become z_right.\n")
+    @deprecated("--> Will become z_right.\n")
     def zright(self):
         '''Return the right bucket boundary within self.interval .'''
         try:
@@ -308,7 +308,7 @@ class RFBucket(Printing):
         return f
 
 
-    @deprecated('\n--> Replace with "rf_force(acceleration_off=True)" ' +
+    @deprecated('--> Replace with "rf_force(acceleration_off=True)" ' +
                 'as soon as possible.\n')
     def make_singleharmonic_force(self, V, h, dphi):
         '''Return the electric force field of a single harmonic
@@ -319,7 +319,7 @@ class RFBucket(Printing):
                     np.sin(h * z / self.R + dphi))
         return force
 
-    @deprecated('\n--> Replace with "total_force(acceleration_off=True)" ' +
+    @deprecated('--> Replace with "total_force(acceleration_off=True)" ' +
                 'as soon as possible.\n')
     def make_total_force(self, ignore_add_forces=False):
         '''Return the stationary total electric force field of
@@ -342,7 +342,7 @@ class RFBucket(Printing):
                                          if not ignore_add_forces))
         return total_force
 
-    @deprecated('\n--> Replace with "total_force" as soon as possible.\n')
+    @deprecated('--> Replace with "total_force" as soon as possible.\n')
     def acc_force(self, z, ignore_add_forces=False):
         '''Return the total electric force field including
         - the acceleration offset and
@@ -402,7 +402,7 @@ class RFBucket(Printing):
             v *= np.sign(self.eta0)
         return v
 
-    @deprecated('\n--> Replace with "rf_potential(acceleration_off=True)" ' +
+    @deprecated('--> Replace with "rf_potential(acceleration_off=True)" ' +
                 'as soon as possible.\n')
     def make_singleharmonic_potential(self, V, h, dphi):
         '''Return the electric potential energy of a single harmonic
@@ -413,7 +413,7 @@ class RFBucket(Printing):
                     np.cos(h * z / self.R + dphi))
         return potential
 
-    @deprecated('\n--> Replace with ' +
+    @deprecated('--> Replace with ' +
                 '"total_potential(acceleration_off=True)" ' +
                 'as soon as possible.\n')
     def make_total_potential(self, ignore_add_potentials=False):
@@ -438,7 +438,7 @@ class RFBucket(Printing):
                                          if not ignore_add_potentials))
         return total_potential
 
-    @deprecated('\n--> Replace with "total_potential as soon as possible.\n')
+    @deprecated('--> Replace with "total_potential as soon as possible.\n')
     def acc_potential(self, z, ignore_add_potentials=False,
                       make_convex=False):
         '''Return the total electric potential energy including

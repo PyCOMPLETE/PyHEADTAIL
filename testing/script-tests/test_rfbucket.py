@@ -127,11 +127,14 @@ Qs = rfbucket.Qs
 print Qs
 
 
-# # TEST DEPRECATIONS
-# # =================
-# rfbucket.make_singleharmonic_force(V_RF[0], h_RF[0], dphi_RF[0])
-# rfbucket.make_total_potential()
-# print rfbucket.zleft
+# TEST DEPRECATIONS
+# =================
+f = rfbucket.make_singleharmonic_force(V_RF[0], h_RF[0], dphi_RF[0])
+print f
+f = rfbucket.make_total_potential()
+print f
+f = rfbucket.zleft
+print f
 
 
 # COMPARE BUCKETS

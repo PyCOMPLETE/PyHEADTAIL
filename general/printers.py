@@ -6,7 +6,6 @@ Printer functionality provides different means to control the flow of
 output streams.
 '''
 
-import warnings
 from abc import ABCMeta, abstractmethod
 
 
@@ -64,21 +63,6 @@ class AccumulatorPrinter(Printer):
     def __init__(self, *args, **kwargs):
         self.log = []
 
-    def prints(self,output):
+    def prints(self, output):
         '''Stores warnings in list log'''
         self.log.append(output)
-
-
-def deprecated(message):
-    '''
-    Deprecation warning as described in warnings documentaion.
-    '''
-    def deprecation_decorator(function):
-        warnings.simplefilter('always', DeprecationWarning)
-        warnings.warn('Function "{:s}" '.format(function.__name__) +
-                      'is deprecated and will be replaced in the near future.',
-                      category=DeprecationWarning, stacklevel=2)
-        warnings.simplefilter('default', DeprecationWarning)
-        print message
-        return function
-    return deprecation_decorator
