@@ -285,11 +285,12 @@ class BasicSynchrotron(Element):
                 eta = alpha_mom_compaction - self.gamma**-2
 
                 if Q_s == None:
-                        if p_increment!=0 or dphi_RF!=0:
-                                raise ValueError('Formula not valid in this case!!!!')
-                        else:
-                                Q_s = np.sqrt( e*np.abs(eta)*(h_RF*V_RF)
-                                        / (2*np.pi*self.p0*self.beta*c) )
+                    if p_increment!=0 or dphi_RF.any()!=0:
+                        raise ValueError('Formula not valid in this case!!!!')
+                    else:
+                        imax = np.argmax(h_RF*V_RF)
+                        Q_s = np.sqrt( e*np.abs(eta)*(h_RF[imax]*V_RF[imax])
+                                       / (2*np.pi*self.p0*self.beta*c) )
 
                 self.longitudinal_map = LinearMap(
                         np.atleast_1d(alpha_mom_compaction),

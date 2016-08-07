@@ -211,8 +211,6 @@ class TransverseSegmentMap(object):
             cytrack_with_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                   dphi_x, dphi_y, self.I, self.J)
 
-
-
     def track_without_detuners(self, beam):
         """ This method is bound to the self.track(self, beam) method
         in case the self.segment_detuners list is empty. For this case,
@@ -235,7 +233,6 @@ class TransverseSegmentMap(object):
         else :
             cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
                                  self.M)
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
