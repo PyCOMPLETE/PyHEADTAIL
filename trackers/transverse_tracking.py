@@ -23,8 +23,8 @@ except ImportError as e:
     cos = np.cos
     sincos = np_sincos
 
+from ..general.decorators import deprecated
 from . import Element, Printing
-
 
 diff = np.diff
 ndim = np.ndim
@@ -347,3 +347,8 @@ class TransverseMap(Printing):
 
     def __getitem__(self, key):
         return self.segment_maps[key]
+
+
+@deprecated('')
+def TransverseOneTurnMap(*args, **kwargs):
+    return TransverseSegmentMap(*args, **kwargs)
