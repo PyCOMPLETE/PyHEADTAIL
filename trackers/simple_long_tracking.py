@@ -12,6 +12,7 @@ import numpy as np
 from scipy.optimize import brentq
 from scipy.constants import c
 
+from ..general.decorators import deprecated
 from . import Element, clean_slices, utils
 from rf_bucket import RFBucket, attach_clean_buckets
 
@@ -714,6 +715,10 @@ class LinearMap(LongitudinalOneTurnMap):
         if len(alpha_array) > 1:
             self.warns('The higher orders in the given alpha_array are ' +
                        'manifestly neglected.')
+
+    @deprecated('--> Now becomes "Q_s"\n')
+    def Qs(self):
+        return self.Q_s
 
     @clean_slices
     def track(self, beam):
