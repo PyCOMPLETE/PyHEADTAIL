@@ -3,16 +3,17 @@ from __future__ import division
 import numpy as np
 from scipy.constants import c
 
+from ..cobra_functions.decorators import deprecated
 from PyHEADTAIL.particles import generators
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.trackers.rf_bucket import RFBucket
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap, RFSystems
 
 
-class BasicSynchrotron(Element):
+class Synchrotron(Element):
     def __init__(self, optics_mode,
-                 charge=None, mass=None, p0=None, circumference=None,
-                 n_segments=None, name=None, s=None,
+                 charge=None, mass=None, p0=None,
+                 circumference=None, n_segments=None, name=None, s=None,
                  alpha_x=None, beta_x=None, D_x=None,
                  alpha_y=None, beta_y=None, D_y=None,
                  accQ_x=None, accQ_y=None,
@@ -22,11 +23,11 @@ class BasicSynchrotron(Element):
                  RF_at='middle', other_detuners=[],
                  use_cython=True, verbose=False):
 
-        self.optics_mode = optics_mode
-        self.longitudinal_mode = longitudinal_mode
         self.charge = charge
         self.mass = mass
         self.p0 = p0
+        self.optics_mode = optics_mode
+        self.longitudinal_mode = longitudinal_mode
 
         self.one_turn_map = []
 
@@ -42,10 +43,10 @@ class BasicSynchrotron(Element):
 
         # construct longitudinal map
         self._construct_longitudinal_map(
-            longitudinal_mode=longitudinal_mode, Q_s=Q_s,
-            alpha_mom_compaction=alpha_mom_compaction,
-            h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF,
-            p_increment=p_increment, RF_at=RF_at)
+            longitudinal_mode=longitudinal_mode,
+            Q_s=Q_s, alpha_mom_compaction=alpha_mom_compaction,
+            h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment,
+            RF_at=RF_at)
 
         if verbose:
             from pprint import pprint
@@ -182,74 +183,82 @@ class BasicSynchrotron(Element):
             macroparticlenumber=n_macroparticles,
             intensity=intensity, charge=self.charge, mass=self.mass,
             circumference=self.circumference, gamma=self.gamma,
-            distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
-            distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-            distribution_z = generators.RF_bucket_distribution(self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z)).generate()
+            distribution_x=generators.gaussian2D(epsx_geo),
+            alpha_x=injection_optics['alpha_x'],
+            beta_x=injection_optics['beta_x'],
+            D_x=injection_optics['D_x'],
+            distribution_y=generators.gaussian2D(epsy_geo),
+            alpha_y=injection_optics['alpha_y'],
+            beta_y=injection_optics['beta_y'],
+            D_y=injection_optics['D_y'],
+            distribution_z=generators.RF_bucket_distribution(
+                self.longitudinal_map.get_bucket(gamma=self.gamma),
+                sigma_z=sigma_z, epsn_z=epsn_z)).generate()
 
         return bunch
 
-    def _construct_transverse_map(self, optics_mode=None, circumference=None, n_segments=None, s=None, name=None,
-            alpha_x=None, beta_x=None, D_x=None, alpha_y=None, beta_y=None, D_y=None,
-            accQ_x=None, accQ_y=None, Qp_x=None, Qp_y=None, app_x=None, app_y=None, app_xy=None, other_detuners=None,
-            use_cython=None):
+    def _construct_transverse_map(
+            self, optics_mode=None,
+            circumference=None, n_segments=None, s=None, name=None,
+            alpha_x=None, beta_x=None, D_x=None,
+            alpha_y=None, beta_y=None, D_y=None,
+            accQ_x=None, accQ_y=None,
+            Qp_x=None, Qp_y=None, app_x=None, app_y=None, app_xy=None,
+            other_detuners=None, use_cython=None):
 
         if use_cython:
-                        try:
-                                from PyHEADTAIL.trackers.transverse_tracking_cython import TransverseMap
-                                from PyHEADTAIL.trackers.detuners_cython import (Chromaticity,
-                                                                                                                         AmplitudeDetuning)
-                        except ImportError as e:
-                                print ("*** Warning: could not import cython variants of trackers, "
-                                   "did you cythonize (use the following command)?\n"
-                                   "$ make \n"
-                                   "Falling back to (slower) python version.")
-                                from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-                                from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
+            try:
+                from PyHEADTAIL.trackers.transverse_tracking_cython import TransverseMap
+                from PyHEADTAIL.trackers.detuners_cython import (Chromaticity, AmplitudeDetuning)
+            except ImportError as e:
+                print ("*** Warning: could not import cython variants " +
+                       "of trackers, did you cythonize (use the following " +
+                       "command)?\n" +
+                       "$ make \n"
+                       "Falling back to (slower) python version.")
+                from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
+                from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
         else:
-                        "Transverse tracking: forcing python implementation."
-                        from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-                        from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
-
+            "Transverse tracking: forcing python implementation."
+            from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
+            from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 
         if optics_mode == 'smooth':
             if circumference is None:
-                    raise ValueError('circumference has to be specified if optics_mode = "smooth"')
-
-            if  n_segments is None:
-                    raise ValueError('n_segments has to be specified if optics_mode = "smooth"')
-
+                raise ValueError('circumference has to be specified ' +
+                                 'if optics_mode = "smooth"')
+            if n_segments is None:
+                raise ValueError('n_segments has to be specified ' +
+                                 'if optics_mode = "smooth"')
             if s is not None:
-                    raise ValueError('s vector cannot be provided if optics_mode = "smooth"')
+                raise ValueError('s vector should not be provided ' +
+                                 'if optics_mode = "smooth"')
 
-
-            s = (np.arange(0, n_segments + 1)
-                      * circumference / n_segments)
-
-            alpha_x=0.*s
-            beta_x=0.*s+beta_x
-            D_x=0.*s+D_x
-            alpha_y=0.*s
-            beta_y=0.*s+beta_y
-            D_y=0.*s+D_y
-
+            s = (np.arange(0, n_segments + 1) * circumference / n_segments)
+            alpha_x = 0.*s
+            beta_x = 0.*s+beta_x
+            D_x = 0.*s+D_x
+            alpha_y = 0.*s
+            beta_y = 0.*s+beta_y
+            D_y = 0.*s+D_y
         elif optics_mode == 'non-smooth':
             if circumference is not None:
-                    raise ValueError('circumference cannot be provided if optics_mode = "non-smooth"')
-
-            if  n_segments is not None:
-                    raise ValueError('n_segments cannot be provided if optics_mode = "non-smooth"')
-
+                raise ValueError('circumference should not be provided ' +
+                                 'if optics_mode = "non-smooth"')
+            if n_segments is not None:
+                raise ValueError('n_segments should not be provided ' +
+                                 'if optics_mode = "non-smooth"')
             if s is None:
-                    raise ValueError('s has to be specified if optics_mode = "smooth"')
-
+                raise ValueError('s has to be specified ' +
+                                 'if optics_mode = "smooth"')
         else:
             raise ValueError('optics_mode not recognized')
 
         detuners = []
         if Qp_x != 0 or Qp_y != 0:
-                        detuners.append(Chromaticity(Qp_x, Qp_y))
+            detuners.append(Chromaticity(Qp_x, Qp_y))
         if app_x != 0 or app_y != 0 or app_xy != 0:
-                        detuners.append(AmplitudeDetuning(app_x, app_y, app_xy))
+            detuners.append(AmplitudeDetuning(app_x, app_y, app_xy))
         detuners += other_detuners
 
         self.transverse_map = TransverseMap(
@@ -351,3 +360,9 @@ class BasicSynchrotron(Element):
             self.one_turn_map.append(self.longitudinal_map)
         else:
             self.one_turn_map.insert(insert_before, self.longitudinal_map)
+
+
+@deprecated('"BasicSynchrotron" will be deprecated in the near future. ' +
+            'Use "Synchrotron" instead.')
+def BasicSynchrotron(*args, **kwargs):
+    return Synchrotron(*args, **kwargs)
