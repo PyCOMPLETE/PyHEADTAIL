@@ -352,6 +352,7 @@ class RFSystems(LongitudinalOneTurnMap):
 
         self.charge = charge
         self.mass = mass
+        self.gamma = gamma_reference
 
         super(RFSystems, self).__init__(
 			alpha_array, circumference, *args, **kwargs)
@@ -460,6 +461,11 @@ class RFSystems(LongitudinalOneTurnMap):
         self._accelerating_kick.p_increment = value
         if self._shrinking:
             self._shrinking_drift.shrinkage_p_increment = value
+
+    @property
+    def Q_s(self):
+        return self.get_bucket(charge=self.charge, mass=self.mass,
+                               gamma=self.gamma).Q_s
 
     def pop_kick(self, index):
         '''Remove a Kick instance from this RFSystems instance.
@@ -677,8 +683,8 @@ class LinearMap(LongitudinalOneTurnMap):
     \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
-    def __init__(self, alpha_array, circumference, Qs, D_x=0, D_y=0,*args, **kwargs):
-        '''Qs is the synchrotron tune.
+    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0,*args, **kwargs):
+        '''Q_s is the synchrotron tune.
         D_x, D_y are the dispersions in horizontal and vertical direction.
 
         !! Attention !!
@@ -701,8 +707,8 @@ class LinearMap(LongitudinalOneTurnMap):
         '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
-        assert (len(np.atleast_1d(Qs)) == 1), "Qs can only have one entry!"
-        self.Qs = Qs
+        assert (len(np.atleast_1d(Q_s)) == 1), "Q_s can only have one entry!"
+        self.Q_s = Q_s
         self.D_x = D_x
         self.D_y = D_y
         if len(alpha_array) > 1:
@@ -715,23 +721,22 @@ class LinearMap(LongitudinalOneTurnMap):
         the dispersion using the new dp
         '''
         omega_0 = 2 * np.pi * beam.beta * c / self.circumference
-        omega_s = self.Qs * omega_0
+        omega_s = self.Q_s * omega_0
 
-        dQs = 2 * np.pi * self.Qs
-        cosdQs = np.cos(dQs) # use np because dQs is always a scalar
-        sindQs = np.sin(dQs) # use np because dQs is always a scalar
+        dQ_s = 2 * np.pi * self.Q_s
+        cosdQ_s = np.cos(dQ_s)  # use np because dQ_s is always a scalar
+        sindQ_s = np.sin(dQ_s)  # use np because dQ_s is always a scalar
 
         z0 = beam.z
         dp0 = beam.dp
 
         # self.eta(0, beam.gamma) is identical to using first order eta!
-        beam.z = (z0 * cosdQs - self.eta(0, beam.gamma) * beam.beta * c /
-                  omega_s * dp0 * sindQs)
-
+        beam.z = (z0 * cosdQ_s - self.eta(0, beam.gamma) * beam.beta * c /
+                  omega_s * dp0 * sindQ_s)
 
         beam.x -= self.D_x*beam.dp
         beam.y -= self.D_y*beam.dp
-        beam.dp = (dp0 * cosdQs + omega_s / self.eta(0, beam.gamma) /
-                   (beam.beta * c) * z0 * sindQs)
+        beam.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, beam.gamma) /
+                   (beam.beta * c) * z0 * sindQ_s)
         beam.x += self.D_x*beam.dp
         beam.y += self.D_y*beam.dp

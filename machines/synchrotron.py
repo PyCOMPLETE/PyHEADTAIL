@@ -3,7 +3,7 @@ from __future__ import division
 import numpy as np
 from scipy.constants import c
 
-from ..cobra_functions.decorators import deprecated
+from ..general.decorators import deprecated
 from PyHEADTAIL.particles import generators
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.trackers.rf_bucket import RFBucket
@@ -85,16 +85,20 @@ class Synchrotron(Element):
 
     @p0.setter
     def p0(self, value):
-            self.gamma = (1 / (c*self.mass) *
-                          np.sqrt(value**2+self.mass**2*c**2))
+        self.gamma = (1 / (c*self.mass) *
+                      np.sqrt(value**2+self.mass**2*c**2))
 
     @property
     def Q_x(self):
-                return np.atleast_1d(self.transverse_map.accQ_x)[-1]
+        return np.atleast_1d(self.transverse_map.accQ_x)[-1]
 
     @property
     def Q_y(self):
-                return np.atleast_1d(self.transverse_map.accQ_y)[-1]
+        return np.atleast_1d(self.transverse_map.accQ_y)[-1]
+
+    @property
+    def Q_s(self):
+        return np.atleast_1d(self.longitudinal_map.Q_s)[-1]
 
     def track(self, bunch, verbose=False):
         for m in self.one_turn_map:
@@ -122,18 +126,18 @@ class Synchrotron(Element):
         '''
         if self.longitudinal_mode == 'linear':
             check_inside_bucket = lambda z, dp: np.array(len(z)*[True])
-            Qs = self.longitudinal_map.Qs
+            Q_s = self.longitudinal_map.Q_s
         elif self.longitudinal_mode == 'non-linear':
             bucket = self.longitudinal_map.get_bucket(
                 gamma=self.gamma, mass=self.mass, charge=self.charge)
             check_inside_bucket = bucket.make_is_accepted(margin=0.05)
-            Qs = bucket.Qs
+            Q_s = bucket.Q_s
         else:
             raise NotImplementedError(
                 'Something wrong with self.longitudinal_mode')
 
         eta = self.longitudinal_map.alpha_array[0] - self.gamma**-2
-        beta_z = np.abs(eta)*self.circumference/2./np.pi/Qs
+        beta_z = np.abs(eta)*self.circumference/2./np.pi/Q_s
         sigma_dp = sigma_z/beta_z
         epsx_geo = epsn_x/self.betagamma
         epsy_geo = epsn_y/self.betagamma
@@ -329,9 +333,9 @@ class Synchrotron(Element):
         if longitudinal_mode == 'linear':
             if Q_s is None:
                 try:
-                    Q_s = self.rfbucket.Qs
+                    Q_s = self.rfbucket.Q_s
                 except AttributeError:
-                    raise AttributeError('Qs not available!')
+                    raise AttributeError('Q_s not available!')
 
             self.longitudinal_map = LinearMap(
                 np.atleast_1d(alpha_mom_compaction),
@@ -362,7 +366,8 @@ class Synchrotron(Element):
             self.one_turn_map.insert(insert_before, self.longitudinal_map)
 
 
-@deprecated('"BasicSynchrotron" will be deprecated in the near future. ' +
-            'Use "Synchrotron" instead.')
-def BasicSynchrotron(*args, **kwargs):
-    return Synchrotron(*args, **kwargs)
+class BasicSynchrotron(Synchrotron):
+    @deprecated('"--> BasicSynchrotron" will be deprecated ' +
+                'in the near future. Use "Synchrotron" instead.\n')
+    def __init__(self, *args, **kwargs):
+        Synchrotron.__init__(self, *args, **kwargs)
