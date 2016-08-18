@@ -212,7 +212,7 @@ class WakeTable(WakeSource):
             'dipole_xy':     DipoleWakeKickXY,
             'dipole_yx':     DipoleWakeKickYX,
             'quadrupole_x':  QuadrupoleWakeKickX,
-            'quadrupole_x':  QuadrupoleWakeKickY,
+            'quadrupole_y':  QuadrupoleWakeKickY,
             'quadrupole_xy': QuadrupoleWakeKickXY,
             'quadrupole_yx': QuadrupoleWakeKickYX}
 
