@@ -7,6 +7,7 @@ Provide useful conceptual classes and logics for PyHEADTAIL.
 
 from .element import Printing
 
+
 class ListProxy(Printing):
     """Is a list of object attributes. Accessing ListProxy entries
     evaluates the object attributes each time it is accessed,

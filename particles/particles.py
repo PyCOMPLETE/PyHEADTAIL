@@ -1,12 +1,10 @@
 '''
 Created on 17.10.2014
 @author: Kevin Li, Michael Schenk, Adrian Oeftiger
+@copyright CERN
 '''
-
-from abc import ABCMeta, abstractmethod
-
 import numpy as np
-from scipy.constants import c, e
+from scipy.constants import c, e, m_p
 
 from ..cobra_functions import stats as cp
 from . import Printing
@@ -15,14 +13,15 @@ arange = np.arange
 mean = np.mean
 std = cp.std
 
+
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
     Designed to describe beams, electron clouds, ... '''
 
-    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma, coords_n_momenta_dict={},
-                 *args, **kwargs):
+    def __init__(self, macroparticlenumber, particlenumber_per_mp,
+                 charge, mass, circumference, gamma, coords_n_momenta_dict={},
+                 dt = 0, *args, **kwargs):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
@@ -32,41 +31,40 @@ class Particles(Printing):
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
-        if not np.allclose(self.charge, e): #, atol=1e-24):
+        self.mass = mass
+
+        self.charge_per_mp = particlenumber_per_mp * charge
+        if not np.allclose(self.charge, e):
             self.warns('PyHEADTAIL currently features many "e" ' +
                        'in the various modules, these need to be ' +
                        'consistently replaced by "beam.charge"!')
-        self.charge_per_mp = particlenumber_per_mp * charge
-        self.mass = mass
-#         if not np.allclose(self.charge, m_p): #, atol=1e-24):
-#             self.warns('PyHEADTAIL currently features many "m_p" ' +
-#                        'in the various modules, these need to be ' +
-#                        'consistently replaced by "beam.mass"!')
+        if not np.allclose(self.charge, m_p):
+            self.warns('PyHEADTAIL currently features many "m_p" ' +
+                       'in the various modules, these need to be ' +
+                       'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
         self.gamma = gamma
+        self.dt = dt
 
         '''Dictionary of SliceSet objects which are retrieved via
-        self.get_slices(slicer) by a client. Each SliceSet is recorded
-        only once for a specific longitudinal state of Particles.
-        Any longitudinal trackers (or otherwise modifying elements)
-        should clean the saved SliceSet dictionary via
-        self.clean_slices().
+        self.get_slices(slicer) by a client. Each SliceSet is recorded only once
+        for a specific longitudinal state of Particles.  Any longitudinal
+        trackers (or otherwise modifying elements) should clean the saved
+        SliceSet dictionary via self.clean_slices().
         '''
         self._slice_sets = {}
 
-        '''Set of coordinate and momentum attributes of this Particles
-        instance.
+        '''Set of coordinate and momentum attributes of this Particles instance.
         '''
         self.coords_n_momenta = set()
 
-        '''ID of particles in order to keep track of single entries
-        in the coordinate and momentum arrays.
+        '''ID of particles in order to keep track of single entries in the coordinate
+        and momentum arrays.
         '''
         self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
 
         self.update(coords_n_momenta_dict)
-
 
     @property
     def intensity(self):
@@ -168,8 +166,8 @@ class Particles(Printing):
         '''
 
         if include_non_sliced not in ['if_any', 'always', 'never']:
-        	raise ValueError("include_non_sliced=%s is not valid!\n"%include_non_sliced+
-        					"Possible values are {'always', 'never', 'if_any'}" )
+                raise ValueError("include_non_sliced=%s is not valid!\n"%include_non_sliced+
+                                                "Possible values are {'always', 'never', 'if_any'}" )
 
         slices = self.get_slices(slicer, *args, **kwargs)
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
@@ -204,10 +202,10 @@ class Particles(Printing):
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                     mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
                 for coord in self_coords_n_momenta_dict.keys():
-                	slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+                        slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
                 slice_object.id[:] = self.id[ix]
                 slice_object.slice_info = 'unsliced'
-            	slice_object_list.append(slice_object)
+                slice_object_list.append(slice_object)
 
         return slice_object_list
 
@@ -266,7 +264,7 @@ class Particles(Printing):
 
     def __add__(self, other):
         '''Merges two beams.
-		'''
+                '''
         #print 'Checks still to be added!!!!!!'
 
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
@@ -274,8 +272,7 @@ class Particles(Printing):
 
         result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-
+                                        mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
 
         for coord in self_coords_n_momenta_dict.keys():
             #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
@@ -300,7 +297,6 @@ class Particles(Printing):
             result = self.__add__(other)
 
         return result
-
 
     # Statistics methods
 
@@ -384,5 +380,3 @@ class Particles(Printing):
 
     def gamma_Twiss_y(self):
         return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
-
-
