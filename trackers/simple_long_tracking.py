@@ -5,22 +5,38 @@
 '''
 from __future__ import division
 
-
-from abc import ABCMeta, abstractmethod
-
-import numpy as np
-from scipy.optimize import brentq
+from types import MethodType
 from scipy.constants import c
 
 from ..general.decorators import deprecated
 from . import Element, clean_slices, utils
 from rf_bucket import RFBucket, attach_clean_buckets
 
-from types import MethodType
-import weakref
+from abc import ABCMeta, abstractmethod
 
-#from ..general import pmath as pm
-import numpy as pm # as soon as pmath is in develop, replace this line with above line.
+# from ..general import pmath as pm
+import numpy as pm  # as soon as pmath is in develop, replace this line with above line.
+
+try:
+    from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
+
+    def cm_sincos(x):
+        return cm_sin(x), cm_cos(x)
+
+    sin = cm_sin
+    cos = cm_cos
+    sincos = cm_sincos
+except ImportError as e:
+    print '\n'+e.message
+    print "Falling back tp NumPy versions...\n"
+
+    def np_sincos(x):
+        return pm.sin(x), pm.cos(x)
+
+    sin = pm.sin
+    cos = pm.cos
+    sincos = np_sincos
+
 
 # @TODO
 # think about flexible design to separate numerical methods
@@ -272,7 +288,7 @@ class LongitudinalOneTurnMap(LongitudinalMap):
     def __init__(self, alpha_array, circumference, *args, **kwargs):
         """LongitudinalOneTurnMap objects know their circumference."""
         super(LongitudinalOneTurnMap, self).__init__(
-			alpha_array, *args, **kwargs)
+            alpha_array, *args, **kwargs)
         self.circumference = circumference
 
     @abstractmethod
@@ -356,7 +372,7 @@ class RFSystems(LongitudinalOneTurnMap):
         self.gamma = gamma_reference
 
         super(RFSystems, self).__init__(
-			alpha_array, circumference, *args, **kwargs)
+            alpha_array, circumference, *args, **kwargs)
 
         if not len(harmonic_list) == len(voltage_list) == len(phi_offset_list):
             self.warns("Parameter lists for RFSystems do not have the " +
@@ -367,13 +383,11 @@ class RFSystems(LongitudinalOneTurnMap):
             self.track = self.track_no_transverse_shrinking
 
         self._kicks = [Kick(alpha_array, self.circumference, h, V, dphi,
-                            D_x=D_x, D_y=D_y)
-                      for h, V, dphi in
-                      zip(harmonic_list, voltage_list, phi_offset_list)]
-        self._elements = ( [Drift(alpha_array, 0.5 * self.circumference)]
-                        + self._kicks
-                        + [Drift(alpha_array, 0.5 * self.circumference)]
-                        )
+                            D_x=D_x, D_y=D_y) for h, V, dphi in
+                       zip(harmonic_list, voltage_list, phi_offset_list)]
+        self._elements = ([Drift(alpha_array, 0.5 * self.circumference)] +
+                          self._kicks +
+                          [Drift(alpha_array, 0.5 * self.circumference)])
         self._accelerating_kick = self._kicks[0]
         self._shrinking_drift = self._elements[-1]
 
@@ -418,6 +432,7 @@ class RFSystems(LongitudinalOneTurnMap):
          clean_buckets will not be called if not using this interface.)
         """
         return self._voltages
+
     @voltages.setter
     def voltages(self, value):
         self.voltages[:] = value
@@ -430,6 +445,7 @@ class RFSystems(LongitudinalOneTurnMap):
         clean_buckets will not be called if not using this interface.)
         """
         return self._harmonics
+
     @harmonics.setter
     def harmonics(self, value):
         self.harmonics[:] = value
@@ -442,6 +458,7 @@ class RFSystems(LongitudinalOneTurnMap):
         clean_buckets will not be called if not using this interface.)
         """
         return self._phi_offsets
+
     @phi_offsets.setter
     def phi_offsets(self, value):
         self.phi_offsets[:] = value
@@ -456,6 +473,7 @@ class RFSystems(LongitudinalOneTurnMap):
          clean_buckets will not be called if not using this interface.)
         """
         return self._accelerating_kick.p_increment
+
     @p_increment.setter
     def p_increment(self, value):
         self.clean_buckets()
@@ -535,7 +553,7 @@ class RFSystems(LongitudinalOneTurnMap):
         self._rfbuckets = {}
 
     def phi_s(self, gamma, charge):
-        beta = np.sqrt(1 - gamma**-2)
+        beta = pm.sqrt(1 - gamma**-2)
         eta0 = self.eta(0, gamma)
 
         V = self._accelerating_kick.voltage
@@ -544,7 +562,7 @@ class RFSystems(LongitudinalOneTurnMap):
             return 0
 
         deltaE = self.p_increment * beta * c
-        phi_rel = np.arcsin(deltaE / (np.abs(charge) * V))
+        phi_rel = pm.arcsin(deltaE / (pm.abs(charge) * V))
 
         return phi_rel
 
@@ -575,7 +593,7 @@ class RFSystems(LongitudinalOneTurnMap):
             longMap.track(beam)
         if self.p_increment:
             self._shrink_transverse_emittance(
-                beam, np.sqrt(betagamma_old / beam.betagamma))
+                beam, pm.sqrt(betagamma_old / beam.betagamma))
             self.clean_buckets()
 
     def track_no_transverse_shrinking(self, beam):
@@ -708,7 +726,7 @@ class LinearMap(LongitudinalOneTurnMap):
         '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
-        assert (len(np.atleast_1d(Q_s)) == 1), "Q_s can only have one entry!"
+        assert (len(pm.atleast_1d(Q_s)) == 1), "Q_s can only have one entry!"
         self.Q_s = Q_s
         self.D_x = D_x
         self.D_y = D_y
@@ -725,12 +743,12 @@ class LinearMap(LongitudinalOneTurnMap):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp
         '''
-        omega_0 = 2 * np.pi * beam.beta * c / self.circumference
+        omega_0 = 2 * pm.pi * beam.beta * c / self.circumference
         omega_s = self.Q_s * omega_0
 
-        dQ_s = 2 * np.pi * self.Q_s
-        cosdQ_s = np.cos(dQ_s)  # use np because dQ_s is always a scalar
-        sindQ_s = np.sin(dQ_s)  # use np because dQ_s is always a scalar
+        dQ_s = 2 * pm.pi * self.Q_s
+        cosdQ_s = pm.cos(dQ_s)  # use np because dQ_s is always a scalar
+        sindQ_s = pm.sin(dQ_s)  # use np because dQ_s is always a scalar
 
         z0 = beam.z
         dp0 = beam.dp

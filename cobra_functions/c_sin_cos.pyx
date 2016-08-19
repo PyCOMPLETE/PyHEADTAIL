@@ -13,7 +13,7 @@ cimport numpy as np
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(False)
-def sin(double[::1] x):
+def cm_sin(double[::1] x):
 
     cdef int i
     cdef int n = x.shape[0]
@@ -28,7 +28,7 @@ def sin(double[::1] x):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(False)
-def cos(double[::1] x):
+def cm_cos(double[::1] x):
 
     cdef int i
     cdef int n = x.shape[0]

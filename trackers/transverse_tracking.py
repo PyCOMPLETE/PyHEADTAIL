@@ -9,16 +9,21 @@ from __future__ import division
 import numpy as np
 
 try:
-    from ..cobra_functions.vdt_sin_cos import vdt_sin, vdt_cos, vdt_sincos
-    sin = vdt_sin
-    cos = vdt_cos
-    sincos = vdt_sincos
+    from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
+
+    def cm_sincos(x):
+        return cm_sin(x), cm_cos(x)
+
+    sin = cm_sin
+    cos = cm_cos
+    sincos = cm_sincos
 except ImportError as e:
     print '\n'+e.message
     print "Falling back tp NumPy versions...\n"
 
     def np_sincos(x):
         return np.sin(x), np.cos(x)
+
     sin = np.sin
     cos = np.cos
     sincos = np_sincos

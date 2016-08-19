@@ -90,10 +90,10 @@ cy_ext = [
               ["aperture/aperture.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"]),
-    Extension("cobra_functions.vdt_sin_cos",
-              ["cobra_functions/vdt_sin_cos.pyx"],
-              include_dirs=[np.get_include(), 'cobra_functions/vdt'],
-              library_dirs=[], libraries=["m"], language='c++',
+    Extension("cobra_functions.c_sin_cos",
+              ["cobra_functions/c_sin_cos.pyx"],
+              include_dirs=[np.get_include()],
+              library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
 ]
 
