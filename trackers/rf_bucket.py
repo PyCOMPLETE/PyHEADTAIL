@@ -237,7 +237,12 @@ class RFBucket(Printing):
         return np.abs(self.eta0 * self.R / self.Q_s)
 
     @property
+    @deprecated('--> Use Q_s instead!')
     def Qs(self):
+        return self.Q_s
+
+    @property
+    def Q_s(self):
         """Synchrotron tunes for small amplitudes i.e., in the center of the bucket.
 
         """
