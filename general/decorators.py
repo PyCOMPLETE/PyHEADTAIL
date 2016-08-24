@@ -16,9 +16,10 @@ def deprecated(message):
         @wraps(func)
         def deprecated_wrapper(*args, **kwargs):
             warnings.simplefilter('always', DeprecationWarning)
-            warnings.warn('Function "{:s}" '.format(func.__name__) +
-                          'is deprecated and will be replaced in the ' +
-                          'near future.',
+            warnings.warn('\n\n*** DEPRECATED function: ' +
+                          '"{:s}" '.format(func.__name__) +
+                          'will be replaced in one of the future ' +
+                          'PyHEADTAIL releases!',
                           category=DeprecationWarning, stacklevel=2)
             warnings.simplefilter('default', DeprecationWarning)
             print message

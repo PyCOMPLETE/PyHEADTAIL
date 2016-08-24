@@ -210,22 +210,8 @@ class Synchrotron(Element):
             Qp_x=None, Qp_y=None, app_x=None, app_y=None, app_xy=None,
             other_detuners=None, use_cython=None):
 
-        if use_cython:
-            try:
-                from PyHEADTAIL.trackers.transverse_tracking_cython import TransverseMap
-                from PyHEADTAIL.trackers.detuners_cython import (Chromaticity, AmplitudeDetuning)
-            except ImportError as e:
-                print ("*** Warning: could not import cython variants " +
-                       "of trackers, did you cythonize (use the following " +
-                       "command)?\n" +
-                       "$ make \n"
-                       "Falling back to (slower) python version.")
-                from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-                from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
-        else:
-            "Transverse tracking: forcing python implementation."
-            from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-            from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
+        from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
+        from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 
         if optics_mode == 'smooth':
             if circumference is None:
@@ -245,6 +231,7 @@ class Synchrotron(Element):
             alpha_y = 0.*s
             beta_y = 0.*s+beta_y
             D_y = 0.*s+D_y
+
         elif optics_mode == 'non-smooth':
             if circumference is not None:
                 raise ValueError('circumference should not be provided ' +
@@ -255,6 +242,7 @@ class Synchrotron(Element):
             if s is None:
                 raise ValueError('s has to be specified ' +
                                  'if optics_mode = "smooth"')
+
         else:
             raise ValueError('optics_mode not recognized')
 

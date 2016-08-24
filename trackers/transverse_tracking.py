@@ -180,8 +180,8 @@ class TransverseSegmentMap(Element):
         dphi_x *= 2.*np.pi
         dphi_y *= 2.*np.pi
 
-        s_dphi_x, c_dphi_x = sincos(dphi_x)
-        s_dphi_y, c_dphi_y = sincos(dphi_y)
+        s_dphi_x, c_dphi_x = sincos(np.atleast_1d(dphi_x))
+        s_dphi_y, c_dphi_y = sincos(np.atleast_1d(dphi_y))
         # c_dphi_x = cos(dphi_x)
         # c_dphi_y = cos(dphi_y)
         # s_dphi_x = sin(dphi_x)
