@@ -94,6 +94,11 @@ cy_ext = [
               ["cobra_functions/c_sin_cos.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
+              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
+    Extension("cobra_functions.interp_sin_cos",
+              ["cobra_functions/interp_sin_cos.pyx"],
+              include_dirs=[np.get_include()],
+              library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
 ]
 
