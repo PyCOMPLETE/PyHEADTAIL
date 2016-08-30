@@ -197,7 +197,7 @@ class ParticleGenerator(Printing):
     The Particle instance can be generated via the .generate() method
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma,
+                 circumference, gamma, bunch_id=0,
                  distribution_x=None, alpha_x=0., beta_x=1., D_x=None,
                  distribution_y=None, alpha_y=0., beta_y=1., D_y=None,
                  distribution_z=None, Qs=None, eta=None,
@@ -233,6 +233,7 @@ class ParticleGenerator(Printing):
         self.mass = mass
         self.circumference = circumference
         self.gamma = gamma
+        self.bunch_id = bunch_id
         # bind the generator methods and parameters for the matching
         self.distribution_x = distribution_x
         self.distribution_y = distribution_y
@@ -257,7 +258,8 @@ class ParticleGenerator(Printing):
                               self.intensity/self.macroparticlenumber,
                               self.charge, self.mass, self.circumference,
                               self.gamma,
-                              coords_n_momenta_dict=coords)
+                              coords_n_momenta_dict=coords,
+                              bunch_id=self.bunch_id)
         self._linear_match_phase_space(particles)
         return particles
 

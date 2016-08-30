@@ -15,17 +15,18 @@ std = cp.std
 
 
 class Particles(Printing):
-    '''Contains the basic properties of a particle ensemble with
-    their coordinate and conjugate momentum arrays, energy and the like.
-    Designed to describe beams, electron clouds, ... '''
+    '''Contains the basic properties of a particle ensemble with their generalized
+    coordinate and canonically conjugate momentum arrays, energy and the like.
+
+    '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma, coords_n_momenta_dict={},
+                 mass, circumference, gamma, coords_n_momenta_dict={}, bunch_id=0,
                  *args, **kwargs):
-        '''The dictionary coords_n_momenta_dict contains the coordinate
-        and conjugate momenta names and assigns to each the
-        corresponding array.
-        e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
+        '''The dictionary coords_n_momenta_dict contains the coordinate and conjugate
+        momenta names and assigns to each the corresponding array.  e.g.:
+        coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
+
         '''
         self.macroparticlenumber = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
@@ -34,23 +35,24 @@ class Particles(Printing):
         self.mass = mass
 
         self.charge_per_mp = particlenumber_per_mp * charge
-        if not np.allclose(self.charge, e):
-            self.warns('PyHEADTAIL currently features many "e" ' +
-                       'in the various modules, these need to be ' +
-                       'consistently replaced by "beam.charge"!')
-        if not np.allclose(self.charge, m_p):
-            self.warns('PyHEADTAIL currently features many "m_p" ' +
-                       'in the various modules, these need to be ' +
-                       'consistently replaced by "beam.mass"!')
+        # if not np.allclose(self.charge, e):
+        #     self.warns('PyHEADTAIL currently features many "e" ' +
+        #                'in the various modules, these need to be ' +
+        #                'consistently replaced by "beam.charge"!')
+        # if not np.allclose(self.charge, m_p):
+        #     self.warns('PyHEADTAIL currently features many "m_p" ' +
+        #                'in the various modules, these need to be ' +
+        #                'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
         self.gamma = gamma
 
         '''Dictionary of SliceSet objects which are retrieved via
-        self.get_slices(slicer) by a client. Each SliceSet is recorded only once
-        for a specific longitudinal state of Particles.  Any longitudinal
+        self.get_slices(slicer) by a client. Each SliceSet is recorded only
+        once for a specific longitudinal state of Particles. Any longitudinal
         trackers (or otherwise modifying elements) should clean the saved
         SliceSet dictionary via self.clean_slices().
+
         '''
         self._slice_sets = {}
 
@@ -60,14 +62,19 @@ class Particles(Printing):
 
         '''ID of particles in order to keep track of single entries in the coordinate
         and momentum arrays.
+
         '''
         self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
+
+        self.bunch_id = np.ones(
+            self.macroparticlenumber, dtype=np.int32) * bunch_id
 
         self.update(coords_n_momenta_dict)
 
     @property
     def intensity(self):
         return self.particlenumber_per_mp * self.macroparticlenumber
+
     @intensity.setter
     def intensity(self, value):
         self.particlenumber_per_mp = value / float(self.macroparticlenumber)
@@ -75,6 +82,7 @@ class Particles(Printing):
     @property
     def gamma(self):
         return self._gamma
+
     @gamma.setter
     def gamma(self, value):
         self._gamma = value
@@ -85,6 +93,7 @@ class Particles(Printing):
     @property
     def beta(self):
         return self._beta
+
     @beta.setter
     def beta(self, value):
         self.gamma = 1. / np.sqrt(1 - value ** 2)
@@ -92,6 +101,7 @@ class Particles(Printing):
     @property
     def betagamma(self):
         return self._betagamma
+
     @betagamma.setter
     def betagamma(self, value):
         self.gamma = np.sqrt(value**2 + 1)
@@ -99,6 +109,7 @@ class Particles(Printing):
     @property
     def p0(self):
         return self._p0
+
     @p0.setter
     def p0(self, value):
         self.gamma = np.sqrt(1 + (value / (self.mass * c))**2)
@@ -106,6 +117,7 @@ class Particles(Printing):
     @property
     def z_beamframe(self):
         return self.z * self.gamma
+
     @z_beamframe.setter
     def z_beamframe(self, value):
         self.z = value / self.gamma
@@ -147,26 +159,24 @@ class Particles(Printing):
         #                               kwargs['statistics'])
         return self._slice_sets[slicer]
 
+    def extract_slices(self, slicer, include_non_sliced='if_any',
+                       reference=False, *args, **kwargs):
+        '''Return a list Particles object with the different slices.  The last element
+        of the list contains particles not assigned to any slice.
 
-    def extract_slices(self, slicer, include_non_sliced='if_any', *args, **kwargs):
-        '''Return a list Particles object with the different slices.
-        The last element of the list contains particles not assigned to any slice.
+        include_non_sliced : {'always', 'never', 'if_any'}, optional 'always':
+        extra element in the list with particles not belonging to any slice is
+        always inserted (it can be empty).  'never': extra element in the list
+        with particles not belonging to any slice is never inserted.  'if_any':
+        extra element in the list with particles not belonging to any slice is
+        inserted only if such particles exist.
 
-        include_non_sliced : {'always', 'never', 'if_any'}, optional
-        'always':
-          extra element in the list with particles not belonging to any slice
-          is always inserted (it can be empty).
-        'never':
-          extra element in the list with particles not belonging to any slice
-          is never inserted.
-        'if_any':
-          extra element in the list with particles not belonging to any slice
-          is inserted only if such particles exist.
         '''
 
         if include_non_sliced not in ['if_any', 'always', 'never']:
-        	raise ValueError("include_non_sliced=%s is not valid!\n"%include_non_sliced+
-        					"Possible values are {'always', 'never', 'if_any'}" )
+            raise ValueError("include_non_sliced={:s} is not valid!\n".format(
+                include_non_sliced) +
+                "Possible values are {'always', 'never', 'if_any'}")
 
         slices = self.get_slices(slicer, *args, **kwargs)
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
@@ -177,31 +187,40 @@ class Particles(Printing):
             ix = slices.particle_indices_of_slice(i_sl)
             macroparticlenumber = len(ix)
 
-            slice_object = Particles(macroparticlenumber=macroparticlenumber,
-                particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-                mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-
-            for coord in self_coords_n_momenta_dict.keys():
-                slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+            slice_object = Particles(
+                macroparticlenumber=macroparticlenumber,
+                particlenumber_per_mp=self.particlenumber_per_mp,
+                charge=self.charge, mass=self.mass, gamma=self.gamma,
+                circumference=self.circumference, coords_n_momenta_dict={})
+            for coord, array in self_coords_n_momenta_dict.items():
+                if not reference:
+                    slice_object.update({coord: array[ix]})
+                else:
+                    slice_object.reference({coord: array[ix]})
 
             slice_object.id[:] = self.id[ix]
-
-            slice_object.slice_info = {\
-                    'z_bin_center': slices.z_centers[i_sl],\
-                    'z_bin_right':slices.z_bins[i_sl+1],\
-                    'z_bin_left':slices.z_bins[i_sl]}
+            slice_object.slice_info = {
+                'z_bin_center': slices.z_centers[i_sl],
+                'z_bin_right': slices.z_bins[i_sl+1],
+                'z_bin_left': slices.z_bins[i_sl]}
 
             slice_object_list.append(slice_object)
 
         # handle unsliced
         if include_non_sliced is not 'never':
             ix = slices.particles_outside_cuts
-            if len(ix)>0 or include_non_sliced is 'always':
-                slice_object = Particles(macroparticlenumber=len(ix),
-                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-                    mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-                for coord in self_coords_n_momenta_dict.keys():
-                        slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+            if len(ix) > 0 or include_non_sliced is 'always':
+                slice_object = Particles(
+                    macroparticlenumber=len(ix),
+                    particlenumber_per_mp=self.particlenumber_per_mp,
+                    charge=self.charge, mass=self.mass, gamma=self.gamma,
+                    circumference=self.circumference, coords_n_momenta_dict={})
+                for coord, array in self_coords_n_momenta_dict.items():
+                    if not reference:
+                        slice_object.update({coord: array[ix]})
+                    else:
+                        slice_object.reference({coord: array[ix]})
+
                 slice_object.id[:] = self.id[ix]
                 slice_object.slice_info = 'unsliced'
                 slice_object_list.append(slice_object)
@@ -229,6 +248,21 @@ class Particles(Printing):
             setattr(self, coord, array.copy())
         self.coords_n_momenta.update(coords_n_momenta_dict.keys())
 
+    def reference(self, coords_n_momenta_dict):
+        '''Assigns the keys of the dictionary coords_n_momenta_dict as attributes to
+        this Particles instance and puts references to the corresponding
+        values. Attention: overwrites existing coordinate / momentum
+        attributes.
+
+        '''
+        if any(len(v) != self.macroparticlenumber for v in
+               coords_n_momenta_dict.values()):
+            raise ValueError("lengths of given phase space coordinate arrays" +
+                             " do not coincide with self.macroparticlenumber.")
+        for coord, array in coords_n_momenta_dict.items():
+            setattr(self, coord, array)
+        self.coords_n_momenta.update(coords_n_momenta_dict.keys())
+
     def add(self, coords_n_momenta_dict):
         '''Add the coordinates and momenta with their according arrays
         to the attributes of the Particles instance (via
@@ -241,6 +275,20 @@ class Particles(Printing):
                              " momenta already exist and cannot be added." +
                              " Use self.update(...) for this purpose.")
         self.update(coords_n_momenta_dict)
+
+    def split(self):
+        ids = set(self.bunch_id)
+        ix = [self.bunch_id == id for id in ids]
+        bunches_list = [Particles(
+            self.macroparticlenumber/len(ids), self.charge_per_mp,
+            self.charge, self.mass, self.gamma,
+            self.circumference,
+            coords_n_momenta_dict={
+                coord: array[ix[i]]
+                for coord, array in self.get_coords_n_momenta_dict().items()},
+            bunch_id=id) for i, id in enumerate(ids)]
+
+        return bunches_list
 
     def sort_for(self, attr):
         '''Sort the named particle attribute (coordinate / momentum)
@@ -278,7 +326,10 @@ class Particles(Printing):
             #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
             result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
 
-        result.id = np.concatenate((self.id.copy(), other.id.copy()))
+        result.id = np.concatenate(
+            (self.id.copy(), other.id.copy()))
+        result.bunch_id = np.concatenate(
+            (self.bunch_id.copy(), other.bunch_id.copy()))
 
         return result
 
@@ -380,5 +431,3 @@ class Particles(Printing):
 
     def gamma_Twiss_y(self):
         return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
-
-

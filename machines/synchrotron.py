@@ -38,10 +38,10 @@ class BasicSynchrotron(Element):
             self._construct_longitudinal_map(alpha_mom_compaction=alpha_mom_compaction, longitudinal_mode=longitudinal_mode, Q_s=Q_s,
                                 h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment, RF_at=RF_at)
 
-            # add longitudinal wrapper and buncher        
+            # add longitudinal wrapper and buncher
             if wrap_z:
                 self._add_wrapper_and_buncher()
-            
+
 
             if verbose:
                 from pprint import pprint
@@ -102,7 +102,7 @@ class BasicSynchrotron(Element):
         self.one_turn_map = one_turn_map_new
 
     def generate_6D_Gaussian_bunch(self, n_macroparticles, intensity,
-                                   epsn_x, epsn_y, sigma_z):
+                                   epsn_x, epsn_y, sigma_z, bunch_id=0):
         '''Generate a 6D Gaussian distribution of particles which is
         transversely matched to the Synchrotron. Longitudinally, the
         distribution is matched only in terms of linear focusing.
@@ -136,14 +136,14 @@ class BasicSynchrotron(Element):
                                      circumference=self.circumference, gamma=self.gamma,
                                      distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
                                      distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-                                     distribution_z = generators.cut_distribution(generators.gaussian2D_asymmetrical(sigma_u=sigma_z, sigma_up=sigma_dp),is_accepted=check_inside_bucket),
+                                     distribution_z = generators.cut_distribution(generators.gaussian2D_asymmetrical(sigma_u=sigma_z, sigma_up=sigma_dp),is_accepted=check_inside_bucket), bunch_id=bunch_id
                                      ).generate()
 
         return bunch
 
     def generate_6D_Gaussian_bunch_matched(
             self, n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z=None, epsn_z=None):
+            sigma_z=None, epsn_z=None, bunch_id=0):
         '''Generate a 6D Gaussian distribution of particles which is
         transversely as well as longitudinally matched.
         The distribution is found iteratively to exactly yield the
@@ -166,7 +166,7 @@ class BasicSynchrotron(Element):
                                      circumference=self.circumference, gamma=self.gamma,
                                      distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
                                      distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-                                     distribution_z = generators.RF_bucket_distribution(self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z),
+                                             distribution_z = generators.RF_bucket_distribution(self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z), bunch_id=bunch_id,
                                      ).generate()
 
         return bunch
@@ -318,3 +318,28 @@ class BasicSynchrotron(Element):
             self.one_turn_map.append(self.longitudinal_map)
         else:
             self.one_turn_map.insert(insert_before, self.longitudinal_map)
+
+    def _add_wrapper_and_buncher(self):
+
+        if self.longitudinal_mode is None:
+            return
+
+        elif self.longitudinal_mode == 'linear':
+            raise ValueError('Not implemented!!!!')
+
+        elif self.longitudinal_mode == 'non-linear':
+            bucket = self.longitudinal_map.get_bucket(
+                gamma=self.gamma, mass=self.mass, charge=self.charge)
+            harmonic = bucket.h[0]
+            bucket_length = self.circumference/harmonic
+            z_beam_center = (bucket.z_ufp_separatrix +
+                             bucket_length - self.circumference/2.)
+            self.z_wrapper = LongWrapper(circumference=self.circumference,
+                                         z0=z_beam_center)
+            self.one_turn_map.append(self.z_wrapper)
+            self.buncher = UniformBinSlicer(
+                harmonic, z_cuts=(self.z_wrapper.z_min,  self.z_wrapper.z_max))
+
+        else:
+            raise NotImplementedError(
+                'Something wrong with longitudinal_mode')
