@@ -74,3 +74,12 @@ class ListProxy(Printing):
         '''Remove the object from the internal list and return the
         corresponding attribute, analogous to list.pop .'''
         return getattr(self._list_of_objects.pop(index), self._attr_name)
+
+
+class MutableNumber(object):
+    """Documentation for MutableNumber
+
+    """
+    def __init__(self, value):
+        super(MutableNumber, self).__init__()
+        self.value = value

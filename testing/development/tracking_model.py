@@ -1,4 +1,5 @@
 import numpy as np
+from PyHEADTAIL.general.utils import ListProxy
 from scipy.constants import c
 
 from abc import ABCMeta, abstractmethod
@@ -91,10 +92,33 @@ class Octupoles(Detuner):
 
     """
     def __init__(self, ap_x, ap_y, ap_xy):
-        super(Octupoles, self).__init__()
-        self.ap_x = ap_x
-        self.ap_y = ap_y
-        self.ap_xy = ap_xy
+        super(Octupoles, self).__init__('args')
+        self._ap_x = [ap_x]
+        self._ap_y = [ap_y]
+        self._ap_xy = [ap_xy]
+
+        # self._ap_x = ListProxy(self, "ap_x")
+
+    @property
+    def ap_x(self):
+        return self._ap_x[0]
+
+    @ap_x.setter
+    def ap_x(self, value):
+        self._ap_x[0] = value
+
+    def ap_y():
+        doc = """Doc string"""
+        def fget(self):
+            return self._ap_y[0]
+
+        def fset(self, value):
+            self._ap_y[0] = value
+
+        def fdel(self):
+            del self._ap_y
+        return locals()
+    ap_y = property(**ap_y())
 
     def generate(self, arg):
         self.arg = arg
