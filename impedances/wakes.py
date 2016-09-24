@@ -1,15 +1,16 @@
 """.. copyright:: CERN"""
 from __future__ import division
 
-from abc import ABCMeta, abstractmethod
-
 import numpy as np
+from mpi4py import MPI
+from scipy.constants import c
 from collections import deque
 from scipy.interpolate import interp1d
-from scipy.constants import c
 
 from wake_kicks import *
 from . import Element, Printing
+
+from abc import ABCMeta, abstractmethod
 
 sin = np.sin
 cos = np.cos
@@ -33,13 +34,15 @@ class WakeField(Element):
 
     """
 
-    def __init__(self, slicer, wake_sources_list, circumference=0):
-        """Collects slicer and wake sources.
+    def __init__(self, slicer, wake_sources_list, circumference=0, comm=None):
+        """Stores slicer and wake sources list and manages wake history.
 
-        Exactly one instance of the Slicer class must be passed to the
-        WakeField constructor. All the wake field components (kicks) hence use
-        the same slicing and thus the same slice_set to calculate the strength
-        of the kicks.
+        Obtains a slicer and a wake sources list. Owns a slice set deque of
+        maximum length of wake sources list wake.
+
+        Parallel version obtains a communicator.
+
+        At each turn...
 
         Accepts a list of WakeSource objects. Each WakeSource object knows how
         to generate its corresponding WakeKick objects. The collection of all
@@ -49,11 +52,6 @@ class WakeField(Element):
         returned WakeKick lists are all stored in the WakeField.wake_kicks
         list. The WakeField itself forgets about the origin (WakeSource) of the
         kicks as soon as they have been generated.
-
-        To calculate the contributions from multiturn wakes, the longitudinal
-        beam distributions (SliceSet instances) are archived in a deque. In
-        parallel at each track call, the age attribute of a slice set is
-        updated to keep track of the age of each of the SliceSet instances.
 
         Args:
 
@@ -71,12 +69,8 @@ class WakeField(Element):
         """
         self.slicer = slicer
         wake_sources_list = np.atleast_1d(wake_sources_list)
-
-        # Assemble from all wake sources all wake kicks
-        self.wake_kicks = []
-        for source in wake_sources_list:
-            kicks = source.get_wake_kicks(self.slicer)
-            self.wake_kicks.extend(kicks)
+        self.wake_kicks = [source.get_wake_kicks(self.slicer)
+                           for source in wake_sources_list][0]
 
         # Prepare the slice sets register ([turns, bunches])
         n_turns_wake_max = max([source.n_turns_wake
@@ -88,8 +82,59 @@ class WakeField(Element):
                 "Circumference must be provided for multi turn wakes!")
         self.circumference = circumference
 
-    def track(self, bunches):
+        self.comm = comm
+
+        # try:
+        #     self.n_bunches = len(list(chain(*filling_scheme)))
+        # except TypeError:
+        #     self.n_bunches = len(filling_scheme)
+        # # self.n_bunches = len([a for b in filling_scheme for a in b])
+        # self.register = None
+        # if self.comm.rank == 0:
+        #     self.register = np.zeros((self.n_bunches * (2+2*slicer.n_slices)))
+
+    def _get_slice_data(self, bunches_list):
+        '''Helper function to obtain relevant slice data from a bunches list for the
+        wake kick computation. Slice set data is organised in a slice data
+        buffer containing age, beta, centers and moments (zero, first in x,
+        first in y).
+
+        '''
+        slice_set_list = [b.get_slices(self.slicer,
+                                       statistics=['mean_x', 'mean_y'])
+                          for b in bunches_list]
+
+        # Buffer with slice data
+        n_bunches = len(slice_set_list)
+        n_slices = self.slicer.n_slices
+        stride = 2 + 4*n_slices
+        slice_data_buffer = np.zeros(stride * n_bunches)
+
+        for i, b in enumerate(slice_set_list):
+            slice_data_buffer[i*stride] = b.age
+            slice_data_buffer[i*stride + 1] = b.beta
+            slice_data_buffer[
+                i*stride+2 + 0*n_slices:i*stride+2 + 1*n_slices] = (
+                    b.convert_to_time(b.z_centers))
+            slice_data_buffer[
+                i*stride+2 + 1*n_slices:i*stride+2 + 2*n_slices] = (
+                    b.n_macroparticles_per_slice)
+            slice_data_buffer[
+                i*stride+2 + 2*n_slices:i*stride+2 + 3*n_slices] = (
+                    b.n_macroparticles_per_slice*b.mean_x)
+            slice_data_buffer[
+                i*stride+2 + 3*n_slices:i*stride+2 + 4*n_slices] = (
+                    b.n_macroparticles_per_slice*b.mean_y)
+
+        return slice_data_buffer
+
+    def track(self, beam):
         """Update macroparticle momenta according to wake kick.
+
+        First, splits up beam into a set of bunches which can be individually
+        sliced. Extracts slice data and send all slice data to the register on
+        master. 
+
 
         The function iterates through all bunches in the list and calls the
         WakeKick.apply(bunch, slice_set) method of each of the WakeKick objects
@@ -108,21 +153,41 @@ class WakeField(Element):
             bunches: A bunch/beam or a list of bunches.
 
         """
+        rank = self.comm.rank
+        n_slices = self.slicer.n_slices
+        stride = 2 + 5*n_slices
 
-        bunches = np.atleast_1d(bunches)
+        bunches_list = beam.split()
+        n_bunches_counts = self.comm.allgather(len(bunches_list))
+        n_bunches_offsets = np.cumsum(n_bunches_counts)
+        n_bunches_total = sum(n_bunches_counts)
 
-        # Get beta, and update ages for first bunch in list is sufficient
-        beta = bunches[0].beta
-        for i, t in enumerate(self.slice_set_deque):
-            t[0].age += self.circumference/(beta*c)
+        slice_data = self._get_slice_data(bunches_list)
+        slice_data_counts = self.comm.allgather(len(slice_data))
+        slice_data_offsets = np.insert(
+            np.cumsum(slice_data_counts), 0, 0)[:-1]
 
-        slice_set = [b.get_slices(self.slicer,
-                                  statistics=['mean_x', 'mean_y'])
-                     for b in bunches]
-        self.slice_set_deque.appendleft(slice_set)
+        register = None
+        if rank == 0:
+            register = np.zeros((stride * n_bunches_total))
+        self.comm.Gatherv(
+            [slice_data, len(slice_data), MPI.DOUBLE],
+            [register, slice_data_counts, slice_data_offsets, MPI.DOUBLE],
+            root=0)
 
-        for kick in self.wake_kicks:
-            kick.apply(bunches, self.slice_set_deque)
+        if rank == 0:
+            # Update ages of bunches in slice_set_deque
+            for i, t in enumerate(self.slice_set_deque):
+                for j, b in enumerate(t):
+                    beta = b[0]
+                    age = self.circumference/(beta*c)
+                    b[1] += age
+
+            self.slice_set_deque.appendleft(
+                np.reshape(register, (n_bunches_total, stride)))
+
+        # for kick in self.wake_kicks:
+        #     kick.apply(bunches_list, self.slice_set_deque)
 
 
 # ==============================================================================
@@ -212,7 +277,7 @@ class WakeTable(WakeSource):
             'dipole_xy':     DipoleWakeKickXY,
             'dipole_yx':     DipoleWakeKickYX,
             'quadrupole_x':  QuadrupoleWakeKickX,
-            'quadrupole_x':  QuadrupoleWakeKickY,
+            'quadrupole_y':  QuadrupoleWakeKickY,
             'quadrupole_xy': QuadrupoleWakeKickXY,
             'quadrupole_yx': QuadrupoleWakeKickYX}
 
@@ -266,15 +331,14 @@ class WakeTable(WakeSource):
                 return interp1d(time, wake_strength)(-dt)
             self.prints(wake_component +
                         ' Assuming ultrarelativistic wake.')
-
         elif (time[0] < 0):
             def wake(dt, *args, **kwargs):
                 return interp1d(time, wake_strength)(-dt)
             self.prints(wake_component + ' Found low beta wake.')
-
         else:
             raise ValueError(wake_component +
                              ' does not meet requirements.')
+
         return wake
 
     def function_longitudinal(self):
@@ -308,6 +372,7 @@ class WakeTable(WakeSource):
             else:
                 raise ValueError('Longitudinal wake component does not meet' +
                                  ' requirements.')
+
         return wake
 
     def _is_provided(self, wake_component):
