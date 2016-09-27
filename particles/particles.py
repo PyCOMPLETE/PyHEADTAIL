@@ -4,7 +4,7 @@ Created on 17.10.2014
 @copyright CERN
 '''
 import numpy as np
-from scipy.constants import c, e, m_p
+from scipy.constants import c, e
 
 from ..cobra_functions import stats as cp
 from . import Printing
@@ -21,8 +21,8 @@ class Particles(Printing):
     '''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma, coords_n_momenta_dict={}, bunch_id=0,
-                 *args, **kwargs):
+                 mass, circumference, gamma, coords_n_momenta_dict={},
+                 bunch_id=0, **kwargs):
         '''The dictionary coords_n_momenta_dict contains the coordinate and conjugate
         momenta names and assigns to each the corresponding array.  e.g.:
         coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
@@ -31,21 +31,12 @@ class Particles(Printing):
         self.macroparticlenumber = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
 
-        self.charge = charge
         self.mass = mass
+        self.gamma = gamma
+        self.charge = charge
 
         self.charge_per_mp = particlenumber_per_mp * charge
-        # if not np.allclose(self.charge, e):
-        #     self.warns('PyHEADTAIL currently features many "e" ' +
-        #                'in the various modules, these need to be ' +
-        #                'consistently replaced by "beam.charge"!')
-        # if not np.allclose(self.charge, m_p):
-        #     self.warns('PyHEADTAIL currently features many "m_p" ' +
-        #                'in the various modules, these need to be ' +
-        #                'consistently replaced by "beam.mass"!')
-
         self.circumference = circumference
-        self.gamma = gamma
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded only
@@ -57,6 +48,7 @@ class Particles(Printing):
         self._slice_sets = {}
 
         '''Set of coordinate and momentum attributes of this Particles instance.
+
         '''
         self.coords_n_momenta = set()
 
@@ -65,16 +57,19 @@ class Particles(Printing):
 
         '''
         self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
-
         self.bunch_id = np.ones(
             self.macroparticlenumber, dtype=np.int32) * bunch_id
 
         self.update(coords_n_momenta_dict)
 
+        z_delay = kwargs.pop('z_delay', None)
+        if z_delay and hasattr(self, 'z'):
+            self.z += -self.mean_z()
+            self.z += z_delay
+
     @property
     def intensity(self):
         return self.particlenumber_per_mp * self.macroparticlenumber
-
     @intensity.setter
     def intensity(self, value):
         self.particlenumber_per_mp = value / float(self.macroparticlenumber)
@@ -82,7 +77,6 @@ class Particles(Printing):
     @property
     def gamma(self):
         return self._gamma
-
     @gamma.setter
     def gamma(self, value):
         self._gamma = value
@@ -93,7 +87,6 @@ class Particles(Printing):
     @property
     def beta(self):
         return self._beta
-
     @beta.setter
     def beta(self, value):
         self.gamma = 1. / np.sqrt(1 - value ** 2)
@@ -101,7 +94,6 @@ class Particles(Printing):
     @property
     def betagamma(self):
         return self._betagamma
-
     @betagamma.setter
     def betagamma(self, value):
         self.gamma = np.sqrt(value**2 + 1)
@@ -109,7 +101,6 @@ class Particles(Printing):
     @property
     def p0(self):
         return self._p0
-
     @p0.setter
     def p0(self, value):
         self.gamma = np.sqrt(1 + (value / (self.mass * c))**2)
@@ -117,10 +108,17 @@ class Particles(Printing):
     @property
     def z_beamframe(self):
         return self.z * self.gamma
-
     @z_beamframe.setter
     def z_beamframe(self, value):
         self.z = value / self.gamma
+
+    @property
+    def t_delay(self):
+        return self.mean_z()/self.beta/c
+    @t_delay.setter
+    def t_delay(self, value):
+        self.z += -self.mean_z()
+        self.z += value * self.beta * c
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -317,8 +315,9 @@ class Particles(Printing):
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
 
-        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
-                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+        result = Particles(
+            macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
+            particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
 					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
 
 
@@ -336,14 +335,18 @@ class Particles(Printing):
     def __radd__(self, other):
         if other==0:
             self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
-            result = Particles(macroparticlenumber=self.macroparticlenumber,
-                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-                    mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+            result = Particles(
+                macroparticlenumber=self.macroparticlenumber,
+                particlenumber_per_mp=self.particlenumber_per_mp,
+                charge=self.charge, mass=self.mass, gamma=self.gamma,
+                circumference=self.circumference,
+                coords_n_momenta_dict={})
 
             for coord in self_coords_n_momenta_dict.keys():
-                #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
+                # setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
                 result.update({coord: self_coords_n_momenta_dict[coord].copy()})
             result.id = self.id.copy()
+            result.bunch_id = self.bunch_id.copy()
         else:
             result = self.__add__(other)
 

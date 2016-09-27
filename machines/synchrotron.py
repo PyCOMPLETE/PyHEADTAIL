@@ -29,19 +29,27 @@ class BasicSynchrotron(Element):
             self.one_turn_map = []
 
             # construct transverse map
-            self._construct_transverse_map(optics_mode=optics_mode, circumference=circumference, n_segments=n_segments, s=s, name=name,
-                alpha_x=alpha_x, beta_x=beta_x, D_x=D_x, alpha_y=alpha_y, beta_y=beta_y, D_y=D_y,
-                accQ_x=accQ_x, accQ_y=accQ_y, Qp_x=Qp_x, Qp_y=Qp_y, app_x=app_x, app_y=app_y, app_xy=app_xy, other_detuners=other_detuners,
+            self._construct_transverse_map(
+                optics_mode=optics_mode, circumference=circumference,
+                n_segments=n_segments,
+                s=s, name=name,
+                alpha_x=alpha_x, beta_x=beta_x, D_x=D_x,
+                alpha_y=alpha_y, beta_y=beta_y, D_y=D_y,
+                accQ_x=accQ_x, accQ_y=accQ_y, Qp_x=Qp_x, Qp_y=Qp_y,
+                app_x=app_x, app_y=app_y, app_xy=app_xy, other_detuners=other_detuners,
                 use_cython=use_cython)
 
             # construct longitudinal map
-            self._construct_longitudinal_map(alpha_mom_compaction=alpha_mom_compaction, longitudinal_mode=longitudinal_mode, Q_s=Q_s,
-                                h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment, RF_at=RF_at)
+            self._construct_longitudinal_map(
+                alpha_mom_compaction=alpha_mom_compaction,
+                longitudinal_mode=longitudinal_mode,
+                Q_s=Q_s,
+                h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF,
+                p_increment=p_increment, RF_at=RF_at)
 
             # add longitudinal wrapper and buncher
             if wrap_z:
                 self._add_wrapper_and_buncher()
-
 
             if verbose:
                 from pprint import pprint
@@ -102,7 +110,7 @@ class BasicSynchrotron(Element):
         self.one_turn_map = one_turn_map_new
 
     def generate_6D_Gaussian_bunch(self, n_macroparticles, intensity,
-                                   epsn_x, epsn_y, sigma_z, bunch_id=0):
+                                   epsn_x, epsn_y, sigma_z):
         '''Generate a 6D Gaussian distribution of particles which is
         transversely matched to the Synchrotron. Longitudinally, the
         distribution is matched only in terms of linear focusing.
@@ -118,32 +126,40 @@ class BasicSynchrotron(Element):
                 gamma=self.gamma, mass=self.mass, charge=self.charge)
             check_inside_bucket = bucket.make_is_accepted(margin=0.05)
             Qs = bucket.Qs
-
         else:
             raise NotImplementedError(
                 'Something wrong with self.longitudinal_mode')
 
         eta = self.longitudinal_map.alpha_array[0] - self.gamma**-2
-        beta_z    = np.abs(eta)*self.circumference/2./np.pi/Qs
-        sigma_dp  = sigma_z/beta_z
+        beta_z = np.abs(eta)*self.circumference/2./np.pi/Qs
+        sigma_dp = sigma_z/beta_z
         epsx_geo = epsn_x/self.betagamma
         epsy_geo = epsn_y/self.betagamma
 
         injection_optics = self.transverse_map.get_injection_optics()
 
-        bunch = generators.ParticleGenerator(macroparticlenumber=n_macroparticles,
-                                     intensity=intensity, charge=self.charge, mass=self.mass,
-                                     circumference=self.circumference, gamma=self.gamma,
-                                     distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
-                                     distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-                                     distribution_z = generators.cut_distribution(generators.gaussian2D_asymmetrical(sigma_u=sigma_z, sigma_up=sigma_dp),is_accepted=check_inside_bucket), bunch_id=bunch_id
-                                     ).generate()
+        bunch = generators.ParticleGenerator(
+            macroparticlenumber=n_macroparticles, intensity=intensity,
+            charge=self.charge, mass=self.mass, gamma=self.gamma,
+            circumference=self.circumference,
+            distribution_x=generators.gaussian2D(epsx_geo),
+            alpha_x=injection_optics['alpha_x'],
+            beta_x=injection_optics['beta_x'],
+            D_x=injection_optics['D_x'],
+            distribution_y=generators.gaussian2D(epsy_geo),
+            alpha_y=injection_optics['alpha_y'],
+            beta_y=injection_optics['beta_y'],
+            D_y=injection_optics['D_y'],
+            distribution_z=generators.cut_distribution(
+                generators.gaussian2D_asymmetrical(
+                    sigma_u=sigma_z, sigma_up=sigma_dp),
+                is_accepted=check_inside_bucket)).generate()
 
         return bunch
 
     def generate_6D_Gaussian_bunch_matched(
             self, n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z=None, epsn_z=None, bunch_id=0):
+            sigma_z=None, epsn_z=None, bucket=0):
         '''Generate a 6D Gaussian distribution of particles which is
         transversely as well as longitudinally matched.
         The distribution is found iteratively to exactly yield the
@@ -156,18 +172,29 @@ class BasicSynchrotron(Element):
         for the bucket.
         '''
         assert self.longitudinal_mode == 'non-linear'
+        C = self.longitudinal_map.circumference
+        h = np.min(self.longitudinal_map.harmonics)
         epsx_geo = epsn_x/self.betagamma
         epsy_geo = epsn_y/self.betagamma
 
         injection_optics = self.transverse_map.get_injection_optics()
 
-        bunch = generators.ParticleGenerator(macroparticlenumber=n_macroparticles,
-                                     intensity=intensity, charge=self.charge, mass=self.mass,
-                                     circumference=self.circumference, gamma=self.gamma,
-                                     distribution_x = generators.gaussian2D(epsx_geo), alpha_x=injection_optics['alpha_x'], beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
-                                     distribution_y = generators.gaussian2D(epsy_geo), alpha_y=injection_optics['alpha_y'], beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-                                             distribution_z = generators.RF_bucket_distribution(self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z), bunch_id=bunch_id,
-                                     ).generate()
+        bunch = generators.ParticleGenerator(
+            macroparticlenumber=n_macroparticles, intensity=intensity,
+            charge=self.charge, mass=self.mass, gamma=self.gamma,
+            circumference=self.circumference,
+            distribution_x=generators.gaussian2D(epsx_geo),
+            alpha_x=injection_optics['alpha_x'],
+            beta_x=injection_optics['beta_x'],
+            D_x=injection_optics['D_x'],
+            distribution_y=generators.gaussian2D(epsy_geo),
+            alpha_y=injection_optics['alpha_y'],
+            beta_y=injection_optics['beta_y'],
+            D_y=injection_optics['D_y'],
+            distribution_z=generators.RF_bucket_distribution(
+                self.longitudinal_map.get_bucket(gamma=self.gamma),
+                sigma_z=sigma_z, epsn_z=epsn_z),
+            bunch_id=bucket, z_delay=-bucket/h*C).generate()
 
         return bunch
 

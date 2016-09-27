@@ -3,52 +3,46 @@
 @date 30.03.2015
 @brief module for generating & matching particle distributions
 '''
-
 from __future__ import division
 
 import numpy as np
-
-from particles import Particles
+from functools import partial
 from scipy.optimize import brentq, newton
-# from ..trackers.rf_bucket import RFBucket
-
-from ..cobra_functions.pdf_integrators_2d import quad2d
 
 from . import Printing
+from particles import Particles
+from ..cobra_functions.pdf_integrators_2d import quad2d
 
-from functools import partial
-from scipy.constants import e, c
 
-
-def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
-                             circumference, gamma,
-                             alpha_x, alpha_y, beta_x, beta_y, beta_z,
-                             epsn_x, epsn_y, epsn_z,
-                             dispersion_x=None, dispersion_y=None):
-    """ Convenience wrapper which generates a 6D gaussian phase space
-    with the specified parameters
-    Args:
-        the usual suspects
-    Returns: A particle instance with the phase space matched to the arguments
-    """
-    beta = np.sqrt(1.-gamma**(-2))
-    p0 = np.sqrt(gamma**2 -1) * mass * c
-    eps_geo_x = epsn_x/(beta*gamma)
-    eps_geo_y = epsn_y/(beta*gamma)
-    eps_geo_z = epsn_z * e / (4. * np.pi * p0)
-    # a bit of a hack: epsn_z is a parameter even though the ParticleGenerator
-    # does not have such a parameter. This is kept for backwards compatiblity.
-    # Therefore, some fake eta, Qs parameters are invented s.t.
-    # beta_z = |eta| * circumference / (2 * pi * Qs)
-    # holds (circumference is fixed). Does not have any side effects.
-    Qs = 1./(2 * np.pi)
-    eta = beta_z / circumference
-    return ParticleGenerator(
-        macroparticlenumber, intensity, charge, mass, circumference, gamma,
-        gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
-        gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
-        gaussian2D(eps_geo_z), Qs, eta
-        ).generate()
+# def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
+#                              circumference, gamma,
+#                              alpha_x, alpha_y, beta_x, beta_y, beta_z,
+#                              epsn_x, epsn_y, epsn_z,
+#                              dispersion_x=None, dispersion_y=None):
+#     """ Convenience wrapper which generates a 6D gaussian phase space
+#     with the specified parameters
+#     Args:
+#         the usual suspects
+#     Returns: A particle instance with the phase space matched to the arguments
+#     """
+#     beta = np.sqrt(1.-gamma**(-2))
+#     p0 = np.sqrt(gamma**2 -1) * mass * c
+#     eps_geo_x = epsn_x/(beta*gamma)
+#     eps_geo_y = epsn_y/(beta*gamma)
+#     eps_geo_z = epsn_z * e / (4. * np.pi * p0)
+#     # a bit of a hack: epsn_z is a parameter even though the ParticleGenerator
+#     # does not have such a parameter. This is kept for backwards compatiblity.
+#     # Therefore, some fake eta, Qs parameters are invented s.t.
+#     # beta_z = |eta| * circumference / (2 * pi * Qs)
+#     # holds (circumference is fixed). Does not have any side effects.
+#     Qs = 1./(2 * np.pi)
+#     eta = beta_z / circumference
+#     return ParticleGenerator(
+#         macroparticlenumber, intensity, charge, mass, circumference, gamma,
+#         gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
+#         gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
+#         gaussian2D(eps_geo_z), Qs, eta
+#         ).generate()
 
 
 def transverse_linear_matcher(alpha, beta, dispersion=None):
@@ -106,7 +100,6 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
     return _transverse_linear_matcher
 
 
-
 def longitudinal_linear_matcher(Qs, eta, C):
     '''Return simple longitudinal matcher
     Internally calls the transverse linear matcher with beta=beta_z
@@ -135,6 +128,7 @@ def longitudinal_linear_matcher(Qs, eta, C):
         internal_transverse_matcher(beam, direction=['z', 'dp'])
     return _longitudinal_linear_matcher
 
+
 def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
                            margin=0, *args, **kwargs):
     '''Return a distribution function which generates particles
@@ -154,10 +148,12 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
     rf_bucket_matcher_impl = RFBucketMatcher(rfbucket, StationaryExponential,
                                              sigma_z=sigma_z, epsn_z=epsn_z,
                                              *args, **kwargs)
+
     def _RF_bucket_dist(n_particles):
         z, dp, _, _ = rf_bucket_matcher_impl.generate(n_particles, margin)
         return [z, dp]
     return _RF_bucket_dist
+
 
 def cut_distribution(distribution, is_accepted):
     """ Generate coordinates according to some distribution inside the region
@@ -190,6 +186,7 @@ def cut_distribution(distribution, is_accepted):
             mask_out = ~is_accepted(z, dp)
         return [z, dp]
     return _cut_distribution
+
 
 class ParticleGenerator(Printing):
     '''Factory to generate Particle instances according to distributions
@@ -234,13 +231,14 @@ class ParticleGenerator(Printing):
         self.circumference = circumference
         self.gamma = gamma
         self.bunch_id = bunch_id
+
         # bind the generator methods and parameters for the matching
         self.distribution_x = distribution_x
         self.distribution_y = distribution_y
         self.distribution_z = distribution_z
 
         # bind the matching methods with the correct parameters
-        if Qs is not None and eta is not None: #match longitudinally iff
+        if Qs is not None and eta is not None:  # match longitudinally iff
             self.linear_matcher_z = longitudinal_linear_matcher(Qs, eta,
                                                                 circumference)
         else:
@@ -248,6 +246,7 @@ class ParticleGenerator(Printing):
         self.linear_matcher_x = transverse_linear_matcher(alpha_x, beta_x, D_x)
         self.linear_matcher_y = transverse_linear_matcher(alpha_y, beta_y, D_y)
 
+        self.kwargs = kwargs
 
     def generate(self):
         ''' Returns a particle  object with the parameters specified
@@ -259,7 +258,8 @@ class ParticleGenerator(Printing):
                               self.charge, self.mass, self.circumference,
                               self.gamma,
                               coords_n_momenta_dict=coords,
-                              bunch_id=self.bunch_id)
+                              bunch_id=self.bunch_id,
+                              **self.kwargs)
         self._linear_match_phase_space(particles)
         return particles
 
@@ -293,8 +293,8 @@ class ParticleGenerator(Printing):
         return coords
 
     def _linear_match_phase_space(self, beam):
-        #NOTE: keep this ordering (z as first, as x,y dispersion effects
-        #depend on the dp coordinate!
+        # NOTE: keep this ordering (z as first, as x,y dispersion effects
+        # depend on the dp coordinate!
         if self.linear_matcher_z is not None:
             self.linear_matcher_z(beam, ['z', 'dp'])
         if self.distribution_x is not None:
@@ -311,6 +311,7 @@ def import_distribution2D(coords):
             coords[0] is the space, coords[1] the momentum coordinate
     '''
     assert len(coords[0]) == len(coords[1])
+
     def _import_distribution2D(n_particles):
         '''Return the specified coordinates
         Args:
@@ -320,6 +321,7 @@ def import_distribution2D(coords):
         return coords
 
     return _import_distribution2D
+
 
 def gaussian2D(emittance_geo):
     '''Closure which generates a gaussian distribution with the given
@@ -332,11 +334,12 @@ def gaussian2D(emittance_geo):
     '''
 
     def _gaussian2D(n_particles):
-        std = np.sqrt(emittance_geo) # bc. std = sqrt(emittance_geo)
+        std = np.sqrt(emittance_geo)  # bc. std = sqrt(emittance_geo)
         coords = [np.random.normal(loc=0., scale=std, size=n_particles),
                   np.random.normal(loc=0., scale=std, size=n_particles)]
         return coords
     return _gaussian2D
+
 
 def gaussian2D_asymmetrical(sigma_u, sigma_up):
     ''' Closure which generates a gaussian distribution with the given
@@ -353,6 +356,7 @@ def gaussian2D_asymmetrical(sigma_u, sigma_up):
         return coords
     return _gaussian2D
 
+
 def uniform2D(low, high):
     '''Closure which generates a uniform distribution for the space coords.
     All momenta are 0.
@@ -366,6 +370,7 @@ def uniform2D(low, high):
         coords[0] = np.random.uniform(low=low, high=high, size=n_particles)
         return coords
     return _uniform2D
+
 
 def kv2D(r_u, r_up):
     '''Closure which generates a Kapchinski-Vladimirski-type uniform
@@ -385,6 +390,7 @@ def kv2D(r_u, r_up):
         up = sign * np.sqrt(1. - r**2)
         return [u, up]
     return _kv2d
+
 
 def kv4D(r_x, r_xp, r_y, r_yp):
     '''Closure which generates a Kapchinski-Vladimirski-type uniform
@@ -411,6 +417,7 @@ def kv4D(r_x, r_xp, r_y, r_yp):
         xp, yp = r_xp * rp * np.cos(t), r_yp * rp * np.sin(t)
         return [x, xp, y, yp]
     return _kv4d
+
 
 class RFBucketMatcher(Printing):
 

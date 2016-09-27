@@ -18,7 +18,7 @@ comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-n_turns = 2
+n_turns = 10
 chroma = 0
 
 n_bunches = 13
@@ -35,8 +35,8 @@ machine = HLLHC(charge=e, mass=m_p, n_segments=1,
                 longitudinal_focusing='non-linear',
                 Qp_x=chroma, Qp_y=chroma, wrap_z=True)
 C = machine.circumference
-h = np.min(machine.longitudinal_map.harmonics)
-z = C/h * (np.array(filling_scheme)-h) + C/(2*h)*0
+h = np.min(machine.longitudinal_map.harmonics) * 1.
+z = -1.*(np.array(filling_scheme))/h*C
 
 
 '''extract_bunches is exteremely expensive so you would want to do this exactly
@@ -72,12 +72,7 @@ epsn_y = 2.e-6
 sigma_z = 0.081
 bunches = [machine.generate_6D_Gaussian_bunch_matched(
     n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
-    bunch_id=b_id) for b_id in bunches_on_proc_list[rank]]
-
-# Bunches on processors
-for i, b_id in enumerate(bunches_on_proc_list[rank]):
-    bunches[i].z += (b_id-h) * C/h
-    bunches[i].dt = (b_id-h) * C/h/c
+    bucket=bucket) for bucket in bunches_on_proc_list[rank]]
 bunches = sum(bunches)
 
 
@@ -101,7 +96,7 @@ slicer_for_wakefields = UniformBinSlicer(300, n_sigma_z=3)
 
 # CREATE WAKES
 # ============
-wakes = CircularResonator(1e6, 1e9, 1)
+wakes = CircularResonator(1e6, 1e9, 1, n_turns_wake=10)
 wake_field = WakeField(slicer_for_wakefields, wakes,
                        circumference=machine.circumference, comm=comm)
 # wake_field = ParallelWakes(slicer_for_wakefields, wake_sources_list=None,

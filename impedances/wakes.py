@@ -155,7 +155,7 @@ class WakeField(Element):
         """
         rank = self.comm.rank
         n_slices = self.slicer.n_slices
-        stride = 2 + 5*n_slices
+        stride = 2 + 4*n_slices
 
         bunches_list = beam.split()
         n_bunches_counts = self.comm.allgather(len(bunches_list))
@@ -179,15 +179,19 @@ class WakeField(Element):
             # Update ages of bunches in slice_set_deque
             for i, t in enumerate(self.slice_set_deque):
                 for j, b in enumerate(t):
-                    beta = b[0]
+                    beta = b[1]
                     age = self.circumference/(beta*c)
-                    b[1] += age
+                    b[0] += age
 
             self.slice_set_deque.appendleft(
                 np.reshape(register, (n_bunches_total, stride)))
 
-        # for kick in self.wake_kicks:
-        #     kick.apply(bunches_list, self.slice_set_deque)
+            # print(len(self.slice_set_deque))
+            # for i, t in enumerate(self.slice_set_deque):
+            #     print(t[:, 0])
+
+        for kick in self.wake_kicks:
+            kick.apply(bunches_list, self.slice_set_deque)
 
 
 # ==============================================================================
