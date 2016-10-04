@@ -54,7 +54,7 @@ class WakeKick(Printing):
             self._convolution = self._convolution_dot_product
 
         self.n_turns_wake = n_turns_wake
-        self.n_slices = slicer.n_slices
+        self.slicer = slicer
         self.comm = comm
 
     @abstractmethod
@@ -77,32 +77,38 @@ class WakeKick(Printing):
                        bunch.particlenumber_per_mp)
         return wake_factor
 
-    def _extract_slice_set_data(self, slice_set_list, moments=None):
+    def _extract_slice_set_data(self, slice_set_list, moments='zero'):
         """Convenience function called by wake kicks to return slice_set
         quantities. Slice set list and slice set quantities are of
         dimensionality n_turns x n_bunches each with arrays of n_slices
 
         """
-        stride = 2 + 4*self.n_slices
-
-        print("Full slice info passed here...")
         buffer = np.array([s for s in slice_set_list])
-        print buffer.shape
-        return 0, 1, 2, 3
+        n_turns, n_bunches, n_stride = buffer.shape
+        n_slices = self.slicer.n_slices
 
-        ages_list = [t[0].age for t in slice_set_list]
-        betas_list = [t[0].beta for t in slice_set_list]
-        times_list = [[s.convert_to_time(s.z_centers) for s in t]
-                      for t in slice_set_list]
-        if moments is not None:
-            moments_list = [[s.n_macroparticles_per_slice*getattr(s, moments)
-                             for s in t] for t in slice_set_list]
+        ages_list = np.zeros((n_turns, n_bunches))
+        betas_list = np.zeros((n_turns, n_bunches))
+        times_list = np.zeros((n_turns, n_bunches, n_slices))
+        moments_list = np.zeros((n_turns, n_bunches, n_slices))
+        if moments == 'zero':
+            buffer_slice = np.s_[2+1*n_slices:2+2*n_slices]
+        elif moments == 'mean_x':
+            buffer_slice = np.s_[2+2*n_slices:2+3*n_slices]
+        elif moments == 'mean_y':
+            buffer_slice = np.s_[2+3*n_slices:2+4*n_slices]
         else:
-            moments_list = [[s.n_macroparticles_per_slice
-                             for s in t] for t in slice_set_list]
+            raise ValueError("Please specify moments as either " +
+                             "'zero', 'mean_x' or 'mean_y'!")
 
-        return np.array(times_list), np.array(ages_list),\
-            np.array(moments_list), np.array(betas_list)
+        for t in range(n_turns):
+            for b in range(n_bunches):
+                ages_list[t, b] = buffer[t, b, 0]
+                betas_list[t, b] = buffer[t, b, 1]
+                times_list[t, b, :] = buffer[t, b, 2:2+1*n_slices]
+                moments_list[t, b, :] = buffer[t, b, buffer_slice]
+
+        return times_list, ages_list, moments_list, betas_list
 
     def _convolution_dot_product(self, target_times,
                                  source_times, source_moments, source_beta):
@@ -131,6 +137,7 @@ class WakeKick(Printing):
         dt_to_target_slice = np.concatenate(
             (target_times-tmax, (target_times-tmin)[1:]))
         wake = self.wake_function(dt_to_target_slice, beta=source_beta)
+        print(dt_to_target_slice)
 
         return np.convolve(source_moments, wake, 'valid')
 
@@ -192,21 +199,26 @@ class WakeKick(Printing):
 
         accumulated_signal_list = []
         bunches = np.atleast_1d(bunches)
-        dt_list = np.array([b.t_delay for b in bunches])
 
         # Check for strictly descending order
+        z_delays = [b.mean_z for b in bunches]
         assert all(earlier <= later
-                   for later, earlier in zip(dt_list, dt_list[1:])), \
+                   for later, earlier in zip(z_delays, z_delays[1:])), \
             ("Bunches are not ordered. Make sure that bunches are in" +
              " descending order in time.")
 
-        if len(ages_list) < self.n_turns_wake:
-            n_turns = len(ages_list)
-        else:
-            n_turns = self.n_turns_wake
+        # Here, we need to take into account the fact that source slice
+        # and target bunch lists are different
+        n_turns, n_sources, n_slices = times_list.shape
+        if n_turns > self.n_turns_wake:
+            n_turns = self.n_turns_wake  # limit to this particular wake length
 
+        n_targets = len(bunches)
+        # Tricky... this assumes one set of bunches - bunch 'delay' is missing
         for i, b in enumerate(bunches):
-            n_bunches_infront = i+1
+            n_bunches_infront = i+1  # <-- this will usually be more!
+            # not strictly needed, should be solved automatically
+            # by wake function
             accumulated_signal = 0
             target_times = times_list[0, i]
 
@@ -217,10 +229,10 @@ class WakeKick(Printing):
                     # run over all bunches and take into account wake in front
                     # - test!
                 for j in xrange(n_bunches_infront):
-                    source_times = (times_list[k, j] + ages_list[k] +
-                                   dt_list[j] - dt_list[i])
+                    source_beta = betas_list[k, j]
+                    source_times = (times_list[k, j] + ages_list[k, j])
+                                    # dt_list[j] - dt_list[i])
                     source_moments = moments_list[k, j]
-                    source_beta = betas_list[k]
 
                     accumulated_signal += self._convolution(
                         target_times, source_times,
@@ -228,8 +240,6 @@ class WakeKick(Printing):
 
             accumulated_signal_list.append(
                 self._wake_factor(b) * accumulated_signal)
-
-        self.dxp = accumulated_signal_list  # For test and debugging purpose only
 
         return accumulated_signal_list
 
@@ -305,27 +315,21 @@ class DipoleWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list, moments='mean_x')
+        # times_list, ages_list, moments_list, betas_list = (
+        #     self._extract_slice_set_data(slice_set_list, moments='mean_x'))
+        times_list, ages_list, moments_list, betas_list = (
+            self._extract_slice_set_data(slice_set_list))
 
-        # dipole_kick = self._accumulate_source_signal_multibunch(
-        #     bunches, times_list, ages_list, moments_list, betas_list)
+        dipole_kick = self._accumulate_source_signal_multibunch(
+            bunches, times_list, ages_list, moments_list, betas_list)
 
-        # for i, b in enumerate(bunches):
-        #     p_idx = slice_set_list[0][i].particles_within_cuts
-        #     s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
-        #     b.xp[p_idx] += dipole_kick[i].take(s_idx)
-
-        # times_list, ages_list, moments_list, betas_list\
-        #     = self._extract_slice_set_data(slice_set_list, moments='mean_x')
-
-        # dipole_kick = self._accumulate_source_signal_multibunch(
-        #     bunches, times_list, ages_list, moments_list, betas_list)
-
-        # for i, b in enumerate(bunches):
-        #     p_idx = slice_set_list[0][i].particles_within_cuts
-        #     s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
-        #     b.xp[p_idx] += dipole_kick[i].take(s_idx)
+        # And then get slices of actual bunches list
+        slice_set_list = [b.get_slices(self.slicer) for b in bunches]
+        for i, b in enumerate(bunches):
+            b.xp *= 0
+            p_idx = slice_set_list[i].particles_within_cuts
+            s_idx = slice_set_list[i].slice_index_of_particle.take(p_idx)
+            b.xp[p_idx] += dipole_kick[i].take(s_idx)
 
 
 class DipoleWakeKickXY(WakeKick):
@@ -360,8 +364,8 @@ class DipoleWakeKickY(WakeKick):
         times_list, ages_list, moments_list, betas_list\
             = self._extract_slice_set_data(slice_set_list, moments='mean_y')
 
-        # dipole_kick = self._accumulate_source_signal_multibunch(
-        #     bunches, times_list, ages_list, moments_list, betas_list)
+        dipole_kick = self._accumulate_source_signal_multibunch(
+            bunches, times_list, ages_list, moments_list, betas_list)
 
         # for i, b in enumerate(bunches):
         #     p_idx = slice_set_list[0][i].particles_within_cuts

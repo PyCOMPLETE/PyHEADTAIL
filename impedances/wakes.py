@@ -100,9 +100,20 @@ class WakeField(Element):
         first in y).
 
         '''
-        slice_set_list = [b.get_slices(self.slicer,
-                                       statistics=['mean_x', 'mean_y'])
-                          for b in bunches_list]
+        slice_set_list = []
+        if self.slicer.config[3] is not None:
+            # In this case, we need to bring bunches back to zero
+            for i, b in enumerate(bunches_list):
+                z_delay = b.mean_z()
+                b.z -= z_delay
+                s = b.get_slices(self.slicer, statistics=['mean_x', 'mean_y'])
+                b.z += z_delay
+                s.z_bins += z_delay
+                slice_set_list.append(s)
+        else:
+            for i, b in enumerate(bunches_list):
+                s = b.get_slices(self.slicer, statistics=['mean_x', 'mean_y'])
+                slice_set_list.append(s)
 
         # Buffer with slice data
         n_bunches = len(slice_set_list)
@@ -133,7 +144,7 @@ class WakeField(Element):
 
         First, splits up beam into a set of bunches which can be individually
         sliced. Extracts slice data and send all slice data to the register on
-        master. 
+        master.
 
 
         The function iterates through all bunches in the list and calls the
@@ -153,7 +164,6 @@ class WakeField(Element):
             bunches: A bunch/beam or a list of bunches.
 
         """
-        rank = self.comm.rank
         n_slices = self.slicer.n_slices
         stride = 2 + 4*n_slices
 
@@ -167,31 +177,30 @@ class WakeField(Element):
         slice_data_offsets = np.insert(
             np.cumsum(slice_data_counts), 0, 0)[:-1]
 
-        register = None
-        if rank == 0:
-            register = np.zeros((stride * n_bunches_total))
-        self.comm.Gatherv(
+        # The register is assembled and now sent to all processors
+        register = np.zeros((stride * n_bunches_total))
+        self.comm.Allgatherv(
             [slice_data, len(slice_data), MPI.DOUBLE],
-            [register, slice_data_counts, slice_data_offsets, MPI.DOUBLE],
-            root=0)
+            [register, slice_data_counts, slice_data_offsets, MPI.DOUBLE])
 
-        if rank == 0:
-            # Update ages of bunches in slice_set_deque
-            for i, t in enumerate(self.slice_set_deque):
-                for j, b in enumerate(t):
-                    beta = b[1]
-                    age = self.circumference/(beta*c)
-                    b[0] += age
+        # Update ages of bunches in slice_set_deque
+        for i, t in enumerate(self.slice_set_deque):
+            for j, b in enumerate(t):
+                beta = b[1]
+                age = self.circumference/(beta*c)
+                b[0] += age
 
-            self.slice_set_deque.appendleft(
-                np.reshape(register, (n_bunches_total, stride)))
-
-            # print(len(self.slice_set_deque))
-            # for i, t in enumerate(self.slice_set_deque):
-            #     print(t[:, 0])
+        self.slice_set_deque.appendleft(
+            np.reshape(register, (n_bunches_total, stride)))
 
         for kick in self.wake_kicks:
             kick.apply(bunches_list, self.slice_set_deque)
+
+        # Here, we need to put the values back into the reference!
+        beam_new = sum(bunches_list)
+        beam.xp[:] = beam_new.xp[:]
+        beam.yp[:] = beam_new.yp[:]
+        beam.dp[:] = beam_new.dp[:]
 
 
 # ==============================================================================

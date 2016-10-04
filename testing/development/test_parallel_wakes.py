@@ -2,6 +2,7 @@ from __future__ import division
 
 import time
 import numpy as np
+import seaborn as sns
 from mpi4py import MPI
 import matplotlib.pyplot as plt
 from scipy.constants import c, e, m_p
@@ -12,18 +13,23 @@ from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField
 
 
 plt.switch_backend('TkAgg')
+sns.set_context('talk', font_scale=1.3)
+sns.set_style('darkgrid', {
+    'axes.edgecolor': 'black',
+    'axes.linewidth': 2,
+    'lines.markeredgewidth': 1})
 
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-n_turns = 10
+n_turns = 1
 chroma = 0
 
 n_bunches = 13
 filling_scheme = [401 + 200*i for i in range(n_bunches)]
-n_macroparticles = 10000
+n_macroparticles = 40000
 intensity = 2.3e11
 
 
@@ -73,6 +79,12 @@ sigma_z = 0.081
 bunches = [machine.generate_6D_Gaussian_bunch_matched(
     n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
     bucket=bucket) for bucket in bunches_on_proc_list[rank]]
+for b in bunches:
+    b.x *= 0
+    b.xp *= 0
+    b.y *= 0
+    b.yp *= 0
+    b.x[:] += 2e-2
 bunches = sum(bunches)
 
 
@@ -90,19 +102,70 @@ bunches = sum(bunches)
 
 # CREATE BEAM SLICERS
 # ===================
-buncher_for_wakefields = machine.buncher
-slicer_for_wakefields = UniformBinSlicer(300, n_sigma_z=3)
+slicer_for_diagnostics = UniformBinSlicer(50000, n_sigma_z=3)
+slicer_for_wakefields = UniformBinSlicer(300, z_cuts=(-0.2, 0.2))
 
 
 # CREATE WAKES
 # ============
-wakes = CircularResonator(1e6, 1e9, 1, n_turns_wake=10)
+wakes = CircularResonator(1e6, 5e6, 50, n_turns_wake=10)
 wake_field = WakeField(slicer_for_wakefields, wakes,
                        circumference=machine.circumference, comm=comm)
 # wake_field = ParallelWakes(slicer_for_wakefields, wake_sources_list=None,
 #                            circumference=machine.circumference,
 #                            filling_scheme=filling_scheme,
 #                            comm=comm)
+w_function = wake_field.wake_kicks[0].wake_function
+w_factor = wake_field.wake_kicks[0]._wake_factor
+
+# Allbunches
+slices = bunches.get_slices(slicer_for_diagnostics)
+times = slices.convert_to_time(slices.z_centers)
+tmin, tmax = times[0], times[-1]
+t = np.hstack((times-tmax, (times-tmin)[1:]))
+moments = slices.n_macroparticles_per_slice
+x_kick = (np.convolve(w_function(t, bunches.beta), moments, mode='valid'))
+x_kick *= 1./np.max(x_kick)
+
+bunches_list = bunches.split()
+slices_list = []
+for b in bunches_list:
+    z_delay = b.mean_z()
+    b.z -= z_delay
+    s = b.get_slices(slicer_for_wakefields)
+    b.z += z_delay
+    s.z_bins += z_delay
+    slices_list.append(s)
+times_list = np.array(
+    [s.convert_to_time(s.z_centers) for s in slices_list])
+moments_list = np.array(
+    [s.n_macroparticles_per_slice for s in slices_list])
+x_kick_list = []
+for j, bt in enumerate(bunches_list):
+    signal = 0
+    for i, bs in enumerate(bunches_list):
+        t_source = times_list[i]
+        t_target = times_list[j]
+        tmin, tmax = t_source[0], t_source[-1]
+        dt = np.hstack((t_target-tmax, (t_target-tmin)[1:]))
+        mm = moments_list[i]
+        signal += np.convolve(w_function(dt, bs.beta), mm, mode='valid')
+    x_kick_list.append(signal)
+x_kick_list = np.array(x_kick_list)
+x_kick_list *= 0.06/np.max(np.abs(x_kick_list))
+
+fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(14, 10), sharex=True)
+ax1.plot(times, moments/np.max(moments))
+ax1.plot(times_list.T, moments_list.T/np.max(moments_list))
+ax2.plot(times, w_function(times, bunches.beta))
+ax2.plot(times_list.T, w_function(times_list, bunches.beta).T, 'o')
+ax3.plot(times, x_kick)
+ax3.plot(times_list.T, x_kick_list.T, 'o')
+# ax3.plot(bunches.z/c, bunches.xp/np.max(bunches.xp), 'o')
+plt.show()
+
+
+wurstel
 
 
 # CREATE DAMPER
@@ -175,10 +238,18 @@ for i in range(n_turns):
 
 allbunches = comm.gather(bunches, root=0)
 if rank == 0:
-    fig, (ax1) = plt.subplots(1, figsize=(16, 9))
-    for b in allbunches:
-        ax1.plot(b.z, b.dp, '.')
-    ax1.set_xlim(0, 1000)
-    # plt.show()
+    fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(14, 10), sharex=True)
+    ax1.plot(times, moments)
+    ax1.plot(bunches.z/c)
+    ax2.plot(times, w_function(times, bunches.beta))
+    ax3.plot(times, x_kick)
+    ax3.plot(bunches.z/c, bunches.xp/np.max(bunches.xp), 'o')
+    plt.show()
+
+    # fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 9))
+    # for b in allbunches:
+    #     ax1.plot(b.z, b.xp, 'o')
+    #     ax2.plot(b.z, b.yp, 'o')
+    # # ax1.set_ylim(0, 1e-4)
 
 print '\n*** Successfully completed!'

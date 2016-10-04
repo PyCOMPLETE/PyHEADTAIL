@@ -112,13 +112,21 @@ class Particles(Printing):
     def z_beamframe(self, value):
         self.z = value / self.gamma
 
-    @property
-    def t_delay(self):
-        return self.mean_z()/self.beta/c
-    @t_delay.setter
-    def t_delay(self, value):
-        self.z += -self.mean_z()
-        self.z += value * self.beta * c
+    # @property
+    # def t_delay(self):
+    #     return self.mean_z()/self.beta/c
+    # @t_delay.setter
+    # def t_delay(self, value):
+    #     self.z += -self.mean_z()
+    #     self.z += value * self.beta * c
+
+    # @property
+    # def z_delay(self):
+    #     return self.mean_z()
+    # @z_delay.setter
+    # def z_delay(self, value):
+    #     self.z += -self.mean_z()
+    #     self.z += value
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -286,6 +294,9 @@ class Particles(Printing):
                 for coord, array in self.get_coords_n_momenta_dict().items()},
             bunch_id=id) for i, id in enumerate(ids)]
 
+        bunches_list = sorted(bunches_list,
+                              key=lambda x: x.mean_z, reverse=True)
+
         return bunches_list
 
     def sort_for(self, attr):
@@ -309,8 +320,9 @@ class Particles(Printing):
 
     def __add__(self, other):
         '''Merges two beams.
-		'''
-        #print 'Checks still to be added!!!!!!'
+
+        '''
+        # print 'Checks still to be added!!!!!!'
 
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
@@ -318,12 +330,16 @@ class Particles(Printing):
         result = Particles(
             macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
             particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-
+	    mass=self.mass, circumference=self.circumference, gamma=self.gamma,
+            coords_n_momenta_dict={})
 
         for coord in self_coords_n_momenta_dict.keys():
-            #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
-            result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
+            # setattr(result, coord, np.concatenate(
+            #     (self_coords_n_momenta_dict[coord].copy(),
+            #      other_coords_n_momenta_dict[coord].copy())))
+            result.update({coord: np.concatenate(
+                (self_coords_n_momenta_dict[coord].copy(),
+                 other_coords_n_momenta_dict[coord].copy()))})
 
         result.id = np.concatenate(
             (self.id.copy(), other.id.copy()))
@@ -333,7 +349,8 @@ class Particles(Printing):
         return result
 
     def __radd__(self, other):
-        if other==0:
+
+        if other == 0:
             self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
             result = Particles(
                 macroparticlenumber=self.macroparticlenumber,
@@ -343,7 +360,9 @@ class Particles(Printing):
                 coords_n_momenta_dict={})
 
             for coord in self_coords_n_momenta_dict.keys():
-                # setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
+                # setattr(result, coord, np.concatenate(
+                #     (self_coords_n_momenta_dict[coord].copy(),
+                #      other_coords_n_momenta_dict[coord].copy())))
                 result.update({coord: self_coords_n_momenta_dict[coord].copy()})
             result.id = self.id.copy()
             result.bunch_id = self.bunch_id.copy()
