@@ -137,7 +137,6 @@ class WakeKick(Printing):
         dt_to_target_slice = np.concatenate(
             (target_times-tmax, (target_times-tmin)[1:]))
         wake = self.wake_function(dt_to_target_slice, beta=source_beta)
-        print(dt_to_target_slice)
 
         return np.convolve(source_moments, wake, 'valid')
 
@@ -201,7 +200,7 @@ class WakeKick(Printing):
         bunches = np.atleast_1d(bunches)
 
         # Check for strictly descending order
-        z_delays = [b.mean_z for b in bunches]
+        z_delays = [b.mean_z() for b in bunches]
         assert all(earlier <= later
                    for later, earlier in zip(z_delays, z_delays[1:])), \
             ("Bunches are not ordered. Make sure that bunches are in" +
@@ -216,16 +215,16 @@ class WakeKick(Printing):
         n_targets = len(bunches)
         # Tricky... this assumes one set of bunches - bunch 'delay' is missing
         for i, b in enumerate(bunches):
-            n_bunches_infront = i+1  # <-- this will usually be more!
+            n_bunches_infront = n_sources  # i+1  # <-- usually n_sources!
             # not strictly needed, should be solved automatically
-            # by wake function
+            # by wake function decaying fast in front
             accumulated_signal = 0
             target_times = times_list[0, i]
 
             # Accumulate all bunches over all turns
             for k in xrange(n_turns):
                 if k > 0:
-                    n_bunches_infront = len(bunches)
+                    n_bunches_infront = n_sources
                     # run over all bunches and take into account wake in front
                     # - test!
                 for j in xrange(n_bunches_infront):
@@ -238,8 +237,10 @@ class WakeKick(Printing):
                         target_times, source_times,
                         source_moments, source_beta)
 
+            # accumulated_signal_list.append(
+            #     self._wake_factor(b) * accumulated_signal)
             accumulated_signal_list.append(
-                self._wake_factor(b) * accumulated_signal)
+                1 * accumulated_signal)
 
         return accumulated_signal_list
 
@@ -324,11 +325,10 @@ class DipoleWakeKickX(WakeKick):
             bunches, times_list, ages_list, moments_list, betas_list)
 
         # And then get slices of actual bunches list
-        slice_set_list = [b.get_slices(self.slicer) for b in bunches]
         for i, b in enumerate(bunches):
-            b.xp *= 0
-            p_idx = slice_set_list[i].particles_within_cuts
-            s_idx = slice_set_list[i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.xp[p_idx] += dipole_kick[i].take(s_idx)
 
 

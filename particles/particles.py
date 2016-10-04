@@ -295,7 +295,7 @@ class Particles(Printing):
             bunch_id=id) for i, id in enumerate(ids)]
 
         bunches_list = sorted(bunches_list,
-                              key=lambda x: x.mean_z, reverse=True)
+                              key=lambda x: x.mean_z(), reverse=True)
 
         return bunches_list
 

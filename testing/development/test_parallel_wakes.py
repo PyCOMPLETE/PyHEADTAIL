@@ -119,53 +119,52 @@ w_function = wake_field.wake_kicks[0].wake_function
 w_factor = wake_field.wake_kicks[0]._wake_factor
 
 # Allbunches
-slices = bunches.get_slices(slicer_for_diagnostics)
-times = slices.convert_to_time(slices.z_centers)
-tmin, tmax = times[0], times[-1]
-t = np.hstack((times-tmax, (times-tmin)[1:]))
-moments = slices.n_macroparticles_per_slice
-x_kick = (np.convolve(w_function(t, bunches.beta), moments, mode='valid'))
-x_kick *= 1./np.max(x_kick)
+allbunches = comm.gather(bunches, root=0)
+if rank == 0:
+    allbunches = sum(allbunches)
+    slices = allbunches.get_slices(slicer_for_diagnostics)
+    times = slices.convert_to_time(slices.z_centers)
+    tmin, tmax = times[0], times[-1]
+    t = np.hstack((times-tmax, (times-tmin)[1:]))
+    moments = slices.n_macroparticles_per_slice
+    x_kick = (np.convolve(w_function(t, allbunches.beta), moments,
+                          mode='valid'))
+    xkickmax = np.max(x_kick)
+    x_kick *= 1./xkickmax
 
-bunches_list = bunches.split()
-slices_list = []
-for b in bunches_list:
-    z_delay = b.mean_z()
-    b.z -= z_delay
-    s = b.get_slices(slicer_for_wakefields)
-    b.z += z_delay
-    s.z_bins += z_delay
-    slices_list.append(s)
-times_list = np.array(
-    [s.convert_to_time(s.z_centers) for s in slices_list])
-moments_list = np.array(
-    [s.n_macroparticles_per_slice for s in slices_list])
-x_kick_list = []
-for j, bt in enumerate(bunches_list):
-    signal = 0
-    for i, bs in enumerate(bunches_list):
-        t_source = times_list[i]
-        t_target = times_list[j]
-        tmin, tmax = t_source[0], t_source[-1]
-        dt = np.hstack((t_target-tmax, (t_target-tmin)[1:]))
-        mm = moments_list[i]
-        signal += np.convolve(w_function(dt, bs.beta), mm, mode='valid')
-    x_kick_list.append(signal)
-x_kick_list = np.array(x_kick_list)
-x_kick_list *= 0.06/np.max(np.abs(x_kick_list))
+    bunches_list = allbunches.split()
+    slices_list = []
+    for b in bunches_list:
+        z_delay = b.mean_z()
+        b.z -= z_delay
+        s = b.get_slices(slicer_for_wakefields)
+        b.z += z_delay
+        s.z_bins += z_delay
+        slices_list.append(s)
+    times_list = np.array(
+        [s.convert_to_time(s.z_centers) for s in slices_list])
+    moments_list = np.array(
+        [s.n_macroparticles_per_slice for s in slices_list])
 
-fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(14, 10), sharex=True)
-ax1.plot(times, moments/np.max(moments))
-ax1.plot(times_list.T, moments_list.T/np.max(moments_list))
-ax2.plot(times, w_function(times, bunches.beta))
-ax2.plot(times_list.T, w_function(times_list, bunches.beta).T, 'o')
-ax3.plot(times, x_kick)
-ax3.plot(times_list.T, x_kick_list.T, 'o')
-# ax3.plot(bunches.z/c, bunches.xp/np.max(bunches.xp), 'o')
-plt.show()
+    # x_kick_list = []
+    # for j, bt in enumerate(bunches_list):
+    #     signal = 0
+    #     for i, bs in enumerate(bunches_list):
+    #         t_source = times_list[i]
+    #         t_target = times_list[j]
+    #         tmin, tmax = t_source[0], t_source[-1]
+    #         dt = np.hstack((t_target-tmax, (t_target-tmin)[1:]))
+    #         mm = moments_list[i]
+    #         signal += np.convolve(w_function(dt, bs.beta), mm, mode='valid')
+    #     x_kick_list.append(signal)
+    # x_kick_list = np.array(x_kick_list)
+    # x_kick_list *= 1./xkickmax
 
-
-wurstel
+    # for i, b in enumerate(bunches_list):
+    #     s = b.get_slices(slicer_for_wakefields)
+    #     p_idx = s.particles_within_cuts
+    #     s_idx = s.slice_index_of_particle.take(p_idx)
+    #     b.xp[p_idx] += x_kick_list[i].take(s_idx)
 
 
 # CREATE DAMPER
@@ -239,17 +238,13 @@ for i in range(n_turns):
 allbunches = comm.gather(bunches, root=0)
 if rank == 0:
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(14, 10), sharex=True)
-    ax1.plot(times, moments)
-    ax1.plot(bunches.z/c)
+    ax1.plot(times, moments/np.max(moments))
+    ax1.plot(times_list.T, moments_list.T/np.max(moments_list))
     ax2.plot(times, w_function(times, bunches.beta))
+    ax2.plot(times_list.T, w_function(times_list, bunches.beta).T, 'o')
     ax3.plot(times, x_kick)
-    ax3.plot(bunches.z/c, bunches.xp/np.max(bunches.xp), 'o')
+    # ax3.plot(times_list.T, x_kick_list.T, 'o')
+    [ax3.plot(b.z/c, b.xp/xkickmax, 'o') for b in allbunches]
     plt.show()
-
-    # fig, (ax1, ax2) = plt.subplots(2, figsize=(16, 9))
-    # for b in allbunches:
-    #     ax1.plot(b.z, b.xp, 'o')
-    #     ax2.plot(b.z, b.yp, 'o')
-    # # ax1.set_ylim(0, 1e-4)
 
 print '\n*** Successfully completed!'
