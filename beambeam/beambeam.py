@@ -46,7 +46,7 @@ class BeamBeam4DWeakStrong(Element):
             fullSepX = beam.x + self.offsetX
             fullSepY = beam.y + self.offsetY
             r2 = fullSepX**2 + fullSepY**2
-            fullKick = np.where(np.flatnonzero(r2),(1.0-np.exp(-0.5*r2/self.beamSizeX**2))/r2,0.0)
+            fullKick = np.where(np.abs(r2)>0.,(1.0-np.exp(-0.5*r2/self.beamSizeX**2))/r2,0.0)
             beam.xp += fact*(fullKick*fullSepX - self.dipoleKickX)
             beam.yp += fact*(fullKick*fullSepY - self.dipoleKickY)
         else:
