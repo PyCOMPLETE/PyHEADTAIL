@@ -8,13 +8,8 @@ from scipy.constants import c, pi
 import scipy.integrate as integrate
 import scipy.special as special
 from scipy import linalg
-
-
-# An alternative for np.dot because it slows down the calculations in LSF by a factor of two or more
-gemm = linalg.get_blas_funcs("gemm")
-
-def dot(A,B):
-    return np.squeeze(gemm(1, A, B))
+import pyximport; pyximport.install()
+from cython_functions import cython_matrix_product
 
 """
     This file contains signal processors which can be used in the feedback module in PyHEADTAIL.
@@ -113,7 +108,7 @@ class LinearTransform(object):
             self.__generate_matrix(slice_set.z_bins,bin_midpoints)
 
         # process the signal
-        return dot(self._matrix, signal)
+        return np.array(cython_matrix_product(self._matrix, signal))
 
         # np.dot can't be used, because it slows down the calculations in LSF by a factor of two or more
         # return np.dot(self._matrix,signal)

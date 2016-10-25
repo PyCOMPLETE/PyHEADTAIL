@@ -6,13 +6,8 @@ from scipy.constants import c, pi
 from itertools import izip, count
 from processors import Register
 from scipy import linalg
-
-# An alternative for np.dot because it slows down the calculations in LSF by a factor of two or more
-gemm = linalg.get_blas_funcs("gemm")
-
-def dot(A,B):
-    return np.squeeze(gemm(1, A, B))
-
+import pyximport; pyximport.install()
+from cython_functions import cython_matrix_product
 
 """
     This file contains signal processors which can be used for emulating digital signal processing in the feedback
@@ -118,7 +113,8 @@ class Resampler(object):
 
             self.__generate_matrix(z_bins_input, z_bins_output)
 
-        return dot(self._matrix, signal)
+        signal = np.array(signal)
+        return np.array(cython_matrix_product(self._matrix, signal))
         # np.dot can't be used, because it slows down the calculations in LSF by a factor of two or three
         # return np.dot(self._matrix, signal)
 
