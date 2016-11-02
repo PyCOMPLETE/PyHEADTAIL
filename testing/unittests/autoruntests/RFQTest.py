@@ -18,7 +18,7 @@ np.random.seed(0)
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
-from PyHEADTAIL.rfq.rfq_cython import RFQLongitudinalKick, RFQTransverseKick, RFQTransverseDetuner
+from PyHEADTAIL.rfq.rfq import RFQLongitudinalKick, RFQTransverseKick, RFQTransverseDetuner
 import PyHEADTAIL.particles.generators as generators
 
 

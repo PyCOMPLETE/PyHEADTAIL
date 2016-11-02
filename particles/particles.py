@@ -4,7 +4,7 @@ Created on 17.10.2014
 @copyright CERN
 '''
 import numpy as np
-from scipy.constants import c
+from scipy.constants import c, e  # unit e needed for long. emittance
 
 from ..cobra_functions import stats as cp
 from . import Printing
