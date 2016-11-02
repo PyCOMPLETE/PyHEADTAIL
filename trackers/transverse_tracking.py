@@ -352,8 +352,3 @@ class TransverseMap(Printing):
 
     def __getitem__(self, key):
         return self.segment_maps[key]
-
-
-@deprecated('')
-def TransverseOneTurnMap(*args, **kwargs):
-    return TransverseSegmentMap(*args, **kwargs)

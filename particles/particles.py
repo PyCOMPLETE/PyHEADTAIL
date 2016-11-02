@@ -4,7 +4,7 @@ Created on 17.10.2014
 @copyright CERN
 '''
 import numpy as np
-from scipy.constants import c, e, m_p
+from scipy.constants import c
 
 from ..cobra_functions import stats as cp
 from . import Printing
@@ -21,7 +21,7 @@ class Particles(Printing):
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp,
                  charge, mass, circumference, gamma, coords_n_momenta_dict={},
-                 dt = 0, *args, **kwargs):
+                 *args, **kwargs):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
@@ -34,18 +34,9 @@ class Particles(Printing):
         self.mass = mass
 
         self.charge_per_mp = particlenumber_per_mp * charge
-        if not np.allclose(self.charge, e):
-            self.warns('PyHEADTAIL currently features many "e" ' +
-                       'in the various modules, these need to be ' +
-                       'consistently replaced by "beam.charge"!')
-        if not np.allclose(self.charge, m_p):
-            self.warns('PyHEADTAIL currently features many "m_p" ' +
-                       'in the various modules, these need to be ' +
-                       'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
         self.gamma = gamma
-        self.dt = dt
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded only once

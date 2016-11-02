@@ -7,6 +7,8 @@ from ..general.decorators import deprecated
 from PyHEADTAIL.particles import generators
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.trackers.rf_bucket import RFBucket
+from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
+from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 from PyHEADTAIL.trackers.simple_long_tracking import LinearMap, RFSystems
 
 
@@ -21,7 +23,10 @@ class Synchrotron(Element):
                  longitudinal_mode=None, Q_s=None, alpha_mom_compaction=None,
                  h_RF=None, V_RF=None, dphi_RF=None, p_increment=None,
                  RF_at='middle', other_detuners=[],
-                 use_cython=True, verbose=False):
+                 use_cython=False):
+
+        if use_cython:
+            self.warns("Cython modules no longer in use. Using Python module instead.\n")
 
         self.charge = charge
         self.mass = mass
@@ -47,10 +52,6 @@ class Synchrotron(Element):
             Q_s=Q_s, alpha_mom_compaction=alpha_mom_compaction,
             h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment,
             RF_at=RF_at)
-
-        if verbose:
-            from pprint import pprint
-            pprint([vars(m) for m in self.one_turn_map])
 
     @property
     def gamma(self):
@@ -209,9 +210,6 @@ class Synchrotron(Element):
             accQ_x=None, accQ_y=None,
             Qp_x=None, Qp_y=None, app_x=None, app_y=None, app_xy=None,
             other_detuners=None, use_cython=None):
-
-        from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-        from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 
         if optics_mode == 'smooth':
             if circumference is None:
