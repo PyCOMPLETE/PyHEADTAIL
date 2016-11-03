@@ -220,6 +220,7 @@ class WakeKick(Printing):
             # by wake function decaying fast in front
             accumulated_signal = 0
             target_times = times_list[0, i]
+            print times_list.shape
 
             # Accumulate all bunches over all turns
             for k in xrange(n_turns):
@@ -230,7 +231,8 @@ class WakeKick(Printing):
                 for j in xrange(n_bunches_infront):
                     source_beta = betas_list[k, j]
                     source_times = (times_list[k, j] + ages_list[k, j])
-                                    # dt_list[j] - dt_list[i])
+                    print(i, j, target_times[0], source_times[0])
+                    # dt_list[j] - dt_list[i])
                     source_moments = moments_list[k, j]
 
                     accumulated_signal += self._convolution(

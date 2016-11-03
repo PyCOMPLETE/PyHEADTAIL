@@ -102,7 +102,7 @@ bunches = sum(bunches)
 
 # CREATE BEAM SLICERS
 # ===================
-slicer_for_diagnostics = UniformBinSlicer(50000, n_sigma_z=3)
+slicer_for_diagnostics = UniformBinSlicer(100000, n_sigma_z=3)
 slicer_for_wakefields = UniformBinSlicer(300, z_cuts=(-0.2, 0.2))
 
 

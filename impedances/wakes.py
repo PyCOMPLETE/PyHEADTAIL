@@ -122,7 +122,7 @@ class WakeField(Element):
         slice_data_buffer = np.zeros(stride * n_bunches)
 
         for i, b in enumerate(slice_set_list):
-            slice_data_buffer[i*stride] = b.age
+            slice_data_buffer[i*stride] = b.age  # + self.comm.rank
             slice_data_buffer[i*stride + 1] = b.beta
             slice_data_buffer[
                 i*stride+2 + 0*n_slices:i*stride+2 + 1*n_slices] = (
@@ -192,6 +192,7 @@ class WakeField(Element):
 
         self.slice_set_deque.appendleft(
             np.reshape(register, (n_bunches_total, stride)))
+        print self.slice_set_deque[-1][:, 0]
 
         for kick in self.wake_kicks:
             kick.apply(bunches_list, self.slice_set_deque)
