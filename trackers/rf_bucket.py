@@ -286,20 +286,20 @@ class RFBucket(Printing):
 
     # FORCE FIELDS AND POTENTIALS OF MULTI-HARMONIC ACCELERATING BUCKET
     # =================================================================
-    def rf_force(self, V, h, dphi, dp, acceleration_off=False):
+    def rf_force(self, V, h, dphi, dp, acceleration=True):
         def f(z):
             coefficient = np.abs(self.charge)/self.circumference
             focusing_field = reduce(lambda x, y: x+y, [
                 V_i * np.sin(h_i*z/self.R + dphi_i)
                 for V_i, h_i, dphi_i in zip(V, h, dphi)])
-            if acceleration_off:
+            if not acceleration:
                 accelerating_field = 0
             else:
                 accelerating_field = -(dp*self.beta*c/self.circumference)
             return coefficient * focusing_field + accelerating_field
         return f
 
-    def total_force(self, z, ignore_add_forces=False, acceleration_off=False):
+    def total_force(self, z, ignore_add_forces=False, acceleration=True):
         '''Return the total electric force field including
         - the acceleration offset and
         - the additional electric force fields (provided via
@@ -313,7 +313,7 @@ class RFBucket(Printing):
         return f
 
 
-    @deprecated('--> Replace with "rf_force(acceleration_off=True)" ' +
+    @deprecated('--> Replace with "rf_force(acceleration=False)" ' +
                 'as soon as possible.\n')
     def make_singleharmonic_force(self, V, h, dphi):
         '''Return the electric force field of a single harmonic
@@ -324,7 +324,7 @@ class RFBucket(Printing):
                     np.sin(h * z / self.R + dphi))
         return force
 
-    @deprecated('--> Replace with "total_force(acceleration_off=True)" ' +
+    @deprecated('--> Replace with "total_force(acceleration=False)" ' +
                 'as soon as possible.\n')
     def make_total_force(self, ignore_add_forces=False):
         '''Return the stationary total electric force field of
@@ -360,7 +360,7 @@ class RFBucket(Printing):
         return total_force(z) - self.deltaE / self.circumference
 
 
-    def rf_potential(self, V, h, dphi, dp, acceleration_off=False):
+    def rf_potential(self, V, h, dphi, dp, acceleration=True):
         def vf(z):
             coefficient = np.abs(self.charge)/self.circumference
             focusing_potential = reduce(lambda x, y: x+y, [
@@ -368,7 +368,7 @@ class RFBucket(Printing):
                 for i in xrange(len(V))])
             return coefficient * focusing_potential
 
-        if acceleration_off:
+        if not acceleration:
             return vf
         else:
             zmax = self.z_ufp_separatrix
@@ -379,7 +379,7 @@ class RFBucket(Printing):
             return f
 
     def total_potential(self, z, ignore_add_potentials=False,
-                        make_convex=False, acceleration_off=False):
+                        make_convex=False, acceleration=True):
         '''Return the total electric potential energy including
         - the linear acceleration slope and
         - the additional electric potential energies (provided via
@@ -407,7 +407,7 @@ class RFBucket(Printing):
             v *= np.sign(self.eta0)
         return v
 
-    @deprecated('--> Replace with "rf_potential(acceleration_off=True)" ' +
+    @deprecated('--> Replace with "rf_potential(acceleration=False)" ' +
                 'as soon as possible.\n')
     def make_singleharmonic_potential(self, V, h, dphi):
         '''Return the electric potential energy of a single harmonic
@@ -419,7 +419,7 @@ class RFBucket(Printing):
         return potential
 
     @deprecated('--> Replace with ' +
-                '"total_potential(acceleration_off=True)" ' +
+                '"total_potential(acceleration=False)" ' +
                 'as soon as possible.\n')
     def make_total_potential(self, ignore_add_potentials=False):
         '''Return the stationary total electric potential energy of
