@@ -108,7 +108,7 @@ class RFBucket(Printing):
             z0 = self.zero_crossings(self.total_force,
                                      domain_to_find_bucket_centre)
             convex_pot0 = (
-                np.array(self.total_potential(z0, acceleration_off=True)) *
+                np.array(self.total_potential(z0, acceleration=False)) *
                 np.sign(self.eta0) / self.charge)  # charge for numerical reasons
             outer_separatrix_pot0 = np.min(convex_pot0)
             outer_separatrix_z0 = z0[np.isclose(convex_pot0,
@@ -307,7 +307,7 @@ class RFBucket(Printing):
         evaluated at position z in units of Coul*Volt/metre.
         '''
         f = (self.rf_force(self.V, self.h, self.dphi,
-                           self.p_increment, acceleration_off)(z) +
+                           self.p_increment, acceleration)(z) +
              sum(f(z) for f in self._add_forces
                  if not ignore_add_forces))
         return f
@@ -400,7 +400,7 @@ class RFBucket(Printing):
         in order to return sign(eta)*hamiltonian(z, dp).
         '''
         v = (self.rf_potential(self.V, self.h, self.dphi,
-                               self.p_increment, acceleration_off)(z) +
+                               self.p_increment, acceleration)(z) +
              sum(pot(z) for pot in self._add_potentials
                  if not ignore_add_potentials))
         if make_convex:
