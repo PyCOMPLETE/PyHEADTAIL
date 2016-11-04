@@ -9,9 +9,8 @@ from __future__ import division
 import numpy as np
 
 from particles import Particles
-from ..trackers.rf_bucket import RFBucket
-
-from scipy.optimize import brentq, brenth, bisect, newton
+from scipy.optimize import brentq, newton
+# from ..trackers.rf_bucket import RFBucket
 
 from ..cobra_functions.pdf_integrators_2d import quad2d
 
@@ -33,7 +32,7 @@ def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
     Returns: A particle instance with the phase space matched to the arguments
     """
     beta = np.sqrt(1.-gamma**(-2))
-    p0 = np.sqrt(gamma**2 -1) * mass * c
+    p0 = np.sqrt(gamma**2 - 1) * mass * c
     eps_geo_x = epsn_x/(beta*gamma)
     eps_geo_y = epsn_y/(beta*gamma)
     eps_geo_z = epsn_z * e / (4. * np.pi * p0)
@@ -107,7 +106,6 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
     return _transverse_linear_matcher
 
 
-
 def longitudinal_linear_matcher(Qs, eta, C):
     '''Return simple longitudinal matcher
     Internally calls the transverse linear matcher with beta=beta_z
@@ -136,6 +134,7 @@ def longitudinal_linear_matcher(Qs, eta, C):
         internal_transverse_matcher(beam, direction=['z', 'dp'])
     return _longitudinal_linear_matcher
 
+
 def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
                            margin=0, *args, **kwargs):
     '''Return a distribution function which generates particles
@@ -155,10 +154,12 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
     rf_bucket_matcher_impl = RFBucketMatcher(rfbucket, StationaryExponential,
                                              sigma_z=sigma_z, epsn_z=epsn_z,
                                              *args, **kwargs)
+
     def _RF_bucket_dist(n_particles):
         z, dp, _, _ = rf_bucket_matcher_impl.generate(n_particles, margin)
         return [z, dp]
     return _RF_bucket_dist
+
 
 def cut_distribution(distribution, is_accepted):
     """ Generate coordinates according to some distribution inside the region
@@ -191,6 +192,7 @@ def cut_distribution(distribution, is_accepted):
             mask_out = ~is_accepted(z, dp)
         return [z, dp]
     return _cut_distribution
+
 
 class ParticleGenerator(Printing):
     '''Factory to generate Particle instances according to distributions
@@ -240,14 +242,13 @@ class ParticleGenerator(Printing):
         self.distribution_z = distribution_z
 
         # bind the matching methods with the correct parameters
-        if Qs is not None and eta is not None: #match longitudinally iff
-            self.linear_matcher_z = longitudinal_linear_matcher(Qs, eta,
-                                                                circumference)
+        if Qs is not None and eta is not None:  # match longitudinally iff
+            self.linear_matcher_z = longitudinal_linear_matcher(
+                Qs, eta, circumference)
         else:
             self.linear_matcher_z = None
         self.linear_matcher_x = transverse_linear_matcher(alpha_x, beta_x, D_x)
         self.linear_matcher_y = transverse_linear_matcher(alpha_y, beta_y, D_y)
-
 
     def generate(self):
         ''' Returns a particle  object with the parameters specified
@@ -292,8 +293,8 @@ class ParticleGenerator(Printing):
         return coords
 
     def _linear_match_phase_space(self, beam):
-        #NOTE: keep this ordering (z as first, as x,y dispersion effects
-        #depend on the dp coordinate!
+        # NOTE: keep this ordering (z as first, as x,y dispersion effects
+        # depend on the dp coordinate!
         if self.linear_matcher_z is not None:
             self.linear_matcher_z(beam, ['z', 'dp'])
         if self.distribution_x is not None:
@@ -310,6 +311,7 @@ def import_distribution2D(coords):
             coords[0] is the space, coords[1] the momentum coordinate
     '''
     assert len(coords[0]) == len(coords[1])
+
     def _import_distribution2D(n_particles):
         '''Return the specified coordinates
         Args:
@@ -319,6 +321,7 @@ def import_distribution2D(coords):
         return coords
 
     return _import_distribution2D
+
 
 def gaussian2D(emittance_geo):
     '''Closure which generates a gaussian distribution with the given
@@ -331,11 +334,12 @@ def gaussian2D(emittance_geo):
     '''
 
     def _gaussian2D(n_particles):
-        std = np.sqrt(emittance_geo) # bc. std = sqrt(emittance_geo)
+        std = np.sqrt(emittance_geo)  # bc. std = sqrt(emittance_geo)
         coords = [np.random.normal(loc=0., scale=std, size=n_particles),
                   np.random.normal(loc=0., scale=std, size=n_particles)]
         return coords
     return _gaussian2D
+
 
 def gaussian2D_asymmetrical(sigma_u, sigma_up):
     ''' Closure which generates a gaussian distribution with the given
@@ -352,6 +356,7 @@ def gaussian2D_asymmetrical(sigma_u, sigma_up):
         return coords
     return _gaussian2D
 
+
 def uniform2D(low, high):
     '''Closure which generates a uniform distribution for the space coords.
     All momenta are 0.
@@ -365,6 +370,7 @@ def uniform2D(low, high):
         coords[0] = np.random.uniform(low=low, high=high, size=n_particles)
         return coords
     return _uniform2D
+
 
 def kv2D(r_u, r_up):
     '''Closure which generates a Kapchinski-Vladimirski-type uniform
@@ -384,6 +390,7 @@ def kv2D(r_u, r_up):
         up = sign * np.sqrt(1. - r**2)
         return [u, up]
     return _kv2d
+
 
 def kv4D(r_x, r_xp, r_y, r_yp):
     '''Closure which generates a Kapchinski-Vladimirski-type uniform
@@ -411,6 +418,7 @@ def kv4D(r_x, r_xp, r_y, r_yp):
         return [x, xp, y, yp]
     return _kv4d
 
+
 class RFBucketMatcher(Printing):
 
     def __init__(self, rfbucket, psi, sigma_z=None, epsn_z=None,
@@ -419,9 +427,12 @@ class RFBucketMatcher(Printing):
         self.rfbucket = rfbucket
         hamiltonian = partial(rfbucket.hamiltonian, make_convex=True)
         hmax = rfbucket.h_sfp(make_convex=True)
+
         self.psi_object = psi(hamiltonian, hmax)
         self.psi = self.psi_object.function
+
         self.verbose_regeneration = verbose_regeneration
+
         if sigma_z and not epsn_z:
             self.variable = sigma_z
             self.psi_for_variable = self.psi_for_bunchlength_newton_method
@@ -433,11 +444,11 @@ class RFBucketMatcher(Printing):
                              "distribution! (Don't provide both sigma_z " +
                              "and epsn_z!)")
 
-
     def psi_for_emittance_newton_method(self, epsn_z):
 
         # Maximum emittance
-        self._set_psi_sigma(self.rfbucket.circumference)
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            self.rfbucket.circumference, from_variable='sigma')
         epsn_max = self._compute_emittance(self.rfbucket, self.psi)
         if epsn_z > epsn_max:
             self.warns('Given RMS emittance does not fit into bucket. ' +
@@ -446,9 +457,9 @@ class RFBucketMatcher(Printing):
             epsn_z = epsn_max*0.99
         self.prints('*** Maximum RMS emittance ' + str(epsn_max) + 'eV s.')
 
-
         def get_zc_for_epsn_z(ec):
-            self._set_psi_epsn(ec)
+            self.psi_object.H0 = self.rfbucket.guess_H0(
+                ec, from_variable='epsn')
             emittance = self._compute_emittance(self.rfbucket, self.psi)
 
             self.prints('... distance to target emittance: ' +
@@ -464,18 +475,18 @@ class RFBucketMatcher(Printing):
                        'Instead trying classic Brent method...')
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
 
-        self._set_psi_epsn(ec_bar)
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            ec_bar, from_variable='epsn')
         emittance = self._compute_emittance(self.rfbucket, self.psi)
         self.prints('--> Emittance: ' + str(emittance))
         sigma = self._compute_sigma(self.rfbucket, self.psi)
         self.prints('--> Bunch length:' + str(sigma))
 
-
-    # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
 
         # Maximum bunch length
-        self._set_psi_sigma(self.rfbucket.circumference)
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            self.rfbucket.circumference, from_variable='sigma')
         sigma_max = self._compute_sigma(self.rfbucket, self.psi)
         if sigma > sigma_max:
             self.warns('Given RMS bunch length does not fit into bucket. ' +
@@ -484,10 +495,10 @@ class RFBucketMatcher(Printing):
             sigma = sigma_max*0.99
         self.prints('*** Maximum RMS bunch length ' + str(sigma_max) + 'm.')
 
-
         def get_zc_for_sigma(zc):
             '''Width for bunch length'''
-            self._set_psi_sigma(zc)
+            self.psi_object.H0 = self.rfbucket.guess_H0(
+                zc, from_variable='sigma')
             length = self._compute_sigma(self.rfbucket, self.psi)
 
             if np.isnan(length): raise ValueError
@@ -499,7 +510,8 @@ class RFBucketMatcher(Printing):
 
         zc_bar = newton(get_zc_for_sigma, sigma)
 
-        self._set_psi_sigma(zc_bar)
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            zc_bar, from_variable='sigma')
         sigma = self._compute_sigma(self.rfbucket, self.psi)
         self.prints('--> Bunch length: ' + str(sigma))
         emittance = self._compute_emittance(self.rfbucket, self.psi)
@@ -525,8 +537,8 @@ class RFBucketMatcher(Printing):
         '''
         self.psi_for_variable(self.variable)
 
-        xmin, xmax = self.rfbucket.zleft, self.rfbucket.zright
-        ymin = -self.rfbucket.dp_max(self.rfbucket.zright)
+        xmin, xmax = self.rfbucket.z_left, self.rfbucket.z_right
+        ymin = -self.rfbucket.dp_max(self.rfbucket.z_right)
         ymax = -ymin
 
         # rejection sampling
@@ -541,11 +553,11 @@ class RFBucketMatcher(Printing):
 
         if cutting_margin:
             mask_out_nocut = mask_out
+
             def mask_out(s, u, v):
                 return np.logical_or(
                     mask_out_nocut(s, u, v),
-                    ~self.rfbucket.is_in_separatrix(u, v, cutting_margin)
-                )
+                    ~self.rfbucket.is_in_separatrix(u, v, cutting_margin))
 
         # masked_out = ~(s<self.psi(u, v))
         masked_out = mask_out(s, u, v)
@@ -560,25 +572,20 @@ class RFBucketMatcher(Printing):
                 s[masked_out], u[masked_out], v[masked_out]
             )
             if self.verbose_regeneration:
-                self.prints('Thou shalt not give up! :-) '
-                            'Regenerating {0} macro-particles...'.format(n_gen))
+                self.prints(
+                    'Thou shalt not give up! :-) '
+                    'Regenerating {0} macro-particles...'.format(n_gen))
 
         return u, v, self.psi, self.linedensity
-
-    def _set_psi_sigma(self, sigma):
-        self.psi_object.H0 = self.rfbucket.H0_from_sigma(sigma)
-
-    def _set_psi_epsn(self, epsn):
-        self.psi_object.H0 = self.rfbucket.H0_from_epsn(epsn)
 
     def _compute_sigma(self, rfbucket, psi):
 
         f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)
+        Q = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
         var_x = V
 
         return np.sqrt(var_x)
@@ -586,28 +593,29 @@ class RFBucketMatcher(Printing):
     def _compute_emittance(self, rfbucket, psi):
 
         f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)
+        Q = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)
 
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
         mean_x = M
         var_x  = V
 
         f = lambda x, y: psi(x, y)*y
-        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
         f = lambda x, y: psi(x, y)*(y-M)**2
-        V = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
+        V = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
         mean_y = M
         var_y  = V
 
         f = lambda x, y: psi(x, y)*(x-mean_x)*(y-mean_y)
-        M = quad2d(f, rfbucket.separatrix, rfbucket.zleft, rfbucket.zright)/Q
+        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
         mean_xy = M
 
         return (np.sqrt(var_x*var_y - mean_xy**2) *
                 4*np.pi*rfbucket.p0/rfbucket.charge)
+
 
 class StationaryExponential(object):
 
@@ -625,6 +633,7 @@ class StationaryExponential(object):
         psi = np.exp(self.H(z, dp).clip(min=0)/self.H0) - 1
         psi_norm = np.exp(self.Hmax/self.H0) - 1
         return psi/psi_norm
+
 
 class HEADTAILcoords(object):
     '''The classic HEADTAIL phase space.'''

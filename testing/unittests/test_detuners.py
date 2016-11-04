@@ -16,7 +16,6 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 import PyHEADTAIL.trackers.detuners as pure_py
-import PyHEADTAIL.trackers.detuners_cython as cy
 from PyHEADTAIL.particles.particles import Particles
 
 class TestDetuner(unittest.TestCase):
@@ -45,51 +44,28 @@ class TestDetuner(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_chromaticity_consistency(self):
+    def test_chromaticity(self):
         '''Tests whether the pure python and cython version
         of the chromaticity class are consistent
         '''
         bunch_p = self.create_bunch()
-        bunch_c = self.create_bunch()
         chromaticity_p = pure_py.Chromaticity(self.Qp_x, self.Qp_y)
-        chromaticity_c = cy.Chromaticity(self.Qp_x, self.Qp_y)
         chromaticity_p.generate_segment_detuner(self.dmu_x, self.dmu_y)
-        chromaticity_c.generate_segment_detuner(self.dmu_x, self.dmu_y)
         (dqx_pure, dqy_pure) = chromaticity_p[0].detune(bunch_p)
-        (dqx_cy, dqy_cy) = chromaticity_c[0].detune(bunch_c)
-        self.assertTrue(np.allclose(dqx_pure, np.asarray(dqx_cy)),
-                        'inconsistency in dQ_x between cython and python ' +
-                        'version of Chromaticity.detune()')
-        self.assertTrue(np.allclose(dqy_pure, np.asarray(dqy_cy)),
-                        'inconsistency in dQ_y between cython and python ' +
-                        'version of Chromaticity.detune()')
 
-    def test_amplitudedetuning_consistency(self):
+    def test_amplitudedetuning(self):
         '''Tests whether the pure python and cython version
         of the AmplitudeDetung class yield consistent results
         '''
         adetuning_p = pure_py.AmplitudeDetuning(self.app_x,
                 self.app_y, self.app_xy)
-        adetuning_c = cy.AmplitudeDetuning(self.app_x,
-                self.app_y, self.app_xy)
         adetuning_p.generate_segment_detuner(self.dmu_x, self.dmu_y,
                 alpha_x=self.alpha_x, alpha_y=self.alpha_y,
                 beta_x=self.beta_x, beta_y=self.beta_y)
-        adetuning_c.generate_segment_detuner(self.dmu_x, self.dmu_y,
-                alpha_x=self.alpha_x, alpha_y=self.alpha_y,
-                beta_x=self.beta_x, beta_y=self.beta_y)
         bunch_p = self.create_bunch()
-        bunch_c = self.create_bunch()
         (dqx_p, dqy_p) = adetuning_p[0].detune(bunch_p)
-        (dqx_cy, dqy_cy) = adetuning_c[0].detune(bunch_c)
-        self.assertTrue(np.allclose(dqx_p, np.asarray(dqx_cy)),
-                        'inconsistency in dQ_x between cython and python ' +
-                        'version of AmplitudeDetuning.detune()')
-        self.assertTrue(np.allclose(dqy_p, np.asarray(dqy_cy)),
-                        'inconsistency in dQ_y between cython and python ' +
-                        'version of AmplitudeDetuning.detune()')
 
-    def test_from_oct_currents_LHC_consistency(self):
+    def test_from_oct_currents_LHC(self):
         '''Tests whether the pure python and cython version
         of the AmplitudeDetuning.from_ocupole_currents_LHC()
         classmethods yield consistent results
@@ -98,20 +74,6 @@ class TestDetuner(unittest.TestCase):
         i_defocusing = 490
         detuner_p = pure_py.AmplitudeDetuning.from_octupole_currents_LHC(
                 i_focusing, i_defocusing)
-        detuner_c = cy.AmplitudeDetuning.from_octupole_currents_LHC(
-                i_focusing, i_defocusing)
-        self.assertAlmostEqual(detuner_p.app_x, detuner_c.app_x,
-                               msg='inconsistency in app_x between cython ' +
-                               'and python version of '+
-                               'from_octupole_currents_LHC()')
-        self.assertAlmostEqual(detuner_p.app_y, detuner_c.app_y,
-                               msg='inconsistency in app_y between cython ' +
-                               'and python version of '+
-                               'from_octupole_currents_LHC()')
-        self.assertAlmostEqual(detuner_p.app_xy, detuner_c.app_xy,
-                               msg='inconsistency in app_xy between cython ' +
-                               'and python version of '+
-                               'from_octupole_currents_LHC()')
 
     def create_bunch(self):
         np.random.seed(0)
