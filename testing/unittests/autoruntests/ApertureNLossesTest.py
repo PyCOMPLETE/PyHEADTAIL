@@ -9,7 +9,7 @@ from scipy.constants import m_p, c, e
 
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
-from PyHEADTAIL.trackers.simple_long_tracking import RFSystems
+from PyHEADTAIL.trackers.longitudinal_tracking import RFSystems
 import PyHEADTAIL.aperture.aperture as aperture
 
 

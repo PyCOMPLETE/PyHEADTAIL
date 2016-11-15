@@ -9,7 +9,7 @@ from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.trackers.rf_bucket import RFBucket
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
-from PyHEADTAIL.trackers.simple_long_tracking import LinearMap, RFSystems
+from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap, RFSystems
 
 
 class Synchrotron(Element):

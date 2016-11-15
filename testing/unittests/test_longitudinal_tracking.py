@@ -18,7 +18,7 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
-from PyHEADTAIL.trackers.simple_long_tracking import (
+from PyHEADTAIL.trackers.longitudinal_tracking import (
     Drift, Kick, LongitudinalOneTurnMap, RFSystems, LinearMap
     )
 from PyHEADTAIL.general.printers import AccumulatorPrinter
@@ -26,7 +26,7 @@ from PyHEADTAIL.general.printers import AccumulatorPrinter
 
 class TestSimpleLongTracking(unittest.TestCase):
     '''Tests for functions/classes in the
-    trackers/simple_long_tracking.py file
+    trackers/longitudinal_tracking.py file
     '''
     def setUp(self):
         self.alpha_array = [10]

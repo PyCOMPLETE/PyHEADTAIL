@@ -20,7 +20,7 @@ from scipy.constants import c, e, m_p
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 import PyHEADTAIL.cobra_functions.stats as cf
-from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
+from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.general.printers import SilentPrinter
 
 
