@@ -165,9 +165,68 @@ class Synchrotron(Element):
 
         return bunch
 
+    # TODO: How about class names here?
     def generate_6D_Gaussian_bunch_matched(
             self, n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z=None, epsn_z=None):
+            sigma_z=None, epsn_z=None, filling_scheme = None, kicker = None):
+
+        """
+
+        :param n_macroparticles:
+        :param intensity:
+        :param epsn_x:
+        :param epsn_y:
+        :param sigma_z:
+        :param epsn_z:
+        :param filling_scheme: a list of bucket indexes for the bunches, which are created
+        :param kicker:  a function, which gives initial kicks for the bunches. An input parameter for the function is
+                        a bunch object
+        :return:
+        """
+
+        if filling_scheme is not None:
+
+            sorted_filling_scheme = sorted(filling_scheme)
+
+            sniffer = MpiSniffer()
+
+            number_of_bunches = len(sorted_filling_scheme)
+            number_of_processors = sniffer.size
+
+            bunches_per_processors = []
+
+            if number_of_bunches >= number_of_processors:
+                for i in xrange(number_of_processors):
+                    bunches_per_processors.append(int(number_of_bunches / number_of_processors))
+                    if i < number_of_bunches % number_of_processors:
+                        bunches_per_processors[-1] += 1
+                print "I am rank " + str(sniffer.rank) + ", bunches_per_processors: " + str(bunches_per_processors)
+            else:
+                raise Exception('The number of processors must be lower than the number of bunches')
+
+            bunches_from = sum(bunches_per_processors[:sniffer.rank])
+            bunches_to = sum(bunches_per_processors[:(sniffer.rank + 1)])
+            buckets_for_this_processor = sorted_filling_scheme[bunches_from:bunches_to]
+            print "I am rank " + str(sniffer.rank) + ", buckets_for_this_processor: " + str(buckets_for_this_processor)
+
+            bunches = [self._create_6D_Gaussian_bunch_matched(n_macroparticles, intensity, epsn_x, epsn_y,
+            sigma_z, epsn_z, bucket) for bucket in buckets_for_this_processor]
+
+            if kicker is not None:
+                for b in bunches:
+                    kicker(b)
+            bunch = sum(bunches) # superbunch
+
+        else:
+            bunch = self._create_6D_Gaussian_bunch_matched(n_macroparticles, intensity, epsn_x, epsn_y,
+            sigma_z, epsn_z, bucket = 0)
+
+        return bunch
+
+    # TODO: How about class names here?
+    def _create_6D_Gaussian_bunch_matched(
+            self, n_macroparticles, intensity, epsn_x, epsn_y,
+            sigma_z, epsn_z, bucket):
         '''Generate a 6D Gaussian distribution of particles which is
         transversely as well as longitudinally matched.
         The distribution is found iteratively to exactly yield the
@@ -175,10 +234,15 @@ class Synchrotron(Element):
         the non-linear bucket. Thus, the bunch length should amount
         to the one specificed and should not change significantly
         during the synchrotron motion.
+
         Requires self.longitudinal_mode == 'non-linear'
         for the bucket.
         '''
+
+
         assert self.longitudinal_mode == 'non-linear'
+        C = self.longitudinal_map.circumference
+        h = np.min(self.longitudinal_map.harmonics)
         epsx_geo = epsn_x/self.betagamma
         epsy_geo = epsn_y/self.betagamma
 
@@ -198,10 +262,17 @@ class Synchrotron(Element):
             D_y=injection_optics['D_y'],
             distribution_z=generators.RF_bucket_distribution(
                 self.longitudinal_map.get_bucket(gamma=self.gamma),
-                sigma_z=sigma_z, epsn_z=epsn_z)).generate()
+                sigma_z=sigma_z, epsn_z=epsn_z),
+            bunch_id=bucket, z_delay=-bucket/h*C).generate()
 
         return bunch
 
+    ####################################################################################
+    ####  MPI modifications  ###########################################################
+    ####################################################################################
+
+
+    # TODO: How about class names here?
     def _construct_transverse_map(
             self, optics_mode=None,
             circumference=None, n_segments=None, s=None, name=None,
@@ -351,6 +422,30 @@ class Synchrotron(Element):
         else:
             self.one_turn_map.insert(insert_before, self.longitudinal_map)
 
+    def _add_wrapper_and_buncher(self):
+
+        if self.longitudinal_mode is None:
+            return
+
+        elif self.longitudinal_mode == 'linear':
+            raise ValueError('Not implemented!!!!')
+
+        elif self.longitudinal_mode == 'non-linear':
+            bucket = self.longitudinal_map.get_bucket(
+                gamma=self.gamma, mass=self.mass, charge=self.charge)
+            harmonic = bucket.h[0]
+            bucket_length = self.circumference/harmonic
+            z_beam_center = (bucket.z_ufp_separatrix +
+                             bucket_length - self.circumference/2.)
+            self.z_wrapper = LongWrapper(circumference=self.circumference,
+                                         z0=z_beam_center)
+            self.one_turn_map.append(self.z_wrapper)
+            self.buncher = UniformBinSlicer(
+                harmonic, z_cuts=(self.z_wrapper.z_min,  self.z_wrapper.z_max))
+
+        else:
+            raise NotImplementedError(
+                'Something wrong with longitudinal_mode')
 
 class BasicSynchrotron(Synchrotron):
     @deprecated('"--> BasicSynchrotron" will be deprecated ' +
