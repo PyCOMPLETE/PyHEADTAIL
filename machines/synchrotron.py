@@ -5,8 +5,11 @@ from scipy.constants import c
 
 from ..general.decorators import deprecated
 from PyHEADTAIL.particles import generators
+from PyHEADTAIL.mpi.mpi_data import MpiSniffer
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.trackers.rf_bucket import RFBucket
+from PyHEADTAIL.trackers.wrapper import LongWrapper
+from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap, RFSystems
@@ -22,11 +25,12 @@ class Synchrotron(Element):
                  Qp_x=0, Qp_y=0, app_x=0, app_y=0, app_xy=0,
                  longitudinal_mode=None, Q_s=None, alpha_mom_compaction=None,
                  h_RF=None, V_RF=None, dphi_RF=None, p_increment=None,
-                 RF_at='middle', other_detuners=[],
+                 RF_at='middle', wrap_z=False, other_detuners=[],
                  use_cython=False):
 
         if use_cython:
-            self.warns("Cython modules no longer in use. Using Python module instead.\n")
+            self.warns("Cython modules no longer in use. " +
+                       "Using Python module instead.\n")
 
         self.charge = charge
         self.mass = mass
@@ -44,7 +48,7 @@ class Synchrotron(Element):
             alpha_y=alpha_y, beta_y=beta_y, D_y=D_y,
             accQ_x=accQ_x, accQ_y=accQ_y,
             Qp_x=Qp_x, Qp_y=Qp_y, app_x=app_x, app_y=app_y, app_xy=app_xy,
-            other_detuners=other_detuners, use_cython=use_cython)
+            other_detuners=other_detuners)
 
         # construct longitudinal map
         self._construct_longitudinal_map(
@@ -168,58 +172,64 @@ class Synchrotron(Element):
     # TODO: How about class names here?
     def generate_6D_Gaussian_bunch_matched(
             self, n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z=None, epsn_z=None, filling_scheme = None, kicker = None):
-
+            sigma_z=None, epsn_z=None, filling_scheme=None, kicker=None):
         """
-
         :param n_macroparticles:
         :param intensity:
         :param epsn_x:
         :param epsn_y:
         :param sigma_z:
         :param epsn_z:
-        :param filling_scheme: a list of bucket indexes for the bunches, which are created
-        :param kicker:  a function, which gives initial kicks for the bunches. An input parameter for the function is
-                        a bunch object
-        :return:
+        :param filling_scheme:
+            a list of bucket indices for the bunches,
+            which are created
+        :param kicker:
+            a function, which gives initial kicks for the bunches.
+            An input parameter for the function is a bunch object
+        :return: A merged bunch for every processor
         """
 
         if filling_scheme is not None:
 
+            sniffer = MpiSniffer()
             sorted_filling_scheme = sorted(filling_scheme)
 
-            sniffer = MpiSniffer()
+            n_bunches = len(sorted_filling_scheme)
+            n_processors = sniffer.size
 
-            number_of_bunches = len(sorted_filling_scheme)
-            number_of_processors = sniffer.size
+            n_bunches_on_proc = [
+                n_bunches//n_processors + 1
+                if i < n_bunches % n_processors
+                else
+                n_bunches//n_processors
+                for i in range(n_processors)]
+            n_bunches_cumsum = np.insert(np.cumsum(n_bunches_on_proc), 0, 0)
 
-            bunches_per_processors = []
+            bunches_on_proc_list = [
+                sorted_filling_scheme[
+                    n_bunches_cumsum[i]:n_bunches_cumsum[i+1]]
+                for i in range(n_processors)]
+            if not all(bunches_on_proc_list):
+                raise Exception('\n*** The of bunches should be larger ' +
+                                'or equal to number of processors')
 
-            if number_of_bunches >= number_of_processors:
-                for i in xrange(number_of_processors):
-                    bunches_per_processors.append(int(number_of_bunches / number_of_processors))
-                    if i < number_of_bunches % number_of_processors:
-                        bunches_per_processors[-1] += 1
-                print "I am rank " + str(sniffer.rank) + ", bunches_per_processors: " + str(bunches_per_processors)
-            else:
-                raise Exception('The number of processors must be lower than the number of bunches')
-
-            bunches_from = sum(bunches_per_processors[:sniffer.rank])
-            bunches_to = sum(bunches_per_processors[:(sniffer.rank + 1)])
-            buckets_for_this_processor = sorted_filling_scheme[bunches_from:bunches_to]
-            print "I am rank " + str(sniffer.rank) + ", buckets_for_this_processor: " + str(buckets_for_this_processor)
-
-            bunches = [self._create_6D_Gaussian_bunch_matched(n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z, epsn_z, bucket) for bucket in buckets_for_this_processor]
+            buckets_for_this_processor = bunches_on_proc_list[sniffer.rank]
+            print("*** I am rank {:d} - my buckets are {:s}".format(
+                sniffer.rank, buckets_for_this_processor))
+            bunches = [self._create_6D_Gaussian_bunch_matched(
+                n_macroparticles, intensity, epsn_x, epsn_y,
+                sigma_z, epsn_z, bucket)
+                       for bucket in buckets_for_this_processor]
 
             if kicker is not None:
                 for b in bunches:
                     kicker(b)
-            bunch = sum(bunches) # superbunch
+            bunch = sum(bunches)  # superbunch
 
         else:
-            bunch = self._create_6D_Gaussian_bunch_matched(n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z, epsn_z, bucket = 0)
+            bunch = self._create_6D_Gaussian_bunch_matched(
+                n_macroparticles, intensity, epsn_x, epsn_y,
+                sigma_z, epsn_z, bucket=0)
 
         return bunch
 
@@ -239,12 +249,12 @@ class Synchrotron(Element):
         for the bucket.
         '''
 
-
         assert self.longitudinal_mode == 'non-linear'
-        C = self.longitudinal_map.circumference
-        h = np.min(self.longitudinal_map.harmonics)
+
         epsx_geo = epsn_x/self.betagamma
         epsy_geo = epsn_y/self.betagamma
+        C = self.longitudinal_map.circumference
+        h = np.min(self.longitudinal_map.harmonics)
 
         injection_optics = self.transverse_map.get_injection_optics()
 
@@ -267,10 +277,9 @@ class Synchrotron(Element):
 
         return bunch
 
-    ####################################################################################
-    ####  MPI modifications  ###########################################################
-    ####################################################################################
-
+    ###########################################################################
+    ####  MPI modifications  ##################################################
+    ###########################################################################
 
     # TODO: How about class names here?
     def _construct_transverse_map(
@@ -280,7 +289,7 @@ class Synchrotron(Element):
             alpha_y=None, beta_y=None, D_y=None,
             accQ_x=None, accQ_y=None,
             Qp_x=None, Qp_y=None, app_x=None, app_y=None, app_xy=None,
-            other_detuners=None, use_cython=None):
+            other_detuners=None):
 
         if optics_mode == 'smooth':
             if circumference is None:
@@ -446,6 +455,7 @@ class Synchrotron(Element):
         else:
             raise NotImplementedError(
                 'Something wrong with longitudinal_mode')
+
 
 class BasicSynchrotron(Synchrotron):
     @deprecated('"--> BasicSynchrotron" will be deprecated ' +

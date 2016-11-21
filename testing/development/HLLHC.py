@@ -1,14 +1,14 @@
 import numpy as np
 from scipy.constants import c, e, m_p
 
-from PyHEADTAIL.machines.synchrotron import BasicSynchrotron
+from PyHEADTAIL.machines.synchrotron import Synchrotron
 
 
-class HLLHC(BasicSynchrotron):
+class HLLHC(Synchrotron):
 
     def __init__(self, machine_configuration=None,
                  optics_mode='smooth', longitudinal_mode='non-linear',
-                 verbose=False, **kwargs):
+                 **kwargs):
 
         charge = e
         mass = m_p
@@ -129,7 +129,7 @@ class HLLHC(BasicSynchrotron):
             alpha_mom_compaction=alpha, longitudinal_mode=longitudinal_mode,
             h_RF=np.atleast_1d(h_RF), V_RF=np.atleast_1d(V_RF),
             dphi_RF=np.atleast_1d(dphi_RF), p0=p0, p_increment=p_increment,
-            charge=charge, mass=mass, wrap_z=wrap_z, verbose=verbose)
+            charge=charge, mass=mass, wrap_z=wrap_z)
 
     def _anharmonicities_from_octupole_current_settings(
             self, i_octupole_focusing, i_octupole_defocusing):
