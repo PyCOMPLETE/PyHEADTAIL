@@ -57,6 +57,10 @@ class Synchrotron(Element):
             h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment,
             RF_at=RF_at)
 
+        # add longitudinal wrapper and buncher
+            if wrap_z:
+                self._add_wrapper_and_buncher()
+
     @property
     def gamma(self):
             return self._gamma

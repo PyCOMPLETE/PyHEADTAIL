@@ -33,6 +33,7 @@ floor = np.floor
 arange = np.arange
 empty_like = np.empty_like
 
+
 def make_int32(array):
     # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
@@ -41,8 +42,10 @@ def make_int32(array):
 class ModeIsUniformCharge(Exception):
     def __init__(self, message):
         self.message = message
+
     def __str__(self):
         return self.message
+
 
 # @clean_slices needs to be attached to the track methods that change
 # the longitudinal phase space. It could not be handled automatically
@@ -78,33 +81,38 @@ class SliceSet(Printing):
         a set of intervals defining the slicing region and the histogram over
         the thereby defined slices.
 
-        beam_parameters is a dictionary containing certain beam parameters to be
-        recorded with this SliceSet.  (e.g. beta being saved via
+        beam_parameters is a dictionary containing certain beam parameters to
+        be recorded with this SliceSet.  (e.g. beta being saved via
         beam_parameters['beta'] = beam.beta)
+
         '''
 
         '''The age of a slice set since its creation - this is used by multi-turn wakes
         which actually store slice sets and keep them alive for several turns.
+
         '''
         self.age = 0
 
-        '''Array of z values of each bin, goes from the left bin edge
-        of the first bin to the right bin edge of the last bin.
+        '''Array of z values of each bin, goes from the left bin edge of the first bin
+        to the right bin edge of the last bin.
+
         '''
         self.z_bins = z_bins
 
-        '''Array of slice indices for each particle, positions (indices)
-        are the same as in beam.z .
+        '''Array of slice indices for each particle, positions (indices) are the same
+        as in beam.z .
+
         '''
         self.slice_index_of_particle = slice_index_of_particle
 
-        '''How is the slicing done? For the moment it is either
-        'uniform_charge' or 'uniform_bin'.
+        '''How is the slicing done? For the moment it is either 'uniform_charge' or
+        'uniform_bin'.
+
         '''
         self.mode = mode
 
-        '''Numpy array containing the number of macroparticles in each
-        slice.
+        '''Numpy array containing the number of macroparticles in each slice.
+
         '''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
 
@@ -217,7 +225,7 @@ class SliceSet(Printing):
         return lambda_of_bins
 
     def lambda_prime_bins(self, sigma=None, smoothen_before=True,
-                                smoothen_after=True):
+                          smoothen_after=True):
         '''Return array of length (n_slices - 1) containing
         the derivative of the line charge density \lambda
         w.r.t. the slice bins while smoothing via a Gaussian filter.
@@ -249,8 +257,8 @@ class SliceSet(Printing):
 
     def lambda_z(self, z, sigma=None, smoothen=True):
         '''Line charge density with respect to z along the slices.'''
-        lambda_along_bins = (self.lambda_bins(sigma, smoothen)
-                             / self.slice_widths)
+        lambda_along_bins = (self.lambda_bins(sigma, smoothen) /
+                             self.slice_widths)
         tck = interpolate.splrep(self.z_centers, lambda_along_bins, s=0)
         l_of_z = interpolate.splev(z, tck, der=0, ext=1)
         return l_of_z
@@ -270,7 +278,7 @@ class SliceSet(Printing):
         '''Return an array of particle indices which are located in the
         slice defined by the given slice_index.
         '''
-        pos      = self.slice_positions[slice_index]
+        pos = self.slice_positions[slice_index]
         next_pos = self.slice_positions[slice_index + 1]
 
         return self.particle_indices_by_slice[pos:next_pos]
@@ -288,7 +296,8 @@ class SliceSet(Printing):
         particle belongs to.
         '''
         if empty_particles == None:
-            empty_particles = empty_like(self.slice_index_of_particle, dtype=np.float)
+            empty_particles = empty_like(self.slice_index_of_particle,
+                                         dtype=np.float)
         particle_array = empty_particles
         p_id = self.particles_within_cuts
         s_id = self.slice_index_of_particle.take(p_id)
@@ -312,7 +321,7 @@ class Slicer(Printing):
         self.n_sigma_z = value[2]
         self.z_cuts = value[3]
         if(self.z_cuts != None and self.z_cuts[0] >= self.z_cuts[1]):
-            self.warns('Slicer.config: z_cut_tail >= z_cut_head,'+
+            self.warns('Slicer.config: z_cut_tail >= z_cut_head,' +
                        ' this leads to negative ' +
                        'bin sizes and particle indices starting at the head')
 
@@ -459,7 +468,8 @@ class Slicer(Printing):
     def _sigma_dp(self, sliceset, beam):
         return self._sigma(sliceset, beam.dp)
 
-    def _epsn_x(self, sliceset, beam): # dp will always be present in a sliced beam
+    def _epsn_x(self, sliceset, beam):
+        # dp will always be present in a sliced beam
         return self._epsn(sliceset, beam.x, beam.xp, beam.dp) * beam.betagamma
 
     def _eff_epsn_x(self, sliceset, beam):
@@ -471,14 +481,12 @@ class Slicer(Printing):
     def _eff_epsn_y(self, sliceset, beam):
         return self._epsn(sliceset, beam.y, beam.yp, None) * beam.betagamma
 
-
     def _epsn_z(self, sliceset, beam):
         # Always use the effective emittance --> pass None as second dp param
         return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp, None) *
                 beam.p0 / e)
 
     # Statistics helper functions.
-
     def _mean(self, sliceset, u):
         mean_u = np.zeros(sliceset.n_slices)
         cp.mean_per_slice(sliceset.slice_index_of_particle,
@@ -550,23 +558,23 @@ class UniformBinSlicer(Slicer):
 
         # Extend/compress edges
         if z_cuts:
-            if z_cuts[0]<aa:
-                while z_cuts[0]<aa:
+            if z_cuts[0] < aa:
+                while z_cuts[0] < aa:
                     aa -= dz
                     n_slices += 1
-            elif z_cuts[0]>aa:
-                while z_cuts[0]>aa:
+            elif z_cuts[0] > aa:
+                while z_cuts[0] > aa:
                     aa += dz
                     n_slices -= 1
 
-            if z_cuts[1]<bb:
-                while z_cuts[1]<bb:
+            if z_cuts[1] < bb:
+                while z_cuts[1] < bb:
                     bb -= dz
-                    n_slices -=1
-            elif z_cuts[1]>bb:
-                while z_cuts[1]>bb:
+                    n_slices -= 1
+            elif z_cuts[1] > bb:
+                while z_cuts[1] > bb:
                     bb += dz
-                    n_slices +=1
+                    n_slices += 1
         z_cuts = (aa, bb)
 
         return n_slices, z_cuts
@@ -631,8 +639,8 @@ class UniformChargeSlicer(Slicer):
         rand_slice_i = sample(range(self.n_slices),
                               n_part_within_cuts % self.n_slices)
 
-        n_part_per_slice = ((n_part_within_cuts // self.n_slices)
-                            * np.ones(self.n_slices, dtype=np.int32))
+        n_part_per_slice = ((n_part_within_cuts // self.n_slices) *
+                            np.ones(self.n_slices, dtype=np.int32))
         n_part_per_slice[rand_slice_i] += 1
 
         # 2. z-bins
@@ -643,7 +651,7 @@ class UniformChargeSlicer(Slicer):
 
         z_bins = np.empty(self.n_slices + 1)
         z_bins[1:-1] = ((z_sorted[first_indices[1:-1]-1] +
-            z_sorted[first_indices[1:-1]]) / 2)
+                         z_sorted[first_indices[1:-1]]) / 2)
         z_bins[0], z_bins[-1] = z_cut_tail, z_cut_head
 
         slice_index_of_particle_sorted = -np.ones(n_part, dtype=np.int32)

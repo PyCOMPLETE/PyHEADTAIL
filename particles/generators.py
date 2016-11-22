@@ -3,52 +3,46 @@
 @date 30.03.2015
 @brief module for generating & matching particle distributions
 '''
-
 from __future__ import division
 
 import numpy as np
-
-from particles import Particles
+from functools import partial
 from scipy.optimize import brentq, newton
-# from ..trackers.rf_bucket import RFBucket
-
-from ..cobra_functions.pdf_integrators_2d import quad2d
 
 from . import Printing
+from particles import Particles
+from ..cobra_functions.pdf_integrators_2d import quad2d
 
-from functools import partial
-from scipy.constants import e, c
 
-
-def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
-                             circumference, gamma,
-                             alpha_x, alpha_y, beta_x, beta_y, beta_z,
-                             epsn_x, epsn_y, epsn_z,
-                             dispersion_x=None, dispersion_y=None):
-    """ Convenience wrapper which generates a 6D gaussian phase space
-    with the specified parameters
-    Args:
-        the usual suspects
-    Returns: A particle instance with the phase space matched to the arguments
-    """
-    beta = np.sqrt(1.-gamma**(-2))
-    p0 = np.sqrt(gamma**2 - 1) * mass * c
-    eps_geo_x = epsn_x/(beta*gamma)
-    eps_geo_y = epsn_y/(beta*gamma)
-    eps_geo_z = epsn_z * e / (4. * np.pi * p0)
-    # a bit of a hack: epsn_z is a parameter even though the ParticleGenerator
-    # does not have such a parameter. This is kept for backwards compatiblity.
-    # Therefore, some fake eta, Qs parameters are invented s.t.
-    # beta_z = |eta| * circumference / (2 * pi * Qs)
-    # holds (circumference is fixed). Does not have any side effects.
-    Qs = 1./(2 * np.pi)
-    eta = beta_z / circumference
-    return ParticleGenerator(
-        macroparticlenumber, intensity, charge, mass, circumference, gamma,
-        gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
-        gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
-        gaussian2D(eps_geo_z), Qs, eta
-        ).generate()
+# def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
+#                              circumference, gamma,
+#                              alpha_x, alpha_y, beta_x, beta_y, beta_z,
+#                              epsn_x, epsn_y, epsn_z,
+#                              dispersion_x=None, dispersion_y=None):
+#     """ Convenience wrapper which generates a 6D gaussian phase space
+#     with the specified parameters
+#     Args:
+#         the usual suspects
+#     Returns: A particle instance with the phase space matched to the arguments
+#     """
+#     beta = np.sqrt(1.-gamma**(-2))
+#     p0 = np.sqrt(gamma**2 -1) * mass * c
+#     eps_geo_x = epsn_x/(beta*gamma)
+#     eps_geo_y = epsn_y/(beta*gamma)
+#     eps_geo_z = epsn_z * e / (4. * np.pi * p0)
+#     # a bit of a hack: epsn_z is a parameter even though the ParticleGenerator
+#     # does not have such a parameter. This is kept for backwards compatiblity.
+#     # Therefore, some fake eta, Qs parameters are invented s.t.
+#     # beta_z = |eta| * circumference / (2 * pi * Qs)
+#     # holds (circumference is fixed). Does not have any side effects.
+#     Qs = 1./(2 * np.pi)
+#     eta = beta_z / circumference
+#     return ParticleGenerator(
+#         macroparticlenumber, intensity, charge, mass, circumference, gamma,
+#         gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
+#         gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
+#         gaussian2D(eps_geo_z), Qs, eta
+#         ).generate()
 
 
 def transverse_linear_matcher(alpha, beta, dispersion=None):
@@ -200,7 +194,7 @@ class ParticleGenerator(Printing):
     The Particle instance can be generated via the .generate() method
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma,
+                 circumference, gamma, bunch_id=0,
                  distribution_x=None, alpha_x=0., beta_x=1., D_x=None,
                  distribution_y=None, alpha_y=0., beta_y=1., D_y=None,
                  distribution_z=None, Qs=None, eta=None,
@@ -236,6 +230,8 @@ class ParticleGenerator(Printing):
         self.mass = mass
         self.circumference = circumference
         self.gamma = gamma
+        self.bunch_id = bunch_id
+
         # bind the generator methods and parameters for the matching
         self.distribution_x = distribution_x
         self.distribution_y = distribution_y
@@ -243,12 +239,14 @@ class ParticleGenerator(Printing):
 
         # bind the matching methods with the correct parameters
         if Qs is not None and eta is not None:  # match longitudinally iff
-            self.linear_matcher_z = longitudinal_linear_matcher(
-                Qs, eta, circumference)
+            self.linear_matcher_z = longitudinal_linear_matcher(Qs, eta,
+                                                                circumference)
         else:
             self.linear_matcher_z = None
         self.linear_matcher_x = transverse_linear_matcher(alpha_x, beta_x, D_x)
         self.linear_matcher_y = transverse_linear_matcher(alpha_y, beta_y, D_y)
+
+        self.kwargs = kwargs
 
     def generate(self):
         ''' Returns a particle  object with the parameters specified
@@ -259,7 +257,9 @@ class ParticleGenerator(Printing):
                               self.intensity/self.macroparticlenumber,
                               self.charge, self.mass, self.circumference,
                               self.gamma,
-                              coords_n_momenta_dict=coords)
+                              coords_n_momenta_dict=coords,
+                              bunch_id=self.bunch_id,
+                              **self.kwargs)
         self._linear_match_phase_space(particles)
         return particles
 
@@ -572,9 +572,8 @@ class RFBucketMatcher(Printing):
                 s[masked_out], u[masked_out], v[masked_out]
             )
             if self.verbose_regeneration:
-                self.prints(
-                    'Thou shalt not give up! :-) '
-                    'Regenerating {0} macro-particles...'.format(n_gen))
+                self.prints('Thou shalt not give up! :-) '
+                            'Regenerating {0} macro-particles...'.format(n_gen))
 
         return u, v, self.psi, self.linedensity
 
