@@ -1,11 +1,11 @@
 """.. copyright:: CERN"""
 from __future__ import division
 
-from abc import ABCMeta, abstractmethod
-
 import numpy as np
 from scipy.constants import c
 from scipy.signal import fftconvolve
+
+from abc import ABCMeta, abstractmethod
 
 from . import Printing
 
@@ -32,8 +32,7 @@ class WakeKick(Printing):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, wake_function, slicer, n_turns_wake, comm=None,
-                 *args, **kwargs):
+    def __init__(self, wake_function, slicer, n_turns_wake, *args, **kwargs):
         """Universal constructor for WakeKick objects. The slicer_mode is passed only
         to decide about which of the two implementations of the convolution the
         self._convolution method is bound to.
@@ -47,15 +46,14 @@ class WakeKick(Printing):
                 self._convolution = self._convolution_numpy
             else:
                 self._convolution = self._convolution_scipy
-            self.warns('Acceleration not handled properly' +
-                       ' by this kind of convolution due to changing' +
-                       ' bunch length!')
+            # self.warns('Acceleration not handled properly' +
+            #            ' by this kind of convolution due to changing' +
+            #            ' bunch length!')
         else:
             self._convolution = self._convolution_dot_product
 
         self.n_turns_wake = n_turns_wake
         self.slicer = slicer
-        self.comm = comm
 
     @abstractmethod
     def apply(self, bunches, slice_set_list, slice_set_age_list):
@@ -77,38 +75,28 @@ class WakeKick(Printing):
                        bunch.particlenumber_per_mp)
         return wake_factor
 
-    def _extract_slice_set_data(self, slice_set_list, moments='zero'):
-        """Convenience function called by wake kicks to return slice_set
-        quantities. Slice set list and slice set quantities are of
-        dimensionality n_turns x n_bunches each with arrays of n_slices
+    # def _extract_slice_set_data(self, slice_set_list, moments='zero'):
+    #     """Convenience function called by wake kicks to return slice_set
+    #     quantities. Slice set list and slice set quantities are of
+    #     dimensionality n_turns x n_bunches each with arrays of n_slices
 
-        """
-        buffer = np.array([s for s in slice_set_list])
-        n_turns, n_bunches, n_stride = buffer.shape
-        n_slices = self.slicer.n_slices
+    #     """
 
-        ages_list = np.zeros((n_turns, n_bunches))
-        betas_list = np.zeros((n_turns, n_bunches))
-        times_list = np.zeros((n_turns, n_bunches, n_slices))
-        moments_list = np.zeros((n_turns, n_bunches, n_slices))
-        if moments == 'zero':
-            buffer_slice = np.s_[2+1*n_slices:2+2*n_slices]
-        elif moments == 'mean_x':
-            buffer_slice = np.s_[2+2*n_slices:2+3*n_slices]
-        elif moments == 'mean_y':
-            buffer_slice = np.s_[2+3*n_slices:2+4*n_slices]
-        else:
-            raise ValueError("Please specify moments as either " +
-                             "'zero', 'mean_x' or 'mean_y'!")
+    #     slice_set_list = np.array(slice_set_list)
+    #     ages_list = slice_set_list[:, 0, :, :]
+    #     betas_list = slice_set_list[:, 1, :, :]
+    #     times_list = slice_set_list[:, 2, :, :]
+    #     if moments == 'zero':
+    #         moments_list = slice_set_list[:, 3, :, :]
+    #     elif moments == 'mean_x':
+    #         moments_list = slice_set_list[:, 4, :, :]
+    #     elif moments == 'mean_y':
+    #         moments_list = slice_set_list[:, 5, :, :]
+    #     else:
+    #         raise ValueError("Please specify moments as either " +
+    #                          "'zero', 'mean_x' or 'mean_y'!")
 
-        for t in range(n_turns):
-            for b in range(n_bunches):
-                ages_list[t, b] = buffer[t, b, 0]
-                betas_list[t, b] = buffer[t, b, 1]
-                times_list[t, b, :] = buffer[t, b, 2:2+1*n_slices]
-                moments_list[t, b, :] = buffer[t, b, buffer_slice]
-
-        return times_list, ages_list, moments_list, betas_list
+    #     return times_list, ages_list, moments_list, betas_list
 
     def _convolution_dot_product(self, target_times,
                                  source_times, source_moments, source_beta):
@@ -182,7 +170,7 @@ class WakeKick(Printing):
         return self._wake_factor(bunch) * accumulated_signal
 
     def _accumulate_source_signal_multibunch(
-            self, bunches, times_list, ages_list, moments_list, betas_list):
+            self, bunches, slice_set_list, moments='zero', bunch_offset=0):
         """Args:
 
             bunches: bunch or list of bunches - the order is important; index 0
@@ -196,8 +184,26 @@ class WakeKick(Printing):
 
         """
 
-        accumulated_signal_list = []
+        # Isolate the local_bunch_indexes from slice_set_list. After that, it
+        # can be treated as homogeneous ndarray
         bunches = np.atleast_1d(bunches)
+        local_bunch_indexes = slice_set_list[0][-1]
+        slice_set_list = np.array([s[:-1] for s in slice_set_list])
+
+        ages_list = slice_set_list[:, 0, :, :]
+        betas_list = slice_set_list[:, 1, :, :]
+        times_list = slice_set_list[:, 2, :, :]
+        if moments == 'zero':
+            moments_list = slice_set_list[:, 3, :, :]
+        elif moments == 'mean_x':
+            moments_list = slice_set_list[:, 4, :, :]
+        elif moments == 'mean_y':
+            moments_list = slice_set_list[:, 5, :, :]
+        else:
+            raise ValueError("Please specify moments as either " +
+                             "'zero', 'mean_x' or 'mean_y'!")
+
+        accumulated_signal_list = []
 
         # Check for strictly descending order
         z_delays = [b.mean_z() for b in bunches]
@@ -212,15 +218,13 @@ class WakeKick(Printing):
         if n_turns > self.n_turns_wake:
             n_turns = self.n_turns_wake  # limit to this particular wake length
 
-        n_targets = len(bunches)
         # Tricky... this assumes one set of bunches - bunch 'delay' is missing
         for i, b in enumerate(bunches):
             n_bunches_infront = n_sources  # i+1  # <-- usually n_sources!
             # not strictly needed, should be solved automatically
             # by wake function decaying fast in front
             accumulated_signal = 0
-            target_times = times_list[0, i]
-            print times_list.shape
+            target_times = times_list[0, local_bunch_indexes[i]]
 
             # Accumulate all bunches over all turns
             for k in xrange(n_turns):
@@ -231,8 +235,6 @@ class WakeKick(Printing):
                 for j in xrange(n_bunches_infront):
                     source_beta = betas_list[k, j]
                     source_times = (times_list[k, j] + ages_list[k, j])
-                    print(i, j, target_times[0], source_times[0])
-                    # dt_list[j] - dt_list[i])
                     source_moments = moments_list[k, j]
 
                     accumulated_signal += self._convolution(
@@ -258,15 +260,13 @@ class ConstantWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list)
-
         constant_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list)
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.xp[p_idx] += constant_kick[i].take(s_idx)
 
 
@@ -278,15 +278,13 @@ class ConstantWakeKickY(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list)
-
         constant_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list)
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.yp[p_idx] += constant_kick[i].take(s_idx)
 
 
@@ -298,15 +296,13 @@ class ConstantWakeKickZ(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list)
-
         constant_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list)
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.dp[p_idx] += constant_kick[i].take(s_idx)
 
 
@@ -318,13 +314,8 @@ class DipoleWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        # times_list, ages_list, moments_list, betas_list = (
-        #     self._extract_slice_set_data(slice_set_list, moments='mean_x'))
-        times_list, ages_list, moments_list, betas_list = (
-            self._extract_slice_set_data(slice_set_list))
-
         dipole_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list)  # , moments='mean_x')
 
         # And then get slices of actual bunches list
         for i, b in enumerate(bunches):
@@ -343,15 +334,13 @@ class DipoleWakeKickXY(WakeKick):
         kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list, moments='mean_y')
-
         dipole_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list, moments='mean_y')
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.xp[p_idx] += dipole_kick[i].take(s_idx)
 
 
@@ -363,16 +352,14 @@ class DipoleWakeKickY(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list, moments='mean_y')
-
         dipole_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list, moments='mean_y')
 
-        # for i, b in enumerate(bunches):
-        #     p_idx = slice_set_list[0][i].particles_within_cuts
-        #     s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
-        #     b.yp[p_idx] += dipole_kick[i].take(s_idx)
+        for i, b in enumerate(bunches):
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
+            b.yp[p_idx] += dipole_kick[i].take(s_idx)
 
 
 class DipoleWakeKickYX(WakeKick):
@@ -384,15 +371,13 @@ class DipoleWakeKickYX(WakeKick):
         kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list, moments='mean_x')
-
         dipole_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list, moments='mean_x')
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.yp[p_idx] += dipole_kick[i].take(s_idx)
 
 
@@ -404,15 +389,13 @@ class QuadrupoleWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list)
-
         quadrupole_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list)
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.xp[p_idx] += (quadrupole_kick[i].take(s_idx) * b.x.take(p_idx))
 
 
@@ -425,15 +408,13 @@ class QuadrupoleWakeKickXY(WakeKick):
         kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list)
-
         quadrupole_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list)
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.xp[p_idx] += (quadrupole_kick[i].take(s_idx) * b.y.take(p_idx))
 
 
@@ -445,15 +426,13 @@ class QuadrupoleWakeKickY(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list)
-
         quadrupole_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list)
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.yp[p_idx] += (quadrupole_kick[i].take(s_idx) * b.y.take(p_idx))
 
 
@@ -466,13 +445,11 @@ class QuadrupoleWakeKickYX(WakeKick):
         kick.
 
         """
-        times_list, ages_list, moments_list, betas_list\
-            = self._extract_slice_set_data(slice_set_list)
-
         quadrupole_kick = self._accumulate_source_signal_multibunch(
-            bunches, times_list, ages_list, moments_list, betas_list)
+            bunches, slice_set_list)
 
         for i, b in enumerate(bunches):
-            p_idx = slice_set_list[0][i].particles_within_cuts
-            s_idx = slice_set_list[0][i].slice_index_of_particle.take(p_idx)
+            s = b.get_slices(self.slicer)
+            p_idx = s.particles_within_cuts
+            s_idx = s.slice_index_of_particle.take(p_idx)
             b.yp[p_idx] += (quadrupole_kick[i].take(s_idx) * b.x.take(p_idx))

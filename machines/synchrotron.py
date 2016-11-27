@@ -58,8 +58,8 @@ class Synchrotron(Element):
             RF_at=RF_at)
 
         # add longitudinal wrapper and buncher
-            if wrap_z:
-                self._add_wrapper_and_buncher()
+        if wrap_z:
+            self._add_wrapper_and_buncher()
 
     @property
     def gamma(self):

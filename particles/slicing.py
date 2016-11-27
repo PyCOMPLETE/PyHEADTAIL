@@ -137,6 +137,10 @@ class SliceSet(Printing):
         return self.z_bins[:-1] + 0.5 * (self.z_bins[1:] - self.z_bins[:-1])
 
     @property
+    def t_centers(self):
+        return self.convert_to_time(self.z_centers)
+
+    @property
     def n_slices(self):
         return len(self.z_bins) - 1
 

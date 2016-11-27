@@ -83,7 +83,7 @@ slicer_for_wakefields = UniformBinSlicer(300, z_cuts=(-0.2, 0.2))
 # ============
 wakes = CircularResonator(1e6, 5e6, 50, n_turns_wake=10)
 wake_field = WakeField(slicer_for_wakefields, wakes,
-                       circumference=machine.circumference, comm=comm)
+                       circumference=machine.circumference, mpi=True)
 # wake_field = ParallelWakes(slicer_for_wakefields, wake_sources_list=None,
 #                            circumference=machine.circumference,
 #                            filling_scheme=filling_scheme,

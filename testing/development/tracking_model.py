@@ -188,6 +188,7 @@ class Segment(object):
                  self.S[1, 0]*np.sin(self.dmu)) * beam.y +
                 (self.C[1, 1]*np.cos(self.dmu) +
                  self.S[1, 1]*np.sin(self.dmu)) * beam.yp)
+
         if self.plane == 'z':
             beam.z = (
                 (self.C[0, 0]*np.cos(self.dmu) +
