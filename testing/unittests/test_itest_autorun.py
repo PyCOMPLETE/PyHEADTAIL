@@ -17,12 +17,10 @@ sys.path.append('autoruntests/')
 import unittest
 
 import autoruntests.ApertureNLossesTest as at
-import autoruntests.DetunersCythonTest as dct
 import autoruntests.DetunersTest as dt
 import autoruntests.MonitorTest as mt
 import autoruntests.RFQTest as rt
 import autoruntests.SlicingTest as st
-import autoruntests.TransverseTrackingCythonTest as ttct
 import autoruntests.TransverseTrackingTest as ttt
 import autoruntests.WakeTest as wt
 
@@ -52,15 +50,6 @@ class TestAutoRun(unittest.TestCase):
             at.run()
         except Exception, err:
             self.fail('ApertureNLossesTest threw an exception:\n' + str(err))
-
-    def test_detunerscythontest(self):
-        '''Runs the autoruntests/DetunersCythonTest scripts and fails
-        test if an exception is thrown
-        '''
-        try:
-            dct.run()
-        except Exception, err:
-            self.fail('DetunersCythonTest threw an exception:\n' + str(err))
 
     def test_detunerstest(self):
         '''Runs the autoruntests/DetunersTest script and fails
@@ -97,16 +86,6 @@ class TestAutoRun(unittest.TestCase):
             st.run()
         except Exception, err:
             self.fail('SlicingTest threw an exception:\n' + str(err))
-
-    def test_transversetrackingcythontest(self):
-        '''Runs the autoruntests/TransverseTrackingCythonTest script
-        and fails the test if an exception is thrown
-        '''
-        try:
-            ttct.run()
-        except Exception, err:
-            self.fail('TransverseTrackingCythonTest threw an exception:\n' +
-                      str(err))
 
     def test_transversetrackingtest(self):
         '''Runs the autoruntests/TransverseTrackingTest script

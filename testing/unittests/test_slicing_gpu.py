@@ -30,7 +30,7 @@ import PyHEADTAIL.gpu
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.gpu.slicing import MeshSlicer
 from PyHEADTAIL.general.printers import AccumulatorPrinter
-from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
+from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 
 def check_elements_equal(np_array1d):
