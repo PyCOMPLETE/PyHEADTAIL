@@ -76,9 +76,9 @@ class TestSimpleLongTracking(unittest.TestCase):
         '''
         alpha_array3 = [1, 2, 3]
         circumference = 1.
-        Qs = 0.011
+        Q_s = 0.011
         warnings = AccumulatorPrinter()
-        linear_map = LinearMap(alpha_array3, circumference, Qs,
+        linear_map = LinearMap(alpha_array3, circumference, Q_s,
                                warningprinter=warnings)
         self.assertTrue(warnings.log, 'No warning generated when specifying' +
                         'higher order terms in LinearMap')
@@ -88,8 +88,8 @@ class TestSimpleLongTracking(unittest.TestCase):
         of the LinearMap is called
         '''
         circumference = 1.
-        Qs = 0.012
-        linear_map = LinearMap(self.alpha_array, circumference, Qs,
+        Q_s = 0.012
+        linear_map = LinearMap(self.alpha_array, circumference, Q_s,
                                printer=AccumulatorPrinter())
         beam = self.create_all1_bunch()
         sliceset_mock = {'mock': 42}
@@ -104,8 +104,8 @@ class TestSimpleLongTracking(unittest.TestCase):
         applying the track() method of LinearMap
         '''
         circumference = 1.
-        Qs = 0.012
-        linear_map = LinearMap(self.alpha_array, circumference, Qs)
+        Q_s = 0.012
+        linear_map = LinearMap(self.alpha_array, circumference, Q_s)
         beam = self.create_all1_bunch()
         beam2 = self.create_all1_bunch()
         linear_map.track(beam)

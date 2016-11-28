@@ -83,7 +83,7 @@ class TestGPUInterface(unittest.TestCase):
         self.Qy = 19.11
         self.Dx = 100*np.ones(len(self.alpha_x)) # or len(self.s)?
         self.Dy = self.Dx.copy() - self.beta_y*10
-        self.Qs = 0.1
+        self.Q_s = 0.1
 
         self.gamma = 15 #lhc=7000, sps=27
         self.h1 = 1
@@ -186,7 +186,7 @@ class TestGPUInterface(unittest.TestCase):
         bunch_gpu = self.create_all1_bunch()
         alpha_array = [0.5]
         longitudinal_map = lt.LinearMap(alpha_array, self.circumference,
-            self.Qs)
+            self.Q_s)
         self.assertTrue(self._track_cpu_gpu([longitudinal_map], bunch_cpu,
             bunch_gpu), 'Longitudinal tracking LinearMap CPU/GPU differs')
 
@@ -257,13 +257,13 @@ class TestGPUInterface(unittest.TestCase):
         '''
         wakefile = 'autoruntests/wake_table.dat'#'./wakeforhdtl_PyZbase_Allthemachine_450GeV_B1_LHC_inj_450GeV_B1.dat'
         Qp_x, Qp_y = 1., 1.
-        Qs = 0.0049
+        Q_s = 0.0049
         n_macroparticles = 10
         intensity = 1e11
         longitudinal_focusing = 'linear'
         machine = m.LHC(n_segments=1, machine_configuration='450GeV',
                   longitudinal_focusing=longitudinal_focusing,
-                  Qp_x=[Qp_x], Qp_y=[Qp_y], Q_s=Qs,
+                  Qp_x=[Qp_x], Qp_y=[Qp_y], Q_s=Q_s,
                   beta_x=[65.9756], beta_y=[71.5255], printer=SilentPrinter())
         epsn_x  = 3.5e-6
         epsn_y  = 3.5e-6

@@ -78,7 +78,7 @@ class TestDispatch(unittest.TestCase):
             'macroparticles_per_slice', 'take', 'convolve', 'arange', 'zeros',
             'seq', 'init_bunch_buffer', 'init_slice_buffer', 'device',
             'searchsortedright', 'searchsortedleft', 'cumsum', 'ones', 'wofz',
-            'allclose', 'empty', 'empty_like', 'put',
+            'allclose', 'empty', 'empty_like', 'put', 'atleast_1d', 'sincos',
         ]
         np.random.seed(0)
         parameter_cpu = np.random.uniform(low=1e-15, high=1., size=100000)
