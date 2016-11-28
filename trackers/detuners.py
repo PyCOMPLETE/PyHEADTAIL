@@ -28,7 +28,7 @@ from numpy.polynomial.polynomial import polyval
 from scipy.constants import e, c
 
 from abc import ABCMeta, abstractmethod
-from collections import Iterable
+# from collections import Iterable
 
 
 class SegmentDetuner(object):

@@ -19,7 +19,6 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
-import PyHEADTAIL.trackers.transverse_tracking_cython as cy
 import PyHEADTAIL.trackers.transverse_tracking as pure_py
 from PyHEADTAIL.trackers.detuners import AmplitudeDetuning
 
@@ -45,7 +44,7 @@ class TestTransverseTracking(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_consistency_with_cython_no_detuner(self):
+    def test_tracking_without_detuner(self):
         '''Tests whether the cython and pure python version of the
         TransverseMap yield the same results (x,y,xp,yp) when tracking a beam
         without detuners
@@ -54,34 +53,13 @@ class TestTransverseTracking(unittest.TestCase):
             self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
         )
-        cython_map = cy.TransverseMap(
-            self.s, self.alpha_x, self.beta_x,
-            self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
-        )
-        beam_c = self.create_bunch()
+
         beam_p = self.create_bunch()
+
         for s in pure_python_map:
             s.track(beam_p)
-        for s in cython_map:
-            s.track(beam_c)
-        self.assertTrue(np.allclose(beam_p.x, beam_c.x),
-                        'x-positions of beams tracked by cython' +
-                        'TransverseMap and pure python TransversMap' +
-                        'do not match')
-        self.assertTrue(np.allclose(beam_p.y, beam_c.y),
-                        'y-positions of beams tracked by cython' +
-                        'TransverseMap and pure python TransversMap' +
-                        'do not match')
-        self.assertTrue(np.allclose(beam_p.xp, beam_c.xp),
-                        'xp of beams tracked by cython' +
-                        'TransverseMap and pure python TransversMap' +
-                        'do not match')
-        self.assertTrue(np.allclose(beam_p.yp, beam_c.yp),
-                        'yp of beams tracked by cython' +
-                        'TransverseMap and pure python TransversMap' +
-                        'do not match')
 
-    def test_consistency_with_cython_detuner(self):
+    def test_tracking_with_detuner(self):
         '''Tests whether the cython and pure python version of the
         TransverseMap yield the same results (x,y,xp,yp) when tracking a beam
         with detuners
@@ -92,33 +70,11 @@ class TestTransverseTracking(unittest.TestCase):
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
             adetuner
         )
-        cython_map = cy.TransverseMap(
-            self.s, self.alpha_x, self.beta_x,
-            self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
-            adetuner
-        )
-        beam_c = self.create_bunch()
+
         beam_p = self.create_bunch()
+
         for s in pure_python_map:
             s.track(beam_p)
-        for s in cython_map:
-            s.track(beam_c)
-        self.assertTrue(np.allclose(beam_p.x, beam_c.x),
-                        'x-positions of beams tracked by cython' +
-                        'TransverseMap and pure python TransversMap' +
-                        'do not match')
-        self.assertTrue(np.allclose(beam_p.y, beam_c.y),
-                        'y-positions of beams tracked by cython' +
-                        'TransverseMap and pure python TransversMap' +
-                        'do not match')
-        self.assertTrue(np.allclose(beam_p.xp, beam_c.xp),
-                        'xp of beams tracked by cython' +
-                        'TransverseMap and pure python TransversMap' +
-                        'do not match')
-        self.assertTrue(np.allclose(beam_p.yp, beam_c.yp),
-                        'yp of beams tracked by cython' +
-                        'TransverseMap and pure python TransversMap' +
-                        'do not match')
 
     def create_bunch(self):
         np.random.seed(0) #set seed to make results reproducible

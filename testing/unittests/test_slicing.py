@@ -21,7 +21,7 @@ from scipy.constants import c, e, m_p
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 from PyHEADTAIL.general.printers import AccumulatorPrinter
-from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
+from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 
 

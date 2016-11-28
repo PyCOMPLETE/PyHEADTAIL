@@ -11,7 +11,7 @@ from pycuda import cumath
 # I. subjects to monkey patching:
 from ..particles import particles as def_particles
 from ..particles import slicing as def_slicing
-from ..trackers import simple_long_tracking as def_simple_long_tracking
+from ..trackers import longitudinal_tracking as def_longitudinal_tracking
 from ..trackers import wrapper as def_wrapper
 
 # II. actual monkey patching
@@ -36,7 +36,7 @@ from .slicing import SlicerGPU
 # def_slicing.UniformBinSlicer.__bases__ = (SlicerGPU,)
 
 # c) Longitudinal tracker rebindings for GPU
-def_simple_long_tracking.sin = cumath.sin
+def_longitudinal_tracking.sin = cumath.sin
 
 # d) Wrapper rebindings for GPU
 from .wrapper import LongWrapperGPU

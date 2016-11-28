@@ -18,7 +18,7 @@ np.random.seed(0)
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
-from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
+from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
 
