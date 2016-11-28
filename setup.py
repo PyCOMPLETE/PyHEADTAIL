@@ -9,12 +9,10 @@ from _version import __version__
 import re, os, sys, subprocess
 import numpy as np
 
-#from distutils.core import setup
-#from distutils.extension import Extension
 from setuptools import setup, Extension
 
-from Cython.Distutils import build_ext
 from Cython.Build import cythonize
+from Cython.Distutils import build_ext
 
 
 import platform
@@ -25,14 +23,15 @@ if platform.system() is 'Darwin':
            "(or any equivalent version of gcc)")
     raw_input('Hit any key to continue...')
 
-VERSIONFILE="_version.py"
-#verstrline = open(VERSIONFILE, "rt").read()
-#VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-#mo = re.search(VSRE, verstrline, re.M)
-#if mo:
-#    verstr = mo.group(1)
-#else:
-#    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+
+VERSIONFILE = "_version.py"
+# verstrline = open(VERSIONFILE, "rt").read()
+# VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+# mo = re.search(VSRE, verstrline, re.M)
+# if mo:
+#     verstr = mo.group(1)
+# else:
+#     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 execfile(VERSIONFILE)
 verstr = __version__
 if not verstr[0].isdigit():
@@ -66,50 +65,41 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 # Set up extension and build
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 cy_ext = [
-        Extension("solvers.grid_functions",
-                 ["solvers/grid_functions.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 extra_compile_args=["-fopenmp"],
-                 extra_link_args=["-fopenmp"],
-                 ),
-        Extension("cobra_functions.stats",
-                 ["cobra_functions/stats.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 extra_compile_args=["-fopenmp"],
-                 extra_link_args=["-fopenmp"],
-                 ),
-        Extension("solvers.compute_potential_fgreenm2m",
-                 ["solvers/compute_potential_fgreenm2m.pyx"],
-                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 ),
-        Extension("trackers.transverse_tracking_cython",
-                 ["trackers/transverse_tracking_cython.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 extra_compile_args=["-fopenmp"],
-                 extra_link_args=["-fopenmp"],
-                 ),
-        Extension("trackers.detuners_cython",
-                 ["trackers/detuners_cython.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 extra_compile_args=["-fopenmp"],
-                 extra_link_args=["-fopenmp"],
-                 ),
-        Extension("rfq.rfq_cython",
-                 ["rfq/rfq_cython.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 extra_compile_args=["-fopenmp"],
-                 extra_link_args=["-fopenmp"],
-                 ),
-        Extension("aperture.aperture_cython",
-                 ["aperture/aperture_cython.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 )
-          ]
+    Extension("solvers.grid_functions",
+              ["solvers/grid_functions.pyx"],
+              include_dirs=[np.get_include()],
+              library_dirs=[], libraries=["m"],
+              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
+    Extension("cobra_functions.stats",
+              ["cobra_functions/stats.pyx"],
+              include_dirs=[np.get_include()],
+              library_dirs=[], libraries=["m"],
+              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
+    Extension("solvers.compute_potential_fgreenm2m",
+              ["solvers/compute_potential_fgreenm2m.pyx"],
+              include_dirs=[np.get_include()],
+              library_dirs=[], libraries=["m"]),
+    Extension("aperture.aperture_cython",
+              ["aperture/aperture_cython.pyx"],
+              include_dirs=[np.get_include()],
+              library_dirs=[], libraries=["m"]),
+    Extension("cobra_functions.c_sin_cos",
+              ["cobra_functions/c_sin_cos.pyx"],
+              include_dirs=[np.get_include()],
+              library_dirs=[], libraries=["m"],
+              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
+    Extension("cobra_functions.interp_sin_cos",
+              ["cobra_functions/interp_sin_cos.pyx"],
+              include_dirs=[np.get_include()],
+              library_dirs=[], libraries=["m"],
+              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
+]
 
 setup(
     name='PyHEADTAIL',
     version=verstr,
-    description='CERN PyHEADTAIL numerical n-body simulation code for simulating macro-particle beam dynamics with collective effects.',
+    description='CERN PyHEADTAIL numerical n-body simulation code '
+        'for simulating macro-particle beam dynamics with collective effects.',
     url='http://github.com/PyCOMPLETE/PyHEADTAIL',
     packages=['PyHEADTAIL'],
     cmdclass={'build_ext': build_ext},
