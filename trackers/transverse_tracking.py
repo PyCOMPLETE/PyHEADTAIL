@@ -321,8 +321,8 @@ class TransverseMap(Printing):
 
         n_segments = len(self.s) - 1
         # relative phase advances for detuners:
-        dmu_x = dQ_x / atleast_1d(self.accQ_x)[-1]
-        dmu_y = dQ_y / atleast_1d(self.accQ_y)[-1]
+        dmu_x = dQ_x / pm.atleast_1d(self.accQ_x)[-1]
+        dmu_y = dQ_y / pm.atleast_1d(self.accQ_y)[-1]
 
         for seg in xrange(n_segments):
             s0 = seg % n_segments
