@@ -1,12 +1,10 @@
 '''
 Created on 17.10.2014
 @author: Kevin Li, Michael Schenk, Adrian Oeftiger
+@copyright CERN
 '''
-
-from abc import ABCMeta, abstractmethod
-
 import numpy as np
-from scipy.constants import c, e
+from scipy.constants import c, e  # unit e needed for long. emittance
 
 from ..cobra_functions import stats as cp
 from ..general import pmath as pm
@@ -16,13 +14,14 @@ arange = np.arange
 mean = np.mean
 std = cp.std
 
+
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with
     their coordinate and conjugate momentum arrays, energy and the like.
     Designed to describe beams, electron clouds, ... '''
 
-    def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
-                 mass, circumference, gamma, coords_n_momenta_dict={},
+    def __init__(self, macroparticlenumber, particlenumber_per_mp,
+                 charge, mass, circumference, gamma, coords_n_momenta_dict={},
                  *args, **kwargs):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
@@ -33,15 +32,7 @@ class Particles(Printing):
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
-        if not np.allclose(self.charge, e): #, atol=1e-24):
-            self.warns('PyHEADTAIL currently features many "e" ' +
-                       'in the various modules, these need to be ' +
-                       'consistently replaced by "beam.charge"!')
         self.mass = mass
-#         if not np.allclose(self.charge, m_p): #, atol=1e-24):
-#             self.warns('PyHEADTAIL currently features many "m_p" ' +
-#                        'in the various modules, these need to be ' +
-#                        'consistently replaced by "beam.mass"!')
 
         self.circumference = circumference
         self.gamma = gamma
@@ -126,7 +117,6 @@ class Particles(Printing):
         '''
         return {coord: getattr(self, coord) for coord in self.coords_n_momenta}
 
-    #@profile
     def get_slices(self, slicer, *args, **kwargs):
         '''For the given Slicer, the last SliceSet is returned.
         If there is no SliceSet recorded (i.e. the longitudinal
@@ -176,8 +166,8 @@ class Particles(Printing):
         '''
 
         if include_non_sliced not in ['if_any', 'always', 'never']:
-        	raise ValueError("include_non_sliced=%s is not valid!\n"%include_non_sliced+
-        					"Possible values are {'always', 'never', 'if_any'}" )
+        	raise ValueError("include_non_sliced=%s is not valid!\n" % include_non_sliced +
+        					 "Possible values are {'always', 'never', 'if_any'}" )
 
         slices = self.get_slices(slicer, *args, **kwargs)
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
@@ -212,10 +202,10 @@ class Particles(Printing):
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                     mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
                 for coord in self_coords_n_momenta_dict.keys():
-                	slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+                    slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
                 slice_object.id[:] = self.id[ix]
                 slice_object.slice_info = 'unsliced'
-            	slice_object_list.append(slice_object)
+                slice_object_list.append(slice_object)
 
         return slice_object_list
 
@@ -313,6 +303,7 @@ class Particles(Printing):
 
     # Statistics methods
     # kwargs are for passing stream=... in the gpu case
+
     def mean_x(self, **kwargs):
         #return np.float(pm.mean(self.x))
         return pm.mean(self.x, **kwargs)
