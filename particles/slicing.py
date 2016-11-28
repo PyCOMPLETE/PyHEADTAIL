@@ -6,24 +6,26 @@
           Adrian Oeftiger,
           Michael Schenk
 @date:    01/10/2014
+@copyright CERN
 '''
 from __future__ import division
 
-import numpy as np
-import scipy.ndimage as ndimage
-from scipy.constants import c, e
-from random import sample
-
 from abc import ABCMeta, abstractmethod
+
+import numpy as np
+
+from scipy import ndimage, interpolate
+from scipy.constants import c, e
+
+from random import sample
 from functools import partial, wraps
 
+# from ..general.decorators import memoize
 from ..cobra_functions import stats as cp
 from ..general import pmath as pm
 from ..general import decorators as decorators
 from ..gpu import gpu_utils as gpu_utils
 from . import Printing
-
-from scipy import interpolate
 
 
 def make_int32(array):
@@ -76,6 +78,11 @@ class SliceSet(Printing):
         (e.g. beta being saved via beam_parameters['beta'] = beam.beta)
         '''
 
+        '''The age of a slice set since its creation - this is used by multi-turn wakes
+        which actually store slice sets and keep them alive for several turns.
+        '''
+        self.age = 0
+
         '''Array of z values of each bin, goes from the left bin edge
         of the first bin to the right bin edge of the last bin.
         '''
@@ -96,6 +103,7 @@ class SliceSet(Printing):
         '''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
         self._particles_within_cuts = None
+        self._particles_outside_cuts = None
         self._pidx_begin = None
         self._pidx_end = None
 
@@ -166,6 +174,15 @@ class SliceSet(Printing):
         if self._particles_within_cuts is None:
             self._particles_within_cuts = pm.particles_within_cuts(self)
         return self._particles_within_cuts
+
+    @property
+    # @memoize
+    def particles_outside_cuts(self):
+        '''All particle indices which are situated outside the slicing
+        region defined by [z_cut_tail, z_cut_head).'''
+        if self._particles_outside_cuts is None:
+            self._particles_outside_cuts = pm.particles_outside_cuts(self)
+        return self._particles_outside_cuts
 
     @property
     def particles_within_cuts_slice(self):
@@ -329,7 +346,6 @@ class Slicer(Printing):
         '''
         pass
 
-    #@profile
     def slice(self, beam, *args, **kwargs):
         '''Return a SliceSet object according to the saved
         configuration. Generate it using the keywords of the
@@ -581,7 +597,6 @@ class UniformBinSlicer(Slicer):
 
         return n_slices, z_cuts
 
-    #@profile
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
         according to the saved configuration for
@@ -589,6 +604,7 @@ class UniformBinSlicer(Slicer):
         '''
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
+
         z_bins = pm.arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
                            slice_width, self.n_slices+1, dtype=np.float64)
         slice_index_of_particle = make_int32(pm.floor(
