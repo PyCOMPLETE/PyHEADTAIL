@@ -10,26 +10,6 @@ import numpy as np
 
 from .. general import pmath as pm
 
-# try:
-#     from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
-#
-#     def cm_sincos(x):
-#         return cm_sin(x), cm_cos(x)
-#
-#     sin = cm_sin
-#     cos = cm_cos
-#     sincos = cm_sincos
-# except ImportError as e:
-#     print ('\n' + e.message)
-#     print ("Falling back to NumPy versions...\n")
-#
-#     def np_sincos(x):
-#         return np.sin(x), np.cos(x)
-#
-#     sin = pm.sin
-#     cos = pm.cos
-#     sincos = np_sincos
-
 from ..general.decorators import deprecated
 from . import Element, Printing
 

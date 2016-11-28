@@ -287,6 +287,12 @@ def atleast_1d(array, *args, **kwargs):
     else:
         return np.atleast_1d(array)
 
+def sincos(array):
+    '''Return a tuple with the sin and the cos of the input array.'''
+    # CUDA indeed has a sincos function which should be faster than
+    # separate sin and cos calls, however it is not exposed in PyCUDA...
+    return pycuda.cumath.sin(array), pycuda.cumath.cos(array)
+
 
 
 def covariance_old(a, b):

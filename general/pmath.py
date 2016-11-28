@@ -39,6 +39,28 @@ def _errfadd(z):
     return np.exp(-z**2) * _erfc(z * -1j)
 
 
+# Kevin's sincos interface:
+try:
+    from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
+
+    def cm_sincos(x):
+        return cm_sin(x), cm_cos(x)
+
+    sin = cm_sin
+    cos = cm_cos
+    sincos = cm_sincos
+except ImportError as e:
+    # print ('\n' + e.message)
+    # print ("Falling back to NumPy versions...\n")
+
+    def np_sincos(x):
+        return np.sin(x), np.cos(x)
+
+    sin = np.sin
+    cos = np.cos
+    sincos = np_sincos
+
+
 def _mean_per_slice_cpu(sliceset, u, **kwargs):
     '''
     CPU Wrapper for the mean per slice function.
@@ -164,6 +186,7 @@ _CPU_numpy_func_dict = {
     'put': np.put,
     'atleast_1d': np.atleast_1d,
     'almost_zero': lambda array, *args, **kwargs: np.allclose(array, 0, *args, **kwargs),
+    'sincos': sincos,
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -228,6 +251,7 @@ if has_pycuda:
                 array.shape, dtype=array.dtype,
                 allocator=gpu_utils.memory_pool.allocate),
             *args, **kwargs),
+        'sincos': gpu_wrap.sincos,
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################

@@ -17,26 +17,6 @@ from abc import ABCMeta, abstractmethod
 
 from ..general import pmath as pm
 
-# try:
-#     from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
-# 
-#     def cm_sincos(x):
-#         return cm_sin(x), cm_cos(x)
-# 
-#     sin = cm_sin
-#     cos = cm_cos
-#     sincos = cm_sincos
-# except ImportError as e:
-#     print ('\n' + e.message)
-#     print ("Falling back to NumPy versions...\n")
-# 
-#     def np_sincos(x):
-#         return pm.sin(x), pm.cos(x)
-# 
-#     sin = pm.sin
-#     cos = pm.cos
-#     sincos = np_sincos
-
 
 # @TODO
 # think about flexible design to separate numerical methods
