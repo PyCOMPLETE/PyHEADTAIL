@@ -269,12 +269,23 @@ if has_pycuda:
 
 def _inplace_pow(x_gpu, p, stream=None):
     '''
-    Performs an in-place x_gpu = x_gpu ** p
+    Perform an in-place x_gpu = x_gpu ** p
     Courtesy: scikits.cuda
     '''
     func = pycuda.elementwise.get_pow_kernel(x_gpu.dtype)
     func.prepared_async_call(x_gpu._grid, x_gpu._block, stream,
         p, x_gpu.gpudata, x_gpu.gpudata, x_gpu.mem_size)
+
+def atleast_1d(array, *args, **kwargs):
+    '''Return input array unless it is a scalar. Ensure the result has
+    ndim >= 1.
+    GPUArray types cannot be scalars, for all others use
+    numpy.atleast_1d functionality.
+    '''
+    if isinstance(array, pycuda.gpuarray.GPUArray):
+        return array
+    else:
+        return np.atleast_1d(array)
 
 
 
