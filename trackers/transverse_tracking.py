@@ -5,16 +5,34 @@
 @copyright CERN
 """
 from __future__ import division
+
 import numpy as np
 
-from . import Element, Printing
 from .. general import pmath as pm
 
-#sin = pm.sin
-#cos = pm.cos
-diff = np.diff
-ndim = np.ndim
-atleast_1d = np.atleast_1d
+# try:
+#     from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
+#
+#     def cm_sincos(x):
+#         return cm_sin(x), cm_cos(x)
+#
+#     sin = cm_sin
+#     cos = cm_cos
+#     sincos = cm_sincos
+# except ImportError as e:
+#     print ('\n' + e.message)
+#     print ("Falling back to NumPy versions...\n")
+#
+#     def np_sincos(x):
+#         return np.sin(x), np.cos(x)
+#
+#     sin = pm.sin
+#     cos = pm.cos
+#     sincos = np_sincos
+
+from ..general.decorators import deprecated
+from . import Element, Printing
+
 
 class TransverseSegmentMap(Element):
     """ Class to transport/track the particles of the beam in the
@@ -37,9 +55,9 @@ class TransverseSegmentMap(Element):
     collective effect has dispersion taken into account.
     """
     def __init__(self,
-            alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
-            alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s1,
-            dQ_x, dQ_y, *args, **kwargs):
+                 alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
+                 alpha_y_s0, beta_y_s0, D_y_s0, alpha_y_s1, beta_y_s1, D_y_s1,
+                 dQ_x, dQ_y, *args, **kwargs):
         """ Return an instance of the TransverseSegmentMap class. The
         values of the TWISS parameters alpha_{x,y} and beta_{x,y} as
         well as of the dispersion coefficients D_{x,y} (not yet
@@ -70,8 +88,6 @@ class TransverseSegmentMap(Element):
         else:
             self._track = self._track_with_dispersion
 
-
-
     def _build_segment_map(self, alpha_x_s0, beta_x_s0, alpha_x_s1, beta_x_s1,
                            alpha_y_s0, beta_y_s0, alpha_y_s1, beta_y_s1):
         """ Calculate matrices I and J which are decoupled from the
@@ -83,28 +99,28 @@ class TransverseSegmentMap(Element):
         self.J = np.zeros((4, 4))
 
         # Sine component.
-        self.I[0,0] = np.sqrt(beta_x_s1 / beta_x_s0)
-        self.I[0,1] = 0.
-        self.I[1,0] = (np.sqrt(1. / (beta_x_s0 * beta_x_s1)) *
-                      (alpha_x_s0 - alpha_x_s1))
-        self.I[1,1] = np.sqrt(beta_x_s0 / beta_x_s1)
-        self.I[2,2] = np.sqrt(beta_y_s1 / beta_y_s0)
-        self.I[2,3] = 0.
-        self.I[3,2] = (np.sqrt(1. / (beta_y_s0 * beta_y_s1)) *
-                      (alpha_y_s0 - alpha_y_s1))
-        self.I[3,3] = np.sqrt(beta_y_s0 / beta_y_s1)
+        self.I[0, 0] = np.sqrt(beta_x_s1 / beta_x_s0)
+        self.I[0, 1] = 0.
+        self.I[1, 0] = (np.sqrt(1. / (beta_x_s0 * beta_x_s1)) *
+                        (alpha_x_s0 - alpha_x_s1))
+        self.I[1, 1] = np.sqrt(beta_x_s0 / beta_x_s1)
+        self.I[2, 2] = np.sqrt(beta_y_s1 / beta_y_s0)
+        self.I[2, 3] = 0.
+        self.I[3, 2] = (np.sqrt(1. / (beta_y_s0 * beta_y_s1)) *
+                        (alpha_y_s0 - alpha_y_s1))
+        self.I[3, 3] = np.sqrt(beta_y_s0 / beta_y_s1)
 
         # Cosine component.
-        self.J[0,0] = np.sqrt(beta_x_s1 / beta_x_s0) * alpha_x_s0
-        self.J[0,1] = np.sqrt(beta_x_s0 * beta_x_s1)
-        self.J[1,0] = -(np.sqrt(1. / (beta_x_s0 * beta_x_s1)) *
-                      (1. + alpha_x_s0 * alpha_x_s1))
-        self.J[1,1] = -np.sqrt(beta_x_s0 / beta_x_s1) * alpha_x_s1
-        self.J[2,2] = np.sqrt(beta_y_s1 / beta_y_s0) * alpha_y_s0
-        self.J[2,3] = np.sqrt(beta_y_s0 * beta_y_s1)
-        self.J[3,2] = -(np.sqrt(1. / (beta_y_s0 * beta_y_s1)) *
-                      (1. + alpha_y_s0 * alpha_y_s1))
-        self.J[3,3] = -np.sqrt(beta_y_s0 / beta_y_s1) * alpha_y_s1
+        self.J[0, 0] = np.sqrt(beta_x_s1 / beta_x_s0) * alpha_x_s0
+        self.J[0, 1] = np.sqrt(beta_x_s0 * beta_x_s1)
+        self.J[1, 0] = -(np.sqrt(1. / (beta_x_s0 * beta_x_s1)) *
+                         (1. + alpha_x_s0 * alpha_x_s1))
+        self.J[1, 1] = -np.sqrt(beta_x_s0 / beta_x_s1) * alpha_x_s1
+        self.J[2, 2] = np.sqrt(beta_y_s1 / beta_y_s0) * alpha_y_s0
+        self.J[2, 3] = np.sqrt(beta_y_s0 * beta_y_s1)
+        self.J[3, 2] = -(np.sqrt(1. / (beta_y_s0 * beta_y_s1)) *
+                         (1. + alpha_y_s0 * alpha_y_s1))
+        self.J[3, 3] = -np.sqrt(beta_y_s0 / beta_y_s1) * alpha_y_s1
 
     def _track_with_dispersion(self, beam, M00, M01, M10, M11, M22, M23,
                                M32, M33):
@@ -117,18 +133,16 @@ class TransverseSegmentMap(Element):
         3) Add the dispersion effects using dp
         """
 
-        #subtract the dispersion
+        # subtract the dispersion
         beam.x -= self.D_x_s0 * beam.dp
         beam.y -= self.D_y_s0 * beam.dp
 
         beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
         beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
 
-        #add the new dispersion effect
+        # add the new dispersion effect
         beam.x += self.D_x_s1 * beam.dp
         beam.y += self.D_y_s1 * beam.dp
-
-
 
     def _track_without_dispersion(self, beam, M00, M01, M10, M11, M22, M23,
                                   M32, M33):
@@ -175,10 +189,12 @@ class TransverseSegmentMap(Element):
         # bc. cumath.cos() can't handle scalars. For now simply put an if/else,
         # think about better solutions
         if dphi_is_array:
-            c_dphi_x = pm.cos(dphi_x)
-            c_dphi_y = pm.cos(dphi_y)
-            s_dphi_x = pm.sin(dphi_x)
-            s_dphi_y = pm.sin(dphi_y)
+            s_dphi_x, c_dphi_x = pm.sincos(pm.atleast_1d(dphi_x))
+            s_dphi_y, c_dphi_y = pm.sincos(pm.atleast_1d(dphi_y))
+            # c_dphi_x = pm.cos(dphi_x)
+            # c_dphi_y = pm.cos(dphi_y)
+            # s_dphi_x = pm.sin(dphi_x)
+            # s_dphi_y = pm.sin(dphi_y)
         else:
             c_dphi_x = np.cos(dphi_x)
             c_dphi_y = np.cos(dphi_y)
@@ -187,17 +203,18 @@ class TransverseSegmentMap(Element):
 
         # Calculate the matrix M and transport the transverse phase
         # spaces through the segment.
-        M00 = self.I[0,0] * c_dphi_x + self.J[0,0] * s_dphi_x
-        M01 = self.I[0,1] * c_dphi_x + self.J[0,1] * s_dphi_x
-        M10 = self.I[1,0] * c_dphi_x + self.J[1,0] * s_dphi_x
-        M11 = self.I[1,1] * c_dphi_x + self.J[1,1] * s_dphi_x
-        M22 = self.I[2,2] * c_dphi_y + self.J[2,2] * s_dphi_y
-        M23 = self.I[2,3] * c_dphi_y + self.J[2,3] * s_dphi_y
-        M32 = self.I[3,2] * c_dphi_y + self.J[3,2] * s_dphi_y
-        M33 = self.I[3,3] * c_dphi_y + self.J[3,3] * s_dphi_y
+        M00 = self.I[0, 0] * c_dphi_x + self.J[0, 0] * s_dphi_x
+        M01 = self.I[0, 1] * c_dphi_x + self.J[0, 1] * s_dphi_x
+        M10 = self.I[1, 0] * c_dphi_x + self.J[1, 0] * s_dphi_x
+        M11 = self.I[1, 1] * c_dphi_x + self.J[1, 1] * s_dphi_x
+        M22 = self.I[2, 2] * c_dphi_y + self.J[2, 2] * s_dphi_y
+        M23 = self.I[2, 3] * c_dphi_y + self.J[2, 3] * s_dphi_y
+        M32 = self.I[3, 2] * c_dphi_y + self.J[3, 2] * s_dphi_y
+        M33 = self.I[3, 3] * c_dphi_y + self.J[3, 3] * s_dphi_y
 
         # bound to _track_with_dispersion or _track_without_dispersion
         self._track(beam, M00, M01, M10, M11, M22, M23, M32, M33)
+
 
 class TransverseMap(Printing):
     """ Collection class for TransverseSegmentMap objects. This class is
@@ -289,18 +306,18 @@ class TransverseMap(Printing):
         strength is scaled to the segment_length. Note that this
         quantity is given in relative units (i.e. it is normalized to
         the accelerator circumference s[-1]). """
-        segment_length = diff(self.s) / self.s[-1]
+        segment_length = pm.diff(self.s) / self.s[-1]
 
-        if ndim(self.accQ_x) == 0:
+        if np.ndim(self.accQ_x) == 0:
             # smooth approximation for phase advance (proportional to s)
             dQ_x = self.accQ_x * segment_length
         else:
-            dQ_x = diff(self.accQ_x)
-        if ndim(self.accQ_y) == 0:
+            dQ_x = pm.diff(self.accQ_x)
+        if np.ndim(self.accQ_y) == 0:
             # smooth approximation for phase advance (proportional to s)
             dQ_y = self.accQ_y * segment_length
         else:
-            dQ_y = diff(self.accQ_y)
+            dQ_y = pm.diff(self.accQ_y)
 
         n_segments = len(self.s) - 1
         # relative phase advances for detuners:
@@ -333,7 +350,7 @@ class TransverseMap(Printing):
 
     def get_injection_optics(self):
         """Return a dict with the transverse TWISS parameters
-        alpha_x, beta_x, D_x, alpha_y, beta_y, D_y from the 
+        alpha_x, beta_x, D_x, alpha_y, beta_y, D_y from the
         beginning of the first segment (injection point).
         """
         return {
@@ -342,7 +359,8 @@ class TransverseMap(Printing):
             'D_x': self.D_x[0],
             'alpha_y': self.alpha_y[0],
             'beta_y': self.beta_y[0],
-            'D_y': self.D_y[0]}
+            'D_y': self.D_y[0]
+        }
 
     def __len__(self):
         return len(self.segment_maps)
