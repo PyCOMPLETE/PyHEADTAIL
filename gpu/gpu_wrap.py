@@ -97,18 +97,34 @@ if has_pycuda:
         '_arange_gpu_int32'
     )
     def arange_startstop_gpu(start_gpu, stop_gpu, step_gpu, n_slices_cpu,
-                             dtype):
+                             dtype=np.float64, stream=None):
         if dtype is np.float64:
             out = pycuda.gpuarray.empty(n_slices_cpu, dtype=np.float64,
                 allocator=gpu_utils.memory_pool.allocate)
-            _arange_gpu_float64(out, start_gpu, step_gpu)
+            _arange_gpu_float64(out, start_gpu, step_gpu, stream=stream)
         elif dtype is np.int32:
             out = pycuda.gpuarray.empty(n_slices_cpu, dtype=np.int32,
                 allocator=gpu_utils.memory_pool.allocate)
-            _arange_gpu_int32(out, start_gpu, step_gpu)
+            _arange_gpu_int32(out, start_gpu, step_gpu, stream=stream)
         else:
-            raise TypeError('only np.float64 and np.int32 supported')
+            raise TypeError('currently only np.float64 and np.int32 supported.')
         return out
+
+    def arange(start, stop, step=1, n_slices=None, dtype=np.float64,
+               stream=None):
+        """Create an array filled with numbers spaced `step` apart,
+        starting from `start` and ending at `stop`.
+
+        For floating point arguments, the length of the result is
+        `ceil((stop - start)/step)`.  This rule may result in the last
+        element of the result being greater than stop.
+        """
+        if n_slices is None:
+            n_slices = int(np.ceil((stop - start) / step))
+        if isinstance(start, pycuda.gpuarray.GPUArray):
+            return arange_startstop_gpu(start, stop, step, n_slices, dtype)
+        else:
+            return pycuda.gpuarray.arange(start, stop, step, dtype=dtype)
 
     _comp_sigma = pycuda.elementwise.ElementwiseKernel(
         'double* out, double* a, double* b, double* c, double* d',

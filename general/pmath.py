@@ -214,12 +214,7 @@ if has_pycuda:
         'take': pycuda.gpuarray.take,
         'convolve': gpu_wrap.convolve,
         'seq': lambda stop: pycuda.gpuarray.arange(stop, dtype=np.int32),
-        'arange': wraps(pycuda.gpuarray.arange)(
-            lambda start, stop, step, n_slices, dtype=np.float64:
-                gpu_wrap.arange_startstop_gpu(start, stop, step, n_slices, dtype)
-                if isinstance(start, pycuda.gpuarray.GPUArray)
-                else pycuda.gpuarray.arange(start, stop, step, dtype=dtype)
-        ),
+        'arange': gpu_wrap.arange,
         'zeros': lambda *args, **kwargs: pycuda.gpuarray.zeros(*args,
             allocator=gpu_utils.memory_pool.allocate, **kwargs),
         'empty': lambda *args, **kwargs: pycuda.gpuarray.empty(*args,
