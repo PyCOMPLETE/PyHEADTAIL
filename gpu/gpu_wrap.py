@@ -276,16 +276,20 @@ def _inplace_pow(x_gpu, p, stream=None):
     func.prepared_async_call(x_gpu._grid, x_gpu._block, stream,
         p, x_gpu.gpudata, x_gpu.gpudata, x_gpu.mem_size)
 
-def atleast_1d(array, *args, **kwargs):
-    '''Return input array unless it is a scalar. Ensure the result has
+def atleast_1d(*arrays):
+    '''Return input arrays unless they are scalars. Ensure the results have
     ndim >= 1.
-    GPUArray types cannot be scalars, for all others use
-    numpy.atleast_1d functionality.
     '''
-    if isinstance(array, pycuda.gpuarray.GPUArray):
-        return array
+    results = []
+    for array in arrays:
+        if len(array.shape) == 0:
+            results.append(array.reshape((1,)))
+        else:
+            results.append(array)
+    if len(results) == 1:
+        return results[0]
     else:
-        return np.atleast_1d(array)
+        return results
 
 def sincos(array):
     '''Return a tuple with the sin and the cos of the input array.'''
@@ -602,7 +606,7 @@ def searchsortedright(array, values, dest_array=None):
 def apply_permutation(array, permutation):
     '''
     Permute the entries in array according to the permutation array.
-    Returns a new (permuted) array which is equal to array[permutation]
+    Return a new (permuted) array which is equal to array[permutation]
     Args:
         array gpuarray to be permuted. Either float64 or int32
         permutation permutation array: must be np.int32 (or int32), is asserted
@@ -633,7 +637,7 @@ def particles_within_cuts(sliceset):
 
 def macroparticles_per_slice(sliceset):
     '''
-    Returns the number of macroparticles per slice. Assumes a sorted beam!
+    Return the number of macroparticles per slice. Assumes a sorted beam!
     '''
     # simple: upper_bounds - lower_bounds!
     if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
@@ -666,7 +670,7 @@ def sorted_mean_per_slice(sliceset, u, stream=None):
     Args:
         sliceset specifying slices, has .n_slices and .slice_index_of_particle
         u the array of which to compute the mean
-    Returns the an array, res[i] stores the mean of slice i
+    Return the an array, res[i] stores the mean of slice i
     '''
     if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
         _add_bounds_to_sliceset(sliceset)
@@ -691,7 +695,7 @@ def sorted_std_per_slice(sliceset, u, stream=None):
     Args:
         sliceset specifying slices
         u the array of which to compute the cov
-    Returns an array, res[i] stores the cov of slice i
+    Return an array, res[i] stores the cov of slice i
     '''
     if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
         _add_bounds_to_sliceset(sliceset)
