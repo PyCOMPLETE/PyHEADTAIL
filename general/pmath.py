@@ -155,7 +155,13 @@ _CPU_numpy_func_dict = {
     'std_per_slice': _std_per_slice_cpu,
     'emittance_per_slice': _emittance_per_slice_cpu,
     'particles_within_cuts': lambda sliceset: np.where(
-        (sliceset.slice_index_of_particle < sliceset.n_slices) & (sliceset.slice_index_of_particle >= 0))[0].astype(np.int32),
+            (sliceset.slice_index_of_particle < sliceset.n_slices)
+            & (sliceset.slice_index_of_particle >= 0)
+        )[0].astype(np.int32),
+    'particles_outside_cuts': lambda sliceset: np.where(np.logical_not(
+            (sliceset.slice_index_of_particle < sliceset.n_slices)
+            & (sliceset.slice_index_of_particle >= 0))
+        )[0].astype(np.int32),
     'macroparticles_per_slice': lambda sliceset: _count_macroparticles_per_slice_cpu(sliceset),
     'take': np.take,
     'convolve': np.convolve,
@@ -210,6 +216,7 @@ if has_pycuda:
         'std_per_slice': gpu_wrap.sorted_std_per_slice,
         'emittance_per_slice': gpu_wrap.sorted_emittance_per_slice,
         'particles_within_cuts': gpu_wrap.particles_within_cuts,
+        'particles_outside_cuts': gpu_wrap.particles_outside_cuts,
         'macroparticles_per_slice': gpu_wrap.macroparticles_per_slice,
         'take': pycuda.gpuarray.take,
         'convolve': gpu_wrap.convolve,

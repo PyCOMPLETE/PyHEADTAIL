@@ -643,12 +643,25 @@ def apply_permutation(array, permutation):
 
 def particles_within_cuts(sliceset):
     '''
-    Returns np.where((array >= minimum) and (array <= maximum))
+    Return np.where((array >= minimum) and (array <= maximum))
     Assumes a sorted beam!
     '''
     if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
         _add_bounds_to_sliceset(sliceset)
-    idx = pycuda.gpuarray.arange(sliceset.pidx_begin, sliceset.pidx_end, dtype=np.int32)
+    idx = arange(sliceset.pidx_begin, sliceset.pidx_end, dtype=np.int32)
+    return idx
+
+def particles_outside_cuts(sliceset):
+    '''
+    Return np.where((array < minimum) and (array > maximum))
+    Assumes a sorted beam!
+    '''
+    if (not hasattr(sliceset, 'upper_bounds')) and (not hasattr(sliceset, 'lower_bounds')):
+        _add_bounds_to_sliceset(sliceset)
+    n_part_inside = sliceset.pidx_end - sliceset.pidx_begin
+    n_part_outside = len(sliceset.slice_index_of_particle) - n_part_inside
+    idx = arange(0, n_part_outside, dtype=np.int32)
+    idx[sliceset.pidx_begin:] += n_part_inside
     return idx
 
 def macroparticles_per_slice(sliceset):

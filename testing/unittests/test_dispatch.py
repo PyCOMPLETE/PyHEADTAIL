@@ -75,6 +75,7 @@ class TestDispatch(unittest.TestCase):
         multi_param_fn = [
             'emittance', 'apply_permutation', 'mean_per_slice',
             'std_per_slice', 'emittance_per_slice', 'particles_within_cuts',
+            'particles_outside_cuts',
             'macroparticles_per_slice', 'take', 'convolve', 'arange', 'zeros',
             'seq', 'init_bunch_buffer', 'init_slice_buffer', 'device',
             'searchsortedright', 'searchsortedleft', 'cumsum', 'ones', 'wofz',
