@@ -15,28 +15,7 @@ from rf_bucket import RFBucket, attach_clean_buckets
 
 from abc import ABCMeta, abstractmethod
 
-# from ..general import pmath as pm
-import numpy as pm  # as soon as pmath is in develop, replace this line with above line.
-
-try:
-    from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
-
-    def cm_sincos(x):
-        return cm_sin(x), cm_cos(x)
-
-    sin = cm_sin
-    cos = cm_cos
-    sincos = cm_sincos
-except ImportError as e:
-    print '\n'+e.message
-    print "Falling back tp NumPy versions...\n"
-
-    def np_sincos(x):
-        return pm.sin(x), pm.cos(x)
-
-    sin = pm.sin
-    cos = pm.cos
-    sincos = np_sincos
+from ..general import pmath as pm
 
 
 # @TODO
@@ -554,7 +533,7 @@ class RFSystems(LongitudinalOneTurnMap):
         self._rfbuckets = {}
 
     def phi_s(self, gamma, charge):
-        beta = pm.sqrt(1 - gamma**-2)
+        beta = np.sqrt(1 - gamma**-2)
         eta0 = self.eta(0, gamma)
 
         V = self._accelerating_kick.voltage
@@ -563,7 +542,7 @@ class RFSystems(LongitudinalOneTurnMap):
             return 0
 
         deltaE = self.p_increment * beta * c
-        phi_rel = pm.arcsin(deltaE / (pm.abs(charge) * V))
+        phi_rel = np.arcsin(deltaE / (np.abs(charge) * V))
 
         return phi_rel
 
@@ -594,7 +573,7 @@ class RFSystems(LongitudinalOneTurnMap):
             longMap.track(beam)
         if self.p_increment:
             self._shrink_transverse_emittance(
-                beam, pm.sqrt(betagamma_old / beam.betagamma))
+                beam, np.sqrt(betagamma_old / beam.betagamma))
             self.clean_buckets()
 
     def track_no_transverse_shrinking(self, beam):
@@ -727,7 +706,7 @@ class LinearMap(LongitudinalOneTurnMap):
         '''
         super(LinearMap, self).__init__(alpha_array, circumference,
                                         *args, **kwargs)
-        assert (len(pm.atleast_1d(Q_s)) == 1), "Q_s can only have one entry!"
+        assert (len(np.atleast_1d(Q_s)) == 1), "Q_s can only have one entry!"
         self.Q_s = Q_s
         self.D_x = D_x
         self.D_y = D_y
@@ -745,12 +724,12 @@ class LinearMap(LongitudinalOneTurnMap):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp
         '''
-        omega_0 = 2 * pm.pi * beam.beta * c / self.circumference
+        omega_0 = 2 * np.pi * beam.beta * c / self.circumference
         omega_s = self.Q_s * omega_0
 
-        dQ_s = 2 * pm.pi * self.Q_s
-        cosdQ_s = pm.cos(dQ_s)  # use np because dQ_s is always a scalar
-        sindQ_s = pm.sin(dQ_s)  # use np because dQ_s is always a scalar
+        dQ_s = 2 * np.pi * self.Q_s
+        cosdQ_s = np.cos(dQ_s)  # use np because dQ_s is always a scalar
+        sindQ_s = np.sin(dQ_s)  # use np because dQ_s is always a scalar
 
         z0 = beam.z
         dp0 = beam.dp
@@ -759,9 +738,9 @@ class LinearMap(LongitudinalOneTurnMap):
         beam.z = (z0 * cosdQ_s - self.eta(0, beam.gamma) * beam.beta * c /
                   omega_s * dp0 * sindQ_s)
 
-        beam.x -= self.D_x*beam.dp
-        beam.y -= self.D_y*beam.dp
+        beam.x -= self.D_x * beam.dp
+        beam.y -= self.D_y * beam.dp
         beam.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, beam.gamma) /
                    (beam.beta * c) * z0 * sindQ_s)
-        beam.x += self.D_x*beam.dp
-        beam.y += self.D_y*beam.dp
+        beam.x += self.D_x * beam.dp
+        beam.y += self.D_y * beam.dp

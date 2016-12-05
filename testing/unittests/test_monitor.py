@@ -23,13 +23,13 @@ from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor
 class TestMonitor(unittest.TestCase):
     ''' Test the BunchMonitor/SliceMonitor'''
     def setUp(self):
-        self.n_turns = 20
+        self.n_turns = 10
         self.bunch_fn = 'bunchm'
         self.s_fn = 'sm'
         self.nslices = 5
         self.bunch_monitor = BunchMonitor(filename=self.bunch_fn,
                              n_steps=self.n_turns,
-                             write_buffer_every=20, buffer_size=39,
+                             write_buffer_every=2, buffer_size=7,
                              stats_to_store=['mean_x', 'macrop'])
 
     def tearDown(self):

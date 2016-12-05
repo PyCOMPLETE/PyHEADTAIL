@@ -14,8 +14,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from scipy import ndimage
-from scipy import interpolate
+from scipy import ndimage, interpolate
 from scipy.constants import c, e
 
 from random import sample
@@ -23,18 +22,13 @@ from functools import partial, wraps
 
 # from ..general.decorators import memoize
 from ..cobra_functions import stats as cp
+from ..general import pmath as pm
+from ..general import decorators as decorators
+from ..gpu import gpu_utils as gpu_utils
 from . import Printing
 
 
-min_ = np.min
-max_ = np.max
-diff = np.diff
-floor = np.floor
-arange = np.arange
-empty_like = np.empty_like
-
 def make_int32(array):
-    # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
 
 
@@ -64,23 +58,24 @@ def clean_slices(long_track_method):
 
 
 class SliceSet(Printing):
-    '''Defines a set of longitudinal slices. It's a blueprint or photo of a beam's
-    longitudinal profile. It knows where the slices are located, how many and
-    which particles there are in which slice. All its attributes refer to the
-    state of the beam at creation time of the SliceSet. Hence, it must never be
-    updated with new distributions, rather, a new SliceSet needs to be created.
+    '''Defines a set of longitudinal slices. It's a blueprint or photo
+    of a beam's longitudinal profile. It knows where the slices are
+    located, how many and which particles there are in which slice. All
+    its attributes refer to the state of the beam at creation time of
+    the SliceSet. Hence, it must never be updated with new
+    distributions, rather, a new SliceSet needs to be created.
     '''
 
     def __init__(self, z_bins, slice_index_of_particle, mode,
                  n_macroparticles_per_slice=None,
                  beam_parameters={}):
-        '''Is intended to be created by the Slicer factory method.  A SliceSet is given
-        a set of intervals defining the slicing region and the histogram over
-        the thereby defined slices.
+        '''Is intended to be created by the Slicer factory method.
+        A SliceSet is given a set of intervals defining the slicing
+        region and the histogram over the thereby defined slices.
 
-        beam_parameters is a dictionary containing certain beam parameters to be
-        recorded with this SliceSet.  (e.g. beta being saved via
-        beam_parameters['beta'] = beam.beta)
+        beam_parameters is a dictionary containing certain beam
+        parameters to be recorded with this SliceSet.
+        (e.g. beta being saved via beam_parameters['beta'] = beam.beta)
         '''
 
         '''The age of a slice set since its creation - this is used by multi-turn wakes
@@ -107,6 +102,10 @@ class SliceSet(Printing):
         slice.
         '''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
+        self._particles_within_cuts = None
+        self._particles_outside_cuts = None
+        self._pidx_begin = None
+        self._pidx_end = None
 
         for p_name, p_value in beam_parameters.iteritems():
             if hasattr(self, p_name):
@@ -139,7 +138,7 @@ class SliceSet(Printing):
     @property
     def slice_widths(self):
         '''Array of the widths of the slices.'''
-        return diff(self.z_bins)
+        return pm.diff(self.z_bins)
 
     @property
     def slice_positions(self):
@@ -147,8 +146,8 @@ class SliceSet(Printing):
         self.particle_indices_by_slice .
         '''
         slice_positions_ = np.zeros(self.n_slices + 1, dtype=np.int32)
-        slice_positions_[1:] = (
-                np.cumsum(self.n_macroparticles_per_slice).astype(np.int32))
+        slice_positions_[1:] = pm.indexify(
+            pm.cumsum(self.n_macroparticles_per_slice))
         return slice_positions_
 
     @property
@@ -157,11 +156,7 @@ class SliceSet(Printing):
         slice.
         '''
         if self._n_macroparticles_per_slice is None:
-            self._n_macroparticles_per_slice = np.zeros(
-                self.n_slices, dtype=np.int32)
-            cp.count_macroparticles_per_slice(self.slice_index_of_particle,
-                                              self.particles_within_cuts,
-                                              self._n_macroparticles_per_slice)
+            self._n_macroparticles_per_slice = pm.macroparticles_per_slice(self)
         return self._n_macroparticles_per_slice
 
     @property
@@ -176,22 +171,44 @@ class SliceSet(Printing):
     def particles_within_cuts(self):
         '''All particle indices which are situated within the slicing
         region defined by [z_cut_tail, z_cut_head).'''
-        particles_within_cuts_ = make_int32(np.where(
-                (self.slice_index_of_particle > -1) &
-                (self.slice_index_of_particle < self.n_slices)
-            )[0])
-        return particles_within_cuts_
+        if self._particles_within_cuts is None:
+            self._particles_within_cuts = pm.particles_within_cuts(self)
+        return self._particles_within_cuts
 
     @property
     # @memoize
     def particles_outside_cuts(self):
         '''All particle indices which are situated outside the slicing
         region defined by [z_cut_tail, z_cut_head).'''
-        particles_ouside_cuts_ = make_int32(np.where(np.logical_not(
-                (self.slice_index_of_particle > -1) &
-                (self.slice_index_of_particle < self.n_slices))
-            )[0])
-        return particles_ouside_cuts_
+        if self._particles_outside_cuts is None:
+            self._particles_outside_cuts = pm.particles_outside_cuts(self)
+        return self._particles_outside_cuts
+
+    @property
+    def particles_within_cuts_slice(self):
+        ''' Returns a continous slice(first,last,1) of particles indices
+        between [z_cut_tail, z_cut_head]
+        Required for gpuarrays slicing syntax, i.e. x[slice] += 2
+        Only use when beam is sorted!
+        '''
+        if self.is_sorted: #
+            return slice(self.pidx_begin, self.pidx_end, 1)
+        else:
+            return self.particles_within_cuts
+
+    @property
+    def pidx_begin(self):
+        ''' particle index of the first particle within the sliceset region'''
+        if self._pidx_begin is None:
+            self._pidx_begin = self.particles_within_cuts[0]
+        return self._pidx_begin
+
+    @property
+    def pidx_end(self):
+        ''' particle index of the last+1 particle within the sliceset region'''
+        if self._pidx_end is None:
+            self._pidx_end = self.particles_within_cuts[-1]+1
+        return self._pidx_end
 
     @property
     # @memoize
@@ -199,12 +216,15 @@ class SliceSet(Printing):
         '''Array of particle indices arranged / sorted according to
         their slice affiliation.
         '''
-        particle_indices_by_slice = np.zeros(len(self.particles_within_cuts),
-                                             dtype=np.int32)
-        cp.sort_particle_indices_by_slice(
-            self.slice_index_of_particle, self.particles_within_cuts,
-            self.slice_positions, particle_indices_by_slice)
-        return particle_indices_by_slice
+        if self.is_sorted:
+            return self.particles_within_cuts
+        else:
+            particle_indices_by_slice = pm.zeros(
+                len(self.particles_within_cuts), dtype=np.int32)
+            cp.sort_particle_indices_by_slice(
+                self.slice_index_of_particle, self.particles_within_cuts,
+                self.slice_positions, particle_indices_by_slice)
+            return particle_indices_by_slice
 
     def lambda_bins(self, sigma=None, smoothen=True):
         '''Line charge density with respect to bins along the slices.'''
@@ -288,7 +308,8 @@ class SliceSet(Printing):
         particle belongs to.
         '''
         if empty_particles == None:
-            empty_particles = empty_like(self.slice_index_of_particle, dtype=np.float)
+            empty_particles = pm.empty_like(
+                self.slice_index_of_particle, dtype=np.float64)
         particle_array = empty_particles
         p_id = self.particles_within_cuts
         s_id = self.slice_index_of_particle.take(p_id)
@@ -340,8 +361,21 @@ class Slicer(Printing):
         Valid list entries are all statistics functions of Particles.
         '''
         sliceset_kwargs = self.compute_sliceset_kwargs(beam)
+        if not isinstance(beam.z, np.ndarray):
+            #print 'IS (probably) a GPUARRAY, sort it'
+            s_idx_of_p = sliceset_kwargs['slice_index_of_particle']
+            perm = pm.argsort(s_idx_of_p)
+            beam.reorder(perm)
+            sliceset_kwargs = self.compute_sliceset_kwargs(beam)
+            is_sorted = True
+        else:
+            #print 'IS np.ndarray'
+            is_sorted = False
+
+        # Update slice index of particles! otherwise cpu impl is wrong
         sliceset_kwargs['beam_parameters'] = (
             self.extract_beam_parameters(beam))
+        sliceset_kwargs['beam_parameters']['is_sorted'] = is_sorted
         sliceset = SliceSet(**sliceset_kwargs)
         if 'statistics' in kwargs:
             self.add_statistics(sliceset, beam, kwargs['statistics'])
@@ -374,8 +408,8 @@ class Slicer(Printing):
             z_cut_tail = beam.mean_z() - self.n_sigma_z * beam.sigma_z()
             z_cut_head = beam.mean_z() + self.n_sigma_z * beam.sigma_z()
         else:
-            z_cut_tail = min_(beam.z)
-            z_cut_head = max_(beam.z)
+            z_cut_tail = pm.min(beam.z)
+            z_cut_head = pm.max(beam.z)
             z_cut_head += abs(z_cut_head) * 1e-15
         return z_cut_tail, z_cut_head
 
@@ -407,13 +441,15 @@ class Slicer(Printing):
                            'created slice snapshots. This minimises ' +
                            'computation time.')
 
+    @decorators.synchronize_gpu_streams_after
     def add_statistics(self, sliceset, beam, statistics):
         '''Calculate all the statistics quantities (strings) that are
         named in the list 'statistics' and add a corresponding
         attribute to the SliceSet instance. The nomenclature must be
         followed. The following names are possible:
             mean_x, mean_y, mean_z, mean_xp, mean_yp, mean_dp, sigma_x,
-            sigma_y, sigma_z, sigma_dp, epsn_x, epsn_y, epsn_z.
+            sigma_y, sigma_z, sigma_dp, epsn_x, epsn_y, epsn_z,
+            eff_epsn_x, eff_epsn_y.
 
         statistics=True adds all at once.
         '''
@@ -426,82 +462,72 @@ class Slicer(Printing):
         for stat in statistics:
             if not hasattr(sliceset, stat):
                 stat_caller = getattr(self, '_' + stat)
-                values = stat_caller(sliceset, beam)
+                if pm.device is 'GPU':
+                    st = next(gpu_utils.stream_pool)
+                    values = stat_caller(sliceset, beam,
+                                         stream=next(gpu_utils.stream_pool))
+                else:
+                    values = stat_caller(sliceset, beam)
                 setattr(sliceset, stat, values)
 
-    def _mean_x(self, sliceset, beam):
-        return self._mean(sliceset, beam.x)
+    def _mean_x(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.x, **kwargs)
 
-    def _mean_xp(self, sliceset, beam):
-        return self._mean(sliceset, beam.xp)
+    def _mean_xp(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.xp, **kwargs)
 
-    def _mean_y(self, sliceset, beam):
-        return self._mean(sliceset, beam.y)
+    def _mean_y(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.y, **kwargs)
 
-    def _mean_yp(self, sliceset, beam):
-        return self._mean(sliceset, beam.yp)
+    def _mean_yp(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.yp, **kwargs)
 
-    def _mean_z(self, sliceset, beam):
-        return self._mean(sliceset, beam.z)
+    def _mean_z(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.z, **kwargs)
 
-    def _mean_dp(self, sliceset, beam):
-        return self._mean(sliceset, beam.dp)
+    def _mean_dp(self, sliceset, beam, **kwargs):
+        return self._mean(sliceset, beam.dp, **kwargs)
 
-    def _sigma_x(self, sliceset, beam):
-        return self._sigma(sliceset, beam.x)
+    def _sigma_x(self, sliceset, beam, **kwargs):
+        return self._sigma(sliceset, beam.x, **kwargs)
 
-    def _sigma_y(self, sliceset, beam):
-        return self._sigma(sliceset, beam.y)
+    def _sigma_y(self, sliceset, beam, **kwargs):
+        return self._sigma(sliceset, beam.y, **kwargs)
 
-    def _sigma_z(self, sliceset, beam):
-        return self._sigma(sliceset, beam.z)
+    def _sigma_z(self, sliceset, beam, **kwargs):
+        return self._sigma(sliceset, beam.z, **kwargs)
 
-    def _sigma_dp(self, sliceset, beam):
-        return self._sigma(sliceset, beam.dp)
+    def _sigma_dp(self, sliceset, beam, **kwargs):
+        return self._sigma(sliceset, beam.dp, **kwargs)
 
-    def _epsn_x(self, sliceset, beam): # dp will always be present in a sliced beam
-        return self._epsn(sliceset, beam.x, beam.xp, beam.dp) * beam.betagamma
+    def _epsn_x(self, sliceset, beam, **kwargs): # dp will always be present in a sliced beam
+        return self._epsn(sliceset, beam.x, beam.xp, beam.dp, **kwargs) * beam.betagamma
 
-    def _eff_epsn_x(self, sliceset, beam):
-        return self._epsn(sliceset, beam.x, beam.xp, None) * beam.betagamma
+    def _eff_epsn_x(self, sliceset, beam, **kwargs):
+        return self._epsn(sliceset, beam.x, beam.xp, dp=None, **kwargs) * beam.betagamma
 
-    def _epsn_y(self, sliceset, beam):
-        return self._epsn(sliceset, beam.y, beam.yp, beam.dp) * beam.betagamma
+    def _epsn_y(self, sliceset, beam, **kwargs):
+        return self._epsn(sliceset, beam.y, beam.yp, beam.dp, **kwargs) * beam.betagamma
 
-    def _eff_epsn_y(self, sliceset, beam):
-        return self._epsn(sliceset, beam.y, beam.yp, None) * beam.betagamma
+    def _eff_epsn_y(self, sliceset, beam, **kwargs):
+        return self._epsn(sliceset, beam.y, beam.yp, dp=None, **kwargs) * beam.betagamma
 
 
-    def _epsn_z(self, sliceset, beam):
+    def _epsn_z(self, sliceset, beam, **kwargs):
         # Always use the effective emittance --> pass None as second dp param
-        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp, None) *
+        return (4. * np.pi * self._epsn(sliceset, beam.z, beam.dp, dp=None, **kwargs) *
                 beam.p0 / e)
 
     # Statistics helper functions.
 
-    def _mean(self, sliceset, u):
-        mean_u = np.zeros(sliceset.n_slices)
-        cp.mean_per_slice(sliceset.slice_index_of_particle,
-                          sliceset.particles_within_cuts,
-                          sliceset.n_macroparticles_per_slice,
-                          u, mean_u)
-        return mean_u
+    def _mean(self, sliceset, u, **kwargs):
+        return pm.mean_per_slice(sliceset, u, **kwargs)
 
-    def _sigma(self, sliceset, u):
-        sigma_u = np.zeros(sliceset.n_slices)
-        cp.std_per_slice(sliceset.slice_index_of_particle,
-                         sliceset.particles_within_cuts,
-                         sliceset.n_macroparticles_per_slice,
-                         u, sigma_u)
-        return sigma_u
+    def _sigma(self, sliceset, u, **kwargs):
+        return pm.std_per_slice(sliceset, u, **kwargs)
 
-    def _epsn(self, sliceset, u, up, dp):
-        epsn_u = np.zeros(sliceset.n_slices)
-        cp.emittance_per_slice(sliceset.slice_index_of_particle,
-                               sliceset.particles_within_cuts,
-                               sliceset.n_macroparticles_per_slice,
-                               u, up, dp, epsn_u)
-        return epsn_u
+    def _epsn(self, sliceset, u, up, dp, **kwargs):
+        return pm.emittance_per_slice(sliceset, u, up, dp=dp, **kwargs)
 
 
 class UniformBinSlicer(Slicer):
@@ -579,9 +605,9 @@ class UniformBinSlicer(Slicer):
         z_cut_tail, z_cut_head = self.get_long_cuts(beam)
         slice_width = (z_cut_head - z_cut_tail) / float(self.n_slices)
 
-        z_bins = arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
-                        slice_width, dtype=np.float64)
-        slice_index_of_particle = make_int32(floor(
+        z_bins = pm.arange(z_cut_tail, z_cut_head + 1e-7*slice_width,
+                           slice_width, self.n_slices+1, dtype=np.float64)
+        slice_index_of_particle = make_int32(pm.floor(
                 (beam.z - z_cut_tail) / slice_width
             ))
 

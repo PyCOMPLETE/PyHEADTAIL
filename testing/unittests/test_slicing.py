@@ -183,10 +183,10 @@ class TestSlicing(unittest.TestCase):
         disp_y = disp_x
         alpha0= [0.00308]
         C = 6911.
-        Qs = 0.017
+        Q_s = 0.017
         epsn_x = 3.75e-6
         epsn_y = 3.75e-6
-        linear_map = LinearMap(alpha0, Qs, C)
+        linear_map = LinearMap(alpha0, Q_s, C)
        # then transform...
         intensity = 1.05e11
         sigma_z = 0.23
@@ -194,7 +194,7 @@ class TestSlicing(unittest.TestCase):
         p0 = np.sqrt(gamma**2 - 1) * m_p * c
 
         beta_z = np.abs((linear_map.eta(dp=0, gamma=gamma) * linear_map.circumference /
-                  (2 * np.pi * linear_map.Qs)))
+                  (2 * np.pi * linear_map.Q_s)))
 
         epsn_z = 4 * np.pi * sigma_z**2 * p0 / (beta_z * e)
         #print ('epsn_z: ' + str(epsn_z))

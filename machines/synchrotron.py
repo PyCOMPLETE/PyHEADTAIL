@@ -213,13 +213,13 @@ class Synchrotron(Element):
 
         if optics_mode == 'smooth':
             if circumference is None:
-                raise ValueError('circumference has to be specified ' +
+                raise ValueError('circumference has to be specified '
                                  'if optics_mode = "smooth"')
             if n_segments is None:
-                raise ValueError('n_segments has to be specified ' +
+                raise ValueError('n_segments has to be specified '
                                  'if optics_mode = "smooth"')
             if s is not None:
-                raise ValueError('s vector should not be provided ' +
+                raise ValueError('s vector should not be provided '
                                  'if optics_mode = "smooth"')
 
             s = (np.arange(0, n_segments + 1) * circumference / n_segments)
@@ -232,13 +232,13 @@ class Synchrotron(Element):
 
         elif optics_mode == 'non-smooth':
             if circumference is not None:
-                raise ValueError('circumference should not be provided ' +
+                raise ValueError('circumference should not be provided '
                                  'if optics_mode = "non-smooth"')
             if n_segments is not None:
-                raise ValueError('n_segments should not be provided ' +
+                raise ValueError('n_segments should not be provided '
                                  'if optics_mode = "non-smooth"')
             if s is None:
-                raise ValueError('s has to be specified ' +
+                raise ValueError('s has to be specified '
                                  'if optics_mode = "smooth"')
 
         else:

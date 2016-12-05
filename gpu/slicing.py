@@ -10,8 +10,7 @@ where = os.path.dirname(os.path.abspath(__file__)) + '/'
 import numpy as np
 
 # default classes imports from modules as assigned in gpu/__init__.py
-from . import def_slicing
-
+from .oldinit import def_slicing
 
 from pycuda import gpuarray
 from pycuda.compiler import SourceModule
@@ -19,9 +18,9 @@ from pycuda.elementwise import ElementwiseKernel
 import pycuda.driver as cuda
 from pycuda import cumath
 
+from skcuda.misc import diff
 
-import thrust_interface
-thrust = thrust_interface.compiled_module
+import thrust_interface as thrust
 
 get_sort_perm_int = thrust.get_sort_perm_int
 lower_bound_int = thrust.lower_bound_int
@@ -34,7 +33,7 @@ with open(where + 'stats.cu') as stream:
 stats_kernels = SourceModule(source)
 
 sorted_mean_per_slice = stats_kernels.get_function('sorted_mean_per_slice')
-sorted_cov_per_slice = stats_kernels.get_function('sorted_cov_per_slice')
+sorted_std_per_slice = stats_kernels.get_function('sorted_std_per_slice')
 
 with open(where + 'smoothing_kernels.cu') as stream:
     source = stream.read()
@@ -46,7 +45,7 @@ gaussian_smoothing = smoothing_kernels.get_function('gaussian_smoothing_1d')
 
 # prepare calls to kernels!!!
 sorted_mean_per_slice.prepare('PPPIP')
-sorted_cov_per_slice.prepare('PPPIP')
+sorted_std_per_slice.prepare('PPPIP')
 
 # for both smoothing kernels, the launched threads need to cover the slices exactly!
 # block size block=(32, 1, 1) is fixed!
@@ -116,6 +115,11 @@ class MeshSliceSet(def_slicing.SliceSet):
     @property
     def z_cut_tail(self):
         return float(self.z_bins[0].get())
+
+    @property
+    def slice_widths(self):
+        '''Array of the widths of the slices.'''
+        return diff(self.z_bins)
 
     @property
     def slice_positions(self):
@@ -441,7 +445,7 @@ class SlicerGPU(def_slicing.Slicer):
         block = (256, 1, 1)
         grid = (max(sliceset.n_slices // block[0], 1), 1, 1)
         cov_u = gpuarray.zeros(sliceset.n_slices, dtype=np.float64)
-        sorted_cov_per_slice(lower_bounds.gpudata,
+        sorted_std_per_slice(lower_bounds.gpudata,
                              upper_bounds.gpudata,
                              u.gpudata,
                              self.n_slices,

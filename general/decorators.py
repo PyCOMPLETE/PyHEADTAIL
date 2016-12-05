@@ -7,6 +7,7 @@ Provide useful decorators for PyHEADTAIL.
 
 import warnings
 from functools import wraps
+from ..gpu import gpu_utils
 
 
 def deprecated(message):
@@ -41,3 +42,26 @@ def memoize(function):
             store[signature] = function(*args)
         return store[signature]
     return evaluate
+
+def synchronize_gpu_streams_before(func):
+    '''
+    Use this decorator if you need the results of all the streams
+    synchronized before this function is called
+    '''
+    def sync_before_wrap(*args, **kwargs):
+        for stream in gpu_utils.streams:
+            stream.synchronize()
+        return func(*args, **kwargs)
+    return sync_before_wrap
+
+def synchronize_gpu_streams_after(func):
+    '''
+    Use this decorator if you need the results of all the streams
+    synchronized after this function is called
+    '''
+    def sync_after_wrap(*args, **kwargs):
+        res = func(*args, **kwargs)
+        for stream in gpu_utils.streams:
+            stream.synchronize()
+        return res
+    return sync_after_wrap

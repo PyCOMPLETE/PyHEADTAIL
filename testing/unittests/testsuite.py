@@ -7,6 +7,12 @@ This script runs all the unit tests specified in test_list
 import sys
 import unittest
 
+try:
+    import pycuda.autoinit
+except ImportError:
+    has_pycuda = False
+    print 'No PyCUDA installation found.'
+
 from test_slicing import TestSlicing
 from test_particles import TestParticles
 from test_generators import TestParticleGenerators
@@ -17,6 +23,8 @@ from test_listproxy import TestListProxy
 from test_detuners import TestDetuner
 from test_itest_autorun import TestAutoRun
 from test_cobra import TestCobra
+from test_gpu_interface import TestGPUInterface
+from test_dispatch import TestDispatch
 from test_monitor import TestMonitor
 
 #add your test classes here
@@ -30,6 +38,8 @@ test_list = [TestSlicing,
              TestAutoRun, #uncomment to run full test suite (~ 1 min)
              TestTransverseTracking,
              TestCobra,
+             TestGPUInterface,
+             TestDispatch,
              TestMonitor]
 
 

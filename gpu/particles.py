@@ -1,29 +1,42 @@
 # default classes imports from modules as assigned in gpu/__init__.py
-from . import def_particles
+from .oldinit import def_particles
 
 import numpy as np
 
 from pycuda import gpuarray
 
-import thrust_interface
-thrust = thrust_interface.compiled_module
+import thrust_interface as thrust
 
 class ParticlesGPU(def_particles.Particles):
-    '''Implementation of the Particles with data stored on the GPU.'''
+    '''Implementation of the Particles with data stored on the GPU.
+
+    The flag particles_gpu.i_data_on_gpu indicates whether the data
+    arrays reside on the GPU. If it is False the data should have been
+    transferred to the host RAM.
+    '''
+
     def __init__(self, *args, **kwargs):
         super(ParticlesGPU, self).__init__(*args, **kwargs)
+        self.transfer_to_gpu()
 
+    def transfer_to_gpu(self):
+        '''Transfer all host RAM data to the GPU device.
+        Assumes all coodinates and momenta arrays including the id
+        are on the host RAM.
+        '''
         for coord in self.coords_n_momenta:
             device_array = gpuarray.to_gpu(getattr(self, coord))
             setattr(self, coord, device_array)
         self.id = gpuarray.to_gpu(self.id)
+        self.i_data_on_gpu = True
 
     def transfer_to_host(self):
-        '''Transfers all GPU device data back to the host RAM.'''
+        '''Transfer all GPU device data back to the host RAM.'''
         for coord in self.coords_n_momenta:
             device_array = getattr(self, coord).get()
             setattr(self, coord, device_array)
         self.id = self.id.get()
+        self.i_data_on_gpu = False
 
     def sort_for(self, attr):
         '''Sort the named particle attribute (coordinate / momentum)

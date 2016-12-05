@@ -7,6 +7,7 @@ import numpy as np
 from scipy.constants import c, e  # unit e needed for long. emittance
 
 from ..cobra_functions import stats as cp
+from ..general import pmath as pm
 from . import Printing
 
 arange = np.arange
@@ -33,29 +34,30 @@ class Particles(Printing):
         self.charge = charge
         self.mass = mass
 
-        self.charge_per_mp = particlenumber_per_mp * charge
-
         self.circumference = circumference
         self.gamma = gamma
 
         '''Dictionary of SliceSet objects which are retrieved via
-        self.get_slices(slicer) by a client. Each SliceSet is recorded only once
-        for a specific longitudinal state of Particles.  Any longitudinal
-        trackers (or otherwise modifying elements) should clean the saved
-        SliceSet dictionary via self.clean_slices().
+        self.get_slices(slicer) by a client. Each SliceSet is recorded
+        only once for a specific longitudinal state of Particles.
+        Any longitudinal trackers (or otherwise modifying elements)
+        should clean the saved SliceSet dictionary via
+        self.clean_slices().
         '''
         self._slice_sets = {}
 
-        '''Set of coordinate and momentum attributes of this Particles instance.
+        '''Set of coordinate and momentum attributes of this Particles
+        instance.
         '''
         self.coords_n_momenta = set()
 
-        '''ID of particles in order to keep track of single entries in the coordinate
-        and momentum arrays.
+        '''ID of particles in order to keep track of single entries
+        in the coordinate and momentum arrays.
         '''
         self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
 
         self.update(coords_n_momenta_dict)
+
 
     @property
     def intensity(self):
@@ -63,6 +65,13 @@ class Particles(Printing):
     @intensity.setter
     def intensity(self, value):
         self.particlenumber_per_mp = value / float(self.macroparticlenumber)
+
+    @property
+    def charge_per_mp(self):
+        return self.particlenumber_per_mp * self.charge
+    @charge_per_mp.setter
+    def charge_per_mp(self, value):
+        self.particlenumber_per_mp = value / self.charge
 
     @property
     def gamma(self):
@@ -157,8 +166,8 @@ class Particles(Printing):
         '''
 
         if include_non_sliced not in ['if_any', 'always', 'never']:
-                raise ValueError("include_non_sliced=%s is not valid!\n"%include_non_sliced+
-                                                "Possible values are {'always', 'never', 'if_any'}" )
+        	raise ValueError("include_non_sliced=%s is not valid!\n" % include_non_sliced +
+        					 "Possible values are {'always', 'never', 'if_any'}" )
 
         slices = self.get_slices(slicer, *args, **kwargs)
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
@@ -193,7 +202,7 @@ class Particles(Printing):
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                     mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
                 for coord in self_coords_n_momenta_dict.keys():
-                        slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
+                    slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
                 slice_object.id[:] = self.id[ix]
                 slice_object.slice_info = 'unsliced'
                 slice_object_list.append(slice_object)
@@ -238,7 +247,7 @@ class Particles(Printing):
         '''Sort the named particle attribute (coordinate / momentum)
         array and reorder all particles accordingly.
         '''
-        permutation = np.argsort(getattr(self, attr))
+        permutation = pm.argsort(getattr(self, attr))
         self.reorder(permutation)
 
     def reorder(self, permutation, except_for_attrs=[]):
@@ -250,12 +259,13 @@ class Particles(Printing):
         for attr in to_be_reordered:
             if attr in except_for_attrs:
                 continue
-            reordered = getattr(self, attr)[permutation]
+            reordered = pm.apply_permutation(getattr(self, attr), permutation)
             setattr(self, attr, reordered)
+        self.clean_slices()
 
     def __add__(self, other):
         '''Merges two beams.
-                '''
+		'''
         #print 'Checks still to be added!!!!!!'
 
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
@@ -263,7 +273,8 @@ class Particles(Printing):
 
         result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-                                        mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+
 
         for coord in self_coords_n_momenta_dict.keys():
             #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
@@ -289,64 +300,77 @@ class Particles(Printing):
 
         return result
 
+
     # Statistics methods
+    # kwargs are for passing stream=... in the gpu case
 
-    def mean_x(self):
-        return mean(self.x)
+    def mean_x(self, **kwargs):
+        #return np.float(pm.mean(self.x))
+        return pm.mean(self.x, **kwargs)
 
-    def mean_xp(self):
-        return mean(self.xp)
+    def mean_xp(self, **kwargs):
+        #return np.float(pm.mean(self.xp))
+        return pm.mean(self.xp, **kwargs)
 
-    def mean_y(self):
-        return mean(self.y)
+    def mean_y(self, **kwargs):
+        #return np.float(pm.mean(self.y))
+        return pm.mean(self.y, **kwargs)
 
-    def mean_yp(self):
-        return mean(self.yp)
+    def mean_yp(self, **kwargs):
+        #return np.float(pm.mean(self.yp))
+        return pm.mean(self.yp, **kwargs)
 
-    def mean_z(self):
-        return mean(self.z)
+    def mean_z(self, **kwargs):
+        #return np.float(pm.mean(self.z))
+        return pm.mean(self.z, **kwargs)
 
-    def mean_dp(self):
-        return mean(self.dp)
+    def mean_dp(self, **kwargs):
+        #return np.float(pm.mean(self.dp))
+        return pm.mean(self.dp, **kwargs)
 
-    def sigma_x(self):
-        return std(self.x)
+    def sigma_x(self, **kwargs):
+        return pm.std(self.x, **kwargs)
 
-    def sigma_y(self):
-        return std(self.y)
+    def sigma_y(self, **kwargs):
+        #return np.float(pm.std(self.y))
+        return pm.std(self.y, **kwargs)
 
-    def sigma_z(self):
-        return std(self.z)
+    def sigma_z(self, **kwargs):
+        #return np.float(pm.std(self.z))
+        return pm.std(self.z, **kwargs)
 
-    def sigma_xp(self):
-        return std(self.xp)
+    def sigma_xp(self, **kwargs):
+        #return np.float(pm.std(self.xp))
+        return pm.std(self.xp, **kwargs)
 
-    def sigma_yp(self):
-        return std(self.yp)
+    def sigma_yp(self, **kwargs):
+        #return np.float(pm.std(self.yp))
+        return pm.std(self.yp, **kwargs)
 
-    def sigma_dp(self):
-        return std(self.dp)
+    def sigma_dp(self, **kwargs):
+        #return np.float(pm.std(self.dp))
+        return pm.std(self.dp, **kwargs)
 
-    def effective_normalized_emittance_x(self):
-        return cp.emittance(self.x, self.xp, None) * self.betagamma
+    def effective_normalized_emittance_x(self, **kwargs):
+        return pm.emittance(self.x, self.xp, None, **kwargs) * self.betagamma
 
-    def effective_normalized_emittance_y(self):
-        return cp.emittance(self.y, self.yp, None) * self.betagamma
+    def effective_normalized_emittance_y(self, **kwargs):
+        return pm.emittance(self.y, self.yp, None, **kwargs) * self.betagamma
 
-    def effective_normalized_emittance_z(self):
-        return(4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
+    def effective_normalized_emittance_z(self, **kwargs):
+        return(4*np.pi * pm.emittance(self.z, self.dp, None, **kwargs) * self.p0/e)
 
-    def epsn_x(self):
-        return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
+    def epsn_x(self, **kwargs):
+        return (pm.emittance(self.x, self.xp, getattr(self, 'dp', None), **kwargs)
                * self.betagamma)
 
-    def epsn_y(self):
-        return (cp.emittance(self.y, self.yp, getattr(self, 'dp', None))
+    def epsn_y(self, **kwargs):
+        return (pm.emittance(self.y, self.yp, getattr(self, 'dp', None), **kwargs)
                * self.betagamma)
 
-    def epsn_z(self):
+    def epsn_z(self, **kwargs):
         # always use the effective emittance
-        return self.effective_normalized_emittance_z()
+        return self.effective_normalized_emittance_z(**kwargs)
 
     def dispersion_x(self):
         return cp.dispersion(self.x, self.dp)
