@@ -10,9 +10,9 @@ def zero_crossings(f, x):
     zix = np.where(np.abs(np.diff(np.sign(y))) == 2)[0]
 
     x0 = np.array([brentq(f, x[i], x[i+1]) for i in zix])
-    y0 = np.array([f(i) for i in x0])
+    # y0 = np.array([f(i) for i in x0])
 
-    return x0, y0
+    return x0 #, y0 # the function values y0 should be ~0
 
 
 def extrema(x, y=None):

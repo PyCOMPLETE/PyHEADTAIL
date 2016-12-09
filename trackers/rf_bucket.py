@@ -8,7 +8,7 @@ from scipy.optimize import newton
 from scipy.integrate import dblquad
 from functools import partial, wraps
 
-from ..cobra_functions.curve_tools import zero_crossings
+from ..cobra_functions.curve_tools import zero_crossings as cvt_zero_crossings
 from ..general.decorators import deprecated
 from . import Printing
 
@@ -105,8 +105,9 @@ class RFBucket(Printing):
             ### separatrix UFPs via their minimal (convexified) potential value
             domain_to_find_bucket_centre = np.linspace(-1.999*zmax, 1.999*zmax,
                                                        self.sampling_points)
-            z0 = self.zero_crossings(self.total_force,
-                                     domain_to_find_bucket_centre)
+            z0 = self.zero_crossings(
+                partial(self.total_force, acceleration=False),
+                domain_to_find_bucket_centre)
             convex_pot0 = (
                 np.array(self.total_potential(z0, acceleration=False)) *
                 np.sign(self.eta0) / self.charge)  # charge for numerical reasons
@@ -140,6 +141,27 @@ class RFBucket(Printing):
     @property
     def deltaE(self):
         return self.p_increment * self.beta * c
+
+    @property
+    def harmonic_list(self):
+        return self.h
+    @harmonic_list.setter
+    def harmonic_list(self, value):
+        self.h = value
+
+    @property
+    def voltage_list(self):
+        return self.V
+    @voltage_list.setter
+    def voltage_list(self, value):
+        self.V = value
+
+    @property
+    def phi_offset_list(self):
+        return self.dphi
+    @phi_offset_list.setter
+    def phi_offset_list(self, value):
+        self.dphi = value
 
     @property
     def z_ufp(self):
@@ -243,8 +265,9 @@ class RFBucket(Printing):
 
     @property
     def Q_s(self):
-        """Synchrotron tunes for small amplitudes i.e., in the center of the bucket.
-
+        """Linear synchrotron tune for small amplitudes i.e., in the
+        center of the bucket. Analytical formula neglects any
+        added forces / potentials via add_fields.
         """
         hV = sum([h * self.V[i] for i, h in enumerate(self.h)])
         # if hV == 0:
@@ -286,7 +309,7 @@ class RFBucket(Printing):
 
     # FORCE FIELDS AND POTENTIALS OF MULTI-HARMONIC ACCELERATING BUCKET
     # =================================================================
-    def rf_force(self, V, h, dphi, dp, acceleration=True):
+    def rf_force(self, V, h, dphi, p_increment, acceleration=True):
         def f(z):
             coefficient = np.abs(self.charge)/self.circumference
             focusing_field = reduce(lambda x, y: x+y, [
@@ -295,7 +318,8 @@ class RFBucket(Printing):
             if not acceleration:
                 accelerating_field = 0
             else:
-                accelerating_field = -(dp*self.beta*c/self.circumference)
+                accelerating_field = -(
+                    p_increment*self.beta*c/self.circumference)
             return coefficient * focusing_field + accelerating_field
         return f
 
@@ -486,9 +510,7 @@ class RFBucket(Printing):
                 subintervals = self.sampling_points
             x = np.linspace(*self.interval, num=subintervals)
 
-        x0, y0 = zero_crossings(f, x)
-
-        return x0
+        return cvt_zero_crossings(f, x)
 
     def _get_bucket_boundaries(self):
         '''Return the bucket boundaries as well as the whole list

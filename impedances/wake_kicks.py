@@ -15,7 +15,7 @@ from ..general import pmath as pm
 from . import Printing
 
 class WakeKick(Printing):
-    """ Abstract base class for wake kick classes, like e.g. the
+    """Abstract base class for wake kick classes, like e.g. the
     DipoleWakeKickX.
     Provides the basic and universal methods to calculate the strength
     of a wake kick. Two implementations of the convolution are
@@ -25,49 +25,59 @@ class WakeKick(Printing):
     corresponding kick to the particles of the bunch that are located
     inside the slicing region defined by a slice_set. This should be
     the only method to be implemented for a child class inheriting from
-    the WakeKick class. """
+    the WakeKick class.
+    """
 
     __metaclass__ = ABCMeta
 
     def __init__(self, wake_function, slicer, n_turns_wake,
                  *args, **kwargs):
-        """ Universal constructor for WakeKick objects. The slicer_mode
+        """Universal constructor for WakeKick objects. The slicer_mode
         is passed only to decide about which of the two implementations
-        of the convolution the self._convolution method is bound to. """
+        of the convolution the self._convolution method is bound to.
+        """
         self.wake_function = wake_function
 
         if (slicer.mode == 'uniform_bin' and
-            (n_turns_wake == 1 or slicer.z_cuts)):
+                (n_turns_wake == 1 or slicer.z_cuts)):
             self._convolution = self._convolution_numpy
-            self.warns('Acceleration not handled properly' +
-                       ' by this kind of convolution due to changing' +
-                       ' bunch length!')
         else:
             self._convolution = self._convolution_dot_product
+            if n_turns_wake > 1:
+                self.warns(
+                    'You use multiturn wakes. The stored '
+                    'SliceSet instances from previous turns are converted '
+                    'from z to dt according to the current turn\'s gamma. '
+                    'If you accelerate this is only an approximation which '
+                    'becomes invalid when gamma changes much over '
+                    'n_turns_wake.')
 
         self.n_turns_wake = n_turns_wake
 
     @abstractmethod
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies the corresponding wake kick to the
+        """Calculate and apply the corresponding wake kick to the
         bunch conjugate momenta using the given slice_set. Only
         particles within the slicing region, i.e particles_within_cuts
-        (defined by the slice_set) experience a kick. """
+        (defined by the slice_set) experience a kick.
+        """
         pass
 
     @staticmethod
     def _wake_factor(bunch):
-        """ Universal scaling factor for the strength of a wake field
-        kick. """
+        """Universal scaling factor for the strength of a wake field
+        kick.
+        """
         wake_factor = (-(bunch.charge)**2 / (bunch.mass * bunch.gamma *
                        (bunch.beta * c)**2) * bunch.particlenumber_per_mp)
         return wake_factor
 
     def _convolution_dot_product(self, target_times, source_times,
                                  source_moments, source_beta):
-        """ Implementation of the convolution of wake and source_moments
+        """Implementation of the convolution of wake and source_moments
         (beam profile) using the numpy dot product. To be used with the
-        'uniform_charge' slicer mode. """
+        'uniform_charge' slicer mode.
+        """
         dt_to_target_slice = (
             [target_times] - np.transpose([source_times]))
         wake = self.wake_function(dt_to_target_slice, beta=source_beta)
@@ -76,13 +86,14 @@ class WakeKick(Printing):
 
     def _convolution_numpy(self, target_times, source_times,
                            source_moments, source_beta):
-        """ Implementation of the convolution of wake and source_moments
+        """Implementation of the convolution of wake and source_moments
         (longitudinal beam profile) using the numpy built-in
         numpy.convolve method. Recommended use with the 'uniform_bin'
         slicer mode (in case of multiturn wakes, additional conditions
         must be fulfilled: fixed z_cuts and no acceleration!) for
         higher performance. Question: how about interpolation to avoid
-        expensive dot product in most cases? """
+        expensive dot product in most cases?
+        """
         # Currently target_times/source_times are on the GPU --> np.concatenate
         # doesnt work. Temporary fix before checking if rewrite of
         # np.concatenate is required on GPU (if this is bottleneck), is to
@@ -106,10 +117,11 @@ class WakeKick(Printing):
 
     def _accumulate_source_signal(self, bunch, times_list, ages_list,
                                   moments_list, betas_list):
-        """ Accumulate (multiturn-)wake signals left by source slices.
+        """Accumulate (multiturn-)wake signals left by source slices.
         Takes a list of slice set attributes and adds up all
         convolutions weighted by the respective moments. Also updates
-        the age of each slice set."""
+        the age of each slice set.
+        """
         target_times = times_list[0]
         accumulated_signal = 0
 
@@ -132,10 +144,11 @@ class WakeKick(Printing):
 class ConstantWakeKickX(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a constant wake kick to bunch.xp
+        """Calculate and apply a constant wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
-        experience the kick. """
+        experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
@@ -152,10 +165,11 @@ class ConstantWakeKickX(WakeKick):
 class ConstantWakeKickY(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a constant wake kick to bunch.yp
+        """Calculate and apply a constant wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
-        experience the kick. """
+        experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
@@ -171,10 +185,11 @@ class ConstantWakeKickY(WakeKick):
 class ConstantWakeKickZ(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a constant wake kick to bunch.dp
+        """Calculate and apply a constant wake kick to bunch.dp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
-        experience the kick. """
+        experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
@@ -192,10 +207,11 @@ class ConstantWakeKickZ(WakeKick):
 class DipoleWakeKickX(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a dipolar wake kick to bunch.xp
+        """Calculate and apply a dipolar wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
-        experience the kick. """
+        experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_x
@@ -209,10 +225,11 @@ class DipoleWakeKickX(WakeKick):
 class DipoleWakeKickXY(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a dipolar (cross term x-y) wake kick
+        """Calculate and apply a dipolar (cross term x-y) wake kick
         to bunch.xp using the given slice_set. Only particles within
         the slicing region, i.e particles_within_cuts (defined by the
-        slice_set) experience the kick. """
+        slice_set) experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_y
@@ -227,10 +244,11 @@ class DipoleWakeKickXY(WakeKick):
 class DipoleWakeKickY(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a dipolar wake kick to bunch.yp
+        """Calculate and apply a dipolar wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
-        experience the kick. """
+        experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_y
@@ -244,10 +262,11 @@ class DipoleWakeKickY(WakeKick):
 class DipoleWakeKickYX(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a dipolar (cross term y-x) wake kick
+        """Calculate and apply a dipolar (cross term y-x) wake kick
         to bunch.yp using the given slice_set. Only particles within
         the slicing region, i.e particles_within_cuts (defined by the
-        slice_set) experience the kick. """
+        slice_set) experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice*s.mean_x
@@ -265,10 +284,11 @@ class DipoleWakeKickYX(WakeKick):
 class QuadrupoleWakeKickX(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a quadrupolar wake kick to bunch.xp
+        """Calculate and apply a quadrupolar wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
-        experience the kick. """
+        experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
@@ -284,10 +304,11 @@ class QuadrupoleWakeKickX(WakeKick):
 class QuadrupoleWakeKickXY(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a quadrupolar (cross term x-y) wake
+        """Calculate and apply a quadrupolar (cross term x-y) wake
         kick to bunch.xp using the given slice_set. Only particles
         within the slicing region, i.e particles_within_cuts (defined by
-        the slice_set) experience the kick. """
+        the slice_set) experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
@@ -303,10 +324,11 @@ class QuadrupoleWakeKickXY(WakeKick):
 class QuadrupoleWakeKickY(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a quadrupolar wake kick to bunch.yp
+        """Calculate and apply a quadrupolar wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
-        experience the kick. """
+        experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
@@ -322,10 +344,11 @@ class QuadrupoleWakeKickY(WakeKick):
 class QuadrupoleWakeKickYX(WakeKick):
 
     def apply(self, bunch, slice_set_list, slice_set_age_list):
-        """ Calculates and applies a quadrupolar (cross term y-x) wake
+        """Calculate and apply a quadrupolar (cross term y-x) wake
         kick to bunch.yp using the given slice_set. Only particles
         within the slicing region, i.e particles_within_cuts (defined by
-        the slice_set) experience the kick. """
+        the slice_set) experience the kick.
+        """
         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
         betas_list = [s.beta for s in slice_set_list]
         moments_list = [s.n_macroparticles_per_slice
