@@ -88,7 +88,7 @@ class LongSpaceCharge(Element):
 
     def _gfactor0(self, beam):
         '''Geometry factor for circular vacuum pipe.'''
-        # transverse beam size: 
+        # transverse beam size:
         # (sigx+sigz)/2 * sqrt(2) <<< formula is for uniform distribution,
         # corresponding Gaussian sigmae are sqrt(2) larger
         r_beam = (beam.sigma_x() + beam.sigma_y()) / np.sqrt(8.)
@@ -100,7 +100,10 @@ class LongSpaceCharge(Element):
         in units of Coul*Volt/metre.
         '''
         sliceset = beam.get_slices(self.slicer)
-        gfac_spline = splrep(sliceset.z_centers, self._gfactor(beam), s=0)
+        gfac_spline = splrep(
+            sliceset.z_centers,
+            pm.ones(sliceset.n_slices) * self._gfactor(beam),
+            s=0)
         def force(z):
             gfac = splev(z, gfac_spline, ext=1)
             return (self._prefactor(beam) * gfac *
@@ -113,7 +116,10 @@ class LongSpaceCharge(Element):
         in units of Coul*Volt.
         '''
         sliceset = beam.get_slices(self.slicer)
-        gfac_spline = splrep(sliceset.z_centers, self._gfactor(beam), s=0)
+        gfac_spline = splrep(
+            sliceset.z_centers,
+            pm.ones(sliceset.n_slices) * self._gfactor(beam),
+            s=0)
         def potential(z):
             gfac = splev(z, gfac_spline, ext=1)
             return (self._prefactor(beam) * gfac *
