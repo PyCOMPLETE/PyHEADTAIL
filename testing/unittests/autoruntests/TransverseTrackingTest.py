@@ -18,7 +18,7 @@ np.random.seed(0)
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
-from PyHEADTAIL.trackers.simple_long_tracking import LinearMap
+from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
 
@@ -67,7 +67,7 @@ def run():
         p0 = np.sqrt(gamma**2 - 1) * m_p * c
 
         beta_z = (linear_map.eta(dp=0, gamma=gamma) * linear_map.circumference /
-                  (2 * np.pi * linear_map.Qs))
+                  (2 * np.pi * linear_map.Q_s))
 
         epsn_x = 3.75e-6 # [m rad]
         epsn_y = 3.75e-6 # [m rad]

@@ -18,7 +18,7 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.particles import Particles
-from PyHEADTAIL.trackers.simple_long_tracking import (
+from PyHEADTAIL.trackers.longitudinal_tracking import (
     Drift, Kick, LongitudinalOneTurnMap, RFSystems, LinearMap
     )
 from PyHEADTAIL.general.printers import AccumulatorPrinter
@@ -26,7 +26,7 @@ from PyHEADTAIL.general.printers import AccumulatorPrinter
 
 class TestSimpleLongTracking(unittest.TestCase):
     '''Tests for functions/classes in the
-    trackers/simple_long_tracking.py file
+    trackers/longitudinal_tracking.py file
     '''
     def setUp(self):
         self.alpha_array = [10]
@@ -76,9 +76,9 @@ class TestSimpleLongTracking(unittest.TestCase):
         '''
         alpha_array3 = [1, 2, 3]
         circumference = 1.
-        Qs = 0.011
+        Q_s = 0.011
         warnings = AccumulatorPrinter()
-        linear_map = LinearMap(alpha_array3, circumference, Qs,
+        linear_map = LinearMap(alpha_array3, circumference, Q_s,
                                warningprinter=warnings)
         self.assertTrue(warnings.log, 'No warning generated when specifying' +
                         'higher order terms in LinearMap')
@@ -88,8 +88,8 @@ class TestSimpleLongTracking(unittest.TestCase):
         of the LinearMap is called
         '''
         circumference = 1.
-        Qs = 0.012
-        linear_map = LinearMap(self.alpha_array, circumference, Qs,
+        Q_s = 0.012
+        linear_map = LinearMap(self.alpha_array, circumference, Q_s,
                                printer=AccumulatorPrinter())
         beam = self.create_all1_bunch()
         sliceset_mock = {'mock': 42}
@@ -104,8 +104,8 @@ class TestSimpleLongTracking(unittest.TestCase):
         applying the track() method of LinearMap
         '''
         circumference = 1.
-        Qs = 0.012
-        linear_map = LinearMap(self.alpha_array, circumference, Qs)
+        Q_s = 0.012
+        linear_map = LinearMap(self.alpha_array, circumference, Q_s)
         beam = self.create_all1_bunch()
         beam2 = self.create_all1_bunch()
         linear_map.track(beam)

@@ -18,7 +18,7 @@ import unittest
 
 import numpy as np
 import scipy.constants as constants
-from PyHEADTAIL.trackers.simple_long_tracking import RFSystems
+from PyHEADTAIL.trackers.longitudinal_tracking import RFSystems
 import PyHEADTAIL.particles.generators as gf
 from PyHEADTAIL.general.printers import SilentPrinter
 

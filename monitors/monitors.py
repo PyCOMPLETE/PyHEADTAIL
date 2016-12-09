@@ -13,6 +13,9 @@ import sys
 
 from abc import ABCMeta, abstractmethod
 from . import Printing
+from ..general import pmath as pm
+from ..gpu import gpu_utils as gpu_utils
+from ..general import decorators as decorators
 
 
 class Monitor(Printing):
@@ -54,7 +57,7 @@ class BunchMonitor(Monitor):
                               contents are actually written to file.
           buffer_size:        Number of steps to be buffered.
 
-          optionally pass a list called stats_to_store which specifies
+          Optionally pass a list called stats_to_store which specifies
           which members/methods of the bunch will be called/stored.
           """
         stats_to_store = [
@@ -73,10 +76,12 @@ class BunchMonitor(Monitor):
         self.write_buffer_every = write_buffer_every
         self.buffer = None
 
-    def _init_buffer(self):
-        self.buffer = {}
-        for stats in self.stats_to_store:
-            self.buffer[stats] = np.zeros(self.buffer_size)
+    def _init_buffer(self, bunch):
+        '''
+        Init the correct buffer type (np.zeros, gpuarrays.zeros)
+        '''
+        self.buffer = pm.init_bunch_buffer(bunch, self.stats_to_store,
+                                           self.buffer_size)
 
     def dump(self, bunch):
         """ Evaluate the statistics like mean and standard deviation for
@@ -89,7 +94,7 @@ class BunchMonitor(Monitor):
         The buffer gets initialized in the first dump() call. This allows
         for a dynamic creation of the buffer memory on either CPU or GPU"""
         if self.buffer is None:
-            self._init_buffer()
+            self._init_buffer(bunch)
         self._write_data_to_buffer(bunch)
         if ((self.i_steps + 1) % self.write_buffer_every == 0 or
                 (self.i_steps + 1) == self.n_steps):
@@ -122,9 +127,12 @@ class BunchMonitor(Monitor):
                    'failed. \n')
             raise
 
+    @decorators.synchronize_gpu_streams_after
     def _write_data_to_buffer(self, bunch):
         """ Store the data in the self.buffer dictionary before writing
         them to file. The buffer is implemented as a shift register. """
+        val_buf = {}
+        p_write = {}
         for stats in self.stats_to_store:
             evaluate_stats = getattr(bunch, stats)
 
@@ -133,7 +141,15 @@ class BunchMonitor(Monitor):
             # (macroparticlenumber) of the bunch.
             write_pos = self.i_steps % self.buffer_size
             try:
-                self.buffer[stats][write_pos] = evaluate_stats()
+                if pm.device is 'is_.2slowerwiththis':#'GPU':
+                    #val_bf[stat]
+                    st = next(gpu_utils.stream_pool)
+                    val_buf[stats] = evaluate_stats(stream=st)
+                    p_write[stats] = int(self.buffer[stats].gpudata) + write_pos*self.buffer[stats].strides[0]
+                    sze = 8#val.nbytes
+                    gpu_utils.driver.memcpy_dtod_async(dest=p_write[stats], src=val_buf[stats].gpudata, size=sze, stream=st)
+                else:
+                    self.buffer[stats][write_pos] = evaluate_stats()
             except TypeError:
                 self.buffer[stats][write_pos] = evaluate_stats
 
@@ -213,6 +229,7 @@ class SliceMonitor(Monitor):
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
             'epsn_z', 'n_macroparticles_per_slice' ]
+
         self.bunch_stats_to_store = kwargs.pop('bunch_stats_to_store',
                 bunch_stats_to_store)
         self.slice_stats_to_store = kwargs.pop('slice_stats_to_store',
@@ -230,14 +247,11 @@ class SliceMonitor(Monitor):
         self.buffer_slice = None
         self._create_file_structure(parameters_dict)
 
-    def _init_buffer(self):
-        self.buffer_bunch = {}
-        self.buffer_slice = {}
-        for stats in self.bunch_stats_to_store:
-            self.buffer_bunch[stats] = np.zeros(self.buffer_size)
-        for stats in self.slice_stats_to_store:
-            self.buffer_slice[stats] = np.zeros((self.slicer.n_slices,
-                                                 self.buffer_size))
+    def _init_buffer(self, bunch, slice_set):
+        self.buffer_bunch = pm.init_bunch_buffer(bunch,
+            self.bunch_stats_to_store, self.buffer_size)
+        self.buffer_slice = pm.init_slice_buffer(slice_set,
+            self.slice_stats_to_store, self.buffer_size)
 
     def dump(self, bunch):
         """ Evaluate the statistics like mean and standard deviation for
@@ -248,8 +262,6 @@ class SliceMonitor(Monitor):
         become temporarily unavailable (e.g. if file is on network)
         during the simulation. Buffer contents are written to file only
         every self.write_buffer_every steps. """
-        if self.buffer_bunch is None:
-            self._init_buffer()
         self._write_data_to_buffer(bunch)
         if ((self.i_steps + 1) % self.write_buffer_every == 0 or
                 (self.i_steps + 1) == self.n_steps):
@@ -297,7 +309,8 @@ class SliceMonitor(Monitor):
         bunch (instance of the Particles class), including all the
         statistics that are to be saved. """
         slice_set = bunch.get_slices(self.slicer, statistics=True)
-
+        if self.buffer_bunch is None:
+            self._init_buffer(bunch, slice_set)
         # Handle the different statistics quantities, which can
         # either be methods (like mean(), ...) or simply attributes
         # (macroparticlenumber or n_macroparticles_per_slice) of the bunch
@@ -366,7 +379,7 @@ class SliceMonitor(Monitor):
 
 
 class ParticleMonitor(Monitor):
-    """ Class to store particle-specific data to a HDF5 file, i.e. the
+    """Class to store particle-specific data to a HDF5 file, i.e. the
     coordinates and conjugate momenta as well as the id of individual
     macroparticles of a bunch. """
 
@@ -381,8 +394,14 @@ class ParticleMonitor(Monitor):
           stride:          Only store data of macroparticles for which
                            id % stride == 0.
           parameters_dict: Metadata for HDF5 file containing main
-                           simulation parameters. """
-        self.quantities_to_store = [ 'x', 'xp', 'y', 'yp', 'z', 'dp', 'id' ]
+                           simulation parameters.
+
+          Optionally pass a list called quantities_to_store which
+          specifies which members of the bunch will be called/stored.
+                           """
+        quantities_to_store = [ 'x', 'xp', 'y', 'yp', 'z', 'dp', 'id' ]
+        self.quantities_to_store = kwargs.pop('quantities_to_store',
+                                              quantities_to_store)
         self.filename = filename
         self.stride = stride
         self.i_steps = 0
@@ -428,7 +447,13 @@ class ParticleMonitor(Monitor):
         all_quantities = {}
         for quant in self.quantities_to_store:
             quant_values = getattr(bunch, quant)
+            if pm.device is 'GPU':
+                stream = next(gpu_utils.stream_pool)
+                quant_values = quant_values.get_async(stream=stream)
             all_quantities[quant] = quant_values
+        if pm.device is 'GPU':
+            for stream in gpu_utils.streams:
+                stream.synchronize()
 
         if arrays_dict is not None:
             all_quantities.update(arrays_dict)

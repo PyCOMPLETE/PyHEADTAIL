@@ -9,7 +9,7 @@ from scipy.constants import m_p, c, e
 
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
-from PyHEADTAIL.trackers.simple_long_tracking import RFSystems
+from PyHEADTAIL.trackers.longitudinal_tracking import RFSystems
 import PyHEADTAIL.aperture.aperture as aperture
 
 
@@ -52,8 +52,8 @@ def run():
         phi_offset = np.pi - phi_offset
     Etot = gamma * m_p * c**2 / e
     p0 = np.sqrt(gamma**2 - 1) * m_p * c
-    Qs = np.sqrt(np.abs(eta) * V_rf / (2 * np.pi * beta**2 * Etot))
-    beta_z = np.abs(eta) * circumference / (2 * np.pi * Qs)
+    Q_s = np.sqrt(np.abs(eta) * V_rf / (2 * np.pi * beta**2 * Etot))
+    beta_z = np.abs(eta) * circumference / (2 * np.pi * Q_s)
 
 
     # In[7]:
