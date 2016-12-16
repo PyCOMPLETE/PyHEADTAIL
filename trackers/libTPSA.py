@@ -86,12 +86,16 @@ class TPS(object):
         return other + -self
 
     def __eq__(self, other):
-        '''this TPS == other TPS'''
-        return self._vector == other._vector
+        '''this TPS == other TPS or this TPS real value == other scalar.
+        '''
+        if issubclass(other.__class__, TPS):
+        	return self._vector == other._vector
+        else:
+        	return self.real() == other
 
     def __ne__(self, other):
         '''this TPS != other TPS'''
-        return self._vector != other._vector
+        return not self == other
 
     def __neg__(self):
         '''- (this TPS)'''
@@ -106,12 +110,14 @@ class TPS(object):
         a2 = self._vector[2]
         return self.get_instance(vector=[a0i, -a1 * a0i**2, -a2 * a0i**2])
 
+    @property
     def real(self):
-        '''returns the zero-order entry, the main value'''
+        '''Zero-order entry, the main value'''
         return self._vector[0]
 
+    @property
     def diff(self):
-        '''returns the first-order entries, the first differential values'''
+        '''First-order entries, the first differential values'''
         return self._vector[1], self._vector[2]
 
     def getvector(self):
@@ -155,6 +161,7 @@ class TPS4(TPS):
 			vector=[a0i, -a1 * a0i**2, -a2 * a0i**2,
 			             -a3 * a0i**2, -a4 * a0i**2])
 
+    @property
     def diff(self):
         '''returns the first-order entries, the first differential values'''
         return (self._vector[1], self._vector[2],
