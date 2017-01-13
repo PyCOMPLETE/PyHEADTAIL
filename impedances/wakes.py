@@ -189,7 +189,7 @@ class WakeField(Element):
                 beta = b[1]
                 age = self.circumference/(beta*c)
                 b[0] += age
-                print "\n\n-->", b[1], b[0]
+                print ("\n\n--> age and beta: {:g}, {:g}".formate(b[0], b[1]))
 
         # Fills wake register - little trick here to include
         # local_bunch_indexes that will be used in wake kicks.apply. Makes
@@ -197,7 +197,6 @@ class WakeField(Element):
         assert(self.slicer == self._mpi_gatherer._slicer)
         n_bunches_total = self._mpi_gatherer.n_bunches
         n_slices = self.slicer.n_slices
-        print self._mpi_gatherer.local_bunch_indexes
         self.slice_set_deque.appendleft(
             [self._mpi_gatherer.total_data.age,
              self._mpi_gatherer.total_data.beta,

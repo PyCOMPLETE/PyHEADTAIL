@@ -193,17 +193,21 @@ class WakeKick(Printing):
         ages_list = slice_set_list[:, 0, :, :]
         betas_list = slice_set_list[:, 1, :, :]
         times_list = slice_set_list[:, 2, :, :]
+        charge_list = slice_set_list[:, 3, :, :]
+        mean_x_list = slice_set_list[:, 4, :, :]
+        mean_y_list = slice_set_list[:, 5, :, :]
         if moments == 'zero':
-            moments_list = slice_set_list[:, 3, :, :]
+            moments_list = charge_list
         elif moments == 'mean_x':
-            moments_list = slice_set_list[:, 4, :, :]
+            moments_list = charge_list * mean_x_list
         elif moments == 'mean_y':
-            moments_list = slice_set_list[:, 5, :, :]
+            moments_list = charge_list * mean_y_list
         else:
             raise ValueError("Please specify moments as either " +
                              "'zero', 'mean_x' or 'mean_y'!")
 
         accumulated_signal_list = []
+        print moments_list
 
         # Check for strictly descending order
         z_delays = [b.mean_z() for b in bunches]
@@ -315,7 +319,7 @@ class DipoleWakeKickX(WakeKick):
 
         """
         dipole_kick = self._accumulate_source_signal_multibunch(
-            bunches, slice_set_list)  # , moments='mean_x')
+            bunches, slice_set_list, moments='mean_x')
 
         # And then get slices of actual bunches list
         for i, b in enumerate(bunches):
