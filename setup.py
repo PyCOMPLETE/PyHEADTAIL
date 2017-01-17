@@ -23,15 +23,8 @@ if platform.system() is 'Darwin':
            "(or any equivalent version of gcc)")
     raw_input('Hit any key to continue...')
 
-# verstrline = open(VERSIONFILE, "rt").read()
-# VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-# mo = re.search(VSRE, verstrline, re.M)
-# if mo:
-#     verstr = mo.group(1)
-# else:
-#     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
-verstr = __version__
-if not verstr[0].isdigit():
+
+if not __version__[0].isdigit():
     raise RuntimeError("Unable to determine version from _version.py, "
                        "perhaps no git-describe available?")
 
@@ -98,7 +91,7 @@ cy_ext = [
 
 setup(
     name='PyHEADTAIL',
-    version=verstr,
+    version=__version__,
     description='CERN PyHEADTAIL numerical n-body simulation code '
         'for simulating macro-particle beam dynamics with collective effects.',
     url='http://github.com/PyCOMPLETE/PyHEADTAIL',
