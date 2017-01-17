@@ -23,8 +23,6 @@ if platform.system() is 'Darwin':
            "(or any equivalent version of gcc)")
     raw_input('Hit any key to continue...')
 
-
-VERSIONFILE = "_version.py"
 # verstrline = open(VERSIONFILE, "rt").read()
 # VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
 # mo = re.search(VSRE, verstrline, re.M)
@@ -32,11 +30,14 @@ VERSIONFILE = "_version.py"
 #     verstr = mo.group(1)
 # else:
 #     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
-execfile(VERSIONFILE)
 verstr = __version__
 if not verstr[0].isdigit():
     raise RuntimeError("Unable to determine version from _version.py, "
                        "perhaps no git-describe available?")
+
+with open('PyHEADTAIL/_version.py', 'wt') as f:
+    f.write('__version__ = {!r}'.format(__version__))
+
 
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
@@ -65,31 +66,31 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 # Set up extension and build
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 cy_ext = [
-    Extension("solvers.grid_functions",
-              ["solvers/grid_functions.pyx"],
+    Extension("PyHEADTAIL.solvers.grid_functions",
+              ["PyHEADTAIL/solvers/grid_functions.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("cobra_functions.stats",
-              ["cobra_functions/stats.pyx"],
+    Extension("PyHEADTAIL.cobra_functions.stats",
+              ["PyHEADTAIL/cobra_functions/stats.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("solvers.compute_potential_fgreenm2m",
-              ["solvers/compute_potential_fgreenm2m.pyx"],
+    Extension("PyHEADTAIL.solvers.compute_potential_fgreenm2m",
+              ["PyHEADTAIL/solvers/compute_potential_fgreenm2m.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"]),
-    Extension("aperture.aperture_cython",
-              ["aperture/aperture_cython.pyx"],
+    Extension("PyHEADTAIL.aperture.aperture_cython",
+              ["PyHEADTAIL/aperture/aperture_cython.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"]),
-    Extension("cobra_functions.c_sin_cos",
-              ["cobra_functions/c_sin_cos.pyx"],
+    Extension("PyHEADTAIL.cobra_functions.c_sin_cos",
+              ["PyHEADTAIL/cobra_functions/c_sin_cos.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("cobra_functions.interp_sin_cos",
-              ["cobra_functions/interp_sin_cos.pyx"],
+    Extension("PyHEADTAIL.cobra_functions.interp_sin_cos",
+              ["PyHEADTAIL/cobra_functions/interp_sin_cos.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
