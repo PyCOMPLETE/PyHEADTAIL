@@ -98,12 +98,13 @@ setup(
     packages=['PyHEADTAIL'],
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
-    install_requires=[
+    setup_requires=[
         'numpy',
         'scipy',
-        'hdf5',
+        #'hdf5',
         'h5py',
-        'cython'
+        'cython',
+        'matplotlib',
     ]
     )
 
