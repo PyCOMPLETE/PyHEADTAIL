@@ -9,7 +9,7 @@ from _version import __version__
 import re, os, sys, subprocess
 import numpy as np
 
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
@@ -95,7 +95,7 @@ setup(
     description='CERN PyHEADTAIL numerical n-body simulation code '
         'for simulating macro-particle beam dynamics with collective effects.',
     url='http://github.com/PyCOMPLETE/PyHEADTAIL',
-    packages=['PyHEADTAIL'],
+    packages=find_packages(),
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
     setup_requires=[
