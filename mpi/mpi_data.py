@@ -351,7 +351,7 @@ class TotalDataAccess(object):
 
         self._local_bunches = local_bunches
         self.local_data_locations = []
-
+        self.z_bins = raw_bin_data
         self._v = memoryview(raw_data)
         self._variables = variables
         self._n_variables = len(variables)
@@ -359,7 +359,7 @@ class TotalDataAccess(object):
         self._n_bunches = n_bunches
         v_bin = memoryview(raw_bin_data)
         self.bin_edges = []
-
+        
         # print 'n_bunches:'
         # print n_bunches
 
