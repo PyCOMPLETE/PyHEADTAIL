@@ -28,9 +28,6 @@ if not __version__[0].isdigit():
     raise RuntimeError("Unable to determine version from _version.py, "
                        "perhaps no git-describe available?")
 
-with open('PyHEADTAIL/_version.py', 'wt') as f:
-    f.write('__version__ = {!r}'.format(__version__))
-
 
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
