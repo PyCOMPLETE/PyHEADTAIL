@@ -10,7 +10,7 @@ PyHEADTAIL:
 
 PyHEADTAILGPU:
 ifeq ($(NVCC_TEST),nvcc)
-	nvcc -Xcompiler '-fPIC' -shared -lm -o gpu/thrust.so gpu/thrust_code.cu
+	nvcc -Xcompiler '-fPIC' -shared -lm -o PyHEADTAIL/gpu/thrust.so PyHEADTAIL/gpu/thrust_code.cu
 else
 	@echo "Thrust interface not compiled because nvcc was not found"
 endif
@@ -23,4 +23,4 @@ clean: remove_so
 	python setup.py build_ext --inplace cleanall
 
 remove_so:
-	rm -f gpu/thrust.so
+	rm -f PyHEADTAIL/gpu/thrust.so
