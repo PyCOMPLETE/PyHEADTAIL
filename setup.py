@@ -95,6 +95,7 @@ setup(
     packages=find_packages(),
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
+    include_package_data=True, # install files matched by MANIFEST.in
     setup_requires=[
         'numpy',
         'scipy',
