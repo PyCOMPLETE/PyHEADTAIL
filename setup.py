@@ -49,6 +49,10 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
     sys.argv.insert(sys.argv.index("build_ext") + 1, "--inplace")
 
 
+with open('README.rst', 'rb') as f:
+    long_description = f.read().decode('utf-8')
+
+
 # Only build for 64-bit target
 # os.environ['ARCHFLAGS'] = "-arch x86_64"
 
@@ -93,6 +97,7 @@ setup(
         'for simulating macro-particle beam dynamics with collective effects.',
     url='http://github.com/PyCOMPLETE/PyHEADTAIL',
     packages=find_packages(),
+    long_description=long_description,
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
     include_package_data=True, # install files matched by MANIFEST.in
