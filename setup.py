@@ -108,5 +108,6 @@ setup(
 
 from numpy.distutils.core import setup, Extension
 setup(
-    ext_modules = [Extension('general.errfff', ['general/errfff.f90'])],
+    ext_modules = [Extension('PyHEADTAIL.general.errfff',
+                             ['PyHEADTAIL/general/errfff.f90'])],
 )
