@@ -184,12 +184,13 @@ class WakeField(Element):
         self._mpi_gatherer.gather(beam)
 
         # Updates ages of bunches in slice_set_deque
-        for i, t in enumerate(self.slice_set_deque):
-            for j, b in enumerate(t):
-                beta = b[1]
-                age = self.circumference/(beta*c)
-                b[0] += age
-                print ("\n\n--> age and beta: {:g}, {:g}".formate(b[0], b[1]))
+        for i, turnbyturn in enumerate(self.slice_set_deque):
+            beta = turnbyturn[1]
+            for j, bunchbybunch in enumerate(beta):
+                age = self.circumference/(bunchbybunch[0]*c)
+                turnbyturn[0][j] += age
+                # print ("\n\n--> age and beta: {:g}, {:g}".format(beta, 0))
+                # print ("\n\n--> age and beta: {:g}, {:g}".format(b[0][0], b[1][0]))
 
         # Fills wake register - little trick here to include
         # local_bunch_indexes that will be used in wake kicks.apply. Makes
@@ -206,9 +207,20 @@ class WakeField(Element):
              self._mpi_gatherer.total_data.mean_y,
              self._mpi_gatherer.local_bunch_indexes]
             )
-        for i, v in enumerate(self.slice_set_deque[-1][:-1]):
-            self.slice_set_deque[-1][i] = np.reshape(
+        for i, v in enumerate(self.slice_set_deque[0][:-1]):
+            self.slice_set_deque[0][i] = np.reshape(
                 v, (n_bunches_total, n_slices))
+
+
+        # print(len(self.slice_set_deque[0]))
+        # print(self.slice_set_deque[0][1].shape)
+        # print(self._mpi_gatherer.total_data.beta)
+        # # beta = b[1]
+        # # age = self.circumference/(beta*c)
+        # # b[0] += age
+        # # print beta
+        # wurstel
+
 
         for kick in self.wake_kicks:
             kick.apply(self._mpi_gatherer.bunch_list, self.slice_set_deque)

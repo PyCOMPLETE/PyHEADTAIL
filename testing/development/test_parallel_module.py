@@ -24,7 +24,7 @@ comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-n_turns = 1
+n_turns = 4
 chroma = 0
 
 n_bunches = 8
@@ -208,9 +208,9 @@ if rank == 0:
 
 
 allbunches = comm.gather(bunches, root=0)
-print len(allbunches)
-print len(x_kick_list)
 if rank == 0:
+    print len(allbunches)
+    print len(x_kick_list)
     # print moments_list
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(14, 10), sharex=True)
     ax1.plot(times, moments/np.max(moments))

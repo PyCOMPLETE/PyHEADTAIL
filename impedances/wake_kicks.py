@@ -207,7 +207,8 @@ class WakeKick(Printing):
                              "'zero', 'mean_x' or 'mean_y'!")
 
         accumulated_signal_list = []
-        print moments_list
+        # print moments_list
+        # print betas_list
 
         # Check for strictly descending order
         z_delays = [b.mean_z() for b in bunches]
