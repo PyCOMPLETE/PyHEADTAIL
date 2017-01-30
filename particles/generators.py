@@ -8,41 +8,42 @@ from __future__ import division
 import numpy as np
 from functools import partial
 from scipy.optimize import brentq, newton
+from scipy.constants import m_p, c, e
 
 from . import Printing
 from particles import Particles
 from ..cobra_functions.pdf_integrators_2d import quad2d
 
 
-# def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
-#                              circumference, gamma,
-#                              alpha_x, alpha_y, beta_x, beta_y, beta_z,
-#                              epsn_x, epsn_y, epsn_z,
-#                              dispersion_x=None, dispersion_y=None):
-#     """ Convenience wrapper which generates a 6D gaussian phase space
-#     with the specified parameters
-#     Args:
-#         the usual suspects
-#     Returns: A particle instance with the phase space matched to the arguments
-#     """
-#     beta = np.sqrt(1.-gamma**(-2))
-#     p0 = np.sqrt(gamma**2 -1) * mass * c
-#     eps_geo_x = epsn_x/(beta*gamma)
-#     eps_geo_y = epsn_y/(beta*gamma)
-#     eps_geo_z = epsn_z * e / (4. * np.pi * p0)
-#     # a bit of a hack: epsn_z is a parameter even though the ParticleGenerator
-#     # does not have such a parameter. This is kept for backwards compatiblity.
-#     # Therefore, some fake eta, Qs parameters are invented s.t.
-#     # beta_z = |eta| * circumference / (2 * pi * Qs)
-#     # holds (circumference is fixed). Does not have any side effects.
-#     Qs = 1./(2 * np.pi)
-#     eta = beta_z / circumference
-#     return ParticleGenerator(
-#         macroparticlenumber, intensity, charge, mass, circumference, gamma,
-#         gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
-#         gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
-#         gaussian2D(eps_geo_z), Qs, eta
-#         ).generate()
+def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
+                             circumference, gamma,
+                             alpha_x, alpha_y, beta_x, beta_y, beta_z,
+                             epsn_x, epsn_y, epsn_z,
+                             dispersion_x=None, dispersion_y=None):
+    """ Convenience wrapper which generates a 6D gaussian phase space
+    with the specified parameters
+    Args:
+        the usual suspects
+    Returns: A particle instance with the phase space matched to the arguments
+    """
+    beta = np.sqrt(1.-gamma**(-2))
+    p0 = np.sqrt(gamma**2 -1) * mass * c
+    eps_geo_x = epsn_x/(beta*gamma)
+    eps_geo_y = epsn_y/(beta*gamma)
+    eps_geo_z = epsn_z * e / (4. * np.pi * p0)
+    # a bit of a hack: epsn_z is a parameter even though the ParticleGenerator
+    # does not have such a parameter. This is kept for backwards compatiblity.
+    # Therefore, some fake eta, Qs parameters are invented s.t.
+    # beta_z = |eta| * circumference / (2 * pi * Qs)
+    # holds (circumference is fixed). Does not have any side effects.
+    Qs = 1./(2 * np.pi)
+    eta = beta_z / circumference
+    return ParticleGenerator(
+        macroparticlenumber, intensity, charge, mass, circumference, gamma,0,
+        gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
+        gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
+        gaussian2D(eps_geo_z), Qs, eta
+        ).generate()
 
 
 def transverse_linear_matcher(alpha, beta, dispersion=None):
