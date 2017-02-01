@@ -286,19 +286,24 @@ class Particles(Printing):
         self.update(coords_n_momenta_dict)
 
     def split(self):
+        '''We're starting to comment this function...;): Caution - we assume here all
+        subbunches have the same number of macroparticles
+
+        '''
         ids = set(self.bunch_id)
         ix = [self.bunch_id == id for id in ids]
         bunches_list = [Particles(
-            self.macroparticlenumber/len(ids), self.charge_per_mp,
-            self.charge, self.mass, self.gamma,
-            self.circumference,
+            macroparticlenumber=self.macroparticlenumber/len(ids),
+            particlenumber_per_mp=self.particlenumber_per_mp,
+            charge=self.charge, mass=self.mass, gamma=self.gamma,
+            circumference=self.circumference,
             coords_n_momenta_dict={
                 coord: array[ix[i]]
                 for coord, array in self.get_coords_n_momenta_dict().items()},
             bunch_id=id) for i, id in enumerate(ids)]
 
         bunches_list = sorted(bunches_list,
-                              key=lambda x: x.mean_z(), reverse=False)
+                              key=lambda x: x.mean_z(), reverse=True) # reverse=False)
 
         return bunches_list
 

@@ -196,7 +196,8 @@ class Synchrotron(Element):
         if filling_scheme is not None:
 
             sniffer = MpiSniffer()
-            sorted_filling_scheme = list(reversed(sorted(filling_scheme)))
+            # sorted_filling_scheme = list(reversed(sorted(filling_scheme)))
+            sorted_filling_scheme = list((sorted(filling_scheme)))
 
             n_bunches = len(sorted_filling_scheme)
             n_processors = sniffer.size
