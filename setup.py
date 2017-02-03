@@ -9,7 +9,7 @@ from _version import __version__
 import re, os, sys, subprocess
 import numpy as np
 
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
@@ -24,19 +24,10 @@ if platform.system() is 'Darwin':
     raw_input('Hit any key to continue...')
 
 
-VERSIONFILE = "_version.py"
-# verstrline = open(VERSIONFILE, "rt").read()
-# VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-# mo = re.search(VSRE, verstrline, re.M)
-# if mo:
-#     verstr = mo.group(1)
-# else:
-#     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
-execfile(VERSIONFILE)
-verstr = __version__
-if not verstr[0].isdigit():
+if not __version__[0].isdigit():
     raise RuntimeError("Unable to determine version from _version.py, "
                        "perhaps no git-describe available?")
+
 
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
@@ -58,6 +49,10 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
     sys.argv.insert(sys.argv.index("build_ext") + 1, "--inplace")
 
 
+with open('README.rst', 'rb') as f:
+    long_description = f.read().decode('utf-8')
+
+
 # Only build for 64-bit target
 # os.environ['ARCHFLAGS'] = "-arch x86_64"
 
@@ -65,31 +60,31 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 # Set up extension and build
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 cy_ext = [
-    Extension("solvers.grid_functions",
-              ["solvers/grid_functions.pyx"],
+    Extension("PyHEADTAIL.solvers.grid_functions",
+              ["PyHEADTAIL/solvers/grid_functions.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("cobra_functions.stats",
-              ["cobra_functions/stats.pyx"],
+    Extension("PyHEADTAIL.cobra_functions.stats",
+              ["PyHEADTAIL/cobra_functions/stats.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("solvers.compute_potential_fgreenm2m",
-              ["solvers/compute_potential_fgreenm2m.pyx"],
+    Extension("PyHEADTAIL.solvers.compute_potential_fgreenm2m",
+              ["PyHEADTAIL/solvers/compute_potential_fgreenm2m.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"]),
-    Extension("aperture.aperture_cython",
-              ["aperture/aperture_cython.pyx"],
+    Extension("PyHEADTAIL.aperture.aperture_cython",
+              ["PyHEADTAIL/aperture/aperture_cython.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"]),
-    Extension("cobra_functions.c_sin_cos",
-              ["cobra_functions/c_sin_cos.pyx"],
+    Extension("PyHEADTAIL.cobra_functions.c_sin_cos",
+              ["PyHEADTAIL/cobra_functions/c_sin_cos.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("cobra_functions.interp_sin_cos",
-              ["cobra_functions/interp_sin_cos.pyx"],
+    Extension("PyHEADTAIL.cobra_functions.interp_sin_cos",
+              ["PyHEADTAIL/cobra_functions/interp_sin_cos.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
@@ -97,23 +92,25 @@ cy_ext = [
 
 setup(
     name='PyHEADTAIL',
-    version=verstr,
+    version=__version__,
     description='CERN PyHEADTAIL numerical n-body simulation code '
         'for simulating macro-particle beam dynamics with collective effects.',
     url='http://github.com/PyCOMPLETE/PyHEADTAIL',
-    packages=['PyHEADTAIL'],
+    packages=find_packages(),
+    long_description=long_description,
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
-    install_requires=[
+    include_package_data=True, # install files matched by MANIFEST.in
+    setup_requires=[
         'numpy',
         'scipy',
-        'hdf5',
         'h5py',
-        'cython'
+        'cython',
     ]
     )
 
 from numpy.distutils.core import setup, Extension
 setup(
-    ext_modules = [Extension('general.errfff', ['general/errfff.f90'])],
+    ext_modules = [Extension('PyHEADTAIL.general.errfff',
+                             ['PyHEADTAIL/general/errfff.f90'])],
 )
