@@ -104,10 +104,8 @@ setup(
     setup_requires=[
         'numpy',
         'scipy',
-        #'hdf5',
         'h5py',
         'cython',
-        'matplotlib',
     ]
     )
 
