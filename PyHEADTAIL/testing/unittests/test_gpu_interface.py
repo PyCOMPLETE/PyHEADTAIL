@@ -41,8 +41,8 @@ from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.feedback.widebandfeedback import Pickup, Kicker
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor
-from PyHEADTAIL.rfq.rfq_python import RFQLongitudinalKick, RFQTransverseKick
-from PyHEADTAIL.rfq.rfq_python import RFQTransverseDetuner
+from PyHEADTAIL.rfq.rfq import RFQLongitudinalKick, RFQTransverseKick
+from PyHEADTAIL.rfq.rfq import RFQTransverseDetuner
 import PyHEADTAIL.general.decorators as decorators
 
 
