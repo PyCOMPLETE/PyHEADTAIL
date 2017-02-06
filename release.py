@@ -1,3 +1,4 @@
+#!/usr/bin/python
 '''
 Algorithm to release PyHEADTAIL versions. The structure follows the development
 workflow, cf. the PyHEADTAIL wiki:
@@ -18,9 +19,9 @@ import importlib # available from PyPI for Python <2.7
 import os, subprocess
 
 # CONFIG
-version_location = '_version' # in python relative module notation
+version_location = 'PyHEADTAIL._version' # in python relative module notation
 # (e.g. PyHEADTAIL._version for PyHEADTAIL/_version.py)
-test_script_location = 'pre-push' # in python relative module notation
+test_script_location = 'prepush' # in python relative module notation
 release_branch_prefix = 'release/v' # prepended name of release branch
 
 
