@@ -47,4 +47,7 @@ import general.utils as utils
 # print '                                            :.:;::::::;i ,                   Ct11G               LC1i                        '
 # print '                                              1:::::::1001         C              .               tf                         '
 # print '                                                                                                                             '
-print ('PyHEADTAIL v' + __version__ + '\n\n')
+print ('PyHEADTAIL v' + __version__)
+if _version.dirty:
+    print ('(dirty work-tree)')
+print ('\n')

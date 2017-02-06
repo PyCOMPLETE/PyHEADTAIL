@@ -1,19 +1,19 @@
 #!/usr/bin/python
 # pre-commit hook
 # ensure that unit tests are ok if you push to develop or master
-# @author Stefan Hegglin
+# @author Stefan Hegglin, Adrian Oeftiger
 
 import subprocess as sbp
 import sys
 
 def run():
-    '''Run all tests for PyHEADTAIL here. Return success status.
-    '''
+    '''Run all tests for PyHEADTAIL here. Return success status.'''
     return test_all() == 0
 
 def test_all():
     # get the git root directory
-    git_dir = sbp.check_output(["git", "rev-parse", "--show-toplevel"]).rstrip()
+    git_dir = sbp.check_output(
+        ["git", "rev-parse", "--show-toplevel"]).rstrip().decode("utf-8")
     # construct the testsuite filename
     fn_testsuite = git_dir + '/PyHEADTAIL/testing/unittests/testsuite.py'
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     branch = sbp.check_output(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
 
-    if branch == 'master' or branch == 'develop':
+    if True or branch == 'master' or branch == 'develop':
         print ('\n' + 'X' * 66)
         print ('You are trying to push to the master or develop branch.')
         print ('Checking unit tests first...')
