@@ -33,7 +33,7 @@ if __name__ == '__main__':
     branch = sbp.check_output(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
 
-    if True or branch == 'master' or branch == 'develop':
+    if branch == 'master' or branch == 'develop':
         print ('\n' + 'X' * 66)
         print ('You are trying to push to the master or develop branch.')
         print ('Checking unit tests first...')
