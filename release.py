@@ -119,6 +119,19 @@ def establish_new_version(version_location):
            + release_version)
     return release_version
 
+def ensure_hub_is_installed():
+    '''Check whether hub (from github) is installed.
+    If not, throw an error with an installation note.
+    '''
+    try:
+        assert subprocess.call(["hub", "--version"]) == 0
+    except OSError:
+        raise OSError(
+            'The github command-line tool is needed for '
+            'opening the pull request for the release. '
+            'Please install hub from https://hub.github.com/ !'
+        )
+
 def current_branch():
     '''Return current git branch name.'''
     # get the current branch name, strip trailing whitespaces using rstrip()
@@ -236,6 +249,7 @@ def finalise_release():
 # ALGORITHM FOR RELEASE PROCESS:
 if __name__ == '__main__':
     print ('*** Current working directory:\n' + os.getcwd() + '\n')
+    ensure_hub_is_installed()
 
     # are we on a release branch already?
     if not (current_branch()[:len(release_branch_prefix)] ==
