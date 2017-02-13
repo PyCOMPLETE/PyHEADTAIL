@@ -39,26 +39,28 @@ def _errfadd(z):
     return np.exp(-z**2) * _erfc(z * -1j)
 
 
-# Kevin's sincos interface:
-try:
-    from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
+# # Kevin's sincos interface:
+# try:
+#     from ..cobra_functions.c_sin_cos import cm_sin, cm_cos
 
-    def cm_sincos(x):
-        return cm_sin(x), cm_cos(x)
+#     def cm_sincos(x):
+#         return cm_sin(x), cm_cos(x)
 
-    sin = cm_sin
-    cos = cm_cos
-    sincos = cm_sincos
-except ImportError as e:
-    # print ('\n' + e.message)
-    # print ("Falling back to NumPy versions...\n")
+#     sin = cm_sin
+#     cos = cm_cos
+#     sincos = cm_sincos
+# except ImportError as e:
+#     # print ('\n' + e.message)
+#     # print ("Falling back to NumPy versions...\n")
+### defaulting to NumPy sin/cos because Kevin's sincos interface
+### results in VisibleDeprecationWarnings with the current transverse
+### tracking module (returned objects are memoryviews and not ndarrays)
+def np_sincos(x):
+    return np.sin(x), np.cos(x)
 
-    def np_sincos(x):
-        return np.sin(x), np.cos(x)
-
-    sin = np.sin
-    cos = np.cos
-    sincos = np_sincos
+sin = np.sin
+cos = np.cos
+sincos = np_sincos
 
 
 def _mean_per_slice_cpu(sliceset, u, **kwargs):
