@@ -183,7 +183,7 @@ class Kick(LongitudinalMap):
 
     def track_with_dispersion(self, beam):
         ''' Subtract the dispersion before computing a new dp, then add
-        the dispersion using the new dp
+        the dispersion using the new dp.
         '''
         beam.x -= self.D_x*beam.dp
         beam.y -= self.D_y*beam.dp
@@ -721,9 +721,29 @@ class LinearMap(LongitudinalOneTurnMap):
 
     @clean_slices
     def track(self, beam):
+        try:
+            self.track_with_dispersion(beam)
+            self.track = self.track_with_dispersion
+        except AttributeError as e:
+            self.warns("Failed to apply transverse dispersion correction "
+                       "during longitudinal tracking. Caught AttributeError: \n"
+                       + e.message + "\nContinue without adjusting dispersion "
+                       "contribution when changing beam.dp...")
+            self.track = self.track_without_dispersion
+
+    def track_with_dispersion(self, beam):
         ''' Subtract the dispersion before computing a new dp, then add
-        the dispersion using the new dp
+        the dispersion using the new dp.
         '''
+        beam.x -= self.D_x*beam.dp
+        beam.y -= self.D_y*beam.dp
+
+        self.track_without_dispersion(beam)
+
+        beam.x += self.D_x*beam.dp
+        beam.y += self.D_y*beam.dp
+
+    def track_without_dispersion(self, beam):
         omega_0 = 2 * np.pi * beam.beta * c / self.circumference
         omega_s = self.Q_s * omega_0
 
@@ -735,12 +755,7 @@ class LinearMap(LongitudinalOneTurnMap):
         dp0 = beam.dp
 
         # self.eta(0, beam.gamma) is identical to using first order eta!
-        beam.z = (z0 * cosdQ_s - self.eta(0, beam.gamma) * beam.beta * c /
-                  omega_s * dp0 * sindQ_s)
+        longfac = self.eta(0, beam.gamma) * beam.beta * c / omega_s
 
-        beam.x -= self.D_x * beam.dp
-        beam.y -= self.D_y * beam.dp
-        beam.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, beam.gamma) /
-                   (beam.beta * c) * z0 * sindQ_s)
-        beam.x += self.D_x * beam.dp
-        beam.y += self.D_y * beam.dp
+        beam.z = z0 * cosdQ_s - longfac * dp0 * sindQ_s
+        beam.dp = dp0 * cosdQ_s + z0 / longfac * sindQ_s
