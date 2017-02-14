@@ -639,4 +639,4 @@ class HEADTAILcoords(object):
     '''The classic HEADTAIL phase space.'''
     coordinates = ('x', 'xp', 'y', 'yp', 'z', 'dp')
     transverse = coordinates[:4]
-    luongitudinal = coordinates[-2:]
+    longitudinal = coordinates[-2:]
