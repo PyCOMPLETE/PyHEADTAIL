@@ -630,8 +630,9 @@ class StationaryExponential(object):
         self.width = width
 
     def function(self, z, dp):
-        psi = np.exp(self.H(z, dp).clip(min=0)/self.H0) - 1
-        psi_norm = np.exp(self.Hmax/self.H0) - 1
+        H_hat = self.H(0., 0.).clip(min=0)
+        psi = np.exp((self.H(z, dp).clip(min=0)-H_hat)/self.H0) - np.exp(-H_hat/self.H0)
+        psi_norm = np.exp((self.Hmax-H_hat)/self.H0) - np.exp(-H_hat/self.H0)
         return psi/psi_norm
 
 
