@@ -211,14 +211,11 @@ class WakeField(Element):
             self.slice_set_deque[0][i] = np.reshape(
                 v, (n_bunches_total, n_slices))
 
-
+        # if self._mpi_gatherer.mpi_rank == 0:
+        #     print(self._mpi_gatherer.total_data.t_centers)
         # print(len(self.slice_set_deque[0]))
         # print(self.slice_set_deque[0][1].shape)
         # print(self._mpi_gatherer.total_data.beta)
-        # # beta = b[1]
-        # # age = self.circumference/(beta*c)
-        # # b[0] += age
-        # # print beta
         # wurstel
 
 

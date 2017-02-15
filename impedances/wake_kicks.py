@@ -212,32 +212,36 @@ class WakeKick(Printing):
 
         # Check for strictly descending order
         z_delays = [b.mean_z() for b in bunches]
-        assert all(earlier <= later
+        assert all(later <= earlier
                    for later, earlier in zip(z_delays, z_delays[1:])), \
             ("Bunches are not ordered. Make sure that bunches are in" +
              " descending order in time.")
+        # assert all(earlier <= later
+        #            for later, earlier in zip(z_delays, z_delays[1:])), \
+        #     ("Bunches are not ordered. Make sure that bunches are in" +
+        #      " descending order in time.")
+
+# ========================================================================
 
         # Here, we need to take into account the fact that source slice
         # and target bunch lists are different
-        n_turns, n_sources, n_slices = times_list.shape
+        n_turns, n_sources, n_slices = times_list.shape # includes all bunches
         if n_turns > self.n_turns_wake:
             n_turns = self.n_turns_wake  # limit to this particular wake length
 
-        # Tricky... this assumes one set of bunches - bunch 'delay' is missing
+        # HEADTAIL convention: bunch[0] is tail - bunch[-1] is head
         for i, b in enumerate(bunches):
-            n_bunches_infront = n_sources  # i+1  # <-- usually n_sources!
-            # not strictly needed, should be solved automatically
-            # by wake function decaying fast in front
             accumulated_signal = 0
             target_times = times_list[0, local_bunch_indexes[i]]
 
             # Accumulate all bunches over all turns
-            for k in xrange(n_turns):
-                if k > 0:
-                    n_bunches_infront = n_sources
-                    # run over all bunches and take into account wake in front
-                    # - test!
-                for j in xrange(n_bunches_infront):
+            n_bunches_infront= n_sources
+            for k in range(n_turns):
+                # if k > 0:
+                #     n_bunches_infront = i + 1
+                # else:
+                #     n_bunches_infront = n_sources
+                for j in range(n_bunches_infront)[::-1]:
                     source_beta = betas_list[k, j]
                     source_times = (times_list[k, j] + ages_list[k, j])
                     source_moments = moments_list[k, j]
@@ -246,10 +250,43 @@ class WakeKick(Printing):
                         target_times, source_times,
                         source_moments, source_beta)
 
-            # accumulated_signal_list.append(
-            #     self._wake_factor(b) * accumulated_signal)
+# ========================================================================
+
+        # # Here, we need to take into account the fact that source slice
+        # # and target bunch lists are different
+        # n_turns, n_sources, n_slices = times_list.shape
+        # if n_turns > self.n_turns_wake:
+        #     n_turns = self.n_turns_wake  # limit to this particular wake length
+
+        # # Tricky... this assumes one set of bunches - bunch 'delay' is missing
+        # for i, b in enumerate(bunches):
+        #     n_bunches_infront = n_sources  # i+1  # <-- usually n_sources!
+        #     # not strictly needed, should be solved automatically
+        #     # by wake function decaying fast in front
+        #     accumulated_signal = 0
+        #     target_times = times_list[0, local_bunch_indexes[i]]
+
+        #     # Accumulate all bunches over all turns
+        #     for k in xrange(n_turns):
+        #         if k > 0:
+        #             n_bunches_infront = n_sources
+        #             # run over all bunches and take into account wake in front
+        #             # - test!
+        #         for j in xrange(n_bunches_infront):
+        #             source_beta = betas_list[k, j]
+        #             source_times = (times_list[k, j] + ages_list[k, j])
+        #             source_moments = moments_list[k, j]
+
+        #             accumulated_signal += self._convolution(
+        #                 target_times, source_times,
+        #                 source_moments, source_beta)
+
+# ========================================================================
+
             accumulated_signal_list.append(
-                1 * accumulated_signal)
+                self._wake_factor(b) * accumulated_signal)
+            # accumulated_signal_list.append(
+            #     1* accumulated_signal)
 
         return accumulated_signal_list
 

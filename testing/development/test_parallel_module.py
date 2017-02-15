@@ -17,7 +17,9 @@ sns.set_context('talk', font_scale=1.3)
 sns.set_style('darkgrid', {
     'axes.edgecolor': 'black',
     'axes.linewidth': 2,
-    'lines.markeredgewidth': 1})
+    'lines.markeredgewidth': 1,
+    'font.family': serif,
+    'text.usetex': True})
 
 
 comm = MPI.COMM_WORLD

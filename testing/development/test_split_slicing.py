@@ -17,7 +17,10 @@ sns.set_context('talk', font_scale=1.3)
 sns.set_style('darkgrid', {
     'axes.edgecolor': 'black',
     'axes.linewidth': 2,
-    'lines.markeredgewidth': 1})
+    'lines.markeredgewidth': 1,
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Avant Garde']})
+    # 'text.usetex': True})
 
 
 comm = MPI.COMM_WORLD
@@ -28,7 +31,7 @@ n_turns = 6
 chroma = 0
 n_bunches = 11
 intensity = 2.3e11
-n_macroparticles = 200000
+n_macroparticles = 20000
 
 
 # BEAM AND MACHNINE PARAMETERS
@@ -131,8 +134,8 @@ if rank == 0:
     bunches = synthbunches.split()
     slices_list = []
     for l, b in enumerate(bunches):
-        z_delay = -filling_scheme_synth[l]*C/h
-        # z_delay = -b.mean_z()
+        # z_delay = -filling_scheme_synth[l]*C/h
+        z_delay = b.mean_z()
         b.z -= z_delay
         s = b.get_slices(slicer_for_wakefields, statistics=['mean_x', 'mean_y'])
         b.z += z_delay
@@ -146,10 +149,12 @@ if rank == 0:
     x_kick_list = []
     for j, bt in enumerate(bunches):
         signal = 0
-        for i, bs in enumerate(bunches):
+        for i, bs in zip(range(len(bunches))[::-1], bunches[::-1]):
+        # for i, bs in enumerate(bunches[::-1]):
             t_source = times_list[i]
             t_target = times_list[j]
             tmin, tmax = t_source[0], t_source[-1]
+
             dt = np.hstack((t_target-tmax, (t_target-tmin)[1:]))
             mm = moments_list[i]
             signal += np.convolve(w_function(dt, bs.beta), mm, mode='valid') # * sw[i]
@@ -245,7 +250,7 @@ if rank==0:
     ax3.plot(times, x_kick/xkickmax, c='darkolivegreen', ls='-')
     ax3.plot(times_list, x_kick_list/xkickmax, c='darkred', marker='d', ls='None')
     [ax3.plot(delta_zz[i, :]/machine.beta/c - i*machine.circumference/machine.beta/c,
-              delta_xp[i, :]/xkickmax, marker='o', ms='6', ls='None') for i in range(n_turns)]
+              delta_xp[i, :]/w_factor(bunches[0])/xkickmax, marker='o', ms='6', ls='None') for i in range(n_turns)]
 
     [[ax.axvline(-i*machine.circumference/machine.beta/c, ls='--', lw=2, c='0.2') for i in range(n_turns)]
      for ax in [ax1, ax2, ax3]]
