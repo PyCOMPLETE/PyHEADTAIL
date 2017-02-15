@@ -12,8 +12,8 @@ https://github.com/PyCOMPLETE/PyPIC .
 from __future__ import division
 import numpy as np
 
-from PyPIC import pypic, meshing
-from PyPIC.poisson_solver import FFT_solver
+from PyPIC.GPU import pypic, meshing
+from PyPIC.GPU.poisson_solver import FFT_solver
 
 try:
     pypic_algorithm_class = pypic.PyPIC_GPU

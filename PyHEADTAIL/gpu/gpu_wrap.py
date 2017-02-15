@@ -1,5 +1,5 @@
 '''
-@author Stefan Hegglin
+@author Stefan Hegglin, Adrian Oeftiger
 @date 20.10.2015
 Python functions which wrap GPU functionality.
 Use in dispatch of general/pmath
