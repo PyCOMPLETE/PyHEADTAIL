@@ -736,9 +736,21 @@ class LinearMap(LongitudinalOneTurnMap):
                        'manifestly neglected.')
 
     @property
+    def R(self):
+        return self.circumference/(2*np.pi)
+
+    @property
     @deprecated('--> Now becomes "Q_s"\n')
     def Qs(self):
         return self.Q_s
+
+    @property
+    def eta0(self):
+        return self.eta(0, self.gamma)
+
+    @property
+    def beta_z(self):
+        return np.abs(self.eta0 * self.R / self.Q_s)
 
     @clean_slices
     def track(self, beam):

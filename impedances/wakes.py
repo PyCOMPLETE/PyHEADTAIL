@@ -127,16 +127,36 @@ class WakeField(Element):
         bunches_list = beam.split()
 
         # Updates ages of bunches in slice_set_deque
-        for i, t in enumerate(self.slice_set_deque):
-            for j, b in enumerate(t):
-                beta = b[1]
-                age = self.circumference/(beta*c)
-                b[0] += age
-                print "\n\n-->", b[1], b[0]
+        for i, turnbyturn in enumerate(self.slice_set_deque):
+            beta = turnbyturn[1]
+            for j, bunchbybunch in enumerate(beta):
+                age = self.circumference/(bunchbybunch[0]*c)
+                turnbyturn[0][j] += age
+                # print ("\n\n--> age and beta: {:g}, {:g}".format(beta, 0))
+                # print ("\n\n--> age and beta: {:g}, {:g}".format(b[0][0], b[1][0]))
+
+        # # Fills wake register - little trick here to include
+        # # local_bunch_indexes that will be used in wake kicks.apply. Makes
+        # # deque no longer convertible into an ndarray. Needs to be poped later.
+        # assert(self.slicer == self._mpi_gatherer._slicer)
+        # n_bunches_total = self._mpi_gatherer.n_bunches
+        # n_slices = self.slicer.n_slices
+        # self.slice_set_deque.appendleft(
+        #     [self._mpi_gatherer.total_data.age,
+        #      self._mpi_gatherer.total_data.beta,
+        #      self._mpi_gatherer.total_data.t_centers,
+        #      self._mpi_gatherer.total_data.n_macroparticles_per_slice,
+        #      self._mpi_gatherer.total_data.mean_x,
+        #      self._mpi_gatherer.total_data.mean_y,
+        #      self._mpi_gatherer.local_bunch_indexes]
+        #     )
+        # for i, v in enumerate(self.slice_set_deque[0][:-1]):
+        #     self.slice_set_deque[0][i] = np.reshape(
+        #         v, (n_bunches_total, n_slices))
 
         # Fills wake register -
         slice_set_list = []
-        n_bunches = len(bunches_list)
+        n_bunches_total = len(bunches_list)
         n_slices = self.slicer.n_slices
         if self.slicer.config[3] is not None:
             # In this case, we need to bring bunches back to zero
@@ -159,7 +179,7 @@ class WakeField(Element):
              np.array([s.n_macroparticles_per_slice for s in slice_set_list]),
              np.array([s.mean_x for s in slice_set_list]),
              np.array([s.mean_y for s in slice_set_list]),
-             np.arange(n_bunches)]
+             np.arange(n_bunches_total)]
         )
 
         for kick in self.wake_kicks:
