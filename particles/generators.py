@@ -373,58 +373,68 @@ def uniform2D(low, high):
     return _uniform2D
 
 
-'''
-Why we have this ll algo in here? We had a better one (Knuth):
-http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.138.8671&rep=rep1&type=pdf
-import numpy as np
-def transform_into_kv(bunch, a_x, a_xp, a_y, a_yp):
-    # KV distribution
-    # ==================================================
-    d = 4
-    for i in range(bunch.macroparticlenumber):
-       u = np.random.normal(size=d)
-       r = np.sqrt(np.sum(u**2))
-       u *= 1./r
-       bunch.x[i]  = u[0]
-       bunch.xp[i] = u[1]
-       bunch.y[i]  = u[2]
-       bunch.yp[i] = u[3]
-    # ==================================================
-    bunch.x  *= a_x
-    bunch.xp *= a_xp
-    bunch.y  *= a_y
-    bunch.yp *= a_yp
-def transform_into_waterbag(bunch, a_x, a_xp, a_y, a_yp):
-    # waterbag distribution
-    # ==================================================
-    d = 4
-    for i in range(bunch.macroparticlenumber):
-        u = np.random.normal(size=d)
-        r = np.sqrt(np.sum(u**2))
-        u *= (np.random.rand(1))**(1./d)/r
-        bunch.x[i]  = u[0]
-        bunch.xp[i] = u[1]
-        bunch.y[i]  = u[2]
-        bunch.yp[i] = u[3]
-    # ==================================================
-    bunch.x  *= a_x
-    bunch.xp *= a_xp
-    bunch.y  *= a_y
-    bunch.yp *= a_yp
-Want to get this back in the near future...
-'''
+def _knuth_uniform(order=0, d=2, *args, **kwargs):
+    '''Algorithm based on Don Knuth:
+
+    Jan Poland: "Three Different Algorithms for Generating Uniformly
+    Distributed Random Points on the N-Sphere",
+    http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.138.8671&rep=rep1&type=pdf
+
+    '''
+    def _uniform(n_macroparticles):
+        u = np.random.normal(size=(d, n_macroparticles))
+        r = np.sqrt(np.sum(u**2, axis=0)) # sum across dimensions for radius
+
+        if order == 0: # K-V or airbag
+            s = 1./r
+        elif order==1: # Waterbag
+            s = 1./r * np.random.rand(n_macroparticles)**(1./d)
+        u *= s
+
+        a = args
+        print order, d, args
+        # print(u.shape, r.shape, s.shape)
+
+        u *= np.array([args]).T
+        return u
+    return _uniform
+
+
+def KV2D(r_u, r_up):
+    '''Using Knuth's algorithm
+
+    ..Args: r_u, r_up are +/- extensions in u and u_p
+
+    '''
+    return _knuth_uniform(0, 2, r_u, r_up)
+
+
+def KV4D(r_x, r_xp, r_y, r_yp):
+    '''Using Knuth's algorithm
+
+    ..Args: r_u, r_up are +/- extensions in u and u_p
+
+    '''
+    return _knuth_uniform(0, 4, r_x, r_xp, r_y, r_yp)
+
 
 def waterbag2D(r_u, r_up):
-    # waterbag distribution
-    # ==================================================
-    d = 2
-    def _waterbag(n_macroparticles):
-        u = np.random.normal(size=(n_macroparticles, d))
-        r = np.sqrt(np.sum(u**2))
-        u *= (np.random.rand(1))**(1./d)/r
-        u *= np.array([r_u, r_up])
-        return u.T
-    return _waterbag
+    '''Using Knuth's algorithm
+
+    ..Args: r_u, r_up are +/- extensions in u and u_p
+
+    '''
+    return _knuth_uniform(1, 2, r_u, r_up)
+
+
+def waterbag4D(r_x, r_xp, r_y, r_yp):
+    '''Using Knuth's algorithm
+
+    ..Args: r_u, r_up are +/- extensions in u and u_p
+
+    '''
+    return _knuth_uniform(1, 4, r_x, r_xp, r_y, r_yp)
+
 
 def kv2D(r_u, r_up):
     '''Closure which generates a Kapchinski-Vladimirski-type uniform
@@ -441,6 +451,7 @@ def kv2D(r_u, r_up):
         rand = np.random.uniform(low=-0.5, high=0.5, size=n_particles)
         u = np.sin(2 * np.pi * rand)
         sign = (-1)**np.random.randint(2, size=n_particles)
+        r = np.where(u > 1, 2 - u, u)
         up = sign * np.sqrt(1. - r**2)
         return [u, up]
     return _kv2d
