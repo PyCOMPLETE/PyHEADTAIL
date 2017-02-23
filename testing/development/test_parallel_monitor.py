@@ -11,7 +11,6 @@ import h5py
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField
 from PyHEADTAIL.monitors.monitors import BunchMonitor
-from PyHEADTAIL.mpi import mpi_data
 
 
 plt.switch_backend('TkAgg')
@@ -79,20 +78,22 @@ w_factor = wake_field.wake_kicks[0]._wake_factor
 machine.one_turn_map.append(wake_field)
 
 #bunchmonitor = BunchMonitor('bunchmon_test_parallel', n_turns)
-bunchmonitor = h5py.File('bunchmon_test_parallel.h5', 'w', driver='mpio', comm=comm)
+#bunchmonitor = h5py.File('bunchmon_test_parallel.h5', 'w', driver='mpio', comm=comm)
+bunchmonitor = BunchMonitor(
+    'bunchmon_test_parallel', n_turns, mpi=True, filling_scheme=filling_scheme)
 
 # According to docs, every rank must act in the same manner on the file structure!
 # This seems to be true even if a specific rank would always write only to one subgroup of
 # the file.
-stats_to_store = [
-    'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
-    'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
-    'epsn_z', 'macroparticlenumber' ]
-h5mainGroup = bunchmonitor.create_group('Bunches')
-for bid in np.int_(filling_scheme): # Shall we use as bucket IDs the integer part only? Otherwise it's a bit weird.
-    h5group = h5mainGroup.create_group(repr(bid))
-    for stats in sorted(stats_to_store):
-        h5group.create_dataset(stats, shape=(n_turns,)) #,
+#stats_to_store = [
+#    'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
+#    'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
+#    'epsn_z', 'macroparticlenumber' ]
+#h5mainGroup = bunchmonitor.create_group('Bunches')
+#for bid in np.int_(filling_scheme): # Shall we use as bucket IDs the integer part only? Otherwise it's a bit weird.
+#    h5group = h5mainGroup.create_group(repr(bid))
+#    for stats in sorted(stats_to_store):
+#        h5group.create_dataset(stats, shape=(n_turns,)) #,
 #            compression='gzip', compression_opts=9) According to Andrew Collette, compression opts not available
 # when using h5py parallel... Possible compression at the end, with h5repack command line tool.
 
@@ -105,10 +106,16 @@ for i in range(n_turns):
         t0 = time.clock()
 
     machine.track(allbunches)
-    for bid in set(np.int_(allbunches.bunch_id)):
-        msk = (allbunches.bunch_id == bid)
-        bunchmonitor['Bunches'][repr(bid)]['mean_x'][i] = np.mean(allbunches.x[msk])
-        bunchmonitor['Bunches'][repr(bid)]['mean_z'][i] = np.mean(allbunches.z[msk])
+    bunchmonitor.dump(allbunches)
+    #bunch_list = allbunches.split()
+    #for b in bunch_list:
+    #    bunchmonitor['Bunches'][repr(int(b.bunch_id[0]))]['mean_x'][i] = b.mean_x()
+    #    bunchmonitor['Bunches'][repr(int(b.bunch_id[0]))]['mean_z'][i] = b.mean_z()
+    
+    #for bid in set(np.int_(allbunches.bunch_id)):
+    #    msk = (allbunches.bunch_id == bid)
+    #    bunchmonitor['Bunches'][repr(bid)]['mean_x'][i] = np.mean(allbunches.x[msk])
+    #    bunchmonitor['Bunches'][repr(bid)]['mean_z'][i] = np.mean(allbunches.z[msk])
 
     if rank == 0:
         t1 = time.clock()

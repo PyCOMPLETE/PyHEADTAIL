@@ -7,6 +7,7 @@
 """
 from __future__ import division
 
+from mpi4py import MPI
 import h5py as hp
 import numpy as np
 import sys
@@ -30,33 +31,11 @@ class Monitor(Printing):
         particle-specific. """
         pass
 
-
 class BunchMonitor(Monitor):
-    """ Class to store bunch-specific data to a HDF5 file. This monitor
-    uses a buffer (a shift register) to reduce the number of writing
-    operations to file. This also helps to avoid IO errors and loss of
-    data when writing to a file that may become temporarily unavailable
-    (e.g. if file is located on network) during the simulation. """
     def __init__(self, filename, n_steps, parameters_dict=None,
                  write_buffer_every=512, buffer_size=4096,
-                 *args, **kwargs):
-        """ Create an instance of a BunchMonitor class. Apart from
-        initializing the HDF5 file, a self.buffer dictionary is
-        prepared to buffer the data before writing them to file.
+                 mpi=False, filling_scheme=None, *args, **kwargs):
 
-          filename:           Path and name of HDF5 file. Without file
-                              extension.
-          n_steps:            Number of entries to be reserved for each
-                              of the quantities in self.stats_to_store.
-          parameters_dict:    Metadata for HDF5 file containing main
-                              simulation parameters.
-          write_buffer_every: Number of steps after which buffer
-                              contents are actually written to file.
-          buffer_size:        Number of steps to be buffered.
-
-          optionally pass a list called stats_to_store which specifies
-          which members/methods of the bunch will be called/stored.
-          """
         stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
@@ -66,12 +45,21 @@ class BunchMonitor(Monitor):
         self.n_steps = n_steps
         self.i_steps = 0
 
-        self._create_file_structure(parameters_dict)
-
-        # Prepare buffer.
-        self.buffer_size = buffer_size
-        self.write_buffer_every = write_buffer_every
-        self.buffer = None
+        if mpi:
+            self.comm = MPI.COMM_WORLD
+            self.filling_scheme = filling_scheme
+            if filling_scheme == None:
+                raise ValueError("You must provide the filling scheme when using" +
+                    "MPI monitors")
+            self._create_file_structure_mpi(parameters_dict)
+            self.dump = self._dump_mpi
+        else:
+            # Prepare buffer.
+            self.buffer_size = buffer_size
+            self.write_buffer_every = write_buffer_every
+            self.buffer = None
+            self._create_file_structure_serial(parameters_dict)
+            self.dump = self._dump_serial
 
     def _init_buffer(self):
         self.buffer = {}
@@ -79,6 +67,9 @@ class BunchMonitor(Monitor):
             self.buffer[stats] = np.zeros(self.buffer_size)
 
     def dump(self, bunch):
+        pass
+
+    def _dump_serial(self, bunch):
         """ Evaluate the statistics like mean and standard deviation for
         the given bunch and write the data to the HDF5 file. Make use of
         a buffer to reduce the number of writing operations to file.
@@ -97,7 +88,29 @@ class BunchMonitor(Monitor):
 
         self.i_steps += 1
 
-    def _create_file_structure(self, parameters_dict):
+    def _dump_mpi(self, allbunches):
+        """ Similar to _dump_serial, but for multi-bunch structure. Not
+        using buffers at the moment. """
+        bunch_list = allbunches.split()
+
+        try:
+            h5file = hp.File(self.filename + '.h5', 'a')
+            h5maingroup = h5file['Bunches']
+
+            for b in bunch_list:
+                h5group = h5maingroup[repr(int(b.bunch_id[0]))]
+                for stats in self.stats_to_store:
+                    evaluate_stats = getattr(b, stats)                   
+                    try:
+                        h5group[stats][self.i_steps] = evaluate_stats()
+                    except TypeError:
+                        h5group[stats][self.i_steps] = evaluate_stats
+            h5file.close()
+        except IOError:
+            self.warns('Bunch monitor file is temporarily unavailable. \n')
+        self.i_steps += 1
+
+    def _create_file_structure_serial(self, parameters_dict):
         """ Initialize HDF5 file and create its basic structure (groups
         and datasets). One group is created for bunch-specific data.
         One dataset for each of the quantities defined in
@@ -116,6 +129,28 @@ class BunchMonitor(Monitor):
             for stats in sorted(self.stats_to_store):
                 h5group.create_dataset(stats, shape=(self.n_steps,),
                                        compression='gzip', compression_opts=9)
+            h5file.close()
+        except:
+            self.prints('Creation of bunch monitor file ' + self.filename +
+                   'failed. \n')
+            raise
+
+    def _create_file_structure_mpi(self, parameters_dict):
+        """ Same as for self._create_file_structure, but making structure compatible
+        for multi-bunch and mpi. """
+        try:
+            h5file = hp.File(self.filename + '.h5', 'w', driver='mpio', comm=self.comm)
+            if parameters_dict:
+                for key in parameters_dict:
+                    h5file.attrs[key] = parameters_dict[key]
+
+            h5file.create_group('Bunches')
+            h5maingroup = h5file['Bunches']
+
+            for bid in np.int_(self.filling_scheme):
+                gr = h5maingroup.create_group(repr(bid))
+                for stats in sorted(self.stats_to_store):
+                    gr.create_dataset(stats, shape=(self.n_steps,))
             h5file.close()
         except:
             self.prints('Creation of bunch monitor file ' + self.filename +
