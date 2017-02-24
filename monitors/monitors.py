@@ -33,7 +33,6 @@ class Monitor(Printing):
 
 class BunchMonitor(Monitor):
     def __init__(self, filename, n_steps, parameters_dict=None,
-                 write_buffer_every=512, buffer_size=4096,
                  mpi=False, filling_scheme=None, *args, **kwargs):
 
         stats_to_store = [
@@ -44,61 +43,21 @@ class BunchMonitor(Monitor):
         self.filename = filename
         self.n_steps = n_steps
         self.i_steps = 0
+        self.mpi = mpi
+        self.filling_scheme = filling_scheme
 
-        if mpi:
-            self.comm = MPI.COMM_WORLD
-            self.filling_scheme = filling_scheme
-            if filling_scheme == None:
-                raise ValueError("You must provide the filling scheme when using" +
-                    "MPI monitors")
-            self._create_file_structure_mpi(parameters_dict)
-            self.dump = self._dump_mpi
-        else:
-            # Prepare buffer.
-            self.buffer_size = buffer_size
-            self.write_buffer_every = write_buffer_every
-            self.buffer = None
-            self._create_file_structure_serial(parameters_dict)
-            self.dump = self._dump_serial
+        self._create_file_structure(parameters_dict)
 
-    def _init_buffer(self):
-        self.buffer = {}
-        for stats in self.stats_to_store:
-            self.buffer[stats] = np.zeros(self.buffer_size)
-
-    def dump(self, bunch):
-        pass
-
-    def _dump_serial(self, bunch):
+    def dump(self, bunches):
         """ Evaluate the statistics like mean and standard deviation for
-        the given bunch and write the data to the HDF5 file. Make use of
-        a buffer to reduce the number of writing operations to file.
-        This helps to avoid IO errors and loss of data when writing data
-        to a file that may become temporarily unavailable (e.g. if file
-        is on network). during the simulation. Buffer contents are
-        written to file only every self.write_buffer_every steps.
-        The buffer gets initialized in the first dump() call. This allows
-        for a dynamic creation of the buffer memory on either CPU or GPU"""
-        if self.buffer is None:
-            self._init_buffer()
-        self._write_data_to_buffer(bunch)
-        if ((self.i_steps + 1) % self.write_buffer_every == 0 or
-                (self.i_steps + 1) == self.n_steps):
-            self._write_buffer_to_file()
-
-        self.i_steps += 1
-
-    def _dump_mpi(self, allbunches):
-        """ Similar to _dump_serial, but for multi-bunch structure. Not
-        using buffers at the moment. """
-        bunch_list = allbunches.split()
-
+        the given bunch and write the data to the HDF5 file. """
+        bunch_list = bunches.split()
         try:
             h5file = hp.File(self.filename + '.h5', 'a')
             h5maingroup = h5file['Bunches']
 
             for b in bunch_list:
-                h5group = h5maingroup[repr(int(b.bunch_id[0]))]
+                h5group = h5maingroup[repr(b.bunch_id[0])]
                 for stats in self.stats_to_store:
                     evaluate_stats = getattr(b, stats)                   
                     try:
@@ -110,102 +69,42 @@ class BunchMonitor(Monitor):
             self.warns('Bunch monitor file is temporarily unavailable. \n')
         self.i_steps += 1
 
-    def _create_file_structure_serial(self, parameters_dict):
+    def _create_file_structure(self, parameters_dict):
         """ Initialize HDF5 file and create its basic structure (groups
         and datasets). One group is created for bunch-specific data.
         One dataset for each of the quantities defined in
         self.stats_to_store is generated.
         If specified by the user, write the contents of the
         parameters_dict as metadata (attributes) to the file.
-        Maximum file compression is activated. """
+        Maximum file compression is activated only if not using MPI. """
         try:
-            h5file = hp.File(self.filename + '.h5', 'w')
+            if self.mpi:
+                h5file = hp.File(self.filename + '.h5', 'w', driver='mpio',
+                                 comm=MPI.COMM_WORLD)
+                kwargs_gr = {}
+            else:
+                h5file = hp.File(self.filename + '.h5', 'w')
+                kwargs_gr = {'compression': 'gzip', 'compression_opts': 9 }
+        
             if parameters_dict:
                 for key in parameters_dict:
                     h5file.attrs[key] = parameters_dict[key]
 
-            h5file.create_group('Bunch')
-            h5group = h5file['Bunch']
-            for stats in sorted(self.stats_to_store):
-                h5group.create_dataset(stats, shape=(self.n_steps,),
-                                       compression='gzip', compression_opts=9)
-            h5file.close()
-        except:
-            self.prints('Creation of bunch monitor file ' + self.filename +
-                   'failed. \n')
-            raise
+            h5group = h5file.create_group('Bunches')
+            if self.filling_scheme == None:
+                bunch_ids = [0]
+            else:
+                bunch_ids = self.filling_scheme
 
-    def _create_file_structure_mpi(self, parameters_dict):
-        """ Same as for self._create_file_structure, but making structure compatible
-        for multi-bunch and mpi. """
-        try:
-            h5file = hp.File(self.filename + '.h5', 'w', driver='mpio', comm=self.comm)
-            if parameters_dict:
-                for key in parameters_dict:
-                    h5file.attrs[key] = parameters_dict[key]
-
-            h5file.create_group('Bunches')
-            h5maingroup = h5file['Bunches']
-
-            for bid in np.int_(self.filling_scheme):
-                gr = h5maingroup.create_group(repr(bid))
+            for bid in bunch_ids:
+                gr = h5group.create_group(repr(bid))
                 for stats in sorted(self.stats_to_store):
-                    gr.create_dataset(stats, shape=(self.n_steps,))
+                    gr.create_dataset(stats, shape=(self.n_steps,), **kwargs_gr)
             h5file.close()
         except:
             self.prints('Creation of bunch monitor file ' + self.filename +
                    'failed. \n')
             raise
-
-    def _write_data_to_buffer(self, bunch):
-        """ Store the data in the self.buffer dictionary before writing
-        them to file. The buffer is implemented as a shift register. """
-        for stats in self.stats_to_store:
-            evaluate_stats = getattr(bunch, stats)
-
-            # Handle the different statistics quantities, which can
-            # either be methods (like mean(), ...) or simply attributes
-            # (macroparticlenumber) of the bunch.
-            write_pos = self.i_steps % self.buffer_size
-            try:
-                self.buffer[stats][write_pos] = evaluate_stats()
-            except TypeError:
-                self.buffer[stats][write_pos] = evaluate_stats
-
-    def _write_buffer_to_file(self):
-        """ Write buffer contents to the HDF5 file. The file is opened and
-        closed each time the buffer is written to file to prevent from
-        loss of data in case of a crash.
-        buffer_tmp is an extra buffer which is always on the CPU. If
-        self.buffer is on the GPU, copy the data to buffer_tmp and write
-        the result to the file."""
-
-        buffer_tmp = {} # always on CPU
-        shift = - (self.i_steps + 1 % self.buffer_size)
-        for stats in self.stats_to_store:
-            try:
-                buffer_tmp[stats] = np.roll(self.buffer[stats].get(),
-                        shift=shift, axis=0)
-            except:
-                buffer_tmp[stats] = np.roll(self.buffer[stats].copy(),
-                        shift=shift, axis=0)
-        n_entries_in_buffer = min(self.i_steps+1, self.buffer_size)
-        low_pos_in_buffer = self.buffer_size - n_entries_in_buffer
-        low_pos_in_file = self.i_steps + 1 - n_entries_in_buffer
-        up_pos_in_file = self.i_steps + 1
-
-        # Try to write data to file. If file is not available, skip this
-        # step and repeat it again after self.write_buffer_every. As
-        # long as self.buffer_size is not exceeded, no data are lost.
-        try:
-            h5file = hp.File(self.filename + '.h5', 'a')
-            h5group = h5file['Bunch']
-            for stats in self.stats_to_store:
-                h5group[stats][low_pos_in_file:up_pos_in_file] = \
-                    buffer_tmp[stats][low_pos_in_buffer:]
-            h5file.close()
-        except IOError:
-            self.warns('Bunch monitor file is temporarily unavailable. \n')
 
 
 class SliceMonitor(Monitor):

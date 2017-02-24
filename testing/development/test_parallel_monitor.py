@@ -6,7 +6,6 @@ import seaborn as sns
 from mpi4py import MPI
 import matplotlib.pyplot as plt
 from scipy.constants import c, e, m_p
-import h5py
 
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField
@@ -30,12 +29,12 @@ rank = comm.Get_rank()
 
 n_turns = 100
 chroma = 0
-n_bunches = 7
+n_bunches = 5
 intensity = 2.3e11
-n_macroparticles = 200000
+n_macroparticles = 20000
 
 
-# BEAM AND MACHNINE PARAMETERS
+# BEAM AND MACHINE PARAMETERS
 # ============================
 from HLLHC import HLLHC
 machine = HLLHC(charge=e, mass=m_p, n_segments=1,
@@ -56,6 +55,9 @@ sigma_z = 0.081
 allbunches = machine.generate_6D_Gaussian_bunch_matched(
     n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
     filling_scheme=filling_scheme)
+
+#b = machine.generate_6D_Gaussian_bunch_matched(
+#    n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 
 
 # CREATE BEAM SLICERS
