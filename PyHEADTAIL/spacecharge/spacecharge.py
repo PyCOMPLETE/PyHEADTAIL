@@ -289,16 +289,16 @@ class TransverseGaussianSpaceCharge(Element):
         Uses CERN library from K. Koelbig.
         '''
         # timing was ~3.35ms for same situation as _efieldn_mit
-        if not pm.errf:
+        if not pm._errf:
             raise ImportError('errfff cannot be imported for using ' +
                               'TransverseSpaceCharge._efield_koelbig .' +
-                              'Did you f2py errfff.f?')
+                              'Did you call make (or f2py general/errfff.f)?')
         sig_sqrt = TransverseGaussianSpaceCharge._sig_sqrt(sig_x, sig_y)
-        w1re, w1im = pm.errf(x/sig_sqrt, y/sig_sqrt)
+        w1re, w1im = pm._errf(x/sig_sqrt, y/sig_sqrt)
         ex = pm.exp(-x*x / (2 * sig_x*sig_x) +
                     -y*y / (2 * sig_y*sig_y))
-        w2re, w2im = pm.errf(x * sig_y/(sig_x*sig_sqrt),
-                             y * sig_x/(sig_y*sig_sqrt))
+        w2re, w2im = pm._errf(x * sig_y/(sig_x*sig_sqrt),
+                              y * sig_x/(sig_y*sig_sqrt))
         pref = 1. / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
         return pref * (w1im - ex * w2im), pref * (w1re - ex * w2re)
 
