@@ -391,8 +391,8 @@ def _knuth_uniform(order=0, d=2, *args, **kwargs):
             s = 1./r * np.random.rand(n_macroparticles)**(1./d)
         u *= s
 
-        a = args
-        print order, d, args
+        # a = args
+        # print order, d, args
         # print(u.shape, r.shape, s.shape)
 
         u *= np.array([args]).T
