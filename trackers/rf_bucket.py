@@ -210,10 +210,10 @@ class RFBucket(Printing):
 
     @property
     def beta_z(self):
-        return np.abs(self.eta0 * self.R / self.Qs)
+        return np.abs(self.eta0 * self.R / self.Q_s)
 
     @property
-    def Qs(self):
+    def Q_s(self):
         """Neglects all other harmonics besides the maximum
         voltage one.
         """
