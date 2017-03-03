@@ -13,19 +13,38 @@ from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField
 
 
 plt.switch_backend('TkAgg')
-sns.set_context('talk', font_scale=1.3)
-sns.set_style('darkgrid', {
-    'axes.edgecolor': 'black',
-    'axes.linewidth': 2,
-    'lines.markeredgewidth': 1,
-    'font.family': 'sans-serif',
-    'font.sans-serif': ['Avant Garde']})
-    # 'text.usetex': True})
+# sns.set(context='talk', style='darkgrid', palette='deep',
+#         font='sans-serif', font_scale=1.3, color_codes=False,
+#         rc={
+#             'axes.linewidth': 2,
+#             'axes.edgecolor': 'black',
+#             'lines.markeredgewidth': 1,
+#             'text.usetex': True,
+#             'font.family': 'serif'})
+sns.set(context='talk', style='darkgrid', palette='deep',
+        font='sans-serif', font_scale=1.8, color_codes=False,
+        rc={'axes.linewidth': 2,
+            'axes.edgecolor': 'black',
+            'lines.markeredgewidth': 1,
+            'text.usetex': True,
+            'font.sans-serif': 'Helvetica',
+        })
+
+
+# plt.rc('text', usetex=True)
+# plt.rc('font', family='sans-serif', weight='bold')
+# plt.rc('font', sans-serif=['Helvetica'])
 
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
+
+if rank==0:
+    plt.suptitle("This is a test title - 123456789", fontsize=24)
+    plt.plot(np.linspace(0, 1, 1000), np.random.randn(1000))
+    plt.show()
+wurstel
 
 n_turns = 6
 chroma = 0
