@@ -239,11 +239,14 @@ class ParticleGenerator(Printing):
         self.distribution_z = distribution_z
 
         # bind the matching methods with the correct parameters
-        Q_s = kwargs.pop('Q_s')
-        if Q_s:
+        try:
+            Q_s = kwargs.pop('Q_s')
             self.warns("Q_s provided but Qs is still required in generators - " +
                        "matching will still be done...")
             Qs = Q_s
+        except KeyError:
+            pass
+
         if Qs is not None and eta is not None:  # match longitudinally iff
             self.linear_matcher_z = longitudinal_linear_matcher(Qs, eta,
                                                                 circumference)
