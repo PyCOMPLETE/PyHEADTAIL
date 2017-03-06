@@ -352,8 +352,7 @@ class Synchrotron(Element):
             self.one_turn_map.insert(insert_before, self.longitudinal_map)
 
 
+@deprecated('--> "BasicSynchrotron" will be removed '
+            'in the near future. Use "Synchrotron" instead.\n')
 class BasicSynchrotron(Synchrotron):
-    @deprecated('"--> BasicSynchrotron" will be deprecated ' +
-                'in the near future. Use "Synchrotron" instead.\n')
-    def __init__(self, *args, **kwargs):
-        Synchrotron.__init__(self, *args, **kwargs)
+    pass
