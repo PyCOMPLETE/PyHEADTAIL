@@ -56,8 +56,8 @@ allbunches = machine.generate_6D_Gaussian_bunch_matched(
     n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
     filling_scheme=filling_scheme)
 
-# allbunches = machine.generate_6D_Gaussian_bunch_matched(
-#     n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
+#allbunches = machine.generate_6D_Gaussian_bunch_matched(
+#    n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 
 
 # CREATE BEAM SLICERS
@@ -82,7 +82,7 @@ machine.one_turn_map.append(wake_field)
 #bunchmonitor = BunchMonitor('bunchmon_test_parallel', n_turns)
 #bunchmonitor = h5py.File('bunchmon_test_parallel.h5', 'w', driver='mpio', comm=comm)
 bunchmonitor = BunchMonitor(
-    'bunchmon_test_parallel', n_turns, mpi=False, filling_scheme=filling_scheme)
+    'bunchmon_test_parallel', n_turns, mpi=True, filling_scheme=filling_scheme)
 
 # According to docs, every rank must act in the same manner on the file structure!
 # This seems to be true even if a specific rank would always write only to one subgroup of

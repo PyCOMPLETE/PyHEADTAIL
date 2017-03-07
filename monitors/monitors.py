@@ -46,53 +46,36 @@ class BunchMonitor(Monitor):
         self.i_steps = 0
         self.mpi = mpi
         self.filling_scheme = filling_scheme
+        self.local_bunch_ids = []
 
-        if self.filling_scheme is None:
-            self.buffer = None
-            self.buffer_size = buffer_size
-            self.write_buffer_every = write_buffer_every
+        self.buffer = None
+        self.buffer_size = buffer_size
+        self.write_buffer_every = write_buffer_every
 
         self._create_file_structure(parameters_dict)
 
 
     def _init_buffer(self):
         self.buffer = {}
-        for stats in self.stats_to_store:
-            self.buffer[stats] = np.zeros(self.buffer_size)
+        for bid in self.local_bunch_ids:
+            self.buffer[bid] = {}
+            for stats in self.stats_to_store:
+                self.buffer[bid][stats] = np.zeros(self.buffer_size)
 
 
     def dump(self, bunches):
         """ Evaluate the statistics like mean and standard deviation for
         the given bunch and write the data to the HDF5 file. """
 
-        if self.filling_scheme is None:
-            if self.buffer is None:
-                self._init_buffer()
+        bunch_list = bunches.split()
+        if self.buffer is None:
+            self.local_bunch_ids = [ b.bunch_id[0] for b in bunch_list ]
+            self._init_buffer()
 
-            self._write_data_to_buffer(bunches)
-            if ((self.i_steps + 1) % self.write_buffer_every == 0 or
-                (self.i_steps + 1) == self.n_steps):
-                self._write_buffer_to_file()
-        else:
-            bunch_list = bunches.split()
-            try:
-                h5file = hp.File(self.filename + '.h5', 'a')
-                h5maingroup = h5file['Bunches']
-
-                for b in bunch_list:
-                    h5group = h5maingroup[repr(b.bunch_id[0])]
-                    for stats in self.stats_to_store:
-                        evaluate_stats = getattr(b, stats)
-                        # Is needed just because of Particles.macroparticles -
-                        # this we want to keep as it may be used by other
-                        # classes
-                        try:
-                            h5group[stats][self.i_steps] = evaluate_stats()
-                        except TypeError:
-                            h5group[stats][self.i_steps] = evaluate_stats
-                h5file.close()
-            except IOError:
-                self.warns('Bunch monitor file is temporarily unavailable. \n')
+        self._write_data_to_buffer(bunches)
+        if ((self.i_steps + 1) % self.write_buffer_every == 0 or
+            (self.i_steps + 1) == self.n_steps):
+            self._write_buffer_to_file()
 
         self.i_steps += 1
 
@@ -138,23 +121,27 @@ class BunchMonitor(Monitor):
             raise
 
 
-    def _write_data_to_buffer(self, bunch):
+    def _write_data_to_buffer(self, bunches):
         """ Store the data in the self.buffer dictionary before writing
         them to file. The buffer is implemented as a shift register. """
-        for stats in self.stats_to_store:
-            evaluate_stats = getattr(bunch, stats)
 
-            # Handle the different statistics quantities, which can
-            # either be methods (like mean(), ...) or simply attributes
-            # (macroparticlenumber) of the bunch.
-            write_pos = self.i_steps % self.buffer_size
-            # Is needed just because of Particles.macroparticles -
-            # this we want to keep as it may be used by other
-            # classes
-            try:
-                self.buffer[stats][write_pos] = evaluate_stats()
-            except TypeError:
-                self.buffer[stats][write_pos] = evaluate_stats
+        bunch_list = bunches.split()
+        for b in bunch_list:
+            bid = b.bunch_id[0]
+            for stats in self.stats_to_store:
+                evaluate_stats = getattr(b, stats)
+
+                # Handle the different statistics quantities, which can
+                # either be methods (like mean(), ...) or simply attributes
+                # (macroparticlenumber) of the bunch.
+                write_pos = self.i_steps % self.buffer_size
+                # Is needed just because of Particles.macroparticles -
+                # this we want to keep as it may be used by other
+                # classes
+                try:
+                    self.buffer[bid][stats][write_pos] = evaluate_stats()
+                except TypeError:
+                    self.buffer[bid][stats][write_pos] = evaluate_stats
 
 
     def _write_buffer_to_file(self):
@@ -166,14 +153,17 @@ class BunchMonitor(Monitor):
         the result to the file."""
 
         buffer_tmp = {} # always on CPU
+        for bid in self.local_bunch_ids:
+            buffer_tmp[bid] = {}
         shift = - (self.i_steps + 1 % self.buffer_size)
-        for stats in self.stats_to_store:
-            try:
-                buffer_tmp[stats] = np.roll(self.buffer[stats].get(),
-                        shift=shift, axis=0)
-            except:
-                buffer_tmp[stats] = np.roll(self.buffer[stats].copy(),
-                        shift=shift, axis=0)
+        for bid in self.local_bunch_ids:
+            for stats in self.stats_to_store:
+                try:
+                    buffer_tmp[bid][stats] = np.roll(self.buffer[bid][stats].get(),
+                            shift=shift, axis=0)
+                except:
+                    buffer_tmp[bid][stats] = np.roll(self.buffer[bid][stats].copy(),
+                            shift=shift, axis=0)
         n_entries_in_buffer = min(self.i_steps+1, self.buffer_size)
         low_pos_in_buffer = self.buffer_size - n_entries_in_buffer
         low_pos_in_file = self.i_steps + 1 - n_entries_in_buffer
@@ -183,11 +173,22 @@ class BunchMonitor(Monitor):
         # step and repeat it again after self.write_buffer_every. As
         # long as self.buffer_size is not exceeded, no data are lost.
         try:
-            h5file = hp.File(self.filename + '.h5', 'a')
-            h5group = h5file['Bunch']
-            for stats in self.stats_to_store:
-                h5group[stats][low_pos_in_file:up_pos_in_file] = \
-                    buffer_tmp[stats][low_pos_in_buffer:]
+            if self.mpi:
+                h5file = hp.File(self.filename + '.h5', 'a', driver='mpio',
+                                 comm=MPI.COMM_WORLD)
+            else:
+                h5file = hp.File(self.filename + '.h5', 'a')
+
+            # Note that in this case, local_bunch_ids should have only
+            # one entry.
+            for bid in self.local_bunch_ids:
+                if self.filling_scheme is not None:
+                    h5group = h5file['Bunches'][repr(bid)]
+                else:
+                    h5group = h5file['Bunch']
+                for stats in self.stats_to_store:
+                    h5group[stats][low_pos_in_file:up_pos_in_file] = \
+                        buffer_tmp[bid][stats][low_pos_in_buffer:]
             h5file.close()
         except IOError:
             self.warns('Bunch monitor file is temporarily unavailable. \n')
