@@ -16,8 +16,6 @@ else
 	@echo "Thrust interface not compiled because nvcc was not found"
 endif
 
-clean: remove_so
+clean:
 	python setup.py build_ext --inplace cleanall
-
-remove_so:
 	rm -f PyHEADTAIL/gpu/thrust.so

@@ -38,6 +38,7 @@ if "cleanall" in args:
     subprocess.Popen("rm -rf ./build", shell=True, executable="/bin/bash")
     subprocess.Popen("find ./ -name *.c | xargs rm -f", shell=True)
     subprocess.Popen("find ./ -name *.so | xargs rm -f", shell=True)
+    subprocess.Popen("find ./ -name *.html | xargs rm -f", shell=True)
 
     # Now do a normal clean
     sys.argv[1] = "clean"
