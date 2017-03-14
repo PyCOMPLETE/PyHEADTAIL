@@ -60,20 +60,11 @@ with open('README.rst', 'rb') as f:
 # Set up extension and build
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 cy_ext = [
-    Extension("PyHEADTAIL.solvers.grid_functions",
-              ["PyHEADTAIL/solvers/grid_functions.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"],
-              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
     Extension("PyHEADTAIL.cobra_functions.stats",
               ["PyHEADTAIL/cobra_functions/stats.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("PyHEADTAIL.solvers.compute_potential_fgreenm2m",
-              ["PyHEADTAIL/solvers/compute_potential_fgreenm2m.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"]),
     Extension("PyHEADTAIL.aperture.aperture_cython",
               ["PyHEADTAIL/aperture/aperture_cython.pyx"],
               include_dirs=[np.get_include()],
