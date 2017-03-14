@@ -10,7 +10,8 @@ from PyHEADTAIL.trackers.rf_bucket import RFBucket
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap, RFSystems
-
+from PyHEADTAIL.trackers.wrapper import LongWrapper
+from PyHEADTAIL.particles.slicing import UniformBinSlicer
 
 class Synchrotron(Element):
     def __init__(self, optics_mode,
