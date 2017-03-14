@@ -32,7 +32,7 @@ if not __version__[0].isdigit():
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
 if "cleanall" in args:
-    print "Deleting cython and fortran compilation files..."
+    print ("Deleting cython and fortran compilation files...")
     # Just in case the build directory was created by accident,
     # note that shell=True should be OK here because the command is constant.
     subprocess.Popen("rm -rf ./build", shell=True, executable="/bin/bash")
@@ -41,8 +41,7 @@ if "cleanall" in args:
     subprocess.Popen("find ./ -name *.html | xargs rm -f", shell=True)
 
     # Now do a normal clean
-    sys.argv[1] = "clean"
-    exit(1)
+    sys.argv = [sys.argv[0], 'clean']
 
 
 # We want to always use build_ext --inplace
@@ -96,7 +95,7 @@ setup(
     version=__version__,
     description='CERN PyHEADTAIL numerical n-body simulation code '
         'for simulating macro-particle beam dynamics with collective effects.',
-    url='http://github.com/PyCOMPLETE/PyHEADTAIL',
+    url='https://github.com/PyCOMPLETE/PyHEADTAIL',
     packages=find_packages(),
     long_description=long_description,
     cmdclass={'build_ext': build_ext},
