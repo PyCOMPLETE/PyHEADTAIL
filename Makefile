@@ -1,5 +1,5 @@
 # check for nvcc: if not found, do not compile the thrust module
-NVCC_RESULT := $(shell which nvcc 2> NULL)
+NVCC_RESULT := $(shell which nvcc)
 NVCC_TEST := $(notdir $(NVCC_RESULT))
 
 .PHONY: clean remove_so PyHEADTAIL PyHEADTAILGPU

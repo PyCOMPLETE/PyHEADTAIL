@@ -4,7 +4,7 @@
 # http://nfoti.github.io/a-creative-blog-name/posts/2013/02/07/cleaning-cython-build-files/
 
 import numpy as np
-from _version import __version__
+from PyHEADTAIL._version import __version__
 
 import re, os, sys, subprocess
 import numpy as np
