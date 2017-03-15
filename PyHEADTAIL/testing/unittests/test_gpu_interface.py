@@ -32,7 +32,7 @@ from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.general.printers import AccumulatorPrinter
 from PyHEADTAIL.general.contextmanager import GPU
 import PyHEADTAIL.trackers.transverse_tracking as tt
-import PyHEADTAIL.trackers.simple_long_tracking as lt
+import PyHEADTAIL.trackers.longitudinal_tracking as lt
 from PyHEADTAIL.trackers.detuners import AmplitudeDetuning, Chromaticity
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import WakeField, WakeTable
@@ -281,7 +281,8 @@ class TestGPUInterface(unittest.TestCase):
         wake_components = [ 'time', 'dipole_x', 'dipole_y',
                         'no_quadrupole_x', 'no_quadrupole_y',
                         'no_dipole_xy', 'no_dipole_yx' ]
-        wake_table_cpu      = WakeTable(wakefile, wake_components)
+        wake_table_cpu      = WakeTable(wakefile, wake_components,
+                                        printer=SilentPrinter())
         wake_field_cpu      = WakeField(slicer_for_wakefields_cpu, wake_table_cpu)
         # also checked for 100 turns!
         self.assertTrue(self._track_cpu_gpu([wake_field_cpu], bunch_cpu, bunch_gpu, nturns=2),
