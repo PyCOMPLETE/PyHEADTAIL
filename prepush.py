@@ -17,14 +17,16 @@ def test_all():
     # construct the testsuite filename
     fn_testsuite = git_dir + '/PyHEADTAIL/testing/unittests/testsuite.py'
 
-    # don't test code which isnt part of the commit
-    sbp.call(["git", "stash", "-q", "--keep-index"])
-    try:
-        # run the testsuite (exit status 0: all fine)
-        res = sbp.call(["python", fn_testsuite])
-    finally:
-        # pop the stash
-        sbp.call(["git" , "stash", "pop", "-q"])
+    # # don't test code which isnt part of the commit
+    # sbp.call(["git", "stash", "-q", "--keep-index"])
+    # try:
+
+    # run the testsuite (exit status 0: all fine)
+    res = sbp.call(["python", fn_testsuite])
+
+    #finally:
+    #    # pop the stash
+    #    sbp.call(["git" , "stash", "pop", "-q"])
 
     return res
 
