@@ -87,7 +87,11 @@ setup(
     description='CERN PyHEADTAIL numerical n-body simulation code '
         'for simulating macro-particle beam dynamics with collective effects.',
     url='https://github.com/PyCOMPLETE/PyHEADTAIL',
-    packages=find_packages(),
+    author='Kevin Li',
+    author_email='Kevin.Li@cern.ch',
+    maintainer='Adrian Oeftiger',
+    maintainer_email='Adrian.Oeftiger@cern.ch',
+    packages=['PyHEADTAIL'],
     long_description=long_description,
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
