@@ -4,10 +4,6 @@ PyHEADTAIL
 CERN PyHEADTAIL numerical n-body simulation code
 for simulating macro-particle beam dynamics with collective effects.
 
-Currently only a git-clone of the repository is supported.
-The available zip files on github are missing the versioning
-and will not allow ./install to work.
-
 Installation
 ------------
 
@@ -40,13 +36,13 @@ And there you go, start using PyHEADTAIL!
 
     In [1]: import PyHEADTAIL
 
-    PyHEADTAIL v1.4.0-0-g8422af8081
+    PyHEADTAIL v1.11.1
 
 
 -------------------------------------------------------------------------------
 
-Please use the pre-push script ``pre-push.py`` if you want to contribute
+Please use the pre-push script ``prepush.py`` if you want to contribute
 to the repository. It only lets you push to the develop and master branch if
 no unit tests fail.
 
-To install (creates a symlink): ``ln -s ../../pre-push.py .git/hooks/pre-push``
+To install (creates a symlink): ``ln -s ../../prepush.py .git/hooks/pre-push``
