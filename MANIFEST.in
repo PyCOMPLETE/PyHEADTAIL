@@ -1,0 +1,4 @@
+recursive-include PyHEADTAIL *.pxd *.pyx *.c
+recursive-include PyHEADTAIL/testing *.py *.ipynb *.wake *.dat *.pkl
+include README.md
+include _version.py
