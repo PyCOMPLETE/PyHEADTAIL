@@ -178,6 +178,7 @@ def run():
     wake_file_columns = ['time', 'dipole_x', 'no_dipole_y', 'no_quadrupole_x', 'no_quadrupole_y',
                          'no_dipole_xy', 'no_dipole_yx']
     table = WakeTable(fn, wake_file_columns,
+                      printer=SilentPrinter(),
                       warningprinter=SilentPrinter())
     wake_field = WakeField(uniform_bin_slicer, table)
 
@@ -201,6 +202,7 @@ def run():
     wake_file_columns = ['time', 'dipole_x', 'no_dipole_y', 'no_quadrupole_x', 'no_quadrupole_y',
                          'no_dipole_xy', 'no_dipole_yx']
     table = WakeTable(fn, wake_file_columns,
+                      printer=SilentPrinter(),
                       warningprinter=SilentPrinter())
     wake_field = WakeField(uniform_charge_slicer, table)
 
@@ -225,6 +227,7 @@ def run():
     wake_file_columns = ['time', 'no_dipole_x', 'no_dipole_y', 'quadrupole_x', 'no_quadrupole_y',
                          'no_dipole_xy', 'no_dipole_yx']
     table = WakeTable(fn, wake_file_columns,
+                      printer=SilentPrinter(),
                       warningprinter=SilentPrinter())
     wake_field = WakeField(uniform_charge_slicer, table)
 
@@ -249,6 +252,7 @@ def run():
     wake_file_columns = ['time', 'no_dipole_x', 'no_dipole_y', 'quadrupole_x', 'no_quadrupole_y',
                          'no_dipole_xy', 'no_dipole_yx']
     table = WakeTable(fn, wake_file_columns,
+                      printer=SilentPrinter(),
                       warningprinter=SilentPrinter())
     wake_field = WakeField(uniform_bin_slicer, table)
 
@@ -405,6 +409,7 @@ def run():
     wake_file_columns = ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y',
                          'dipole_xy', 'dipole_yx']
     table = WakeTable(fn, wake_file_columns,
+                      printer=SilentPrinter(),
                       warningprinter=SilentPrinter())
 
     wake_field = WakeField(uniform_bin_slicer, resis_circ, reson_para, table)
