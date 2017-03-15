@@ -21,7 +21,7 @@ from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
-
+from PyHEADTAIL.general.printers import SilentPrinter
 
 # In[3]:
 
@@ -144,7 +144,8 @@ def run():
                 s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y, kwargs['detuners'])
         else:
             trans_map = TransverseMap(
-                s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+                s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y,
+                printer=SilentPrinter())
 
         long_map = LinearMap(alpha_0, C, Q_s)
         bunch = generate_bunch(
@@ -333,7 +334,8 @@ def run():
     beta_y = beta_y_inj * np.ones(n_segments)
 
     trans_map = TransverseMap(
-        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+        s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y,
+        printer=SilentPrinter())
     inj_opt_dict = trans_map.get_injection_optics()
 
 
@@ -345,7 +347,8 @@ def run():
 
     try:
         trans_map = TransverseMap(
-            s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y)
+            s, alpha_x, beta_x, D_x, alpha_y, beta_y, D_y, Q_x, Q_y,
+            printer=SilentPrinter())
         # print ('test NOT passed. No error raised!')
     except ValueError as exc:
         # print ('test passed.\n')
