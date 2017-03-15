@@ -13,6 +13,8 @@ except ImportError:
     has_pycuda = False
     print 'No PyCUDA installation found.'
 
+from pprint import pprint
+
 from test_slicing import TestSlicing
 from test_particles import TestParticles
 from test_generators import TestParticleGenerators
@@ -50,7 +52,8 @@ if __name__ == '__main__':
         test = test_load.loadTestsFromTestCase(case)
         case_list.append(test)
     test_suite = unittest.TestSuite(case_list)
-    print('Running unit tests ' + str(test_list))
+    print('Running unit tests:')
+    pprint(test_list)
     runner = unittest.TextTestRunner()
     ret = not runner.run(test_suite).wasSuccessful()
     sys.exit(ret)
