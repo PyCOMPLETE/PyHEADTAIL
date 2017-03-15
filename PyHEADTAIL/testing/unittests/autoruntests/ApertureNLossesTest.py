@@ -109,7 +109,7 @@ def run():
 
     # (IV) CircularApertureXY
     bunch = generate_bunch(5)
-    apt_xy = aperture.CircularApertureXY(radius=0.003)
+    apt_xy = aperture.CircularApertureXY(radius=0.005)
     apt_xy.track(bunch)
 
 
