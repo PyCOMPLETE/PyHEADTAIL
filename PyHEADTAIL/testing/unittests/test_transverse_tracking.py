@@ -21,7 +21,7 @@ from scipy.constants import c, e, m_p
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.trackers.transverse_tracking as pure_py
 from PyHEADTAIL.trackers.detuners import AmplitudeDetuning
-
+from PyHEADTAIL.general.printers import SilentPrinter
 
 class TestTransverseTracking(unittest.TestCase):
     '''Tests for functions and classes in the
@@ -52,6 +52,7 @@ class TestTransverseTracking(unittest.TestCase):
         pure_python_map = pure_py.TransverseMap(
             self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
+            printer=SilentPrinter()
         )
 
         beam_p = self.create_bunch()
@@ -68,7 +69,7 @@ class TestTransverseTracking(unittest.TestCase):
         pure_python_map = pure_py.TransverseMap(
             self.s, self.alpha_x, self.beta_x,
             self.Dx, self.alpha_y, self.beta_y, self.Dy, self.Qx, self.Qy,
-            adetuner
+            adetuner, printer=SilentPrinter()
         )
 
         beam_p = self.create_bunch()
