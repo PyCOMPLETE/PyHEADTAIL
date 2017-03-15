@@ -10,7 +10,8 @@ from PyHEADTAIL.trackers.rf_bucket import RFBucket
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap, RFSystems
-
+from PyHEADTAIL.trackers.wrapper import LongWrapper
+from PyHEADTAIL.particles.slicing import UniformBinSlicer
 
 class Synchrotron(Element):
     def __init__(self, optics_mode,
@@ -22,7 +23,7 @@ class Synchrotron(Element):
                  Qp_x=0, Qp_y=0, app_x=0, app_y=0, app_xy=0,
                  longitudinal_mode=None, Q_s=None, alpha_mom_compaction=None,
                  h_RF=None, V_RF=None, dphi_RF=None, p_increment=None,
-                 RF_at='middle', other_detuners=[],
+                 RF_at='middle', wrap_z=False, other_detuners=[],
                  use_cython=False):
 
         if use_cython:
@@ -52,6 +53,10 @@ class Synchrotron(Element):
             Q_s=Q_s, alpha_mom_compaction=alpha_mom_compaction,
             h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment,
             RF_at=RF_at)
+
+        # add longitudinal wrapper and buncher
+        if wrap_z:
+            self._add_wrapper_and_buncher()
 
     @property
     def gamma(self):
@@ -175,6 +180,7 @@ class Synchrotron(Element):
         the non-linear bucket. Thus, the bunch length should amount
         to the one specificed and should not change significantly
         during the synchrotron motion.
+
         Requires self.longitudinal_mode == 'non-linear'
         for the bucket.
         '''
@@ -351,9 +357,30 @@ class Synchrotron(Element):
         else:
             self.one_turn_map.insert(insert_before, self.longitudinal_map)
 
+    def _add_wrapper_and_buncher(self):
+        '''Add longitudinal z wrapping around the circumference as
+        well as a UniformBinSlicer for bunching the beam.
+        '''
+        if self.longitudinal_mode is None:
+            return
 
+        elif self.longitudinal_mode == 'linear':
+            raise ValueError('Not implemented!!!!')
+
+        elif self.longitudinal_mode == 'non-linear':
+            bucket = self.longitudinal_map.get_bucket(gamma=self.gamma, mass=self.mass, charge=self.charge)
+            harmonic = bucket.h[0]
+            bucket_length = self.circumference/harmonic
+            z_beam_center = bucket.z_ufp_separatrix + bucket_length - self.circumference/2.
+            self.z_wrapper = LongWrapper(circumference=self.circumference, z0=z_beam_center)
+            self.one_turn_map.append(self.z_wrapper)
+            self.buncher = UniformBinSlicer(harmonic, z_cuts=(self.z_wrapper.z_min,  self.z_wrapper.z_max))
+
+        else:
+            raise NotImplementedError(
+                'Something wrong with longitudinal_mode')
+
+@deprecated('--> "BasicSynchrotron" will be removed '
+            'in the near future. Use "Synchrotron" instead.\n')
 class BasicSynchrotron(Synchrotron):
-    @deprecated('"--> BasicSynchrotron" will be deprecated ' +
-                'in the near future. Use "Synchrotron" instead.\n')
-    def __init__(self, *args, **kwargs):
-        Synchrotron.__init__(self, *args, **kwargs)
+    pass

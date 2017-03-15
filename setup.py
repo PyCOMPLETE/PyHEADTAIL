@@ -4,7 +4,7 @@
 # http://nfoti.github.io/a-creative-blog-name/posts/2013/02/07/cleaning-cython-build-files/
 
 import numpy as np
-from _version import __version__
+from PyHEADTAIL._version import __version__
 
 import re, os, sys, subprocess
 import numpy as np
@@ -32,16 +32,16 @@ if not __version__[0].isdigit():
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
 if "cleanall" in args:
-    print "Deleting cython and fortran compilation files..."
+    print ("Deleting cython and fortran compilation files...")
     # Just in case the build directory was created by accident,
     # note that shell=True should be OK here because the command is constant.
     subprocess.Popen("rm -rf ./build", shell=True, executable="/bin/bash")
     subprocess.Popen("find ./ -name *.c | xargs rm -f", shell=True)
     subprocess.Popen("find ./ -name *.so | xargs rm -f", shell=True)
+    subprocess.Popen("find ./ -name *.html | xargs rm -f", shell=True)
 
     # Now do a normal clean
-    sys.argv[1] = "clean"
-    exit(1)
+    sys.argv = [sys.argv[0], 'clean']
 
 
 # We want to always use build_ext --inplace
@@ -60,20 +60,11 @@ with open('README.rst', 'rb') as f:
 # Set up extension and build
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 cy_ext = [
-    Extension("PyHEADTAIL.solvers.grid_functions",
-              ["PyHEADTAIL/solvers/grid_functions.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"],
-              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
     Extension("PyHEADTAIL.cobra_functions.stats",
               ["PyHEADTAIL/cobra_functions/stats.pyx"],
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("PyHEADTAIL.solvers.compute_potential_fgreenm2m",
-              ["PyHEADTAIL/solvers/compute_potential_fgreenm2m.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"]),
     Extension("PyHEADTAIL.aperture.aperture_cython",
               ["PyHEADTAIL/aperture/aperture_cython.pyx"],
               include_dirs=[np.get_include()],
@@ -95,7 +86,7 @@ setup(
     version=__version__,
     description='CERN PyHEADTAIL numerical n-body simulation code '
         'for simulating macro-particle beam dynamics with collective effects.',
-    url='http://github.com/PyCOMPLETE/PyHEADTAIL',
+    url='https://github.com/PyCOMPLETE/PyHEADTAIL',
     packages=find_packages(),
     long_description=long_description,
     cmdclass={'build_ext': build_ext},

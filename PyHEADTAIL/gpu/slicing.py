@@ -63,8 +63,8 @@ slice_to_particles = ElementwiseKernel(
 )
 
 
-from PyPIC.meshing import UniformMesh1D
-from PyPIC.gradient.gradient import make_GPU_gradient
+from PyPIC.GPU.meshing import UniformMesh1D
+from PyPIC.GPU.gradient.gradient import make_GPU_gradient
 
 
 class MeshSliceSet(def_slicing.SliceSet):

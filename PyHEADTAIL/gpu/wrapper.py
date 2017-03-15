@@ -1,6 +1,6 @@
 from __future__ import division
 
-from .oldinit import def_wrapper
+from ..trackers import wrapper as def_wrapper
 
 from pycuda.elementwise import ElementwiseKernel
 

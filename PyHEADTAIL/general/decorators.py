@@ -11,16 +11,18 @@ from ..gpu import gpu_utils
 
 
 def deprecated(message):
-    '''Deprecation warning as described in warnings documentaion.
+    '''Deprecation warning as described in warnings documentation.
     '''
     def deprecated_decorator(func):
         @wraps(func)
         def deprecated_wrapper(*args, **kwargs):
+            if func.__name__ == "__init__":
+                name = args[0].__name__
+            else:
+                name = func.__name__
             warnings.simplefilter('always', DeprecationWarning)
-            warnings.warn('\n\n*** DEPRECATED function: ' +
-                          '"{:s}" '.format(func.__name__) +
-                          'will be replaced in one of the future ' +
-                          'PyHEADTAIL releases!',
+            warnings.warn('\n\n*** DEPRECATED: "{:s}" will be replaced in a future '
+                          'PyHEADTAIL release!'.format(name),
                           category=DeprecationWarning, stacklevel=2)
             warnings.simplefilter('default', DeprecationWarning)
             print message
