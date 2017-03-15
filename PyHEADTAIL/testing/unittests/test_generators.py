@@ -130,7 +130,8 @@ class TestParticleGenerators(unittest.TestCase):
         bunch = gf.ParticleGenerator(
                 nparticles, 1e11, constants.e, constants.m_p,
                 self.circumference, self.gamma,
-                distribution_z=gf.RF_bucket_distribution(bucket, epsn_z=0.002)).generate()
+                distribution_z=gf.RF_bucket_distribution(
+                    bucket, epsn_z=0.002, printer=SilentPrinter())).generate()
 
     def test_cut_bucket_distribution(self):
         '''Tests functionality of the cut-bucket matchor '''
