@@ -619,7 +619,7 @@ class RFBucketMatcher(Printing):
 
 class StationaryExponential(object):
 
-    def __init__(self, H, Hmax=None, width=1000, Hcut=0):
+    def __init__(self, H, Hmax=None, Hcut=0):
         self.H = H
         self.H0 = 1
         if not Hmax:
@@ -627,13 +627,12 @@ class StationaryExponential(object):
         else:
             self.Hmax = Hmax
         self.Hcut = Hcut
-        self.width = width
+
+    def _psi(self, H):
+        return np.exp((H - self.Hmax) / self.H0) - np.exp(-self.Hmax / self.H0)
 
     def function(self, z, dp):
-        H_hat = self.H(0., 0.).clip(min=0)
-        psi = np.exp((self.H(z, dp).clip(min=0)-H_hat)/self.H0) - np.exp(-H_hat/self.H0)
-        psi_norm = np.exp((self.Hmax-H_hat)/self.H0) - np.exp(-H_hat/self.H0)
-        return psi/psi_norm
+        return self._psi(self.H(z, dp).clip(min=0)) / self._psi(self.Hmax)
 
 
 class HEADTAILcoords(object):
