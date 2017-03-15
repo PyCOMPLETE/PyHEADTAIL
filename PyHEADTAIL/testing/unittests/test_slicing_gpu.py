@@ -18,8 +18,8 @@ import unittest
 import numpy as np
 from scipy.constants import c, e, m_p
 
-sys.path.append(os.path.expanduser('~/cern/git/PyPIC-experimental'))
-from PyPIC.meshing import UniformMesh1D
+sys.path.append(os.path.expanduser('~/cern/git/'))
+from PyPIC.GPU.meshing import UniformMesh1D
 
 from pycuda.autoinit import context
 from pycuda import gpuarray
