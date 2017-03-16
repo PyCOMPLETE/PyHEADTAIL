@@ -6,14 +6,14 @@ Dispatches for CPU/GPU versions
 '''
 import numpy as np
 from ..cobra_functions import stats as cp
-from ..gpu import gpu_utils
-from ..gpu import gpu_wrap
 try:
     import pycuda.cumath
     import pycuda.gpuarray
     import pycuda.tools
+    from ..gpu import gpu_utils
+    from ..gpu import gpu_wrap
     has_pycuda = gpu_wrap.has_pycuda
-except ImportError:
+except (ImportError, OSError):
     # print ('No Pycuda in pmath.py import statement found')
     has_pycuda = False
 try:
