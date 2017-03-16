@@ -36,7 +36,7 @@ And there you go, start using PyHEADTAIL!
 
     In [1]: import PyHEADTAIL
 
-    PyHEADTAIL v1.11.1
+    PyHEADTAIL v1.11.2
 
 
 -------------------------------------------------------------------------------
