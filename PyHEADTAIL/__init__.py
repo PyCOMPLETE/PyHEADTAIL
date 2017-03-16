@@ -4,9 +4,11 @@ try:
     worktree = os.path.dirname(
         os.path.dirname(os.path.abspath(__file__)))
     gitdir = worktree + '/.git/'
-    __version__ = subprocess.check_output(
-        'git --git-dir=' + gitdir + ' --work-tree=' +
-        worktree + ' describe --long --dirty --abbrev=10 --tags', shell=True)
+    with open(os.devnull, 'w') as devnull:
+        __version__ = subprocess.check_output(
+            'git --git-dir=' + gitdir + ' --work-tree=' +
+            worktree + ' describe --long --dirty --abbrev=10 --tags',
+            shell=True, stderr=devnull)
     __version__ = __version__.decode('utf-8').rstrip() # remove trailing \n
     __version__ = __version__[1:] # remove leading v
     # remove commit hash to conform to PEP440:
