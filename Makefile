@@ -2,9 +2,9 @@
 NVCC_RESULT := $(shell which nvcc)
 NVCC_TEST := $(notdir $(NVCC_RESULT))
 
-.PHONY: clean PyHEADTAIL PyHEADTAILGPU
+.PHONY: clean PyHEADTAIL PyHEADTAILGPU errfff
 
-all: PyHEADTAIL PyHEADTAILGPU
+all: PyHEADTAIL PyHEADTAILGPU errfff
 
 PyHEADTAIL:
 	python setup.py build_ext --inplace
@@ -15,6 +15,10 @@ ifeq ($(NVCC_TEST),nvcc)
 else
 	@echo "GPU: Thrust interface not compiled because nvcc compiler not found."
 endif
+
+errfff:
+	f2py -c PyHEADTAIL/general/errfff.f90 -m errfff
+	mv errfff.so PyHEADTAIL/general/
 
 clean:
 	python setup.py build_ext --inplace cleanall

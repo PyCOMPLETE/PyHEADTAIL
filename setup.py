@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # thanks to Nick Foti for his cython skeleton, cf.
 # http://nfoti.github.io/a-creative-blog-name/posts/2013/02/07/cleaning-cython-build-files/
@@ -22,11 +22,6 @@ if platform.system() is 'Darwin':
            "$ CC=gcc-4.9 ./install\n"
            "(or any equivalent version of gcc)")
     raw_input('Hit any key to continue...')
-
-
-if not __version__[0].isdigit():
-    raise RuntimeError("Unable to determine version from _version.py, "
-                       "perhaps no git-describe available?")
 
 
 args = sys.argv[1:]
@@ -58,7 +53,11 @@ with open('README.rst', 'rb') as f:
 
 
 # Set up extension and build
-cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
+cy_ext_options = {
+    "compiler_directives": {"profile": True, # SLOW!!!
+                            "embedsignature": True},
+    "annotate": True,
+}
 cy_ext = [
     Extension("PyHEADTAIL.cobra_functions.stats",
               ["PyHEADTAIL/cobra_functions/stats.pyx"],
@@ -91,7 +90,7 @@ setup(
     author_email='Kevin.Li@cern.ch',
     maintainer='Adrian Oeftiger',
     maintainer_email='Adrian.Oeftiger@cern.ch',
-    packages=['PyHEADTAIL'],
+    packages=find_packages(),
     long_description=long_description,
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
@@ -102,10 +101,10 @@ setup(
         'h5py',
         'cython',
     ]
-    )
-
-from numpy.distutils.core import setup, Extension
-setup(
-    ext_modules = [Extension('PyHEADTAIL.general.errfff',
-                             ['PyHEADTAIL/general/errfff.f90'])],
 )
+
+# from numpy.distutils.core import setup, Extension
+# setup(
+#     ext_modules = [Extension('PyHEADTAIL.general.errfff',
+#                              ['PyHEADTAIL/general/errfff.f90'])],
+# )
