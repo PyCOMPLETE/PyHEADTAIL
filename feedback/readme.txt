@@ -4,6 +4,12 @@ This is a simplified version of the feedback module, which main repository can b
 [gitlab.cern.ch/jakomppu/PyHEADTAIL_feedback](https://gitlab.cern.ch/jakomppu/PyHEADTAIL_feedback).
 The code here can be found as a branch in the main repository of the module.
 
+## v0.1.2 -> v0.1.4  (22.03.2017)
+    * setup.py for the cython functions
+    * New signal processor: DCNoiseGenerator
+    * Bug fix: Turn delay was slightly inaccurate due to the zero initial value for the loop
+    * Bug fix: Impulse response was not properly normalized, when the second cut off frequency was set to filters
+
 ## v0.1.1 -> v0.1.2  (25.10.2016)
     * The previous solution to the np.dot performance issue in LSF did not work with all python versions. Thus in this
       version matrix product has been written in Cython which seems to be a stable solution to the problem.

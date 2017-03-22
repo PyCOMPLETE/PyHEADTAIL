@@ -8,7 +8,6 @@ from scipy.constants import c, pi
 import scipy.integrate as integrate
 import scipy.special as special
 from scipy import linalg
-import pyximport; pyximport.install()
 from cython_functions import cython_matrix_product
 
 """
@@ -310,7 +309,7 @@ class Filter(LinearTransform):
 
             def transfer_function(x):
                 if np.abs(x) < threshold_tau:
-                    return self.raw_impulse_response(np.sign(x)*threshold_tau)
+                    return self.raw_impulse_response(np.sign(x)*threshold_tau)/ norm_coeff
                 else:
                     return self.raw_impulse_response(x) / norm_coeff
         else:
@@ -651,6 +650,8 @@ class NoiseGenerator(Addition):
             randoms = np.random.randn(len(seed))
         elif self._distribution == 'uniform':
             randoms = 1./0.577263*(-1.+2.*np.random.rand(len(seed)))
+        else:
+            raise ValueError('Unknown distribution')
 
         if self._reference_level == 'absolute':
             addend = self._RMS_noise_level*randoms
@@ -658,8 +659,52 @@ class NoiseGenerator(Addition):
             addend = self._RMS_noise_level*np.max(seed)*randoms
         elif self._reference_level == 'local':
             addend = seed*self._RMS_noise_level*randoms
+        else:
+            raise ValueError('Unknown reference level')
 
         return addend
+
+
+class DCNoiseGenerator(Addition):
+    """ Adds DC turn by turn noise to a signal. The noise level is given as RMS value of
+        the absolute level (reference_level = 'absolute'), a relative RMS level to the maximum
+        signal (reference_level = 'maximum') or a relative RMS level to local signal values
+        (reference_level = 'local'). Options for the noise distribution are a Gaussian (normal)
+        distribution (distribution = 'normal') and an uniform distribution
+        (distribution = 'uniform')
+    """
+
+    def __init__(self,RMS_noise_level,reference_level = 'absolute', distribution = 'normal'):
+
+        self._RMS_noise_level = RMS_noise_level
+        self._reference_level = reference_level
+        self._distribution = distribution
+
+        super(self.__class__, self).__init__('signal', None, True)
+
+    def addend_function(self,seed):
+
+        addend = np.zeros(len(seed))
+
+        if self._distribution == 'normal' or self._distribution is None:
+            random = np.random.randn(1)[0]
+        elif self._distribution == 'uniform':
+            random = 1./0.577263*(-1.+2.*np.random.rand(1)[0])
+        else:
+            raise ValueError('Unknown distribution')
+
+        if self._reference_level == 'absolute':
+            random *= self._RMS_noise_level
+        elif self._reference_level == 'maximum':
+            random *= self._RMS_noise_level*np.max(seed)
+        else:
+            raise ValueError('Unknown reference level')
+
+        addend.fill(1.)
+        addend = addend*random
+
+        return addend
+
 
 class AdditionFromFile(Addition):
     """ Adds an array to the signal, which is produced by interpolation from the loaded data. Note the seed for
@@ -676,6 +721,7 @@ class AdditionFromFile(Addition):
 
     def addend_function(self, seed):
         return np.interp(seed, self._data[:, 0], self._data[:, 1])
+
 
 class Register(object):
     __metaclass__ = ABCMeta
@@ -755,13 +801,26 @@ class Register(object):
 
         if self._in_processor_chain == True:
             temp_signal = np.zeros(len(signal))
-            if len(self) > 0:
+
+            if (self.combination == 'combined') and (len(self) > 1):
+#            if (len(self) > 1):
                 prev = (np.zeros(len(self._register[0])),None,0,self._phase_advance)
 
-                for value in self:
-                    combined = self.combine(value,prev,None)
-                    prev = value
-                    temp_signal += combined / float(len(self))
+                for i, value in enumerate(self):
+                    if i == 0:
+                        prev = value
+                    else:
+                        combined = self.combine(value,prev,None)
+                        prev = value
+                        temp_signal += combined / float(len(self)-1)
+
+            elif (self.combination == 'individual') and (len(self) > 0):
+                prev = (np.zeros(len(self._register[0])),None,0,self._phase_advance)
+
+                for i, value in enumerate(self):
+                        combined = self.combine(value,prev,None)
+                        prev = value
+                        temp_signal += combined / float(len(self))
 
             return temp_signal
 
@@ -774,24 +833,22 @@ class Register(object):
 class VectorSumRegister(Register):
 
     def __init__(self, n_avg, tune, delay = 0, in_processor_chain=True):
-        self.combination = 'combined'
         super(self.__class__, self).__init__(n_avg, tune, delay, in_processor_chain)
+        self.combination = 'combined'
         self.required_variables = []
 
     def combine(self,x1,x2,reader_phase_advance,x_to_xp = False):
         # determines a complex number representation from two signals (e.g. from two pickups or different turns), by using
         # knowledge about phase advance between signals. After this turns the vector to the reader's phase
-        # TODO: Why not x2[3]-x1[3]?
 
         if (x1[3] is not None) and (x1[3] != x2[3]):
             phi_x1_x2 = x1[3]-x2[3]
             if phi_x1_x2 < 0:
                 # print "correction"
                 phi_x1_x2 += self._phase_shift_per_turn
+	    phi_x1_x2 += x1[2]-x2[2]
         else:
-            phi_x1_x2 = -1. * self._phase_shift_per_turn
-
-        print "Delta phi: " + str(phi_x1_x2*360./(2*pi)%360.)
+            phi_x1_x2 = x1[2]-x2[2]
 
         s = np.sin(phi_x1_x2/2.)
         c = np.cos(phi_x1_x2/2.)
@@ -856,9 +913,9 @@ class CosineSumRegister(Register):
     """
     def __init__(self, n_avg, tune, delay = 0, in_processor_chain=True):
 
-        self.combination = 'individual'
-
         super(self.__class__, self).__init__(n_avg, tune, delay, in_processor_chain)
+
+        self.combination = 'individual'
         self.required_variables = []
 
     def combine(self,x1,x2,reader_phase_advance,x_to_xp = False):

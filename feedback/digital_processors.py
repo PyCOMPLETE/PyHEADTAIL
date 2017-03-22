@@ -6,7 +6,6 @@ from scipy.constants import c, pi
 from itertools import izip, count
 from processors import Register
 from scipy import linalg
-import pyximport; pyximport.install()
 from cython_functions import cython_matrix_product
 
 """
@@ -272,12 +271,12 @@ class FIR_Register(Register):
                     in the register have negative indexes and vice versa
         :param in_processor_chain: if True, process() returns a signal, if False saves computing time
         """
-        self.combination = 'individual'
         # self.combination = 'combined'
         self._zero_idx = zero_idx
         self._n_taps = n_taps
 
         super(FIR_Register, self).__init__(n_taps, tune, delay, in_processor_chain)
+        self.combination = 'individual'
         self.required_variables = []
 
     def combine(self,x1,x2,reader_phase_advance,x_to_xp = False):

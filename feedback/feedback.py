@@ -286,13 +286,15 @@ class Kicker(object):
             # If there is only one register, uses signals from different turns for combination
 
             prev_signal = None
-            for signal in registers[0]:
-                if total_signal is None:
-                    prev_signal = signal
-                    total_signal = np.zeros(len(signal[0]))
-                total_signal += registers[0].combine(signal, prev_signal,reader_phase_advance, True)
-                n_signals += 1
-                prev_signal = signal
+            if len(registers[0])>1:
+                for signal in registers[0]:
+                    if total_signal is None:
+                        prev_signal = signal
+                        total_signal = np.zeros(len(signal[0]))
+                    else:
+                        total_signal += registers[0].combine(signal, prev_signal,reader_phase_advance, True)
+                        n_signals += 1
+                        prev_signal = signal
 
         else:
             # if len(registers) == 2 and registers[0].combination == 'combined':
@@ -302,10 +304,12 @@ class Kicker(object):
                 # one pair of registers
                 prev_register = registers[0]
                 first_iterable = 1
-            else:
+            elif registers[0].combination == 'individual':
                 # In other cases, loop can go through all successive register pairs
                 prev_register = registers[-1]
                 first_iterable = 0
+            else:
+                raise ValueError('Unknown type of combination')
 
             for register in registers[first_iterable:]:
                 # print prev_register

@@ -100,6 +100,10 @@ cy_ext = [
         Extension("aperture.aperture",
                  ["aperture/aperture.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
+                 ),
+        Extension("feedback.cython_functions",
+                 ["cython_functions/cython_functions.pyx"],
+                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  )
           ]
 
