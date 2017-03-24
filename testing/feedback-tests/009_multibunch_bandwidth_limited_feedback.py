@@ -1,12 +1,10 @@
 # This file can be run by using the following command:
-#$ mpirun -np 4 python 008_multibunch_separated_pickup_and_kicker.py
+#$ mpirun -np 4 python 007_multibunch_ideal_feedback.py
 
 """
-    This is a simple example for a multi bunch MPI feedback. It is based on the ideal bunch
-    feedback presented in the file '002_separated_pickup_and_kicker.ipynb'. The only difference
-    is that multiple bunches are simulated in parallel in this example.
+    This test is used for testing bandwidth limitations for a bunch by bunch damper. The test is
+    based on the code in the file '007_multibunch_ideal_feedback.py'
 """
-
 
 from __future__ import division
 
@@ -22,11 +20,11 @@ import matplotlib.pyplot as plt
 from scipy.constants import c, e, m_p, pi
 
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
-from PyHEADTAIL.feedback.feedback import Kicker, PickUp
+from PyHEADTAIL.feedback.feedback import OneboxFeedback
 from PyHEADTAIL.feedback.processors.multiplication import ChargeWeighter
-from PyHEADTAIL.feedback.processors.linear_transform import Averager
+from PyHEADTAIL.feedback.processors.convolution import Sinc, Lowpass, GaussianLowpass
 from PyHEADTAIL.feedback.processors.misc import Bypass
-from PyHEADTAIL.feedback.processors.register import Register
+from PyHEADTAIL.feedback.processors.resampling import ADC, DAC, UpSampler
 
 plt.switch_backend('TkAgg')
 sns.set_context('talk', font_scale=1.3)
@@ -45,7 +43,7 @@ def pick_signals(processor, source = 'input'):
     :return: (t, z, bins, signal), where 't' and 'z' are time or position values for the signal values (which can be used
         as x values for plotting), 'bins' are data for visualizing sampling and 'signal' is the actual signal.
     """
-    print processor
+
     if source == 'input':
         bin_edges = processor.input_parameters['bin_edges']
         raw_signal = processor.input_signal
@@ -85,12 +83,14 @@ def kicker(bunch):
     A function which sets initial kicks for the bunches. The function is passed to the bunch generator
     in the machine object.
     """
+#    bunch.x[:] += 1e-3
+#    bunch.y[:] += 1e-3
     bunch.x *= 0
     bunch.xp *= 0
     bunch.y *= 0
     bunch.yp *= 0
-    bunch.x[:] += 2e-2 * np.sin(2.*pi*np.mean(bunch.z)/1000.)
-
+    f = (1./20e6)*c
+    bunch.x[:] += 1e-3 * np.sin(2.*pi*(np.mean(bunch.z)-bunch.z[0])*f)
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
@@ -98,7 +98,7 @@ rank = comm.Get_rank()
 
 # SIMULATION, BEAM AND MACHNINE PARAMETERS
 # ========================================
-n_turns = 100
+n_turns = 1
 n_segments = 1
 n_macroparticles = 40000
 
@@ -116,7 +116,7 @@ sigma_z = 0.081
 # Bunches are created by creating a list of numbers representing the RF buckets to be filled.
 
 n_bunches = 13
-filling_scheme = [401 + 20*i for i in range(n_bunches)]
+filling_scheme = [401 + 10*i for i in range(n_bunches)]
 
 # Machine returns a super bunch, which contains particles from all of the bunches
 # and can be split into separate bunches
@@ -132,76 +132,64 @@ slicer = UniformBinSlicer(50, n_sigma_z=3)
 
 # FEEDBACK MAP
 # ==============
-# Actual code for the feedback. It is exactly same as used in the file
-# '002_separated_pickup_and_kicker.ipynb' expect that 'mpi' flag is set into 'True'.
-#
-# The flags 'store_signal' of the signal processors are set into 'True'
-#  in order to visualize signal processing after the simulation,
 
-pickup_beta_x = machine.beta_x_inj
-pickup_beta_y = machine.beta_y_inj
+fc=10e6 # Damper cutoff frequency
+bunch_length = 2.49507468767912e-08/5.
+bunch_spacing = 2.49507468767912e-08
 
-kicker_beta_x = machine.beta_x_inj
-kicker_beta_y = machine.beta_y_inj
+f_ADC = 10./bunch_spacing
 
-pickup_location_x = 1.*2.*pi/float(n_segments)*machine.Q_x
-pickup_location_y = 1.*2.*pi/float(n_segments)*machine.Q_y
+processors_x = [
+#        Bypass(store_signal=True),
+        ChargeWeighter(normalization='segment_average', store_signal=True),
 
-kicker_location_x = 2.*2.*pi/float(n_segments)*machine.Q_x
-kicker_location_y = 2.*2.*pi/float(n_segments)*machine.Q_y
+        # It is recommended to resample the bunch in order to synchronize the slices
+        # with bunch spacing, which helps the convolution. Parameters f_ADC and signal_length
+        # should not affect significantly the reults, when signal_length is longer than
+        # bunch_length and f_ADC is a couple of times higher than bunch frequency
+        ADC(f_ADC, signal_length=0.5*bunch_spacing, store_signal=True),
 
-delay = 1
-n_values = 3
+        # It is recommended to use a gaussian lowpass filter. Sharp edges in impulse responses
+        # are challenging from a simulation point of view (e.g. Lowpass and PhaseLinearizedLowpass)
+        # and Sinc filter is too sensitive to cut off frequency, because oscillations in
+        # the impulse response might be in resonance with the bunch spacing. Thus the gaussian
+        # filter is the most stable solution.
+        GaussianLowpass(fc, normalization=('bunch_by_bunch', bunch_length, bunch_spacing),
+                        store_signal=True),
+#        Lowpass(fc, normalization=('bunch_by_bunch', bunch_length, bunch_spacing),
+#               store_signal=True),
+#        Sinc(fc,normalization=('bunch_by_bunch', bunch_length,bunch_spacing),
+#             store_signal=True),
 
-processors_pickup_x = [
-    ChargeWeighter(normalization = 'segment_average',store_signal  = True),
-    Averager(store_signal  = True),
-    Register(n_values, machine.Q_x, delay,store_signal  = True)
+        # DAC returs the signal to the original bin set.
+        DAC(store_signal=True)
 ]
-processors_pickup_y = [
-    ChargeWeighter(normalization = 'segment_average',store_signal  = True),
-    Averager(store_signal  = True),
-    Register(n_values, machine.Q_y, delay,store_signal  = True)
+processors_y = [
+#        Bypass(store_signal=True),
+        ChargeWeighter(normalization='segment_average', store_signal=True),
+        ADC(f_ADC, signal_length=0.5*bunch_spacing, store_signal=True),
+        GaussianLowpass(fc, normalization=('bunch_by_bunch', bunch_length, bunch_spacing),
+                        store_signal=True),
+#        Lowpass(fc, normalization=('bunch_by_bunch', bunch_length, bunch_spacing),
+#               store_signal=True),
+#        Sinc(fc,normalization=('bunch_by_bunch', bunch_length,bunch_spacing),
+#             store_signal=True),
+        DAC(store_signal=True)
 ]
-
-pickup_map = PickUp(slicer,processors_pickup_x,processors_pickup_y,
-                    pickup_location_x, pickup_beta_x, pickup_location_y, pickup_beta_y, mpi = True)
-
-processors_kicker_x = [Bypass(store_signal  = True)]
-processors_kicker_y = [Bypass(store_signal  = True)]
-
-registers_x = [processors_pickup_x[-1]]
-registers_y = [processors_pickup_y[-1]]
-
 gain = 0.1
+feedback_map = OneboxFeedback(gain, slicer, processors_x, processors_y, axis='displacement', mpi = True)
 
-kicker_map = Kicker(gain, slicer,
-                    processors_kicker_x, processors_kicker_y, registers_x, registers_y,
-                    kicker_location_x, kicker_beta_x, kicker_location_y, kicker_beta_y, mpi = True)
-
-# The kicker and the pickup are placed into the correct slots of the one turn map
-
-new_one_turn_map = []
-for i, m in enumerate(machine.one_turn_map):
-
-    if i == 1:
-        new_one_turn_map.append(pickup_map)
-
-    if i == 2:
-        new_one_turn_map.append(kicker_map)
-
-    new_one_turn_map.append(m)
-
-machine.one_turn_map = new_one_turn_map
+# The map is included directly into the total map in the machine.
+machine.one_turn_map.append(feedback_map)
 
 # TRACKING LOOP
 # =============
 s_cnt = 0
 monitorswitch = False
+
 if rank == 0:
     print '\n--> Begin tracking...\n'
 
-print 'Tracking'
 for i in range(n_turns):
 
     if rank == 0:
@@ -213,17 +201,23 @@ for i in range(n_turns):
         print('Turn {:d}, {:g} ms, {:s}'.format(i, (t1-t0)*1e3, time.strftime(
             "%d/%m/%Y %H:%M:%S", time.localtime())))
 
+# VISUALIZATION
+# =============
 if rank == 0:
     # On the first processor, the script plots signals passed each signal processor from
     # the last simulated turn of the simulation
 
     fig, (ax1, ax2) = plt.subplots(2, figsize=(14, 14), sharex=False)
-    fig.suptitle('Pickup processors', fontsize=20)
 
-    for i, processor in enumerate(processors_pickup_x):
+    for i, processor in enumerate(processors_x):
         t, z, bins, signal = pick_signals(processor,'output')
         ax1.plot(z, bins*(0.9**i), label =  processor.label)
         ax2.plot(z, signal, label =  processor.label)
+#	if i == 0:
+#		print z
+#		print feedback_map._mpi_gatherer.total_data
+#		print feedback_map._mpi_gatherer.total_data.z_bins
+
 
     # The first plot represents sampling in the each signal processor. The magnitudes of the curves do not represent
     # anything, but the change of the polarity represents a transition from one bin to another.
@@ -237,24 +231,5 @@ if rank == 0:
     ax2.set_ylabel('Signal')
     ax2.legend(loc='upper left')
 
-    fig, (ax3, ax4) = plt.subplots(2, figsize=(14, 14), sharex=False)
-    fig.suptitle('Kicker processors', fontsize=20)
-
-    for i, processor in enumerate(processors_kicker_x):
-        t, z, bins, signal = pick_signals(processor,'output')
-        ax3.plot(z, bins*(0.9**i), label =  processor.label)
-        ax4.plot(z, signal, label =  processor.label)
-
-    # The first plot represents sampling in the each signal processor. The magnitudes of the curves do not represent
-    # anything, but the change of the polarity represents a transition from one bin to another.
-    ax3.set_ylim([-1.1, 1.1])
-    ax3.set_xlabel('Z position [m]')
-    ax3.set_ylabel('Bin set')
-    ax3.legend(loc='upper left')
-
-    # Actual signals
-    ax4.set_xlabel('Z position [m]')
-    ax4.set_ylabel('Signal')
-    ax4.legend(loc='upper left')
-
+    plt.legend()
     plt.show()

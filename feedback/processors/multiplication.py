@@ -6,19 +6,25 @@ import copy
 class Multiplication(object):
     __metaclass__ = ABCMeta
     """ An abstract class which multiplies the input signal by an array. The multiplier array is produced by taking
-        a slice property (determined in the input parameter 'seed') and passing it through the abstract method, namely
+        a slice property (determined by the input parameter 'seed') and passing it through the abstract method
         multiplication_function(seed).
     """
     def __init__(self, seed, normalization = None, recalculate_multiplier = False, store_signal = False):
         """
-        :param seed: 'bin_length', 'bin_midpoint', 'signal' or a property of a slice, which can be found
-            from slice_set
-        :param normalization:
-            'total_weight':  a sum of the multiplier array is equal to 1.
-            'average_weight': an average in  the multiplier array is equal to 1,
-            'maximum_weight': a maximum value in the multiplier array value is equal to 1
-            'minimum_weight': a minimum value in the multiplier array value is equal to 1
-        :param: recalculate_weight: if True, the weight is recalculated every time when process() is called
+        :param seed: a seed for the multiplier, which can be 'bin_length', 'bin_midpoint', 'signal' or any slice
+            property found from slice_set
+        :param normalization: normalization of the multiplier
+            'total_sum': The sum over the multiplier is equal to 1
+            'segment_sum': The sum of the multiplier over each signal segment is equal to 1
+            'total_average': The average of the multiplier is equal to 1
+            'segment_average': The average multiplier of each signal segment is equal to 1
+            'total_integral': The total integral over the multiplier is equal to 1
+            'segment_integral': The integral of the multiplier over each signal segment is equal to 1
+            'total_min': The minimum of the multiplier is equal to 1
+            'segment_min': The minimum of the multiplier in each signal segment is equal to 1
+            'total_max': The minimum of the multiplier is equal to 1
+            'segment_max': The minimum of the multiplier in each signal segment is equal to 1
+        :param recalculate_weight: if True, the weight is recalculated every time when process() is called
         """
 
         self._seed = seed
@@ -32,54 +38,54 @@ class Multiplication(object):
         self.extensions = ['store']
         self._store_signal = store_signal
 
-        if self._seed not in ['bin_length','bin_midpoint','signal']:
+        if self._seed not in ['bin_length','bin_midpoint','signal','ones']:
             self.extensions.append('bunch')
             self.required_variables = [self._seed]
 
         self.input_signal = None
-        self.input_signal_parameters = None
+        self.input_parameters = None
 
         self.output_signal = None
-        self.output_signal_parameters = None
+        self.output_parameters = None
 
     @abstractmethod
     def multiplication_function(self, seed):
         pass
 
-    def process(self,signal_parameters, signal, slice_sets = None, *args, **kwargs):
+    def process(self,parameters, signal, slice_sets = None, *args, **kwargs):
 
         if (self._multiplier is None) or self._recalculate_multiplier:
-            self.__calculate_multiplier(signal_parameters, signal, slice_sets)
+            self.__calculate_multiplier(parameters, signal, slice_sets)
 
         output_signal =  self._multiplier*signal
 
         if self._store_signal:
             self.input_signal = np.copy(signal)
-            self.input_signal_parameters = copy.copy(signal_parameters)
+            self.input_parameters = copy.copy(parameters)
             self.output_signal = np.copy(output_signal)
-            self.output_signal_parameters = copy.copy(signal_parameters)
+            self.output_parameters = copy.copy(parameters)
 
         # process the signal
-        return signal_parameters, output_signal
+        return parameters, output_signal
 
-    def __calculate_multiplier(self,signal_parameters, signal, slice_sets):
+    def __calculate_multiplier(self,parameters, signal, slice_sets):
         self._multiplier = np.zeros(len(signal))
 
         if self._seed == 'ones':
             self._multiplier = self._multiplier + 1.
-        elif self._seed == 'bin_length':
-            np.copyto(self._multiplier, (signal_parameters.bin_edges[:,1]-signal_parameters.bin_edges[:,0]))
+        elif self._seed == 'bin_width':
+            np.copyto(self._multiplier, (parameters['bin_edges'][:,1]-parameters['bin_edges'][:,0]))
         elif self._seed == 'bin_midpoint':
-            np.copyto(self._multiplier, ((signal_parameters.bin_edges[:,1]+signal_parameters.bin_edges[:,0])/2.))
+            np.copyto(self._multiplier, ((parameters['bin_edges'][:,1]+parameters['bin_edges'][:,0])/2.))
         elif self._seed == 'normalized_bin_midpoint':
 
-            for i in xrange(signal_parameters.n_segments):
-                i_from = i * signal_parameters.n_bins_per_segment
-                i_to = (i + 1) * signal_parameters.n_bins_per_segment
+            for i in xrange(parameters['n_segments']):
+                i_from = i * parameters['n_bins_per_segment']
+                i_to = (i + 1) * parameters['n_bins_per_segment']
 
-                np.copyto(self._multiplier[i_from:i_to], ((signal_parameters.bin_edges[i_from:i_to,1]+
-                                                           signal_parameters.bin_edges[i_from:i_to,0])/2.
-                                                          -signal_parameters.original_z_mids[i]))
+                np.copyto(self._multiplier[i_from:i_to], ((parameters['bin_edges'][i_from:i_to,1]+
+                                                           parameters['bin_edges'][i_from:i_to,0])/2.
+                                                          -parameters['segment_midpoints'][i]))
 
         elif self._seed == 'signal':
             np.copyto(self._multiplier,signal)
@@ -94,19 +100,63 @@ class Multiplication(object):
                 raise ValueError('Signal length does not correspond to the original signal length '
                                  'from the slice sets in the method Multiplication')
 
-        # print 'self._multiplier: ' + str(self._multiplier)
         self._multiplier = self.multiplication_function(self._multiplier)
 
+        # NOTE: add options for average bin integrals?
         if self._normalization is None:
             norm_coeff = 1.
-        elif self._normalization == 'total':
+
+        elif self._normalization == 'total_sum':
             norm_coeff = float(np.sum(self._multiplier))
-        elif self._normalization == 'average':
+
+        elif self._normalization == 'segment_sum':
+            norm_coeff = np.ones(len(self._multiplier))
+            for i in xrange(parameters['n_segments']):
+                i_from = i*parameters['n_bins_per_segment']
+                i_to = (i+1)*parameters['n_bins_per_segment']
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]))
+
+        elif self._normalization == 'total_average':
             norm_coeff = float(np.sum(self._multiplier))/float(len(self._multiplier))
-        elif self._normalization == 'maximum':
-            norm_coeff = float(np.max(self._multiplier))
-        elif self._normalization == 'minimum':
+
+        elif self._normalization == 'segment_average':
+            norm_coeff = np.ones(len(self._multiplier))
+            for i in xrange(parameters['n_segments']):
+                i_from = i*parameters['n_bins_per_segment']
+                i_to = (i+1)*parameters['n_bins_per_segment']
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]))/float(parameters['n_bins_per_segment'])
+
+        elif self._normalization == 'total_integral':
+            bin_widths = parameters['bin_edges'][:,1] - parameters['bin_edges'][:,0]
+            norm_coeff = np.sum(self._multiplier*bin_widths)
+
+        elif self._normalization == 'segment_integral':
+            bin_widths = parameters['bin_edges'][:,1] - parameters['bin_edges'][:,0]
+            norm_coeff = np.ones(len(self._multiplier))
+            for i in xrange(parameters['n_segments']):
+                i_from = i*parameters['n_bins_per_segment']
+                i_to = (i+1)*parameters['n_bins_per_segment']
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]*bin_widths[i_from:i_to]))
+
+        elif self._normalization == 'total_min':
             norm_coeff = float(np.min(self._multiplier))
+
+        elif self._normalization == 'segment_min':
+            norm_coeff = np.ones(len(self._multiplier))
+            for i in xrange(parameters['n_segments']):
+                i_from = i*parameters['n_bins_per_segment']
+                i_to = (i+1)*parameters['n_bins_per_segment']
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.min(self._multiplier[i_from:i_to]))
+
+        elif self._normalization == 'total_max':
+            norm_coeff = float(np.max(self._multiplier))
+
+        elif self._normalization == 'segment_max':
+            norm_coeff = np.ones(len(self._multiplier))
+            for i in xrange(parameters['n_segments']):
+                i_from = i*parameters['n_bins_per_segment']
+                i_to = (i+1)*parameters['n_bins_per_segment']
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.max(self._multiplier[i_from:i_to]))
         else:
             raise  ValueError('Unknown value in Multiplication._normalization')
 
@@ -119,10 +169,10 @@ class Multiplication(object):
 
 
 class ChargeWeighter(Multiplication):
-    """ weights signal with charge (macroparticles) of slices
+    """ The signal is weighted by charge (a number of macroparticles per slice)
     """
 
-    def __init__(self, normalization = 'maximum', **kwargs):
+    def __init__(self, normalization = 'segment_max', **kwargs):
         super(self.__class__, self).__init__('n_macroparticles_per_slice', normalization,recalculate_multiplier = True
                                              , **kwargs)
         self.label = 'Charge weighter'
@@ -182,6 +232,8 @@ class NoiseGate(Multiplication):
 
 
 class SignalMixer(Multiplication):
+    """ Multiplies signal with a sine wave. Phase is locked to the midpoint of the each bunch shifted by the value of
+     phase_shift [radians]"""
     def __init__(self,frequency,phase_shift, **kwargs):
 
         self._frequency = frequency
@@ -196,6 +248,8 @@ class SignalMixer(Multiplication):
 
 
 class IdealAmplifier(Multiplication):
+    """ An ideal amplifier/attenuator, which multiplies signal by a value of gain"""
+
     def __init__(self,gain, **kwargs):
 
         self._gain = gain
@@ -207,11 +261,20 @@ class IdealAmplifier(Multiplication):
         return seed * self._gain
 
 
+class SegmentAverage(Multiplication):
+    """An average of each signal segment is set to equal to 1. """
+    def __init__(self,**kwargs):
+
+        super(self.__class__, self).__init__('ones',normalization = 'segment_sum', **kwargs)
+        self.label = 'SegmentAverage'
+
+    def multiplication_function(self, seed):
+        return seed
+
 class MultiplicationFromFile(Multiplication):
-    """ Multiplies the signal with an array, which is produced by interpolation from the loaded data. Note the seed for
-        the interpolation can be any of those presented in the abstract function. E.g. a spatial weight can be
-        determined by using a bin midpoint as a seed, nonlinear amplification can be modelled by using signal itself
-        as a seed and etc...
+    """ Multiplies the signal with an array, which is produced by interpolation from the external data file. Note the seed
+        (unit) for the interpolation can be any of those available for the seed
+        (i.e. location, sigma, or a number of macroparticles per slice, etc.)
     """
 
     def __init__(self,filename, x_axis='time', seed='bin_midpoint', **kwargs):

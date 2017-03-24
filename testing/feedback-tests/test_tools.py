@@ -298,6 +298,7 @@ class MultibunchMachine(BasicSynchrotron):
         app_y = 0
         app_xy = 0
 
+        verbose = False
         wrap_z = True
 
 

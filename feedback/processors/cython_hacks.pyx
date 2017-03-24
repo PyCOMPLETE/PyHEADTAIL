@@ -1,6 +1,13 @@
+#TODO: maybe this could be simplified/avoided by using cimport scipy.linalg.cython_blas
+
 import numpy as np
 cimport numpy as np
 cimport cython
+
+""" The functions in this file have been written, because the dot product function of NumPy slowed down PyHEADTAIL
+    simulation in the CERN batch system by a factor of two or more. The only working solution which was found was to
+    write a new function for matrix product in Cython.
+"""
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

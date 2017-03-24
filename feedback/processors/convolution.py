@@ -72,9 +72,9 @@ class Impulse(object):
             # TODO: check rounding errors here
             if impulse_edges[0] <= signal_edges[0]:
                 idx_target_from = 0
-                idx_impulse_from = int((signal_edges[0]-impulse_edges[0])/self._bin_spacing)
+                idx_impulse_from = int(round((signal_edges[0]-impulse_edges[0])/self._bin_spacing))
             else:
-                idx_target_from = int((impulse_edges[0]-signal_edges[0])/self._bin_spacing)
+                idx_target_from = int(round((impulse_edges[0]-signal_edges[0])/self._bin_spacing))
                 idx_impulse_from = 0
 
             if impulse_edges[1] <= signal_edges[1]:
@@ -148,17 +148,17 @@ class Convolution(object):
         self._store_signal  = store_signal
 
         self.input_signal = None
-        self.input_signal_parameters = None
+        self.input_parameters = None
 
         self.output_signal = None
-        self.output_signal_parameters = None
+        self.output_parameters = None
 
 
-    def process(self, signal_parameters, signal, *args, **kwargs):
+    def process(self, parameters, signal, *args, **kwargs):
 
         if self.output_signal is None:
-            self.__init_variables(signal_parameters.bin_edges,signal,signal_parameters.n_segments,
-                                  signal_parameters.n_bins_per_segment)
+            self.__init_variables(parameters['bin_edges'],signal,parameters['n_segments'],
+                                  parameters['n_bins_per_segment'])
         else:
             self.output_signal.fill(0.)
 
@@ -171,15 +171,16 @@ class Convolution(object):
             for target_bunch, impulse_view in zip(impulse_object.target_bunches, impulse_object.impulse_views):
                 if self._impulse_objects[target_bunch].signal_views[i] is not None:
                     self._impulse_objects[target_bunch].signal_views[i] += impulse_view
+                    # self._impulse_objects[target_bunch].signal_views[i] = np.add(self._impulse_objects[target_bunch].signal_views[i],impulse_view)
                 else:
                     raise ValueError('Memviews are not synchronized!')
 
         if self._store_signal:
             self.input_signal = copy.copy(signal)
-            self.input_signal_parameters = copy.copy(signal_parameters)
-            self.output_signal_parameters = copy.copy(signal_parameters)
+            self.input_parameters = copy.copy(parameters)
+            self.output_parameters = copy.copy(parameters)
 
-        return signal_parameters, self.output_signal
+        return parameters, self.output_signal
 
     def __init_variables(self,bin_edges,signal,n_segments,n_bins_per_segment):
 
@@ -216,7 +217,7 @@ class Convolution(object):
             idx_from = i * self._n_bins_per_segment
             idx_to = (i + 1) * self._n_bins_per_segment
 
-            impulse_limits = (self._impulse_bin_edges[0,0], self._impulse_bin_edges[-1,1])
+            impulse_limits = (self._impulse_bin_edges[0,0]+ 0.5*self._bin_spacing, self._impulse_bin_edges[-1,1]+ 0.5*self._bin_spacing)
             signal_from = bin_edges[self._n_bins_per_segment * i,0]
             signal_to = bin_edges[self._n_bins_per_segment * (i + 1)-1, 1]
 
@@ -350,8 +351,6 @@ class WaveletGenerator(Convolution):
         else:
             return 1.
 
-
-
 class ConvolutionFromFile(Convolution):
     """ Interpolates matrix columns by using inpulse response data from a file. """
 
@@ -387,26 +386,86 @@ class ConvolutionFromFile(Convolution):
 class ConvolutionFilter(Convolution):
     __metaclass__ = ABCMeta
 
-    def __init__(self,scaling,impulse_range,zero_bin_value = 0., tip_cut_width=None, norm_type=None, norm_range=None, **kwargs):
+    def __init__(self,scaling,impulse_range,zero_bin_value = None, tip_cut_width=None, normalization=None, norm_range=None, **kwargs):
 
         self._scaling = scaling
-        self._norm_type = norm_type
+        self._normalization = normalization
         self._norm_range = norm_range
         self._zero_bin_value = zero_bin_value
         super(ConvolutionFilter, self).__init__(impulse_range, **kwargs)
+
+        # NOTE: is the tip cut needed? How to work with the sharp tips of the ideal filters?
+        if (self._normalization is None) and (tip_cut_width is not None):
+            self._normalization = 'integral'
         self._impulse_response = self._impulse_response_generator(tip_cut_width)
 
     def calculate_response(self, impulse_bin_mids, impulse_bin_edges):
 
+        # FIXME: take into account the symmetry of the impulse response
+
         impulse_values = np.zeros(len(impulse_bin_mids))
+
         for i, edges in enumerate(impulse_bin_edges):
             integral_from = edges[0] * self._scaling
             integral_to = edges[1] * self._scaling
 
             impulse_values[i], _ = integrate.quad(self._impulse_response, integral_from, integral_to)
 
-            if (edges[0] <= 0.) and (0. < edges[1]):
-                impulse_values[i] = impulse_values[i] + self._zero_bin_value
+        if self._normalization is None:
+            pass
+        elif isinstance(self._normalization, float):
+            impulse_values = impulse_values/self._normalization
+        elif isinstance(self._normalization, tuple):
+            if self._normalization[0] == 'bunch_by_bunch':
+                bunch_length = self._normalization[1] * c
+                bunch_spacing = self._normalization[2] * c
+
+                bunch_locations = np.array([])
+                if (impulse_bin_edges[0,0] < 0):
+                    bunch_locations = np.append(bunch_locations, -1.*np.arange(0.,-1.*impulse_bin_edges[0,0],bunch_spacing))
+                if (impulse_bin_edges[-1,1] > 0):
+                    bunch_locations = np.append(bunch_locations, np.arange(0.,impulse_bin_edges[-1,1],bunch_spacing))
+
+                bunch_locations = np.unique(bunch_locations)
+
+                min_mask = (bunch_locations >= impulse_bin_edges[0,0])
+                max_mask = (bunch_locations <= impulse_bin_edges[-1,1])
+
+                bunch_locations = bunch_locations[min_mask*max_mask]
+
+                total_sum = 0.
+
+                # TODO: check, which is the best way to calculate the normalization coefficient
+                total_sum = np.sum(np.interp([bunch_locations], impulse_bin_mids, impulse_values))
+#                for location in bunch_locations:
+#                    min_mask = (impulse_bin_mids > (location - bunch_length/2.))
+#                    max_mask = (impulse_bin_mids < (location + bunch_length/2.))
+#
+#                    total_sum += np.mean(impulse_values[min_mask*max_mask])
+
+                impulse_values = impulse_values/total_sum
+
+            else:
+                raise ValueError('Unknown normalization method')
+
+        elif self._normalization == 'max':
+            impulse_values = impulse_values/np.max(impulse_values)
+        elif self._normalization == 'min':
+            impulse_values = impulse_values/np.min(impulse_values)
+        elif self._normalization == 'average':
+            impulse_values = impulse_values/np.abs(np.mean(impulse_values))
+        elif self._normalization == 'sum':
+            impulse_values = impulse_values/np.abs(np.sum(impulse_values))
+        elif self._normalization == 'integral':
+            bin_widths = impulse_bin_edges[:,1]-impulse_bin_edges[:,0]
+            impulse_values = impulse_values / np.abs(np.sum(impulse_values*bin_widths))
+        else:
+            raise ValueError('Unknown normalization method')
+
+        if self._zero_bin_value is not None:
+            for i, edges in enumerate(impulse_bin_edges):
+                if (edges[0] <= 0.) and (0. < edges[1]):
+                    impulse_values[i] = impulse_values[i] + self._zero_bin_value
 
         return impulse_values
 
@@ -423,35 +482,16 @@ class ConvolutionFilter(Convolution):
             is given, the value of the raw impulse response is set to constant at the time scale below that.
             The integral over the response function is normalized to value 1.
         """
-        if self._norm_type is None:
-            norm_from = -100.
-            norm_to = 100.
-        elif self._norm_type == 'impulse_length':
-            norm_from = self._scaling * self._impulse_range[0]
-            norm_to = self._scaling * self._impulse_range[1]
-        elif self._norm_type == 'range':
-            norm_from = self._scaling * self._norm_range[0]
-            norm_to = self._scaling * self._norm_range[1]
-        else:
-            raise ValueError('Unknown value in Filter._norm_type')
 
         if tip_cut_width is not None:
-            threshold_val_neg = self._raw_impulse_response(-1.*tip_cut_width)
-            threshold_val_pos = self._raw_impulse_response(tip_cut_width)
-            integral_neg, _ = integrate.quad(self._raw_impulse_response, norm_from, -1.*tip_cut_width)
-            integral_pos, _ = integrate.quad(self._raw_impulse_response, tip_cut_width, norm_to)
-
-            norm_coeff = np.abs(integral_neg + integral_pos + (threshold_val_neg + threshold_val_pos) * tip_cut_width)
             def transfer_function(x):
                 if np.abs(x) < tip_cut_width:
-                    return self._raw_impulse_response(np.sign(x)*tip_cut_width) / norm_coeff
+                    return self._raw_impulse_response(np.sign(x)*tip_cut_width)
                 else:
-                    return self._raw_impulse_response(x) / norm_coeff
+                    return self._raw_impulse_response(x)
         else:
-            norm_coeff, _ = np.abs(integrate.quad(self._raw_impulse_response, norm_from, norm_to))
-
             def transfer_function(x):
-                    return self._raw_impulse_response(x) / norm_coeff
+                    return self._raw_impulse_response(x)
 
         return transfer_function
 
@@ -511,6 +551,22 @@ class PhaseLinearizedLowpass(ConvolutionFilter):
             return 0.
         else:
             return special.k0(abs(x))
+
+
+class GaussianLowpass(ConvolutionFilter):
+    def __init__(self, f_cutoff, impulse_length = 5., **kwargs):
+        scaling = 2. * pi * f_cutoff / c
+        impulse_range = (-1.*impulse_length/scaling, impulse_length/scaling)
+
+
+        tip_cut_width = None
+
+        super(self.__class__, self).__init__( scaling, impulse_range, tip_cut_width = tip_cut_width, **kwargs)
+        self.label = 'Gaussian lowpass filter'
+
+    def _raw_impulse_response(self, x):
+        return np.exp(-x ** 2. / 2.) / np.sqrt(2. * pi)
+
 
 class Sinc(ConvolutionFilter):
     """ A nearly ideal lowpass filter, i.e. a windowed Sinc filter. The impulse response of the ideal lowpass filter
@@ -586,20 +642,20 @@ class FIRfilter(object):
         self._store_signal = store_signal
 
         self.input_signal = None
-        self.input_signal_parameters = None
+        self.input_parameters = None
 
         self.output_signal = None
-        self.output_signal_parameters = None
+        self.output_parameters = None
 
         self.label = 'Digital filter'
 
-    def process(self,signal_parameters, signal, *args, **kwargs):
+    def process(self,parameters, signal, *args, **kwargs):
 
         if self._mode == 'bunch_by_bunch':
 
             if self._n_segments is None:
-                self._n_segments = signal_parameters.n_segments
-                self._n_bins_per_segment = signal_parameters.n_bins_per_segment
+                self._n_segments = parameters['n_segments']
+                self._n_bins_per_segment = parameters['n_bins_per_segment']
                 self.output_signal = np.zeros(self._n_segments*self._n_bins_per_segment)
 
 
@@ -615,10 +671,10 @@ class FIRfilter(object):
 
         if self._store_signal:
             self.input_signal = np.copy(signal)
-            self.input_signal_parameters = copy.copy(signal_parameters)
-            self.output_bin_edges = copy.copy(signal_parameters)
+            self.input_parameters = copy.copy(parameters)
+            self.output_bin_edges = copy.copy(parameters)
 
-        return signal_parameters, self.output_signal
+        return parameters, self.output_signal
 
 
 class NumpyFIRfilter(FIRfilter):

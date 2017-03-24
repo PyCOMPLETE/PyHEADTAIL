@@ -6,19 +6,26 @@ from scipy.constants import c, pi
 class Addition(object):
     __metaclass__ = ABCMeta
     """ An abstract class which adds an array to the input signal. The addend array is produced by taking
-        a slice property (determined in the input parameter 'seed') and passing it through the abstract method, namely
+        a slice property (determined by the input parameter 'seed') and passing it through the abstract method
         addend_function(seed).
     """
 
     def __init__(self, seed, normalization = None, recalculate_addend = False, store_signal = False):
         """
-        :param seed: 'bin_length', 'bin_midpoint', 'signal' or a property of a slice, which can be found
-            from slice_set
+        :param seed: a seed for the addend, which can be 'bin_length', 'bin_midpoint', 'signal' or any slice
+            property found from slice_set
         :param normalization:
-            'total_weight':  a sum of the multiplier array is equal to 1.
-            'average_weight': an average in  the multiplier array is equal to 1,
-            'maximum_weight': a maximum value in the multiplier array value is equal to 1
-            'minimum_weight': a minimum value in the multiplier array value is equal to 1
+            None:
+            'total_sum': The sum over the addend is equal to 1
+            'segment_sum': The sum of the addend over each signal segment is equal to 1
+            'total_average': The total average of the addend is equal to 1
+            'segment_average': The average addend of each signal segment is equal to 1
+            'total_integral': The total integral over the addend is equal to 1
+            'segment_integral': The integral of the addend over each signal segment is equal to 1
+            'total_min': The minimum of the addend is equal to 1
+            'segment_min': The minimum of the addend in each signal segment is equal to 1
+            'total_max': The minimum of the addend is equal to 1
+            'segment_max': The minimum of the addend in each signal segment is equal to 1
         :param: recalculate_addend: if True, the weight is recalculated every time when process() is called
         """
 
@@ -97,16 +104,61 @@ class Addition(object):
 
         self._addend = self.addend_function(self._addend)
 
+        # NOTE: add options for average bin integrals?
         if self._normalization is None:
             norm_coeff = 1.
-        elif self._normalization == 'total':
+
+        elif self._normalization == 'total_sum':
             norm_coeff = float(np.sum(self._addend))
-        elif self._normalization == 'average':
+
+        elif self._normalization == 'segment_sum':
+            norm_coeff = np.ones(len(self._addend))
+            for i in xrange(signal_parameters.n_segments):
+                i_from = i*signal_parameters.n_bins_per_segment
+                i_to = (i+1)*signal_parameters.n_bins_per_segment
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]))
+
+        elif self._normalization == 'total_average':
             norm_coeff = float(np.sum(self._addend))/float(len(self._addend))
-        elif self._normalization == 'maximum':
-            norm_coeff = float(np.max(self._addend))
-        elif self._normalization == 'minimum':
+
+        elif self._normalization == 'segment_average':
+            norm_coeff = np.ones(len(self._addend))
+            for i in xrange(signal_parameters.n_segments):
+                i_from = i*signal_parameters.n_bins_per_segment
+                i_to = (i+1)*signal_parameters.n_bins_per_segment
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]))/float(signal_parameters.n_bins_per_segment)
+
+        elif self._normalization == 'total_integral':
+            bin_widths = signal_parameters.bin_edges[:,1] - signal_parameters.bin_edges[:,0]
+            norm_coeff = np.sum(self._addend*bin_widths)
+
+        elif self._normalization == 'segment_integral':
+            bin_widths = signal_parameters.bin_edges[:,1] - signal_parameters.bin_edges[:,0]
+            norm_coeff = np.ones(len(self._addend))
+            for i in xrange(signal_parameters.n_segments):
+                i_from = i*signal_parameters.n_bins_per_segment
+                i_to = (i+1)*signal_parameters.n_bins_per_segment
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]*bin_widths[i_from:i_to]))
+
+        elif self._normalization == 'total_min':
             norm_coeff = float(np.min(self._addend))
+
+        elif self._normalization == 'segment_min':
+            norm_coeff = np.ones(len(self._addend))
+            for i in xrange(signal_parameters.n_segments):
+                i_from = i*signal_parameters.n_bins_per_segment
+                i_to = (i+1)*signal_parameters.n_bins_per_segment
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.min(self._addend[i_from:i_to]))
+
+        elif self._normalization == 'total_max':
+            norm_coeff = float(np.max(self._addend))
+
+        elif self._normalization == 'segment_max':
+            norm_coeff = np.ones(len(self._addend))
+            for i in xrange(signal_parameters.n_segments):
+                i_from = i*signal_parameters.n_bins_per_segment
+                i_to = (i+1)*signal_parameters.n_bins_per_segment
+                norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.max(self._addend[i_from:i_to]))
         else:
             raise  ValueError('Unknown value in Addition._normalization')
 
@@ -118,8 +170,9 @@ class Addition(object):
         self._addend = None
 
 class AdditionFromFile(Addition):
-    """ Adds an array to the signal, which is produced by interpolation from the loaded data. Note the seed for
-        the interpolation can be any of those presented in the abstract function.
+    """ Adds an array to the signal, which is produced by interpolation from the external data file. Note the seed
+        (unit) for the interpolation can be any of those available for the seed.
+        (i.e. location, sigma, or a number of macroparticles per slice, etc.)
     """
 
     def __init__(self,filename, x_axis='time', seed='bin_midpoint', **kwargs):
@@ -142,10 +195,10 @@ class AdditionFromFile(Addition):
 
 
 class NoiseGenerator(Addition):
-    """ Adds noise to a signal. The noise level is given as RMS value of the absolute level (reference_level = 'absolute'),
-        a relative RMS level to the maximum signal (reference_level = 'maximum') or a relative RMS level to local
-        signal values (reference_level = 'local'). Options for the noise distribution are a Gaussian normal distribution
-        (distribution = 'normal') and an uniform distribution (distribution = 'uniform')
+    """ Adds noise. The noise level is given as an absolute RMS noise level in the units of signal
+        (reference_level = 'absolute') or a relative RMS level from the maximum value of the signal
+        (reference_level = 'maximum'). Options for the noise distribution are a Gaussian (normal) distribution
+        (distribution = 'normal') or an uniform distribution (distribution = 'uniform')
     """
 
     def __init__(self,RMS_noise_level,reference_level = 'absolute', distribution = 'normal', **kwargs):

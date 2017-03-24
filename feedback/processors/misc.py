@@ -13,20 +13,20 @@ class Bypass(object):
         self.label = 'Bypass'
         self._store_signal = store_signal
         self.input_signal = None
-        self.input_signal_parameters = None
+        self.input_parameters = None
         self.output_signal = None
-        self.output_signal_parameters = None
+        self.output_parameters = None
 
-    def process(self,signal_parameters, signal, *args, **kwargs):
+    def process(self,parameters, signal, *args, **kwargs):
 
         if self._store_signal:
             self.input_signal = np.copy(signal)
-            self.input_signal_parameters = copy.copy(signal_parameters)
+            self.input_parameters = copy.copy(parameters)
             self.output_signal = np.copy(signal)
-            self.output_signal_parameters = copy.copy(signal_parameters)
+            self.output_parameters = copy.copy(parameters)
 
 
-        return signal_parameters, signal
+        return parameters, signal
 
 
 class Average(object):
