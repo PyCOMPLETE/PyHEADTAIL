@@ -719,7 +719,6 @@ class LinearMap(LongitudinalOneTurnMap):
     def Qs(self):
         return self.Q_s
 
-    @clean_slices
     def track(self, beam):
         try:
             self.track_with_dispersion(beam)
@@ -743,6 +742,7 @@ class LinearMap(LongitudinalOneTurnMap):
         beam.x += self.D_x*beam.dp
         beam.y += self.D_y*beam.dp
 
+    @clean_slices
     def track_without_dispersion(self, beam):
         omega_0 = 2 * np.pi * beam.beta * c / self.circumference
         omega_s = self.Q_s * omega_0
