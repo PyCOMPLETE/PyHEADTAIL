@@ -751,7 +751,7 @@ class ResistiveWall(WakeSource):
         self.pipe_radius = np.array([pipe_radius]).flatten()
         self.resistive_wall_length = resistive_wall_length
         self.conductivity = conductivity
-        self.beta = beta_beam
+        self.beta = kwargs['beta_beam']
         self.dt_min = dt_min
 
         self.Yokoya_X1 = Yokoya_X1
@@ -808,7 +808,7 @@ class ResistiveWall(WakeSource):
         """
         mu_r = 1
 
-        def wake(dt, beta=beta, **kwargs):
+        def wake(dt, **kwargs):
             y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
                  np.sqrt(kwargs['beta']) * self.resistive_wall_length / np.pi /
                  self.pipe_radius**3 * np.sqrt(-mu_r / np.pi /
@@ -828,8 +828,7 @@ class CircularResistiveWall(ResistiveWall):
         Yokoya_Y2 = 0.
 
         super(CircularResistiveWall, self).__init__(
-            pipe_radius, resistive_wall_length, conductivity, dt_min,
-            beta_beam, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
+            pipe_radius, resistive_wall_length, conductivity, dt_min, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
             n_turns_wake, *args, **kwargs)
 
 
@@ -844,8 +843,7 @@ class ParallelPlatesResistiveWall(ResistiveWall):
         Yokoya_Y2 = np.pi**2 / 24.
 
         super(ParallelPlatesResistiveWall, self).__init__(
-            pipe_radius, resistive_wall_length, conductivity, dt_min,
-            beta_beam, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
+            pipe_radius, resistive_wall_length, conductivity, dt_min, Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2,
             n_turns_wake, *args, **kwargs)
 
 
