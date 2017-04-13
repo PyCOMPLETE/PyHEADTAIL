@@ -380,7 +380,46 @@ class Synchrotron(Element):
             raise NotImplementedError(
                 'Something wrong with longitudinal_mode')
 
+
+''' The below doesn't work well... this we need to think of how to do it
+properly. It does not seem to be a common problem in any case.
+
+
 @deprecated('--> "BasicSynchrotron" will be removed '
             'in the near future. Use "Synchrotron" instead.\n')
 class BasicSynchrotron(Synchrotron):
     pass
+'''
+
+# @deprecated_class('--> "BasicSynchrotron" will be removed '
+#             'in the near future. Use "Synchrotron" instead.\n')
+# class BasicSynchrotron(Synchrotron):
+#     pass
+
+# class BasicSynchrotron(Synchrotron):
+#     @deprecated('"--> BasicSynchrotron" will be deprecated ' +
+#                 'in the near future. Use "Synchrotron" instead.\n')
+#     def __init__(self, *args, **kwargs):
+#         Synchrotron.__init__(self, *args, **kwargs)
+
+
+# @deprecated('--> "BasicSynchrotron" will be removed '
+#             'in the near future. Use "Synchrotron" instead.\n')
+# def BasicSynchrotron(*args, **kwargs):
+#     return Synchrotron(*args, **kwargs)
+
+
+
+import warnings
+class BasicSynchrotron(Synchrotron):
+
+    def __init__(self, *args, **kwargs):
+
+        warnings.simplefilter('always', DeprecationWarning)
+        warnings.warn('\n\n*** DEPRECATED: "BasicSynchrotron" will be replaced in a future '
+                      'PyHEADTAIL release! You may want to use "Synchrotron" instead.',
+                      category=DeprecationWarning, stacklevel=2)
+        warnings.simplefilter('default', DeprecationWarning)
+
+        Synchrotron.__init__(self, *args, **kwargs)
+
