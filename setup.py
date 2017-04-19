@@ -10,7 +10,7 @@
 #    cleaning-cython-build-files/
 
 import numpy as np
-import sys
+import os, sys
 
 from PyHEADTAIL._version import __version__
 
@@ -42,7 +42,16 @@ cy_ext_options = {
     "annotate": True,
 }
 
-use_cython = any('build' in arg for arg in sys.argv[1:])
+def gen_cython():
+    from Cython.Build import cythonize
+    cythonize(cy_ext_modules, **cy_ext_options)
+
+# cythonize only when building explicitly
+# or when not all cythonised *.c files exist:
+if (any('build' in arg for arg in sys.argv[1:]) or
+    not all(os.path.isfile(cy_ext.replace(".", "/") + ".c")
+            for cy_ext in cy_extensions)):
+    use_cython = True
 
 cmdclass = {}
 
@@ -63,11 +72,13 @@ cy_ext_modules = [
     for cy_ext, cy_ext_path in zip(cy_extensions, cy_ext_paths)
 ]
 
+if use_cython:
+    gen_cython()
+
 class sdist(_sdist):
     def run(self):
         # Make sure the compiled Cython files in the distribution are up-to-date
-        from Cython.Build import cythonize
-        cythonize(cy_ext_modules, **cy_ext_options)
+        gen_cython()
         _sdist.run(self)
 cmdclass['sdist'] = sdist
 
