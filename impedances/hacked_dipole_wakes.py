@@ -155,7 +155,8 @@ class HackedDipoleWake(object):
                 delta_mid = target_mid-source_mid
                 if delta_mid < 0.:
                     # the target bunch is after the source bunch
-                    target_mid += self._circumference
+                    delta_mid += self._circumference
+                    # target_mid += self._circumference
 
                 kick_from = empty_space_per_side + j * n_bins_per_kick
                 kick_to = empty_space_per_side + j * n_bins_per_kick + n_slices
@@ -229,13 +230,13 @@ class HackedDipoleWake(object):
             # the new accumulated kick is a sum of the convolution and the old accumulated
             # kick moved one turn forward
             moment = all_slice_sets[i].mean_x*all_slice_sets[i].n_macroparticles_per_slice
-            self._accumulated_kick_x[i] = np.convolve(wake, moment, 'same') + self._temp_kick
+            np.copyto(self._accumulated_kick_x[i], np.convolve(wake, moment, 'same') + self._temp_kick)
 
         for i, wake in enumerate(self._dashed_wake_functions_y):
             self._temp_kick.fill(0.)
             np.copyto(self._temp_kick[:-1*self._n_bins_per_turn], self._accumulated_kick_y[i][self._n_bins_per_turn:])
             moment = all_slice_sets[i].mean_y*all_slice_sets[i].n_macroparticles_per_slice
-            self._accumulated_kick_y[i] = np.convolve(wake, moment, 'same') + self._temp_kick
+            np.copyto(self._accumulated_kick_y[i], np.convolve(wake, moment, 'same') + self._temp_kick)
 
     def track(self, superbunch):
         if self._mpi:
