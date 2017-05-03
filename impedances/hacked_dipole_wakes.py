@@ -43,7 +43,6 @@ class HackedDipoleWake(object):
 
         self._n_bins_per_turn = None
 
-        self._dashed_z_values = None
         # A list of interpolated values of the wake functions. The name "dashed" refers to the
         #
         self._dashed_wake_functions_x = None
@@ -71,9 +70,10 @@ class HackedDipoleWake(object):
         return wake_factor
 
 
-    def __init_variables(self, all_slice_sets, local_slice_sets, bunch_list):
+    def __init_variables(self, all_slice_sets, local_slice_sets, bunch_list,local_bunch_indexes):
         # total number of bunches
-        n_bunches = len(all_slice_sets)
+        n_target_bunches = len(local_bunch_indexes)
+        n_source_bunches = len(all_slice_sets)
 
         # number of slices per bunch
         n_slices = len(all_slice_sets[0].mean_x)
@@ -87,15 +87,14 @@ class HackedDipoleWake(object):
         # total number of bins per bunch in dashed_wake_functions
         n_bins_per_kick = (n_slices + 2*empty_space_per_side)
         # total length of the dashed_wake_functions
-        total_array_length = self._n_turns_wakes * n_bunches * n_bins_per_kick
+        total_array_length = self._n_turns_wakes * n_target_bunches * n_bins_per_kick
 
-        self._n_bins_per_turn = n_bunches * n_bins_per_kick
+        self._n_bins_per_turn = n_target_bunches * n_bins_per_kick
 
         # initializes the arrays of arrays
 
         self._temp_kick = np.zeros(total_array_length)
 
-        self._dashed_z_values = []
 
         self._dashed_wake_functions_x = []
         self._dashed_wake_functions_y = []
@@ -105,8 +104,7 @@ class HackedDipoleWake(object):
         self._kick_lists_x = []
         self._kick_lists_y = []
 
-        for i in xrange(n_bunches):
-            self._dashed_z_values.append(np.zeros(total_array_length))
+        for i in xrange(n_source_bunches):
 
             self._dashed_wake_functions_x.append(np.zeros(total_array_length))
             self._dashed_wake_functions_y.append(np.zeros(total_array_length))
@@ -129,25 +127,24 @@ class HackedDipoleWake(object):
         raw_z_bins = raw_z_bins - ((raw_z_bins[0]+raw_z_bins[-1])/2.)
         bin_width = np.mean(raw_z_bins[1:]-raw_z_bins[:-1])
         original_z_bin_mids = (raw_z_bins[1:]+raw_z_bins[:-1])/2.
-        z_bin_mids = original_z_bin_mids[0] - np.linspace(empty_space_per_side, 1, empty_space_per_side)*bin_width
+        z_bin_mids = original_z_bin_mids[0] - np.linspace(empty_space_per_side, 1,
+                                        empty_space_per_side)*bin_width
         z_bin_mids = np.append(z_bin_mids, original_z_bin_mids)
-        z_bin_mids = np.append(z_bin_mids, original_z_bin_mids[-1] + np.linspace(1, empty_space_per_side, empty_space_per_side)*bin_width)
+        z_bin_mids = np.append(z_bin_mids, original_z_bin_mids[-1] + np.linspace(1,
+                               empty_space_per_side, empty_space_per_side)*bin_width)
 
 
         for i, mid_i in enumerate(bunch_mids):
             z_values = np.zeros(total_array_length)
-            for j in xrange(len(bunch_mids)):
+#            for j in xrange(len(bunch_mids)):
+            for j,target_bunch_idx in enumerate(local_bunch_indexes):
                 # index of the target bunch depends on index of the source bunch, because all
                 # the bunches are added after the source bunch. In the case of low beta_beam wakes
                 # this must be hacked
                 #
-                # TODO: memory usage can be significantly lowered if only the kicks to the bunches
-                # simulated on this processor have been calculated. Because the bunch spacing is
-                # always a multiplier of the minimum bunch spacing, memory usage could be reduced
-                # further by producing only one dashed_wake_function for all bunches, but it would
-                # cost in the computing time for the convolution.
-
-                target_bunch_idx = (i+j)%len(bunch_mids)
+                # Because the bunch spacing is always a multiplier of the minimum bunch spacing, 
+		# memory usage could be reduced further by producing only one dashed_wake_function 
+		# for all bunches, but it would cost in the computing time for the convolution.
 
                 source_mid = mid_i
                 target_mid = bunch_mids[target_bunch_idx]
@@ -156,7 +153,6 @@ class HackedDipoleWake(object):
                 if delta_mid < 0.:
                     # the target bunch is after the source bunch
                     delta_mid += self._circumference
-                    # target_mid += self._circumference
 
                 kick_from = empty_space_per_side + j * n_bins_per_kick
                 kick_to = empty_space_per_side + j * n_bins_per_kick + n_slices
@@ -244,14 +240,16 @@ class HackedDipoleWake(object):
             = get_mpi_slice_sets(superbunch, self._mpi_gatherer)
             if self._local_bunch_indexes is None:
                 self._local_bunch_indexes = self._mpi_gatherer.local_bunch_indexes
-                self.__init_variables(all_slice_sets, local_slice_sets, bunch_list)
+                self.__init_variables(all_slice_sets, local_slice_sets, bunch_list,
+                                      self._local_bunch_indexes)
 
         else:
             all_slice_sets, local_slice_sets, bunch_list \
             = get_local_slice_sets(superbunch, self._slicer, self._required_variables)
             if self._local_bunch_indexes is None:
                 self._local_bunch_indexes = [0]
-                self.__init_variables(all_slice_sets, local_slice_sets, bunch_list)
+                self.__init_variables(all_slice_sets, local_slice_sets, bunch_list,
+                                      self._local_bunch_indexes)
 
 
         self.__update_wakes(all_slice_sets, local_slice_sets, bunch_list)
@@ -259,12 +257,6 @@ class HackedDipoleWake(object):
 
         for slice_set, bunch_idx, bunch in zip(local_slice_sets,
                                                self._local_bunch_indexes, bunch_list):
-
-#            if (bunch_idx == self._local_bunch_indexes[0]):
-#                print 'I am bunch ' + str(bunch_idx) + '-> np.sum(self._kick_lists_x[bunch_idx], axis=0) ' + str(np.sum(self._kick_lists_x[bunch_idx], axis=0))
-#
-#                print 'I am bunch ' + str(bunch_idx) + '-> np.sum(self._kick_lists_y[bunch_idx], axis=0) ' + str(np.sum(self._kick_lists_y[bunch_idx], axis=0))
-#                print 'self._wake_factor(bunch): ' + str(self._wake_factor(bunch))
 
             p_idx = slice_set.particles_within_cuts
             s_idx = slice_set.slice_index_of_particle.take(p_idx)
