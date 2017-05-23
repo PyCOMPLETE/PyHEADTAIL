@@ -10,6 +10,7 @@ from scipy.constants import c, e, m_p
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 # from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField
+from PyHEADTAIL.impedances.hacked_dipole_wakes import HackedDipoleWake
 
 
 plt.switch_backend('TkAgg')
@@ -46,9 +47,9 @@ rank = comm.Get_rank()
 #     plt.show()
 # wurstel
 
-n_turns = 6
+n_turns = 1
 chroma = 0
-n_bunches = 11
+n_bunches = 3
 intensity = 2.3e11
 n_macroparticles = 20000
 
@@ -66,6 +67,9 @@ C = machine.circumference
 h = np.min(machine.longitudinal_map.harmonics) * 1.
 filling_scheme = sorted([5 + 2*i**1.2 + h*j for i in range(n_bunches) for j in range(1)])
 filling_scheme_synth = sorted([5 + 2*i**1.2 + h*j for i in range(n_bunches) for j in range(n_turns)])
+
+# filling_scheme = sorted([5 + 2*i**1.2 + h*j for i in range(n_bunches) for j in range(1)])
+# filling_scheme_synth = sorted([5 + 2*i**1.2 + h*j for i in range(n_bunches) for j in range(n_turns)])
 
 
 # BEAM
@@ -101,15 +105,26 @@ slicer_for_wakefields = UniformBinSlicer(20, z_cuts=(-0.4, 0.4))
 
 # CREATE WAKES
 # ============
+# wakedata = np.loadtxt(wakefile1)
 wakes = CircularResonator(1e6, 20e6, 10, n_turns_wake=10)
-wake_field = WakeField(slicer_for_wakefields, wakes,
-                       circumference=machine.circumference, mpi=True)
+wf = wakes.function_transverse(1)
+T0 = C/(machine.beta * c)
+tt = np.linspace(0, 10*T0, 10000) * -1
+
+data_t = tt
+data_x = wf(tt) / -1e15
+data_y = wf(tt) / -1e15
+wake_field = HackedDipoleWake(data_t*-1e9, data_x, data_y, slicer_for_wakefields,
+                              n_turns_wakes=1, circumference=machine.circumference, mpi=True)
+
+wake_field2 = WakeField(slicer_for_wakefields, wakes,
+                        circumference=machine.circumference, mpi=True)
 # wake_field = ParallelWakes(slicer_for_wakefields, wake_sources_list=None,
 #                            circumference=machine.circumference,
 #                            filling_scheme=filling_scheme,
 #                            comm=comm)
-w_function = wake_field.wake_kicks[0].wake_function
-w_factor = wake_field.wake_kicks[0]._wake_factor
+w_function = wake_field2.wake_kicks[0].wake_function
+w_factor = wake_field2.wake_kicks[0]._wake_factor
 
 
 # TRACKING

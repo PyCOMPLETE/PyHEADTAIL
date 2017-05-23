@@ -166,7 +166,7 @@ class HackedDipoleWake(object):
                     idx_to = k * self._n_bins_per_turn + (j + 1) * n_bins_per_kick
 
                     offset = (float(k) * self._circumference + delta_mid)
-                    temp_mids = z_bin_mids+offset
+                    temp_mids = -z_bin_mids+offset
                     np.copyto(z_values[idx_from:idx_to],temp_mids)
 
             # interpolates the wake functions for the corresponding source bunch

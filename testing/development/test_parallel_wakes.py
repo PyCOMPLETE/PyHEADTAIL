@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from scipy.constants import c, e, m_p
 
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
-from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
+# from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField
 
 
