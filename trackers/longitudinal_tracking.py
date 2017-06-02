@@ -757,23 +757,32 @@ class LinearMap(LongitudinalOneTurnMap):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp
         '''
-        omega_0 = 2 * pm.pi * beam.beta * c / self.circumference
-        omega_s = self.Q_s * omega_0
+        bunches_list = beam.split()
 
-        dQ_s = 2 * pm.pi * self.Q_s
-        cosdQ_s = pm.cos(dQ_s)  # use np because dQ_s is always a scalar
-        sindQ_s = pm.sin(dQ_s)  # use np because dQ_s is always a scalar
+        for i, b in enumerate(bunches_list):
+            omega_0 = 2 * pm.pi * b.beta * c / self.circumference
+            omega_s = self.Q_s * omega_0
 
-        z0 = beam.z
-        dp0 = beam.dp
+            dQ_s = 2 * pm.pi * self.Q_s
+            cosdQ_s = pm.cos(dQ_s)  # use np because dQ_s is always a scalar
+            sindQ_s = pm.sin(dQ_s)  # use np because dQ_s is always a scalar
 
-        # self.eta(0, beam.gamma) is identical to using first order eta!
-        beam.z = (z0 * cosdQ_s - self.eta(0, beam.gamma) * beam.beta * c /
-                  omega_s * dp0 * sindQ_s)
+            b.z -= b.z_initial_offset
+            z0 = b.z
+            dp0 = b.dp
 
-        beam.x -= self.D_x*beam.dp
-        beam.y -= self.D_y*beam.dp
-        beam.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, beam.gamma) /
-                   (beam.beta * c) * z0 * sindQ_s)
-        beam.x += self.D_x*beam.dp
-        beam.y += self.D_y*beam.dp
+            # self.eta(0, b.gamma) is identical to using first order eta!
+            b.z = (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
+                      omega_s * dp0 * sindQ_s)
+
+            b.x -= self.D_x*b.dp
+            b.y -= self.D_y*b.dp
+            b.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
+                       (b.beta * c) * z0 * sindQ_s)
+            b.x += self.D_x*b.dp
+            b.y += self.D_y*b.dp
+
+            b.z += b.z_initial_offset
+
+        beam_new = sum(bunches_list)
+        beam.update(beam_new.coords_n_momenta_dict)

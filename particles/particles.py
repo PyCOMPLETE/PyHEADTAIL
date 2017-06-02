@@ -22,19 +22,30 @@ class Particles(Printing):
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma, coords_n_momenta_dict={},
-                 bunch_id=0, **kwargs):
-        '''The dictionary coords_n_momenta_dict contains the coordinate and conjugate
-        momenta names and assigns to each the corresponding array.  e.g.:
-        coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
+                 bunch_id=0, z_reference_position=0, **kwargs):
+        '''Fundamental parameters:
+        - macroparticlenumber
+        - charge
+        - gamma
+        - mass
+
+        The dictionary coords_n_momenta_dict contains the coordinate and
+        conjugate momenta names and assigns to each the corresponding array.
+        e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
 
         '''
         self.macroparticlenumber = macroparticlenumber
-        self.particlenumber_per_mp = particlenumber_per_mp
 
         self.mass = mass
         self.gamma = gamma
         self.charge = charge
 
+        '''TODO: Make intensity the explicity variable, also as argument in the
+        contructor, and have _particleumber_per_macroparticle as implicity
+        variable used to compute the intensity also during losses.
+
+        '''
+        self.particlenumber_per_mp = particlenumber_per_mp
         self.charge_per_mp = particlenumber_per_mp * charge
         self.circumference = circumference
 
@@ -55,13 +66,35 @@ class Particles(Printing):
         '''ID of particles in order to keep track of single entries in the coordinate
         and momentum arrays.
 
+        In the same manner we have here the bunch id to identify bunches as
+        they have been initialized. This is used by the split function and
+        considerbaly speed up bunching as oposed to using a slicer. It is used
+        by the multi-bunch wake fields where beams are split up into bunches
+        making the wake computation across the full beam numerically efficient
+        and feasible.
+
         '''
         self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
         self.bunch_id = np.ones(
             self.macroparticlenumber, dtype=np.int32) * bunch_id
 
+        '''Enables to specify a reference z position for every bunch - this is used
+        e.g. by the linear RF bucket to specify around which point in z to
+        rotate. To date not used otherwise and set to zero by default.
+
+        '''
+        self.z_reference_position = z_reference_position
+
         self.update(coords_n_momenta_dict)
 
+        '''Is just an offset in z added to the bunch particles - upon generation,
+        bunches are always initialized around z=0. This allows to modify the
+        actual z centroid position of the bunch upon initialization. Useful
+        when generating multi-bunch beams.
+
+        TODO: May think of renaming - not entirely clear - better for consitency "z_initial_position"
+
+        '''
         z_delay = kwargs.pop('z_delay', None)
         if z_delay and hasattr(self, 'z'):
             self.z += -self.mean_z()
@@ -291,6 +324,9 @@ class Particles(Printing):
 
         '''
         ids = set(self.bunch_id)
+        if len(ids) == 1:
+            return list(self)
+
         ix = [self.bunch_id == id for id in ids]
         bunches_list = [Particles(
             macroparticlenumber=self.macroparticlenumber/len(ids),
@@ -300,7 +336,7 @@ class Particles(Printing):
             coords_n_momenta_dict={
                 coord: array[ix[i]]
                 for coord, array in self.get_coords_n_momenta_dict().items()},
-            bunch_id=id) for i, id in enumerate(ids)]
+            bunch_id=id, z_reference_position=z_reference_position) for i, id in enumerate(ids)]
 
         bunches_list = sorted(bunches_list,
                               key=lambda x: x.mean_z(), reverse=False) # , reverse=False)
@@ -353,6 +389,12 @@ class Particles(Printing):
             (self.id.copy(), other.id.copy()))
         result.bunch_id = np.concatenate(
             (self.bunch_id.copy(), other.bunch_id.copy()))
+
+        # result.z_reference_position = np.concatenate(
+        #     (np.array([self.z_reference_position]), np.array([other.z_reference_position])), axis=0)
+        print(self.z_reference_position, other.z_reference_position)
+        result.z_reference_position = list([self.z_reference_position]).append([other.z_reference_position])
+        print(result.z_reference_position)
 
         return result
 

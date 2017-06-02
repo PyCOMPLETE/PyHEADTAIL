@@ -186,12 +186,7 @@ class WakeField(Element):
             kick.apply(bunches_list, self.slice_set_deque)
 
         beam_new = sum(bunches_list)
-        beam.x[:] = beam_new.x[:]
-        beam.xp[:] = beam_new.xp[:]
-        beam.y[:] = beam_new.y[:]
-        beam.yp[:] = beam_new.yp[:]
-        beam.z[:] = beam_new.z[:]
-        beam.dp[:] = beam_new.dp[:]
+        beam.update(beam_new.coords_n_momenta_dict)
 
     def _mpi_track(self, beam):
 
