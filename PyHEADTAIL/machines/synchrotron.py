@@ -251,7 +251,8 @@ class Synchrotron(Element):
             raise ValueError('optics_mode not recognized')
 
         detuners = []
-        if Qp_x != 0 or Qp_y != 0:
+        if any(np.atleast_1d(Qp_x) != 0) or \
+                any(np.atleast_1d(Qp_y) != 0):
             detuners.append(Chromaticity(Qp_x, Qp_y))
         if app_x != 0 or app_y != 0 or app_xy != 0:
             detuners.append(AmplitudeDetuning(app_x, app_y, app_xy))
