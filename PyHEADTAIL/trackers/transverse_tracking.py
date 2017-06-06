@@ -268,9 +268,9 @@ class TransverseMap(Printing):
         self._generate_segment_maps()
 
         if self.D_x.any() or self.D_y.any():
-            self.prints('Non-zero dispersion; '
-                        'ensure the beam has been "blown-up" '
-                        'accordingly upon creation!')
+            self.prints('Non-zero dispersion in tracking: '
+                        'ensure the beam has been generated '
+                        'being matched to the correct dispersion!')
 
     def _generate_segment_maps(self):
         """ This method is called at instantiation of a TransverseMap
