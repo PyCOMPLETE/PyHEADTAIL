@@ -345,6 +345,12 @@ class WakeField(Element):
 
         # Here, we need to put the values back into the reference!
         beam_new = sum(bunches_list)
+        # beam.update({'x': beam_new.x,
+        #              'y': beam_new.y,
+        #              'z': beam_new.z,
+        #              'xp': beam_new.xp,
+        #              'yp': beam_new.yp,
+        #              'dp': beam_new.dp
         beam.x[:] = beam_new.x[:]
         beam.xp[:] = beam_new.xp[:]
         beam.y[:] = beam_new.y[:]

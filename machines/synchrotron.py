@@ -35,6 +35,7 @@ class Synchrotron(Element):
         self.charge = charge
         self.mass = mass
         self.p0 = p0
+
         self.optics_mode = optics_mode
         self.longitudinal_mode = longitudinal_mode
 
@@ -129,67 +130,11 @@ class Synchrotron(Element):
     ### SINGLE AND MULTI BUNCH GENERATORS OF SYNCHROTRON CLASS
     ########################################################################
     # TODO: How about class names here?
-    def generate_6D_Gaussian_bunch(self, macroparticlenumber, intensity,
-                                   epsn_x, epsn_y, sigma_z,
-                                   filling_scheme=None, z_reference_positions=None, kicker=None):
-        '''Generate a 6D Gaussian distribution of particles which is
-        transversely matched to the Synchrotron. Longitudinally, the
-        distribution is matched only in terms of linear focusing.
-        For a non-linear bucket, the Gaussian distribution is cut along
-        the separatrix (with some margin). It will gradually filament
-        into the bucket. This will change the specified bunch length.
-        '''
-
-        if filling_scheme is not None:
-
-            sniffer = MpiSniffer()
-            sorted_z_refs = list(reversed(sorted(z_reference_positions)))
-            sorted_filling_scheme = list(reversed(sorted(filling_scheme)))
-
-            n_bunches = len(sorted_filling_scheme)
-            n_processors = sniffer.size
-
-            n_bunches_on_proc = [n_bunches//n_processors + 1 if i < n_bunches % n_processors else
-                                 n_bunches//n_processors for i in range(n_processors)]
-            n_bunches_cumsum = np.insert(np.cumsum(n_bunches_on_proc), 0, 0)
-
-            b_ids_on_proc_list = [sorted_filling_scheme[n_bunches_cumsum[i]:n_bunches_cumsum[i+1]]
-                                    for i in range(n_processors)]
-            z_refs_on_proc_list = [sorted_z_refs[n_bunches_cumsum[i]:n_bunches_cumsum[i+1]]
-                                    for i in range(n_processors)]
-            if not all(b_ids_on_proc_list):
-                raise Exception('\n*** The of bunches should be larger ' +
-                                'or equal to number of processors')
-
-            b_ids_for_this_processor = b_ids_on_proc_list[sniffer.rank]
-            z_refs_for_this_processor = z_refs_on_proc_list[sniffer.rank]
-            print("*** I am rank {:d} - my z reference positions are {:s}".format(
-                sniffer.rank, z_refs_for_this_processor))
-            bunches = [self._create_6D_Gaussian_bunch(
-                macroparticlenumber, intensity, epsn_x, epsn_y, sigma_z,
-                bunch_id=b_id, z_reference_position=z_ref)
-                             for b_id, z_ref in zip(b_ids_for_this_processor, z_refs_for_this_processor)]
-
-            return bunches
-
-            if kicker is not None:
-                for b in bunches:
-                    kicker(b)
-            bunch = sum(bunches)  # superbunch
-
-        else:
-            bunch = self._create_6D_Gaussian_bunch(
-                n_macroparticles, intensity, epsn_x, epsn_y,
-                sigma_z, bunch_id=0, z_reference_position=0)
-
-        return bunch
-
-    # TODO: How about class names here?
-    def generate_6D_Gaussian_bunch_matched(
-            self, n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z=None, epsn_z=None, filling_scheme=None, kicker=None):
+    def generate_6D_Gaussian_bunch(
+            self, macroparticlenumber, intensity, epsn_x, epsn_y,
+            sigma_z=None, epsn_z=None, matched=False, filling_scheme=None, kicker=None):
         """
-        :param n_macroparticles:
+        :param macroparticlenumber:
         :param intensity:
         :param epsn_x:
         :param epsn_y:
@@ -211,29 +156,21 @@ class Synchrotron(Element):
             n_bunches = len(sorted_filling_scheme)
             n_processors = sniffer.size
 
-            n_bunches_on_proc = [
-                n_bunches//n_processors + 1
-                if i < n_bunches % n_processors
-                else
-                n_bunches//n_processors
-                for i in range(n_processors)]
+            n_bunches_on_proc = [n_bunches//n_processors + 1 if i < n_bunches % n_processors else
+                                 n_bunches//n_processors + 0 for i in range(n_processors)]
             n_bunches_cumsum = np.insert(np.cumsum(n_bunches_on_proc), 0, 0)
 
             bunches_on_proc_list = [
-                sorted_filling_scheme[
-                    n_bunches_cumsum[i]:n_bunches_cumsum[i+1]]
-                for i in range(n_processors)]
+                sorted_filling_scheme[n_bunches_cumsum[i]:n_bunches_cumsum[i+1]] for i in range(n_processors)]
             if not all(bunches_on_proc_list):
                 raise Exception('\n*** The of bunches should be larger ' +
                                 'or equal to number of processors')
 
             buckets_for_this_processor = bunches_on_proc_list[sniffer.rank]
-            print("*** I am rank {:d} - my buckets are {:s}".format(
-                sniffer.rank, buckets_for_this_processor))
-            bunches = [self._create_6D_Gaussian_bunch_matched(
-                n_macroparticles, intensity, epsn_x, epsn_y,
-                sigma_z, epsn_z, bucket)
-                       for bucket in buckets_for_this_processor]
+            print("*** I am rank {:d} - my buckets are {:s}".format(sniffer.rank, buckets_for_this_processor))
+            bunches = [self._create_6D_Gaussian_bunch(
+                macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z, sigma_z, bucket, matched)
+                for bucket in buckets_for_this_processor]
 
             if kicker is not None:
                 for b in bunches:
@@ -241,81 +178,51 @@ class Synchrotron(Element):
             bunch = sum(bunches)  # superbunch
 
         else:
-            bunch = self._create_6D_Gaussian_bunch_matched(
-                n_macroparticles, intensity, epsn_x, epsn_y,
-                sigma_z, epsn_z, bucket=0)
+            bunch = self._create_6D_Gaussian_bunch(
+                macroparticlenumber, intensity, epsn_x, epsn_y, sigma_z, epsn_z, bucket=0, matched=matched)
 
         return bunch
 
-    # TODO: How about class names here?
-    def _create_6D_Gaussian_bunch(
-            self, macroparticlenumber, intensity, epsn_x, epsn_y,
-            sigma_z, bunch_id, z_reference_position):
+    def _create_6D_Gaussian_bunch(self, macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z,
+                                  sigma_z, bucket, matched=False):
 
-        if self.longitudinal_mode == 'linear':
-            check_inside_bucket = lambda z, dp: np.array(len(z)*[True])
-            Q_s = self.longitudinal_map.Q_s
-        elif self.longitudinal_mode == 'non-linear':
-            bucket = self.longitudinal_map.get_bucket(
-                gamma=self.gamma, mass=self.mass, charge=self.charge)
-            check_inside_bucket = bucket.make_is_accepted(margin=0.05)
-            Q_s = bucket.Q_s
-        else:
-            raise NotImplementedError(
-                'Something wrong with self.longitudinal_mode')
+        epsx_geo = epsn_x / self.betagamma
+        epsy_geo = epsn_y / self.betagamma
 
-        eta = self.longitudinal_map.alpha_array[0] - self.gamma**-2
-        beta_z = np.abs(eta)*self.circumference/2./np.pi/Q_s
-        sigma_dp = sigma_z/beta_z
-        epsx_geo = epsn_x/self.betagamma
-        epsy_geo = epsn_y/self.betagamma
-
-        injection_optics = self.transverse_map.get_injection_optics()
-
-        bunch = generators.ParticleGenerator(
-            macroparticlenumber=macroparticlenumber, intensity=intensity,
-            charge=self.charge, mass=self.mass, gamma=self.gamma, circumference=self.circumference,
-            distribution_x=generators.gaussian2D(epsx_geo),
-            alpha_x=injection_optics['alpha_x'],
-            beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
-            distribution_y=generators.gaussian2D(epsy_geo),
-            alpha_y=injection_optics['alpha_y'],
-            beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
-            distribution_z=generators.cut_distribution(
-                generators.gaussian2D_asymmetrical( sigma_u=sigma_z, sigma_up=sigma_dp),
-                is_accepted=check_inside_bucket),
-            bunch_id=bunch_id, z_reference_position=z_reference_position, z_delay=z_reference_position).generate()
-
-        return bunch
-
-    # TODO: How about class names here?
-    def _create_6D_Gaussian_bunch_matched(
-            self, n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z, epsn_z, bucket):
-        '''Generate a 6D Gaussian distribution of particles which is transversely as
-        well as longitudinally matched.  The distribution is found iteratively
-        to exactly yield the given bunch length while at the same time being
-        stationary in the non-linear bucket. Thus, the bunch length should
-        amount to the one specificed and should not change significantly during
-        the synchrotron motion.
-
-        Requires self.longitudinal_mode == 'non-linear'
-        for the bucket.
-
-        '''
-
-        assert self.longitudinal_mode == 'non-linear'
-
-        epsx_geo = epsn_x/self.betagamma
-        epsy_geo = epsn_y/self.betagamma
         C = self.longitudinal_map.circumference
         h = np.min(self.longitudinal_map.harmonics)
 
         injection_optics = self.transverse_map.get_injection_optics()
 
+        if not matched:
+            if self.longitudinal_mode == 'linear':
+                check_inside_bucket = lambda z, dp: np.array(len(z)*[True])
+                Q_s = self.longitudinal_map.Q_s
+            elif self.longitudinal_mode == 'non-linear':
+                bucket = self.longitudinal_map.get_bucket(
+                    gamma=self.gamma, mass=self.mass, charge=self.charge)
+                check_inside_bucket = bucket.make_is_accepted(margin=0.05)
+                Q_s = bucket.Q_s
+            else:
+                raise NotImplementedError(
+                    'Something wrong with self.longitudinal_mode')
+
+            eta = self.longitudinal_map.alpha_array[0] - self.gamma ** -2
+            beta_z = np.abs(eta) * C / 2. / np.pi / Q_s
+            sigma_dp = sigma_z / beta_z
+
+            longitudinal_distribution = generators.cut_distribution(
+                    generators.gaussian2D_asymmetrical(sigma_u=sigma_z, sigma_up=sigma_dp),
+                    is_accepted=check_inside_bucket)
+        else:
+            assert self.longitudinal_mode == 'non-linear'
+
+            longitudinal_distribution = generators.RF_bucket_distribution(
+                self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z)
+
         bunch = generators.ParticleGenerator(
-            macroparticlenumber=n_macroparticles, intensity=intensity,
-            charge=self.charge, mass=self.mass, gamma=self.gamma,
+            macroparticlenumber=macroparticlenumber, intensity=intensity,
+            charge=self.charge, gamma=self.gamma, mass=self.mass,
             circumference=self.circumference,
             distribution_x=generators.gaussian2D(epsx_geo),
             alpha_x=injection_optics['alpha_x'],
@@ -325,12 +232,258 @@ class Synchrotron(Element):
             alpha_y=injection_optics['alpha_y'],
             beta_y=injection_optics['beta_y'],
             D_y=injection_optics['D_y'],
-            distribution_z=generators.RF_bucket_distribution(
-                self.longitudinal_map.get_bucket(gamma=self.gamma),
-                sigma_z=sigma_z, epsn_z=epsn_z),
-            bunch_id=bucket, z_delay=-bucket/h*C).generate()
+            distribution_z=longitudinal_distribution,
+            bunch_id=bucket, z_delay=-bucket * C / h).generate()
 
         return bunch
+
+    # # TODO: How about class names here?
+    # def _create_6D_Gaussian_bunch_matched(
+    #         self, n_macroparticles, intensity, epsn_x, epsn_y,
+    #         sigma_z, epsn_z, bucket):
+    #     '''Generate a 6D Gaussian distribution of particles which is transversely as
+    #     well as longitudinally matched.  The distribution is found iteratively
+    #     to exactly yield the given bunch length while at the same time being
+    #     stationary in the non-linear bucket. Thus, the bunch length should
+    #     amount to the one specificed and should not change significantly during
+    #     the synchrotron motion.
+    #
+    #     Requires self.longitudinal_mode == 'non-linear'
+    #     for the bucket.
+    #
+    #     '''
+    #
+    #     assert self.longitudinal_mode == 'non-linear'
+    #
+    #     epsx_geo = epsn_x/self.betagamma
+    #     epsy_geo = epsn_y/self.betagamma
+    #     C = self.longitudinal_map.circumference
+    #     h = np.min(self.longitudinal_map.harmonics)
+    #
+    #     injection_optics = self.transverse_map.get_injection_optics()
+    #
+    #     bunch = generators.ParticleGenerator(
+    #         macroparticlenumber=n_macroparticles, intensity=intensity,
+    #         charge=self.charge, mass=self.mass, gamma=self.gamma,
+    #         circumference=self.circumference,
+    #         distribution_x=generators.gaussian2D(epsx_geo),
+    #         alpha_x=injection_optics['alpha_x'],
+    #         beta_x=injection_optics['beta_x'],
+    #         D_x=injection_optics['D_x'],
+    #         distribution_y=generators.gaussian2D(epsy_geo),
+    #         alpha_y=injection_optics['alpha_y'],
+    #         beta_y=injection_optics['beta_y'],
+    #         D_y=injection_optics['D_y'],
+    #         distribution_z=generators.RF_bucket_distribution(
+    #             self.longitudinal_map.get_bucket(gamma=self.gamma),
+    #             sigma_z=sigma_z, epsn_z=epsn_z),
+    #         bunch_id=bucket, z_delay=-bucket/h*C).generate()
+    #
+    #     return bunch_id
+
+    # # TODO: How about class names here?
+    # def generate_6D_Gaussian_bunch(self, macroparticlenumber, intensity,
+    #                                epsn_x, epsn_y, sigma_z,
+    #                                filling_scheme=None, z_reference_positions=None, kicker=None):
+    #     '''Generate a 6D Gaussian distribution of particles which is
+    #     transversely matched to the Synchrotron. Longitudinally, the
+    #     distribution is matched only in terms of linear focusing.
+    #     For a non-linear bucket, the Gaussian distribution is cut along
+    #     the separatrix (with some margin). It will gradually filament
+    #     into the bucket. This will change the specified bunch length.
+    #     '''
+    #
+    #     if filling_scheme is not None:
+    #
+    #         sniffer = MpiSniffer()
+    #         sorted_z_refs = list(reversed(sorted(z_reference_positions)))
+    #         sorted_filling_scheme = list(reversed(sorted(filling_scheme)))
+    #
+    #         n_bunches = len(sorted_filling_scheme)
+    #         n_processors = sniffer.size
+    #
+    #         n_bunches_on_proc = [n_bunches//n_processors + 1 if i < n_bunches % n_processors else
+    #                              n_bunches//n_processors for i in range(n_processors)]
+    #         n_bunches_cumsum = np.insert(np.cumsum(n_bunches_on_proc), 0, 0)
+    #
+    #         b_ids_on_proc_list = [sorted_filling_scheme[n_bunches_cumsum[i]:n_bunches_cumsum[i+1]]
+    #                                 for i in range(n_processors)]
+    #         z_refs_on_proc_list = [sorted_z_refs[n_bunches_cumsum[i]:n_bunches_cumsum[i+1]]
+    #                                 for i in range(n_processors)]
+    #         if not all(b_ids_on_proc_list):
+    #             raise Exception('\n*** The of bunches should be larger ' +
+    #                             'or equal to number of processors')
+    #
+    #         b_ids_for_this_processor = b_ids_on_proc_list[sniffer.rank]
+    #         z_refs_for_this_processor = z_refs_on_proc_list[sniffer.rank]
+    #         print("*** I am rank {:d} - my z reference positions are {:s}".format(
+    #             sniffer.rank, z_refs_for_this_processor))
+    #         bunches = [self._create_6D_Gaussian_bunch(
+    #             macroparticlenumber, intensity, epsn_x, epsn_y, sigma_z,
+    #             bunch_id=b_id, z_reference_position=z_ref)
+    #                          for b_id, z_ref in zip(b_ids_for_this_processor, z_refs_for_this_processor)]
+    #
+    #         return bunches
+    #
+    #         if kicker is not None:
+    #             for b in bunches:
+    #                 kicker(b)
+    #         bunch = sum(bunches)  # superbunch
+    #
+    #     else:
+    #         bunch = self._create_6D_Gaussian_bunch(
+    #             n_macroparticles, intensity, epsn_x, epsn_y,
+    #             sigma_z, bunch_id=0, z_reference_position=0)
+    #
+    #     return bunch
+
+    # # TODO: How about class names here?
+    # def generate_6D_Gaussian_bunch_matched(
+    #         self, n_macroparticles, intensity, epsn_x, epsn_y,
+    #         sigma_z=None, epsn_z=None, filling_scheme=None, kicker=None):
+    #     """
+    #     :param n_macroparticles:
+    #     :param intensity:
+    #     :param epsn_x:
+    #     :param epsn_y:
+    #     :param sigma_z:
+    #     :param epsn_z:
+    #     :param filling_scheme:
+    #         a list of bucket indices for the bunches, which are created
+    #     :param kicker: a function, which gives initial kicks for the bunches.
+    #         An input parameter for the function is a bunch object
+    #     :return: A merged bunch for every processor
+    #     """
+    #
+    #     if filling_scheme is not None:
+    #
+    #         sniffer = MpiSniffer()
+    #         sorted_filling_scheme = list(reversed(sorted(filling_scheme)))
+    #         # sorted_filling_scheme = list((sorted(filling_scheme)))
+    #
+    #         n_bunches = len(sorted_filling_scheme)
+    #         n_processors = sniffer.size
+    #
+    #         n_bunches_on_proc = [
+    #             n_bunches//n_processors + 1
+    #             if i < n_bunches % n_processors
+    #             else
+    #             n_bunches//n_processors
+    #             for i in range(n_processors)]
+    #         n_bunches_cumsum = np.insert(np.cumsum(n_bunches_on_proc), 0, 0)
+    #
+    #         bunches_on_proc_list = [
+    #             sorted_filling_scheme[
+    #                 n_bunches_cumsum[i]:n_bunches_cumsum[i+1]]
+    #             for i in range(n_processors)]
+    #         if not all(bunches_on_proc_list):
+    #             raise Exception('\n*** The of bunches should be larger ' +
+    #                             'or equal to number of processors')
+    #
+    #         buckets_for_this_processor = bunches_on_proc_list[sniffer.rank]
+    #         print("*** I am rank {:d} - my buckets are {:s}".format(
+    #             sniffer.rank, buckets_for_this_processor))
+    #         bunches = [self._create_6D_Gaussian_bunch_matched(
+    #             n_macroparticles, intensity, epsn_x, epsn_y,
+    #             sigma_z, epsn_z, bucket)
+    #                    for bucket in buckets_for_this_processor]
+    #
+    #         if kicker is not None:
+    #             for b in bunches:
+    #                 kicker(b)
+    #         bunch = sum(bunches)  # superbunch
+    #
+    #     else:
+    #         bunch = self._create_6D_Gaussian_bunch_matched(
+    #             n_macroparticles, intensity, epsn_x, epsn_y,
+    #             sigma_z, epsn_z, bucket=0)
+    #
+    #     return bunch
+
+    # # TODO: How about class names here?
+    # def _create_6D_Gaussian_bunch(
+    #         self, macroparticlenumber, intensity, epsn_x, epsn_y,
+    #         sigma_z, bunch_id, z_reference_position):
+    #
+    #     if self.longitudinal_mode == 'linear':
+    #         check_inside_bucket = lambda z, dp: np.array(len(z)*[True])
+    #         Q_s = self.longitudinal_map.Q_s
+    #     elif self.longitudinal_mode == 'non-linear':
+    #         bucket = self.longitudinal_map.get_bucket(
+    #             gamma=self.gamma, mass=self.mass, charge=self.charge)
+    #         check_inside_bucket = bucket.make_is_accepted(margin=0.05)
+    #         Q_s = bucket.Q_s
+    #     else:
+    #         raise NotImplementedError(
+    #             'Something wrong with self.longitudinal_mode')
+    #
+    #     eta = self.longitudinal_map.alpha_array[0] - self.gamma**-2
+    #     beta_z = np.abs(eta)*self.circumference/2./np.pi/Q_s
+    #     sigma_dp = sigma_z/beta_z
+    #     epsx_geo = epsn_x/self.betagamma
+    #     epsy_geo = epsn_y/self.betagamma
+    #
+    #     injection_optics = self.transverse_map.get_injection_optics()
+    #
+    #     bunch = generators.ParticleGenerator(
+    #         macroparticlenumber=macroparticlenumber, intensity=intensity,
+    #         charge=self.charge, mass=self.mass, gamma=self.gamma, circumference=self.circumference,
+    #         distribution_x=generators.gaussian2D(epsx_geo),
+    #         alpha_x=injection_optics['alpha_x'],
+    #         beta_x=injection_optics['beta_x'], D_x=injection_optics['D_x'],
+    #         distribution_y=generators.gaussian2D(epsy_geo),
+    #         alpha_y=injection_optics['alpha_y'],
+    #         beta_y=injection_optics['beta_y'], D_y=injection_optics['D_y'],
+    #         distribution_z=generators.cut_distribution(
+    #             generators.gaussian2D_asymmetrical( sigma_u=sigma_z, sigma_up=sigma_dp),
+    #             is_accepted=check_inside_bucket),
+    #         bunch_id=bunch_id, z_reference_position=z_reference_position, z_delay=z_reference_position).generate()
+    #
+    #     return bunch
+    #
+    # # TODO: How about class names here?
+    # def _create_6D_Gaussian_bunch_matched(
+    #         self, n_macroparticles, intensity, epsn_x, epsn_y,
+    #         sigma_z, epsn_z, bucket):
+    #     '''Generate a 6D Gaussian distribution of particles which is transversely as
+    #     well as longitudinally matched.  The distribution is found iteratively
+    #     to exactly yield the given bunch length while at the same time being
+    #     stationary in the non-linear bucket. Thus, the bunch length should
+    #     amount to the one specificed and should not change significantly during
+    #     the synchrotron motion.
+    #
+    #     Requires self.longitudinal_mode == 'non-linear'
+    #     for the bucket.
+    #
+    #     '''
+    #
+    #     assert self.longitudinal_mode == 'non-linear'
+    #
+    #     epsx_geo = epsn_x/self.betagamma
+    #     epsy_geo = epsn_y/self.betagamma
+    #     C = self.longitudinal_map.circumference
+    #     h = np.min(self.longitudinal_map.harmonics)
+    #
+    #     injection_optics = self.transverse_map.get_injection_optics()
+    #
+    #     bunch = generators.ParticleGenerator(
+    #         macroparticlenumber=n_macroparticles, intensity=intensity,
+    #         charge=self.charge, mass=self.mass, gamma=self.gamma,
+    #         circumference=self.circumference,
+    #         distribution_x=generators.gaussian2D(epsx_geo),
+    #         alpha_x=injection_optics['alpha_x'],
+    #         beta_x=injection_optics['beta_x'],
+    #         D_x=injection_optics['D_x'],
+    #         distribution_y=generators.gaussian2D(epsy_geo),
+    #         alpha_y=injection_optics['alpha_y'],
+    #         beta_y=injection_optics['beta_y'],
+    #         D_y=injection_optics['D_y'],
+    #         distribution_z=generators.RF_bucket_distribution(
+    #             self.longitudinal_map.get_bucket(gamma=self.gamma),
+    #             sigma_z=sigma_z, epsn_z=epsn_z),
+    #         bunch_id=bucket, z_delay=-bucket/h*C).generate()
+    #
+    #     return bunch
 
 
     ###########################################################################

@@ -22,7 +22,7 @@ class Particles(Printing):
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma, coords_n_momenta_dict={},
-                 bunch_id=0, z_reference_position=0, **kwargs):
+                 bunch_id=0, **kwargs):
         '''Fundamental parameters:
         - macroparticlenumber
         - charge
@@ -45,9 +45,9 @@ class Particles(Printing):
         variable used to compute the intensity also during losses.
 
         '''
+        self.circumference = circumference
         self.particlenumber_per_mp = particlenumber_per_mp
         self.charge_per_mp = particlenumber_per_mp * charge
-        self.circumference = circumference
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded only
@@ -78,12 +78,12 @@ class Particles(Printing):
         self.bunch_id = np.ones(
             self.macroparticlenumber, dtype=np.int32) * bunch_id
 
-        '''Enables to specify a reference z position for every bunch - this is used
-        e.g. by the linear RF bucket to specify around which point in z to
-        rotate. To date not used otherwise and set to zero by default.
-
-        '''
-        self.z_reference_position = z_reference_position
+        # '''Enables to specify a reference z position for every bunch - this is used
+        # e.g. by the linear RF bucket to specify around which point in z to
+        # rotate. To date not used otherwise and set to zero by default.
+        #
+        # '''
+        # self.z_reference_position = z_reference_position
 
         self.update(coords_n_momenta_dict)
 
@@ -331,12 +331,11 @@ class Particles(Printing):
         bunches_list = [Particles(
             macroparticlenumber=self.macroparticlenumber/len(ids),
             particlenumber_per_mp=self.particlenumber_per_mp,
-            charge=self.charge, mass=self.mass, gamma=self.gamma,
+            charge=self.charge, gamma=self.gamma, mass=self.mass,
             circumference=self.circumference,
             coords_n_momenta_dict={
-                coord: array[ix[i]]
-                for coord, array in self.get_coords_n_momenta_dict().items()},
-            bunch_id=id, z_reference_position=z_reference_position) for i, id in enumerate(ids)]
+                coord: array[ix[i]] for coord, array in self.get_coords_n_momenta_dict().items()},
+            bunch_id=id) for i, id in enumerate(ids)]
 
         bunches_list = sorted(bunches_list,
                               key=lambda x: x.mean_z(), reverse=False) # , reverse=False)
@@ -373,8 +372,9 @@ class Particles(Printing):
 
         result = Particles(
             macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
-            particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-	    mass=self.mass, circumference=self.circumference, gamma=self.gamma,
+            particlenumber_per_mp=self.particlenumber_per_mp,
+            charge=self.charge, gamma=self.gamma, mass=self.mass,
+            circumference=self.circumference,
             coords_n_momenta_dict={})
 
         for coord in self_coords_n_momenta_dict.keys():
@@ -389,12 +389,6 @@ class Particles(Printing):
             (self.id.copy(), other.id.copy()))
         result.bunch_id = np.concatenate(
             (self.bunch_id.copy(), other.bunch_id.copy()))
-
-        # result.z_reference_position = np.concatenate(
-        #     (np.array([self.z_reference_position]), np.array([other.z_reference_position])), axis=0)
-        print(self.z_reference_position, other.z_reference_position)
-        result.z_reference_position = list([self.z_reference_position]).append([other.z_reference_position])
-        print(result.z_reference_position)
 
         return result
 

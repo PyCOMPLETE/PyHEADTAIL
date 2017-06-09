@@ -703,7 +703,8 @@ class LinearMap(LongitudinalOneTurnMap):
     \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
-    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0,*args, **kwargs):
+    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0, harmonics=1,
+                 *args, **kwargs):
         '''Q_s is the synchrotron tune.
         D_x, D_y are the dispersions in horizontal and vertical direction.
 
@@ -731,6 +732,7 @@ class LinearMap(LongitudinalOneTurnMap):
         self.Q_s = Q_s
         self.D_x = D_x
         self.D_y = D_y
+        self.harmonics = harmonics
         if len(alpha_array) > 1:
             self.warns('The higher orders in the given alpha_array are ' +
                        'manifestly neglected.')
@@ -767,7 +769,7 @@ class LinearMap(LongitudinalOneTurnMap):
             cosdQ_s = pm.cos(dQ_s)  # use np because dQ_s is always a scalar
             sindQ_s = pm.sin(dQ_s)  # use np because dQ_s is always a scalar
 
-            b.z -= b.z_initial_offset
+            b.z -= b.bunch_id * self.circumference/self.harmonics
             z0 = b.z
             dp0 = b.dp
 
@@ -782,7 +784,13 @@ class LinearMap(LongitudinalOneTurnMap):
             b.x += self.D_x*b.dp
             b.y += self.D_y*b.dp
 
-            b.z += b.z_initial_offset
+            b.z += b.bunch_id * self.circumference/self.harmonics
 
         beam_new = sum(bunches_list)
-        beam.update(beam_new.coords_n_momenta_dict)
+        beam.update({'x': beam_new.x,
+                     'y': beam_new.y,
+                     'z': beam_new.z,
+                     'xp': beam_new.xp,
+                     'yp': beam_new.yp,
+                     'dp': beam_new.dp
+        })
