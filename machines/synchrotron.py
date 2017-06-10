@@ -616,7 +616,8 @@ class Synchrotron(Element):
                 np.atleast_1d(alpha_mom_compaction),
                 self.circumference, Q_s,
                 D_x=self.transverse_map.D_x[insert_before],
-                D_y=self.transverse_map.D_y[insert_before])
+                D_y=self.transverse_map.D_y[insert_before],
+                harmonics=np.min(np.atleast_1d(h_RF)))
 
         elif longitudinal_mode == 'non-linear':
                 self.longitudinal_map = RFSystems(

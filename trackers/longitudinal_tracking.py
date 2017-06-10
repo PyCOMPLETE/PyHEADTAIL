@@ -769,7 +769,7 @@ class LinearMap(LongitudinalOneTurnMap):
             cosdQ_s = pm.cos(dQ_s)  # use np because dQ_s is always a scalar
             sindQ_s = pm.sin(dQ_s)  # use np because dQ_s is always a scalar
 
-            b.z -= b.bunch_id * self.circumference/self.harmonics
+            b.z += b.bunch_id * self.circumference/self.harmonics
             z0 = b.z
             dp0 = b.dp
 
@@ -784,7 +784,7 @@ class LinearMap(LongitudinalOneTurnMap):
             b.x += self.D_x*b.dp
             b.y += self.D_y*b.dp
 
-            b.z += b.bunch_id * self.circumference/self.harmonics
+            b.z -= b.bunch_id * self.circumference/self.harmonics
 
         beam_new = sum(bunches_list)
         beam.update({'x': beam_new.x,
