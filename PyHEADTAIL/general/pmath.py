@@ -135,6 +135,20 @@ def _searchsortedright(array, values, dest_array=None):
         dest_array = np.searchsorted(array, values, side='right')
     return dest_array
 
+def _slice_to_particles(sliceset, slice_array, particle_array=None):
+        '''Convert slice_array with entries for each slice to a
+        particle array with the respective entry of each particle
+        given by its slice_array value via the slice that the
+        particle belongs to. If provided, particle_array should be a
+        zero-filled destination array.
+        '''
+        if particle_array is None:
+            particle_array = zeros(
+                sliceset.slice_index_of_particle.shape, dtype=np.float64)
+        p_id = sliceset.particles_within_cuts
+        s_id = take(sliceset.slice_index_of_particle, p_id)
+        particle_array[p_id] = take(slice_array, s_id)
+        return particle_array
 
 #### dictionaries storing the CPU and GPU versions of the desired functions ####
 _CPU_numpy_func_dict = {
@@ -165,6 +179,7 @@ _CPU_numpy_func_dict = {
             & (sliceset.slice_index_of_particle >= 0))
         )[0].astype(np.int32),
     'macroparticles_per_slice': lambda sliceset: _count_macroparticles_per_slice_cpu(sliceset),
+    'slice_to_particles': _slice_to_particles,
     'take': np.take,
     'convolve': np.convolve,
     'seq': lambda stop: np.arange(stop, dtype=np.int32),
@@ -220,6 +235,7 @@ if has_pycuda:
         'particles_within_cuts': gpu_wrap.particles_within_cuts,
         'particles_outside_cuts': gpu_wrap.particles_outside_cuts,
         'macroparticles_per_slice': gpu_wrap.macroparticles_per_slice,
+        'slice_to_particles': gpu_wrap.slice_to_particles,
         'take': pycuda.gpuarray.take,
         'convolve': gpu_wrap.convolve,
         'seq': lambda stop: pycuda.gpuarray.arange(stop, dtype=np.int32),

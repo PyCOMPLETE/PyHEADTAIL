@@ -49,6 +49,7 @@ except ImportError as e:
 
 
 if has_pycuda:
+    # define all compilation depending functions (e.g. ElementwiseKernel)
     _sub_1dgpuarr = pycuda.elementwise.ElementwiseKernel(
         'double* out, double* a, const double* b',
         'out[i] = a[i] - b[0]',
@@ -282,6 +283,31 @@ if has_pycuda:
                         slice_stds_noncontained[:new_end],
                         sliceset.n_slices, sigma_u)
         return (mean_u, sigma_u)
+
+
+    _slice_to_particles = pycuda.elementwise.ElementwiseKernel(
+        "unsigned int* slice_index_of_particle, double* input_slice_quantity, "
+        "double* output_particle_array",
+        # i is the particle index within slice_index_of_particle
+        "output_particle_array[i] = "
+            "input_slice_quantity[slice_index_of_particle[i]]",
+        "slice_to_particles_kernel"
+    )
+    def slice_to_particles(sliceset, slice_array, particle_array=None):
+        '''Convert slice_array with entries for each slice to a
+        particle array with the respective entry of each particle
+        given by its slice_array value via the slice that the
+        particle belongs to. If provided, particle_array should be a
+        zero-filled destination array.
+        '''
+        if particle_array == None:
+            particle_array = pycuda.gpuarray.empty(
+                sliceset.slice_index_of_particle.shape,
+                dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
+        _slice_to_particles(sliceset.slice_index_of_particle,
+                            slice_array, particle_array)
+        return particle_array
+
 
 def _inplace_pow(x_gpu, p, stream=None):
     '''
