@@ -314,13 +314,15 @@ class SliceSet(Printing):
         given by its slice_array value via the slice that the
         particle belongs to.
         '''
-        if empty_particles == None:
-            empty_particles = pm.empty_like(
-                self.slice_index_of_particle, dtype=np.float64)
+        if empty_particles is None:
+            empty_particles = pm.zeros(
+                self.slice_index_of_particle.shape, dtype=np.float64)
+        else:
+            empty_particles.fill(0)
         particle_array = empty_particles
         p_id = self.particles_within_cuts
-        s_id = self.slice_index_of_particle.take(p_id)
-        particle_array[p_id] = slice_array.take(s_id)
+        s_id = pm.take(self.slice_index_of_particle, p_id)
+        particle_array[p_id] = pm.take(slice_array, s_id)
         return particle_array
 
 
