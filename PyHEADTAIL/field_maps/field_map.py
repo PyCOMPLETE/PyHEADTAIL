@@ -17,13 +17,16 @@ PyPIC can be found under https://github.com/PyCOMPLETE/PyPIC .
 
 from __future__ import division, print_function
 
+from scipy.constants import c
+
 from . import Element
 
+from ..general import pmath as pm
 from ..gpu.pypic import make_PyPIC
 
 class FieldMap(Element):
-    '''This static (electric) field in the lab frame applies kicks
-    to the beam distribution in a weak-strong interaction model.
+    '''This static field in the lab frame applies kicks to the beam
+    distribution in a weak-strong interaction model.
     '''
     def __init__(self, length, mesh, fields, wrt_beam_centroid=False,
                  *args, **kwargs):
@@ -39,14 +42,17 @@ class FieldMap(Element):
               can have 1 to 3 entries in the order of [E_x, E_y, E_z].
               Use as many entries as beam planes that you want to apply
               the field kicks to.
-              (NB: the field arrays need to be either numpy ndarray or
-              pycuda GPUArray instances, depending on whether you want
-              to apply the kicks on the CPU or on the GPU!)
             - wrt_beam_centroid: if true, the beam centroid will be set
               to zero during the calculation of the field kicks.
 
-        NB: fields defined in the beam frame need to be Lorentz
-        transformed to the lab frame. This particularly true for fields
+        NB 1: FieldMap instances should be initialised in the proper
+        context. If the FieldMap will track on the GPU, it should be
+        initiated within a GPU context:
+        >>> with PyHEADTAIL.general.contextmanager.GPU(beam) as cmg:
+        >>>     fieldmap = FieldMap(...)
+
+        NB 2: fields defined in the beam frame need to be Lorentz
+        transformed to the lab frame. This is the case e.g. for fields
         determined by the particle-in-cell algorithm of PyPIC (where the
         longitudinal meshing includes the stretched beam distribution):
 
@@ -74,27 +80,34 @@ class FieldMap(Element):
         '''
         self.length = length
         self.pypic = make_PyPIC(
-            poissonsolver=None, gradient=lambda mesh: None, mesh=mesh)
-        self.fields = fields
+            poissonsolver=None,
+            gradient=lambda *args, **kwargs: None,
+            mesh=mesh)
+        self.fields = map(pm.ensure_same_device, fields)
         self.wrt_beam_centroid = wrt_beam_centroid
 
     def track(self, beam):
         # prepare argument for PyPIC mesh to particle interpolation
-        mp_coords = np.array([beam.x, beam.y, beam.z]) # zip will cut to #fields
+        mx, my, mz = 0, 0, 0
         if self.wrt_beam_centroid:
-            mp_coords -= np.array(
-                [beam.mean_x(), beam.mean_y(), beam.mean_z()])
+            mx, my, mz = beam.mean_x(), beam.mean_y(), beam.mean_z()
+        mp_coords = [beam.x - mx,
+                     beam.y - my,
+                     beam.z - mz] # zip will cut to #fields
+
         mesh_fields_and_mp_coords = zip(self.fields, mp_coords)
 
         # electric fields at each particle position in lab frame [V/m]
         part_fields = self.pypic.field_to_particles(*mesh_fields_and_mp_coords)
 
         # integrate over dt, p0 comes from kicking xp=p_x/p0 instead of p_x
-        kick_factor = (self.length / (beam.beta*c) * beam.charge / beam.p0)
+        kick_factor = self.length / (beam.beta*c) * beam.charge / beam.p0
 
         # apply kicks for 1-3 planes depending on #entries in fields
         for beam_momentum, force_field in zip(['xp', 'yp', 'zp'], part_fields):
-            getattr(beam, beam_momentum) += force_field * kick_factor
+            val = getattr(beam, beam_momentum)
+            setattr(beam, beam_momentum, val + force_field * kick_factor)
+        # for 3D, the for loop explicitly does:
         # beam.xp += part_fields[0] * kick_factor
         # beam.yp += part_fields[1] * kick_factor
         # beam.dp += part_fields[2] * kick_factor
