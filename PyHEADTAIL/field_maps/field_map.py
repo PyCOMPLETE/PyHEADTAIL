@@ -112,3 +112,68 @@ class FieldMap(Element):
         # beam.yp += part_fields[1] * kick_factor
         # beam.dp += part_fields[2] * kick_factor
 
+
+class FieldMapSliceWise(FieldMap):
+    '''As for the FieldMap, this represents a static two-dimensional
+    transverse field in the lab frame. Kicks are applied in a
+    slice-by-slice manner to the beam distribution in a weak-strong
+    interaction model. The same field is applied to all slices while
+    being multiplied by the local line charge density [Coul/m].
+
+    A possible application is a slice-by-slice frozen space charge
+    model.
+    '''
+    def __init__(self, slicer, *args, **kwargs):
+        '''Arguments in addition to FieldMap arguments:
+            - slicer: determines the longitudinal discretisation for the
+              local line charge density, with which the field is
+              multiplied at each track call.
+
+        NB: mesh needs to be a two-dimensional mesh describing the
+        discrete domain of the transverse fields.
+
+        NB2: the field values should be charge-density-normalised as
+        they are multiplied by the line charge density for each slice,
+        c.f. e.g. the Bassetti-Erskine formula without Q (as in the
+        spacecharge module's
+        TransverseGaussianSpaceCharge.get_efieldn()).
+        '''
+        self.slicer = slicer
+        super(FieldMapSliceWise, self).__init__(*args, **kwargs)
+
+        # require 2D!
+        assert self.pypic.mesh.dimension == 2, \
+            'mesh needs to be two-dimensional!'
+        assert all(map(lambda f: f.ndim == 2, self.fields)), \
+            'transverse field components need to be two-dimensional arrays!'
+        #
+
+    def track(self, beam):
+        # prepare argument for PyPIC mesh to particle interpolation
+        mx, my, mz = 0, 0, 0
+        if self.wrt_beam_centroid:
+            mx, my, mz = beam.mean_x(), beam.mean_y(), beam.mean_z()
+        mp_coords = [beam.x - mx,
+                     beam.y - my,
+                     beam.z - mz] # zip will cut to #fields
+
+        mesh_fields_and_mp_coords = zip(self.fields, mp_coords)
+
+        # electric fields at each particle position in lab frame [V/m]
+        part_fields = self.pypic.field_to_particles(*mesh_fields_and_mp_coords)
+
+        # weigh electric field with slice line charge density;
+        # integrate over dt, p0 comes from kicking xp=p_x/p0 instead of p_x
+        slices = beam.get_slices(self.slicer)
+        lambda_z = slices.convert_to_particles(slices.lambda_z(smoothen=False))
+        kick_factor = (self.length / (beam.beta*c) * beam.charge / beam.p0
+                       * lambda_z)
+
+        # apply kicks for 1-3 planes depending on #entries in fields
+        for beam_momentum, force_field in zip(['xp', 'yp', 'zp'], part_fields):
+            val = getattr(beam, beam_momentum)
+            setattr(beam, beam_momentum, val + force_field * kick_factor)
+        # for 3D, the for loop explicitly does:
+        # beam.xp += part_fields[0] * kick_factor
+        # beam.yp += part_fields[1] * kick_factor
+        # beam.dp += part_fields[2] * kick_factor
