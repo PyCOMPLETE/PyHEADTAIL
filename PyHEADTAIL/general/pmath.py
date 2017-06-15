@@ -24,6 +24,8 @@ except ImportError:
 
 from functools import wraps
 
+from contextmanager import UnknownContextManagerError
+
 # FADDEEVA error function (wofz) business (used a.o. in spacecharge module)
 try:
     from errfff import errf as _errf_f
@@ -38,6 +40,33 @@ def _wofz(x, y):
 def _errfadd(z):
     return np.exp(-z**2) * _erfc(z * -1j)
 
+# context convenience functions:
+def ensure_CPU(array):
+    '''Accept a GPUArray or a NumPy.ndarray and return a NumPy.ndarray.
+    '''
+    try:
+        return array.get()
+    except AttributeError:
+        return array
+
+if has_pycuda:
+    def ensure_GPU(array):
+        '''Accept a GPUArray or a NumPy.ndarray and return a GPUArray.'''
+        if not isinstance(array, pycuda.gpuarray.GPUArray):
+            array = pycuda.gpuarray.to_gpu(np.array(array))
+        return array
+
+def ensure_same_device(array):
+    '''Accept a GPUarray or a NumPy.ndarray, check which device we
+    are currently running on in the context manager, and return
+    a possibly transferred GPUarray or a NumPy.ndarray accordingly.
+    '''
+    if device == 'CPU':
+        return ensure_CPU(array)
+    elif device == 'GPU':
+        return ensure_GPU(array)
+    else:
+        raise UnknownContextManagerError()
 
 # # Kevin's sincos interface:
 # try:
