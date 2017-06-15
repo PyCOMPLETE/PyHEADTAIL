@@ -269,10 +269,15 @@ class SliceSet(Printing):
             mp_density_derivative = smoothen(mp_density_derivative)
         return mp_density_derivative * self.charge_per_mp
 
-    def lambda_z(self, z, sigma=None, smoothen=True):
-        '''Line charge density with respect to z along the slices.'''
+    def lambda_z(self, z=None, sigma=None, smoothen=True):
+        '''Line charge density with respect to z along the slices.
+        If z is None, return the line charge density along the slice
+        centres.
+        '''
         lambda_along_bins = (self.lambda_bins(sigma, smoothen)
                              / self.slice_widths)
+        if z is None:
+            return lambda_along_bins
         tck = interpolate.splrep(self.z_centers, lambda_along_bins, s=0)
         l_of_z = interpolate.splev(z, tck, der=0, ext=1)
         return l_of_z
