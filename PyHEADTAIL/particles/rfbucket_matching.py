@@ -57,6 +57,8 @@ class RFBucketMatcher(Printing):
                              "distribution! (Don't provide both sigma_z "
                              "and epsn_z!)")
 
+    ### analytic matching methods:
+
     def psi_for_emittance_newton_method(self, epsn_z):
         # Maximum emittance
         self.psi_object.H0 = self.rfbucket.guess_H0(
@@ -69,7 +71,7 @@ class RFBucketMatcher(Printing):
             epsn_z = epsn_max*0.99
         self.prints('*** Maximum RMS emittance ' + str(epsn_max) + 'eV s.')
 
-        def get_zc_for_epsn_z(ec):
+        def error_from_target_epsn(ec):
             self.psi_object.H0 = self.rfbucket.guess_H0(
                 ec, from_variable='epsn')
             emittance = self._compute_emittance(self.rfbucket, self.psi)
@@ -80,12 +82,12 @@ class RFBucketMatcher(Printing):
             return emittance-epsn_z
 
         try:
-            ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4)
+            ec_bar = newton(error_from_target_epsn, epsn_z, tol=5e-4)
         except RuntimeError:
             self.warns('RFBucketMatcher -- failed to converge while '
                        'using Newton-Raphson method. '
                        'Instead trying classic Brent method...')
-            ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
+            ec_bar = brentq(error_from_target_epsn, epsn_z/2, 2*epsn_max)
 
         self.psi_object.H0 = self.rfbucket.guess_H0(
             ec_bar, from_variable='epsn')
@@ -106,10 +108,9 @@ class RFBucketMatcher(Printing):
             sigma = sigma_max*0.99
         self.prints('*** Maximum RMS bunch length ' + str(sigma_max) + 'm.')
 
-        def get_zc_for_sigma(zc):
+        def error_from_target_sigma(H0):
             '''Width for bunch length'''
-            self.psi_object.H0 = self.rfbucket.guess_H0(
-                zc, from_variable='sigma')
+            self.psi_object.H0 = H0
             length = self._compute_sigma(self.rfbucket, self.psi)
 
             if np.isnan(length): raise ValueError
@@ -119,10 +120,19 @@ class RFBucketMatcher(Printing):
 
             return length-sigma
 
-        zc_bar = newton(get_zc_for_sigma, sigma)
+        try:
+            H0_init = self.rfbucket.guess_H0(
+                sigma, from_variable='sigma')
+            H0_fin = newton(error_from_target_sigma, H0_init)
+        except RuntimeError:
+            self.warns('RFBucketMatcher -- failed to converge while '
+                       'using Newton-Raphson method. '
+                       'Instead trying classic Brent method...')
+            H0_max = max(self.rfbucket.hamiltonian(
+                self.rfbucket.z_sfp, 0, make_convex=True))*2
+            H0_fin = brentq(error_from_target_sigma, H0_max*1e-3, H0_max)
 
-        self.psi_object.H0 = self.rfbucket.guess_H0(
-            zc_bar, from_variable='sigma')
+        self.psi_object.H0 = H0_fin
         sigma = self._compute_sigma(self.rfbucket, self.psi)
         self.prints('--> Bunch length: ' + str(sigma))
         emittance = self._compute_emittance(self.rfbucket, self.psi)
@@ -190,26 +200,30 @@ class RFBucketMatcher(Printing):
         return u, v, self.psi, self.linedensity
 
     def _compute_sigma(self, rfbucket, psi):
+        z_left = rfbucket.z_left
+        z_right = rfbucket.z_right
 
         f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)
+        Q = quad2d(f, rfbucket.separatrix, z_left, z_right)
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
+        M = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
+        V = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
         var_x = V
 
         return np.sqrt(var_x)
 
     def _compute_emittance(self, rfbucket, psi):
+        z_left = rfbucket.z_left
+        z_right = rfbucket.z_right
 
         f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)
+        Q = quad2d(f, rfbucket.separatrix, z_left, z_right)
 
         f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
+        M = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
         f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
+        V = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
         mean_x = M
         var_x  = V
 
