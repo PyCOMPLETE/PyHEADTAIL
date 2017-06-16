@@ -267,3 +267,46 @@ class ThermalDistribution(StationaryDistribution):
 
 # backwards compatibility:
 StationaryExponential = ThermalDistribution
+
+class QGaussianDistribution(StationaryDistribution):
+    '''Specific Tsallis q-Gaussian distribution for q=3/5 for now,
+    leading to \psi ~ (1 - H/H0)^2, this may be generalised.
+    '''
+    n = 2
+
+    def _psi(self, H):
+        # convert from convex Hamiltonian
+        # (SFP being the maximum and the separatrix having zero value)
+        # to conventional scale (zero-valued minimum at SFP)
+        Hsep = self.Hcut + self.Hmax
+        Hn = Hsep - H
+        dist = (1 - Hn / self.H0).clip(min=self.Hcut)**self.n
+        return dist.clip(min=self.Hcut)
+
+class ParabolicDistribution(StationaryDistribution):
+    '''The parabolic profile distribution is a specific case of the
+    present implementation of the q-Gaussian distribution for n = 1/2,
+    \psi ~ \sqrt(1 - H/H0).
+    For a quadratic harmonic oscillator Hamiltonian this distribution
+    provides a parabolic line density.
+    '''
+    def _psi(self, H):
+        # convert from convex Hamiltonian
+        # (SFP being the maximum and the separatrix having zero value)
+        # to conventional scale (zero-valued minimum at SFP)
+        Hsep = self.Hcut + self.Hmax
+        Hn = Hsep - H
+        return np.sqrt((1 - Hn / self.H0).clip(min=self.Hcut))
+
+class WaterbagDistribution(StationaryDistribution):
+    '''The waterbag distribution has a constant Hamiltonian distribution
+    until a cutoff, \psi ~ \Theta(H - H0) with \Theta the Heaviside
+    step function.
+    '''
+    def _psi(self, H):
+        # convert from convex Hamiltonian
+        # (SFP being the maximum and the separatrix having zero value)
+        # to conventional scale (zero-valued minimum at SFP)
+        Hsep = self.Hcut + self.Hmax
+        Hn = Hsep - H
+        return np.piecewise(Hn, [Hn <= self.H0, Hn > self.H0], [1./self.H0, 0])
