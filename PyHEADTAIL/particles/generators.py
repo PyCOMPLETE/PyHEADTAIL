@@ -9,7 +9,7 @@ from __future__ import division
 import numpy as np
 
 from particles import Particles
-from rfbucket_matching import RFBucketMatcher, StationaryExponential
+from rfbucket_matching import RFBucketMatcher, ThermalDistribution
 
 from . import Printing
 
@@ -132,7 +132,7 @@ def longitudinal_linear_matcher(Qs, eta, C):
 
 
 def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
-                           margin=0, distribution_type=StationaryExponential,
+                           margin=0, distribution_type=ThermalDistribution,
                            *args, **kwargs):
     '''Return a distribution function which generates particles
     which are matched to the specified bucket and target emittance or std
@@ -143,6 +143,9 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
         epsn_z: target normalized emittance in z-direction
         margin: relative margin from the separatrix towards the
             inner stable fix point in which particles are avoided
+        distribution_type: longitudinal distribution type from
+            rfbucket_matching (default is ThermalDistribution which
+            produces a Gaussian-like matched Boltzmann distribution)
     Returns:
         A matcher with the specified bucket properties (closure)
     Raises:

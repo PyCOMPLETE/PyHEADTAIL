@@ -251,8 +251,7 @@ class StationaryDistribution(object):
         norm = self._psi(self.Hmax)
         return psi / norm
 
-
-class StationaryExponential(StationaryDistribution):
+class ThermalDistribution(StationaryDistribution):
     '''Thermal Boltzmann distribution \psi ~ \exp(-H/H0).
     For a quadratic harmonic oscillator Hamiltonian this gives the
     bi-Gaussian phase space distribution.
@@ -265,3 +264,6 @@ class StationaryExponential(StationaryDistribution):
         Hn = Hsep - H
         # f(Hn) - f(Hsep)
         return np.exp(-Hn / self.H0) - np.exp(-Hsep / self.H0)
+
+# backwards compatibility:
+StationaryExponential = ThermalDistribution
