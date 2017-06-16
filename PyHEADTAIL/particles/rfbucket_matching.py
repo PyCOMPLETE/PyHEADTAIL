@@ -8,6 +8,7 @@ from __future__ import division, print_function
 
 import numpy as np
 from scipy.optimize import brentq, newton
+from scipy.integrate import fixed_quad
 from scipy.constants import e, c
 
 from ..cobra_functions.pdf_integrators_2d import quad2d
@@ -50,18 +51,17 @@ class RFBucketMatcher(Printing):
             self.variable = epsn_z
             self.psi_for_variable = self.psi_for_emittance_newton_method
         else:
-            raise ValueError("Can not generate mismatched matched " +
-                             "distribution! (Don't provide both sigma_z " +
+            raise ValueError("Can not generate mismatched matched "
+                             "distribution! (Don't provide both sigma_z "
                              "and epsn_z!)")
 
     def psi_for_emittance_newton_method(self, epsn_z):
-
         # Maximum emittance
         self.psi_object.H0 = self.rfbucket.guess_H0(
             self.rfbucket.circumference, from_variable='sigma')
         epsn_max = self._compute_emittance(self.rfbucket, self.psi)
         if epsn_z > epsn_max:
-            self.warns('Given RMS emittance does not fit into bucket. ' +
+            self.warns('Given RMS emittance does not fit into bucket. '
                        'Using (maximum) full bucket emittance ' +
                        str(epsn_max*0.99) + 'eV s instead.')
             epsn_z = epsn_max*0.99
@@ -80,8 +80,8 @@ class RFBucketMatcher(Printing):
         try:
             ec_bar = newton(get_zc_for_epsn_z, epsn_z, tol=5e-4)
         except RuntimeError:
-            self.warns('RFBucketMatcher -- failed to converge while ' +
-                       'using Newton-Raphson method. ' +
+            self.warns('RFBucketMatcher -- failed to converge while '
+                       'using Newton-Raphson method. '
                        'Instead trying classic Brent method...')
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
 
@@ -93,13 +93,12 @@ class RFBucketMatcher(Printing):
         self.prints('--> Bunch length:' + str(sigma))
 
     def psi_for_bunchlength_newton_method(self, sigma):
-
         # Maximum bunch length
         self.psi_object.H0 = self.rfbucket.guess_H0(
             self.rfbucket.circumference, from_variable='sigma')
         sigma_max = self._compute_sigma(self.rfbucket, self.psi)
         if sigma > sigma_max:
-            self.warns('Given RMS bunch length does not fit into bucket. ' +
+            self.warns('Given RMS bunch length does not fit into bucket. '
                        'Using (maximum) full bucket RMS bunch length ' +
                        str(sigma_max*0.99) + 'm instead.')
             sigma = sigma_max*0.99
@@ -127,15 +126,15 @@ class RFBucketMatcher(Printing):
         emittance = self._compute_emittance(self.rfbucket, self.psi)
         self.prints('--> Emittance: ' + str(emittance))
 
-    def linedensity(self, xx):
-        quad_type = fixed_quad
-
+    def linedensity(self, xx, quad_type=fixed_quad):
         L = []
         try:
             L = np.array([quad_type(lambda y: self.psi(x, y), 0,
-                                    self.p_limits(x))[0] for x in xx])
+                                    self.rfbucket.separatrix(x))[0]
+                          for x in xx])
         except TypeError:
-            L = quad_type(lambda y: self.psi(xx, y), 0, self.p_limits(xx))[0]
+            L = quad_type(lambda y: self.psi(xx, y), 0,
+                          self.rfbucket.separatrix(xx))[0]
         L = np.array(L)
 
         return 2*L
