@@ -17,6 +17,8 @@ from . import Printing
 
 from functools import partial
 
+from abc import abstractmethod
+
 class RFBucketMatcher(Printing):
 
     def __init__(self, rfbucket, distribution_type=None, sigma_z=None,
@@ -226,19 +228,40 @@ class RFBucketMatcher(Printing):
                 4*np.pi*rfbucket.p0/np.abs(rfbucket.charge))
 
 
-class StationaryExponential(object):
-
-    def __init__(self, H, Hmax=None, Hcut=0):
+class StationaryDistribution(object):
+    def __init__(self, H, Hmax=None, Hcut=0, H0=1):
         self.H = H
-        self.H0 = 1
+        self.H0 = H0
         if not Hmax:
             self.Hmax = H(0, 0)
         else:
             self.Hmax = Hmax
         self.Hcut = Hcut
 
+    @abstractmethod
     def _psi(self, H):
-        return np.exp((H - self.Hmax) / self.H0) - np.exp(-self.Hmax / self.H0)
+        '''Define the distribution value for the given H, the output
+        lies in the interval [0,1]. This is the central function to
+        be implemented by stationary distributions.
+        '''
+        pass
 
     def function(self, z, dp):
-        return self._psi(self.H(z, dp).clip(min=0)) / self._psi(self.Hmax)
+        psi = self._psi(self.H(z, dp).clip(min=self.Hcut))
+        norm = self._psi(self.Hmax)
+        return psi / norm
+
+
+class StationaryExponential(StationaryDistribution):
+    '''Thermal Boltzmann distribution \psi ~ \exp(-H/H0).
+    For a quadratic harmonic oscillator Hamiltonian this gives the
+    bi-Gaussian phase space distribution.
+    '''
+    def _psi(self, H):
+        # convert from convex Hamiltonian
+        # (SFP being the maximum and the separatrix having zero value)
+        # to conventional literature scale (zero-valued minimum at SFP)
+        Hsep = self.Hcut + self.Hmax
+        Hn = Hsep - H
+        # f(Hn) - f(Hsep)
+        return np.exp(-Hn / self.H0) - np.exp(-Hsep / self.H0)
