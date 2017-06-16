@@ -269,10 +269,15 @@ class SliceSet(Printing):
             mp_density_derivative = smoothen(mp_density_derivative)
         return mp_density_derivative * self.charge_per_mp
 
-    def lambda_z(self, z, sigma=None, smoothen=True):
-        '''Line charge density with respect to z along the slices.'''
+    def lambda_z(self, z=None, sigma=None, smoothen=True):
+        '''Line charge density with respect to z along the slices.
+        If z is None, return the line charge density along the slice
+        centres.
+        '''
         lambda_along_bins = (self.lambda_bins(sigma, smoothen)
                              / self.slice_widths)
+        if z is None:
+            return lambda_along_bins
         tck = interpolate.splrep(self.z_centers, lambda_along_bins, s=0)
         l_of_z = interpolate.splev(z, tck, der=0, ext=1)
         return l_of_z
@@ -309,14 +314,9 @@ class SliceSet(Printing):
         given by its slice_array value via the slice that the
         particle belongs to.
         '''
-        if empty_particles == None:
-            empty_particles = pm.empty_like(
-                self.slice_index_of_particle, dtype=np.float64)
-        particle_array = empty_particles
-        p_id = self.particles_within_cuts
-        s_id = self.slice_index_of_particle.take(p_id)
-        particle_array[p_id] = slice_array.take(s_id)
-        return particle_array
+        if empty_particles is not None:
+            empty_particles.fill(0)
+        return pm.slice_to_particles(self, slice_array, empty_particles)
 
 
 class Slicer(Printing):

@@ -9,15 +9,18 @@ NB: the (feature/redesign) branch is required for this!
 @date: 18.01.2016
 '''
 
-from __future__ import division
+from __future__ import division, print_function
 
-import numpy as np
 from scipy.constants import c
 
 from . import Element
 
 from ..general import pmath as pm
+from ..field_maps.field_map import FieldMapSliceWise
+from pypic_factory import create_mesh
+from spacecharge import TransverseGaussianSpaceCharge
 
+import numpy as np
 
 def align_particles(beam, mesh_3d):
     '''Sort all particles by their mesh node IDs.'''
@@ -109,3 +112,74 @@ class SpaceChargePIC(Element):
             # gradient in PyPIC, another gamma factor included here:
             beam.dp += force_fields[2] * kick_factor/beam.gamma
 
+
+class FrozenGaussianSpaceCharge25D(FieldMapSliceWise):
+    '''Transverse slice-by-slice (2.5D) frozen space charge assuming
+    a static transverse Gaussian distribution of a fixed RMS size.
+    The present class is essentially a field_map.FieldMapSliceWise with
+    a pre-filled Bassetti-Erskine formula computed field map
+    (cf. spacecharge.TransverseGaussianSpaceCharge).
+    The same electric transverse field is applied to all slices while
+    being multiplied by the local line charge density [Coul/m].
+    In particular, this means that the strength of the local field is
+    self-consistent in the longitudinal plane but frozen in the
+    transverse plane (with the fixed Gaussian electric field).
+
+    This frozen space charge model essentially acts equivalently to an
+    external magnet and fails to provide self-consistent treatment of
+    space charge related effects like quadrupolar envelope breathing
+    etc.
+    '''
+    def __init__(self, slicer, length, sigma_x, sigma_y, gamma,
+                 n_mesh_sigma=[6, 6], mesh_size=[1024, 1024],
+                 *args, **kwargs):
+        '''Arguments:
+            - slicer: determines the longitudinal discretisation for the
+              local line charge density, with which the field is
+              multiplied at each track call.
+            - length: interaction length around the accelerator over
+              which the force of the field is integrated.
+            - sigma_x, sigma_y: the horizontal and vertical RMS width of
+              the transverse Gaussian distribution modelling the beam
+              distribution.
+            - gamma: the relativistic Lorentz factor of the beam.
+
+        Optional arguments:
+            - n_mesh_sigma: 2-list of number of beam RMS values in
+              [x, y] to span across half the mesh width for the
+              field interpolation.
+            - mesh_size: 2-list of number of mesh nodes per transverse
+              plane [x, y].
+
+        NB: FrozenGaussianSpaceCharge25D instances should be initialised
+        in the proper context. If the FrozenGaussianSpaceCharge25D will
+        track on the GPU, it should be initiated within a GPU context:
+        >>> with PyHEADTAIL.general.contextmanager.GPU(beam) as cmg:
+        >>>     frozen_sc_node = FrozenGaussianSpaceCharge25D(...)
+        '''
+        wrt_beam_centroid = True
+        mesh = create_mesh(
+            mesh_origin=[-n_mesh_sigma[0] * sigma_x,
+                         -n_mesh_sigma[1] * sigma_y],
+            mesh_distances=[sigma_x * 2 * n_mesh_sigma[0] / mesh_size[0],
+                            sigma_y * 2 * n_mesh_sigma[1] / mesh_size[1]],
+            mesh_size=mesh_size,
+        )
+
+        # calculate Bassetti-Erskine formula on either CPU or GPU:
+        ## prepare arguments for the proper device:
+        xg, yg = map(pm.ensure_same_device, np.meshgrid(
+            np.linspace(mesh.x0, mesh.x0 + mesh.dx*mesh.nx, mesh.nx),
+            np.linspace(mesh.y0, mesh.y0 + mesh.dy*mesh.ny, mesh.ny)
+        ))
+        sigma_x, sigma_y = map(pm.ensure_same_device, [sigma_x, sigma_y])
+        ## compute fields
+        be_sc = TransverseGaussianSpaceCharge(None, None)
+        fields_beamframe = be_sc.get_efieldn(xg, yg, 0, 0, sigma_x, sigma_y)
+
+        # Lorentz trafo to lab frame:
+        fields = [f/gamma for f in fields_beamframe]
+
+        super(FrozenGaussianSpaceCharge25D, self).__init__(
+            slicer=slicer, length=length, mesh=mesh, fields=fields,
+            wrt_beam_centroid=wrt_beam_centroid, *args, **kwargs)
