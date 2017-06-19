@@ -286,26 +286,32 @@ if has_pycuda:
 
 
     _slice_to_particles = pycuda.elementwise.ElementwiseKernel(
-        "unsigned int* slice_index_of_particle, double* input_slice_quantity, "
-        "double* output_particle_array",
+        "const int* slice_index_of_particle, "
+        "const double* input_slice_quantity, "
+        "const int n_slices, double* output_particle_array",
         # i is the particle index within slice_index_of_particle
-        "output_particle_array[i] = "
-            "input_slice_quantity[slice_index_of_particle[i]]",
+        "const int sid = slice_index_of_particle[i];\n"
+        "if (sid >= 0 && sid < n_slices) {"
+            "output_particle_array[i] = "
+                "input_slice_quantity[sid];"
+        "} else {"
+            "output_particle_array[i] = 0;"
+        "};",
         "slice_to_particles_kernel"
     )
     def slice_to_particles(sliceset, slice_array, particle_array=None):
         '''Convert slice_array with entries for each slice to a
         particle array with the respective entry of each particle
         given by its slice_array value via the slice that the
-        particle belongs to. If provided, particle_array should be a
-        zero-filled destination array.
+        particle belongs to. If the particle is located outside
+        the slicing area, its particle_array entry is assigned to zero.
         '''
         if particle_array == None:
             particle_array = pycuda.gpuarray.empty(
                 sliceset.slice_index_of_particle.shape,
                 dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
         _slice_to_particles(sliceset.slice_index_of_particle,
-                            slice_array, particle_array)
+                            slice_array, sliceset.n_slices, particle_array)
         return particle_array
 
 
