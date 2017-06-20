@@ -1,5 +1,9 @@
 from __future__ import division
 
+import sys, os
+BIN = os.path.expanduser("../../../")
+sys.path.append(BIN)
+
 import time
 import numpy as np
 import seaborn as sns

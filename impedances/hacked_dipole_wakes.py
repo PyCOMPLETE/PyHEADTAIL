@@ -142,14 +142,15 @@ class HackedDipoleWake(object):
                 # the bunches are added after the source bunch. In the case of low beta_beam wakes
                 # this must be hacked
                 #
-                # Because the bunch spacing is always a multiplier of the minimum bunch spacing, 
-		# memory usage could be reduced further by producing only one dashed_wake_function 
+                # Because the bunch spacing is always a multiplier of the minimum bunch spacing,
+		# memory usage could be reduced further by producing only one dashed_wake_function
 		# for all bunches, but it would cost in the computing time for the convolution.
 
                 source_mid = mid_i
                 target_mid = bunch_mids[target_bunch_idx]
 
                 delta_mid = target_mid-source_mid
+                delta_mid = -1.*delta_mid
                 if delta_mid < 0.:
                     # the target bunch is after the source bunch
                     delta_mid += self._circumference
@@ -182,38 +183,46 @@ class HackedDipoleWake(object):
 ##                np.copyto(self._dashed_wake_functions_x[i],np.interp(z_values, self._data_t*1e-9*c, self._data_x*convert_to_V_per_Cm))
 ##                np.copyto(self._dashed_wake_functions_y[i],np.interp(z_values, self._data_t*1e-9*c, self._data_y*convert_to_V_per_Cm))
 #
-#            fig1 = plt.figure(figsize=(9, 5))
-#            ax1 = fig1.add_subplot(111)
-#            y1 = 0.8 * np.ones(len(original_z_bin_mids))
-#            y2 = 1.2 * np.ones(len(z_bin_mids))
-#            ax1.plot(original_z_bin_mids,y1, 'k.')
-#            ax1.plot(z_bin_mids,y2, 'b.')
-#            ax1.set_ylim(0,1.5)
+#        fig1 = plt.figure(figsize=(9, 5))
+#        ax1 = fig1.add_subplot(111)
+#        y1 = 0.8 * np.ones(len(original_z_bin_mids))
+#        y2 = 1.2 * np.ones(len(z_bin_mids))
+#        ax1.plot(original_z_bin_mids,y1, 'k.')
+#        ax1.plot(z_bin_mids,y2, 'b.')
+#        ax1.set_ylim(0,1.5)
 #
-#            fig2 = plt.figure(figsize=(9, 5))
-#            ax2 = fig2.add_subplot(111)
-#            y1 = 1.0 * np.ones(len(self._dashed_z_values[0]))
-#            y2 = 0.9 * np.ones(len(self._dashed_z_values[1]))
-#            y3 = 0.8 * np.ones(len(self._dashed_z_values[2]))
-#            y4 = 0.7 * np.ones(len(self._dashed_z_values[3]))
-#            y5 = 0.6 * np.ones(len(self._dashed_z_values[4]))
-#            ax2.plot(self._dashed_z_values[0],y1, 'k.')
-#            ax2.plot(self._dashed_z_values[1],y2, 'b.')
-#            ax2.plot(self._dashed_z_values[2],y3, 'b.')
-#            ax2.plot(self._dashed_z_values[3],y4, 'b.')
-#            ax2.plot(self._dashed_z_values[4],y5, 'b.')
-#            ax2.set_ylim(0,1.1)
+#        fig2 = plt.figure(figsize=(9, 5))
+#        ax2 = fig2.add_subplot(111)
+#        y1 = 1.0 * np.ones(len(self._dashed_z_values[0]))
+#        y2 = 0.9 * np.ones(len(self._dashed_z_values[1]))
+#        y3 = 0.8 * np.ones(len(self._dashed_z_values[2]))
+##            y4 = 0.7 * np.ones(len(self._dashed_z_values[3]))
+##            y5 = 0.6 * np.ones(len(self._dashed_z_values[4]))
+#        ax2.plot(self._dashed_z_values[0],y1, 'k.')
+#        ax2.plot(self._dashed_z_values[1],y2, 'b.')
+#        ax2.plot(self._dashed_z_values[2],y3, 'b.')
+##            ax2.plot(self._dashed_z_values[3],y4, 'b.')
+##            ax2.plot(self._dashed_z_values[4],y5, 'b.')
+#        ax2.set_ylim(0,1.1)
 #
-#            fig3 = plt.figure(figsize=(9, 5))
-#            ax3 = fig3.add_subplot(111)
-#            y1 = self._dashed_wake_functions_x[0]
-#            y2 = self._dashed_wake_functions_x[1]
-#            ax3.plot(self._data_t*1e-9*c,self._data_x, 'r-')
-#            ax3.plot(self._dashed_z_values[0],y1, 'k.')
-#            ax3.plot(self._dashed_z_values[1],y2, 'b.')
-#            ax3.set_ylim(min(y1), max(y1))
-#            ax3.set_xlim(min(self._dashed_wake_functions_x[0]), max(self._dashed_wake_functions_x[0]))
-#            plt.show()
+#        fig3 = plt.figure(figsize=(9, 5))
+#        ax3 = fig3.add_subplot(111)
+#        y1 = self._dashed_wake_functions_x[0]
+#        y2 = self._dashed_wake_functions_x[1]
+#        y3 = self._dashed_wake_functions_x[2]
+#        ax3.plot(self._data_t*1e-9*c,self._data_x*convert_to_V_per_Cm, 'r-')
+#        ax3.plot(self._dashed_z_values[0],y1 + 0.1*max(y1), 'k.')
+#        ax3.plot(self._dashed_z_values[1],y2 - 0.1*max(y2), 'b.')
+#        ax3.plot(self._dashed_z_values[2],y3, 'c.')
+#        ax3.set_ylim(min(y1), max(y1))
+#        ax3.set_xlim(min(self._dashed_z_values[-1]), max(self._dashed_z_values[-1]))
+#        print 'self._dashed_z_values[0]'
+#        print self._dashed_z_values[0]
+#        print 'self._dashed_z_values[1]'
+#        print self._dashed_z_values[1]
+#        print 'self._dashed_z_values[2]'
+#        print self._dashed_z_values[2]
+#        plt.show()
 
 
     def __update_wakes(self, all_slice_sets, local_slice_sets, bunch_list):
