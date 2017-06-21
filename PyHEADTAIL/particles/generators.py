@@ -11,6 +11,9 @@ import numpy as np
 from particles import Particles
 from rfbucket_matching import RFBucketMatcher, ThermalDistribution
 
+# backwards compatibility:
+StationaryExponential = ThermalDistribution
+
 from . import Printing
 
 from scipy.constants import e, c

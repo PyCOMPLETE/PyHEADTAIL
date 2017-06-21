@@ -279,9 +279,6 @@ class ThermalDistribution(StationaryDistribution):
         # f(Hn) - f(Hsep)
         return np.exp(-Hn / self.H0) - np.exp(-Hsep / self.H0)
 
-# backwards compatibility:
-StationaryExponential = ThermalDistribution
-
 class QGaussianDistribution(StationaryDistribution):
     '''Specific Tsallis q-Gaussian distribution for q=3/5 for now,
     leading to \psi ~ (1 - H/H0)^2, this may be generalised.
