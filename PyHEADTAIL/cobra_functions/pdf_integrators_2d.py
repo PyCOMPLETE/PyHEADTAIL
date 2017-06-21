@@ -1,12 +1,24 @@
-from scipy.integrate import quad, fixed_quad, dblquad, cumtrapz, romb
+'''
+@author Kevin Li, Adrian Oeftiger
+@date 21.06.2017
+@brief 2D distribution integration methods for y(x) parametrised domains
+'''
+from scipy.integrate import quad, dblquad, cumtrapz, romb
+
+import numpy as np
 
 
 def quad2d(f, ylimits, xmin, xmax):
+    '''Integrate 2D function f=f(x,y) over interval [xmin,xmax] and
+    between contours [-ylimits(x), ylimits(x)] using the numerical
+    scipy.integrate.dblquad integration method.
+    '''
     Q, error = dblquad(lambda y, x: f(x, y), xmin, xmax,
                        lambda x: -ylimits(x), lambda x: ylimits(x))
 
     return Q
 
+### scipy.integrate.dblquad moment integration:
 
 def compute_zero_quad(psi, ylimit_min, ylimit_max, xmin, xmax):
     '''Compute the zeroth moment of the distribution function psi from
@@ -94,9 +106,6 @@ def compute_cov_quad(psi, ylimit_min, ylimit_max, xmin, xmax):
         - psi: 2D distribution function with two arguments x and y
         - ylimits: contour function yielding the y(x) limit for given x
         - xmin, xmax: lower and upper limit in the first argument of psi
-
-    NB: assumes a symmetric distribution function with respect to the
-    second argument (the vertical direction).
     '''
 
     Q = compute_zero_quad(psi, ylimit_min, ylimit_max, xmin, xmax)
