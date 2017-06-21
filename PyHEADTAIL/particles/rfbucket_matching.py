@@ -228,14 +228,14 @@ class RFBucketMatcher(Printing):
         var_x  = V
 
         f = lambda x, y: psi(x, y)*y
-        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
+        M = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
         f = lambda x, y: psi(x, y)*(y-M)**2
-        V = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
+        V = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
         mean_y = M
         var_y  = V
 
         f = lambda x, y: psi(x, y)*(x-mean_x)*(y-mean_y)
-        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
+        M = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
         mean_xy = M
 
         return (np.sqrt(var_x*var_y - mean_xy**2) *
