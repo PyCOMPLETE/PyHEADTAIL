@@ -11,7 +11,7 @@ from scipy.optimize import brentq, newton
 from scipy.integrate import fixed_quad
 from scipy.constants import e, c
 
-from ..cobra_functions.pdf_integrators_2d import quad2d
+from ..cobra_functions import pdf_integrators_2d as integr
 
 from . import Printing
 
@@ -20,6 +20,19 @@ from functools import partial
 from abc import abstractmethod
 
 class RFBucketMatcher(Printing):
+
+    integrationmethod = ['quad', 'cumtrapz'][0]
+    def get_moment_integrators(self):
+        '''Return moment integrators from
+        cobra_functions.pdf_integrators_2d according to the chosen
+        self.integrationmethod. Allows to change integration method
+        for RFBucket matching.
+        '''
+        zero = getattr(integr, 'compute_zero_' + self.integrationmethod)
+        mean = getattr(integr, 'compute_mean_' + self.integrationmethod)
+        var = getattr(integr, 'compute_var_' + self.integrationmethod)
+        cov = getattr(integr, 'compute_cov_' + self.integrationmethod)
+        return zero, mean, var, cov
 
     def __init__(self, rfbucket, distribution_type=None, sigma_z=None,
                  epsn_z=None, verbose_regeneration=False, psi=None,
@@ -202,43 +215,24 @@ class RFBucketMatcher(Printing):
     def _compute_sigma(self, rfbucket, psi):
         z_left = rfbucket.z_left
         z_right = rfbucket.z_right
+        zero, mean, var, cov = self.get_moment_integrators()
 
-        f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, rfbucket.separatrix, z_left, z_right)
-        f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
-        f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
-        var_x = V
+        var_x = var(self.psi, lambda x: -rfbucket.separatrix(x),
+                    rfbucket.separatrix, z_left, z_right,
+                    direction='x') # x means z direction
 
         return np.sqrt(var_x)
 
     def _compute_emittance(self, rfbucket, psi):
         z_left = rfbucket.z_left
         z_right = rfbucket.z_right
+        zero, mean, var, cov = self.get_moment_integrators()
 
-        f = lambda x, y: self.psi(x, y)
-        Q = quad2d(f, rfbucket.separatrix, z_left, z_right)
+        var_x, cov_xy, var_y = cov(
+            self.psi, lambda x: -rfbucket.separatrix(x),
+            rfbucket.separatrix, z_left, z_right)
 
-        f = lambda x, y: psi(x, y)*x
-        M = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
-        f = lambda x, y: psi(x, y)*(x-M)**2
-        V = quad2d(f, rfbucket.separatrix, z_left, z_right)/Q
-        mean_x = M
-        var_x  = V
-
-        f = lambda x, y: psi(x, y)*y
-        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
-        f = lambda x, y: psi(x, y)*(y-M)**2
-        V = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
-        mean_y = M
-        var_y  = V
-
-        f = lambda x, y: psi(x, y)*(x-mean_x)*(y-mean_y)
-        M = quad2d(f, rfbucket.separatrix, rfbucket.z_left, rfbucket.z_right)/Q
-        mean_xy = M
-
-        return (np.sqrt(var_x*var_y - mean_xy**2) *
+        return (np.sqrt(var_x*var_y - cov_xy**2) *
                 4*np.pi*rfbucket.p0/np.abs(rfbucket.charge))
 
 
@@ -278,9 +272,6 @@ class ThermalDistribution(StationaryDistribution):
         Hn = Hsep - H
         # f(Hn) - f(Hsep)
         return np.exp(-Hn / self.H0) - np.exp(-Hsep / self.H0)
-
-# backwards compatibility:
-StationaryExponential = ThermalDistribution
 
 class QGaussianDistribution(StationaryDistribution):
     '''Specific Tsallis q-Gaussian distribution for q=3/5 for now,
