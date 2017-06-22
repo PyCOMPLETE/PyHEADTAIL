@@ -1,5 +1,9 @@
 from __future__ import division
 
+#import sys, os
+#BIN = os.path.expanduser("../../../")
+#sys.path.append(BIN)
+
 import time
 import numpy as np
 import seaborn as sns
@@ -46,9 +50,9 @@ rank = comm.Get_rank()
 #     plt.show()
 # wurstel
 
-n_turns = 6
+n_turns = 4
 chroma = 0
-n_bunches = 11
+n_bunches = 6
 intensity = 2.3e11
 n_macroparticles = 20000
 
@@ -73,18 +77,18 @@ filling_scheme_synth = sorted([5 + 2*i**1.2 + h*j for i in range(n_bunches) for 
 epsn_x = 2.e-6
 epsn_y = 2.e-6
 sigma_z = 0.081
-allbunches = machine.generate_6D_Gaussian_bunch_matched(
+allbunches = machine.generate_6D_Gaussian_bunch(
     n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
-    filling_scheme=filling_scheme)
+    filling_scheme=filling_scheme, matched=True)
 allbunches.x *= 0
 allbunches.xp *= 0
 allbunches.y *= 0
 allbunches.yp *= 0
 allbunches.x[:] += 2e-2
 
-synthbunches = machine.generate_6D_Gaussian_bunch_matched(
+synthbunches = machine.generate_6D_Gaussian_bunch(
     n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
-    filling_scheme=filling_scheme_synth)
+    filling_scheme=filling_scheme_synth, matched=True)
 synthbunches.x *= 0
 synthbunches.xp *= 0
 synthbunches.y *= 0
@@ -103,7 +107,9 @@ slicer_for_wakefields = UniformBinSlicer(20, z_cuts=(-0.4, 0.4))
 # ============
 wakes = CircularResonator(1e6, 20e6, 10, n_turns_wake=10)
 wake_field = WakeField(slicer_for_wakefields, wakes,
-                       circumference=machine.circumference, mpi=True)
+                       circumference=machine.circumference, mpi='optimized')
+#wake_field = WakeField(slicer_for_wakefields, wakes,
+#                       circumference=machine.circumference, mpi=True)
 # wake_field = ParallelWakes(slicer_for_wakefields, wake_sources_list=None,
 #                            circumference=machine.circumference,
 #                            filling_scheme=filling_scheme,
