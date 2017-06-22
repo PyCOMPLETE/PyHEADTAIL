@@ -384,7 +384,8 @@ class RFBucket(Printing):
         return total_force(z) - self.deltaE / self.circumference
 
 
-    def rf_potential(self, V, h, dphi, dp, acceleration=True):
+    def rf_potential(self, V, h, dphi, p_increment,
+                     acceleration=True, offset=True):
         '''Return the RF electric potential energy including the linear
         acceleration slope (if acceleration == True).
 
@@ -395,6 +396,9 @@ class RFBucket(Printing):
             - p_increment: momentum increase per turn
             - acceleration: whether to superimpose the linear
               acceleration slope (induced by p_increment, default=True)
+            - offset: boolean whether the potential energy should be
+              shifted to zero at the unstable fix point enclosing
+              the separatrix of the RF bucket (default=True).
         '''
         def vf(z):
             coefficient = np.abs(self.charge)/self.circumference
@@ -406,15 +410,19 @@ class RFBucket(Printing):
         if not acceleration:
             return vf
         else:
-            zmax = self.z_ufp_separatrix
+            v_norm = 0 # normalisation shift
+            if offset:
+                zmax = self.z_ufp_separatrix
+                v_norm = (vf(zmax) +
+                          p_increment*self.beta*c/self.circumference * zmax)
 
             def f(z):
-                return (vf(z) - vf(zmax) +
-                        (dp*self.beta*c/self.circumference * (z - zmax)))
+                return (vf(z) + p_increment*self.beta*c/self.circumference * z
+                        - v_norm)
             return f
 
     def total_potential(self, z, ignore_add_potentials=False,
-                        make_convex=False, acceleration=True):
+                        make_convex=False, acceleration=True, offset=True):
         '''Return the total electric potential energy including
         - the linear acceleration slope and
         - the additional electric potential energies (provided via
@@ -435,9 +443,12 @@ class RFBucket(Printing):
               where the stable fix points are located, set
               make_convex=True in order to return
               sign(eta)*hamiltonian(z, dp).
+            - offset: boolean whether the potential energy should be
+              shifted to zero at the unstable fix point enclosing
+              the separatrix of the RF bucket (default=True).
         '''
         v = (self.rf_potential(self.V, self.h, self.dphi,
-                               self.p_increment, acceleration)(z) +
+                               self.p_increment, acceleration, offset)(z) +
              sum(pot(z) for pot in self._add_potentials
                  if not ignore_add_potentials))
         if make_convex:
