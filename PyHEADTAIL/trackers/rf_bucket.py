@@ -548,13 +548,17 @@ class RFBucket(Printing):
 
     def _get_zsfp_and_zufp(self):
         '''Return (z_sfp, z_ufp),
-        where z_sfp is the synchronous z on stable fix point,
-        and z_ufp is the z of the (first) unstable fix point.
+        where z_sfp is the z location of the stable fix points,
+        and z_ufp is the z location of the unstable fix points
+        belonging to this RF bucket.
 
-        Works for dominant harmonic situations which look like
-        a single harmonic (which may be slightly perturbed), i.e.
-        only one stable fix point and at most
-        2 unstable fix points (stationary case).
+        A stationary RF bucket has the right-most UFP overlapping
+        with the adjacent RF bucket's separatrix, while for an
+        ac-/decelerating RF bucket one of the two out-most UFP always
+        belongs to the separatrix of the adjacent RF bucket. This UFP
+        will be discarded (although you find it with the zero crossing
+        of the total_force) by comparing the voltages between the
+        out-most UFP.
         '''
         z0 = np.atleast_1d(self.zero_crossings(self.total_force))
 
@@ -566,18 +570,27 @@ class RFBucket(Printing):
                              'why do you ask me for bucket boundaries ' +
                              'in this hyperbolic phase space structure?!')
 
-        z0odd = z0[::2]
-        z0even = z0[1::2]
-
         if len(z0) == 1:  # exactly zero bucket area
             return z0, z0
 
+        V_left = self.total_potential(z0[0], make_convex=True, offset=False)
+        V_right = self.total_potential(z0[-1], make_convex=True, offset=False)
+
         if self.eta0 * self.p_increment > 0:
-            # separatrix ufp right of sfp
-            z_sfp, z_ufp = z0odd, z0even
+            # separatrix ufp right of sfp AND we are ac-/decelerating
+            if V_left < V_right:
+                # --> need to remove first ufp (belongs to bucket to the left)
+                z0 = z0[1:]
+            z_sfp, z_ufp = z0[::2], z0[1::2]
+        elif self.eta0 * self.p_increment == 0:
+            # stationary bucket, need both left and right UFP (overlapping!)
+            z_sfp, z_ufp = z0[1::2], z0[::2]
         else:
-            # separatrix ufp left of sfp
-            z_sfp, z_ufp = z0even, z0odd
+            # separatrix ufp left of sfp AND we are ac-/decelerating
+            if V_right < V_left:
+                # --> need to remove last ufp (belongs to bucket to the right)
+                z0 = z0[:-1]
+            z_sfp, z_ufp = z0[1::2], z0[::2]
 
         return z_sfp, z_ufp
 
