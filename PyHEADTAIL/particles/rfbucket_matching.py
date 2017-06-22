@@ -96,14 +96,13 @@ class RFBucketMatcher(Printing):
 
             return emittance-epsn_z
 
-        # try:
-        #     ec_bar = newton(error_from_target_epsn, epsn_z, tol=5e-4)
-        # except RuntimeError, ValueError:
-        #     self.warns('RFBucketMatcher -- failed to converge while '
-        #                'using Newton-Raphson method. '
-        #                'Instead trying classic Brent method...')
-        ec_bar = brentq(error_from_target_epsn, epsn_z/100, 2*epsn_max,
-                        rtol=1e-5)
+        try:
+            ec_bar = brentq(error_from_target_epsn, epsn_z/100, 2*epsn_max,
+                            rtol=1e-5)
+        except ValueError:
+            self.warns('Failed to converge with Brent method, '
+                       'continuing with Newton-Raphson method.')
+            ec_bar = newton(error_from_target_epsn, epsn_z, tol=1e-5)
 
         self.psi_object.H0 = self.rfbucket.guess_H0(
             ec_bar, from_variable='epsn')
@@ -124,9 +123,10 @@ class RFBucketMatcher(Printing):
             sigma = sigma_max*0.99
         self.prints('*** Maximum RMS bunch length ' + str(sigma_max) + 'm.')
 
-        def error_from_target_sigma(H0):
+        def error_from_target_sigma(sc):
             '''Width for bunch length'''
-            self.psi_object.H0 = H0
+            self.psi_object.H0 = self.rfbucket.guess_H0(
+                sc, from_variable='sigma')
             length = self._compute_sigma(self.rfbucket, self.psi)
 
             if np.isnan(length): raise ValueError
@@ -136,18 +136,16 @@ class RFBucketMatcher(Printing):
 
             return length-sigma
 
-        # try:
-        #     H0_init = self.rfbucket.guess_H0(
-        #         sigma, from_variable='sigma')
-        #     H0_fin = newton(error_from_target_sigma, H0_init)
-        # except RuntimeError, ValueError:
-        #     self.warns('RFBucketMatcher -- failed to converge while '
-        #                'using Newton-Raphson method. '
-        #                'Instead trying classic Brent method...')
-        H0_max = self.rfbucket.h_sfp(make_convex=True) * 2
-        H0_fin = brentq(error_from_target_sigma, 1e-3, H0_max, rtol=1e-5)
+        try:
+            sc_bar = brentq(error_from_target_sigma, sigma/100, 2*sigma_max,
+                            rtol=1e-5)
+        except ValueError:
+            self.warns('Failed to converge with Brent method, '
+                       'continuing with Newton-Raphson method.')
+            sc_bar = newton(error_from_target_sigma, sigma, tol=1e-5)
 
-        self.psi_object.H0 = H0_fin
+        self.psi_object.H0 = self.rfbucket.guess_H0(
+            sc_bar, from_variable='sigma')
         sigma = self._compute_sigma(self.rfbucket, self.psi)
         self.prints('--> Bunch length: ' + str(sigma))
         emittance = self._compute_emittance(self.rfbucket, self.psi)
