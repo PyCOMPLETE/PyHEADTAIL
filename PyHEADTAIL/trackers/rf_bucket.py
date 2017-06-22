@@ -385,6 +385,17 @@ class RFBucket(Printing):
 
 
     def rf_potential(self, V, h, dphi, dp, acceleration=True):
+        '''Return the RF electric potential energy including the linear
+        acceleration slope (if acceleration == True).
+
+        Arguments:
+            - V: list of voltages for each harmonic
+            - h: list of harmonics
+            - dphi: list of phase offsets for each harmonic
+            - p_increment: momentum increase per turn
+            - acceleration: whether to superimpose the linear
+              acceleration slope (induced by p_increment, default=True)
+        '''
         def vf(z):
             coefficient = np.abs(self.charge)/self.circumference
             focusing_potential = reduce(lambda x, y: x+y, [
@@ -418,10 +429,12 @@ class RFBucket(Printing):
         to zero.
 
         Arguments:
-        - make_convex: multiplies by sign(eta) for plotting etc.
-        To see a literal 'bucket structure' in the sense of a
-        local minimum in the Hamiltonian topology, set make_convex=True
-        in order to return sign(eta)*hamiltonian(z, dp).
+            - make_convex: multiplies by sign(eta) for plotting etc.
+              To see a literal 'bucket structure' in the sense of
+              always having a local maximum in the Hamiltonian topology
+              where the stable fix points are located, set
+              make_convex=True in order to return
+              sign(eta)*hamiltonian(z, dp).
         '''
         v = (self.rf_potential(self.V, self.h, self.dphi,
                                self.p_increment, acceleration)(z) +
@@ -484,10 +497,12 @@ class RFBucket(Printing):
         to zero.
 
         Arguments:
-        - make_convex: multiplies by sign(eta) for plotting etc.
-        To see a literal 'bucket structure' in the sense of a
-        local minimum in the Hamiltonian topology, set make_convex=True
-        in order to return sign(eta)*hamiltonian(z, dp).
+            - make_convex: multiplies by sign(eta) for plotting etc.
+              To see a literal 'bucket structure' in the sense of
+              always having a local maximum in the Hamiltonian topology
+              where the stable fix points are located, set
+              make_convex=True in order to return
+              sign(eta)*hamiltonian(z, dp).
         '''
         pot_tot = self.make_total_potential(
             ignore_add_potentials=ignore_add_potentials)
@@ -562,10 +577,12 @@ class RFBucket(Printing):
         Coul*Volt/p0.
 
         Arguments:
-        - make_convex: multiplies by sign(eta) for plotting etc.
-        To see a literal 'bucket structure' in the sense of a
-        local minimum in the Hamiltonian topology, set make_convex=True
-        in order to return sign(eta)*hamiltonian(z, dp).
+            - make_convex: multiplies by sign(eta) for plotting etc.
+              To see a literal 'bucket structure' in the sense of
+              always having a local maximum in the Hamiltonian topology
+              where the stable fix points are located, set
+              make_convex=True in order to return
+              sign(eta)*hamiltonian(z, dp).
         '''
         h = (-0.5 * self.eta0 * self.beta * c * dp**2 +
              self.total_potential(z) / self.p0)
@@ -632,8 +649,8 @@ class RFBucket(Printing):
         return partial(self.is_in_separatrix, margin=margin)
 
     def emittance_single_particle(self, z=None, sigma=2):
-        """The single particle emittance computed along a given equihamiltonian line
-
+        """The single particle emittance computed along a given
+        equihamiltonian line.
         """
         if z is not None:
             zl = -sigma * z
@@ -650,9 +667,8 @@ class RFBucket(Printing):
         return Q * 2*self.p0/np.abs(self.charge)
 
     def bunchlength_single_particle(self, epsn_z, verbose=False):
-        """The corresponding rms bunch length computed form the single particle
-        emittance
-
+        """The corresponding RMS bunch length computed from the single
+        particle emittance.
         """
         def emittance_from_zcut(zcut):
             emittance = self.emittance_single_particle(zcut)
