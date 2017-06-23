@@ -290,6 +290,31 @@ class WakeField(Element):
         #         b.x[p_idx] -= correction_x[s_idx]
         #         b.y[p_idx] -= correction_y[s_idx]
 
+
+    def _mpi_track_optimized(self, beam, optimization_method):
+
+        # Creates a mpi gatherer, if it has not been created earlier
+        if self._mpi_gatherer is None:
+            self._mpi_gatherer = mpi_data.MpiGatherer(self.slicer,
+                                                      self._required_variables)
+
+        # Gathers data from all bunches
+        self._mpi_gatherer.gather(beam)
+        all_slice_sets = self._mpi_gatherer.bunch_by_bunch_data
+        local_slice_sets = self._mpi_gatherer.slice_set_list
+        bunch_list = self._mpi_gatherer.bunch_list
+        local_bunch_indexes = self._mpi_gatherer.local_bunch_indexes
+
+
+        for kick in self.wake_kicks:
+            kick.apply(bunch_list, all_slice_sets,local_slice_sets,
+                                 local_bunch_indexes, optimization_method,
+                                 self.circumference)
+
+        # At the end the superbunch must be rebunched. Without that the kicks
+        # do not apply to the next turn
+        self._mpi_gatherer.rebunch(beam)
+
     def track_classic(self, beam):
         """Update macroparticle momenta according to wake kick.
 
@@ -364,7 +389,10 @@ class WakeField(Element):
         beam.dp[:] = beam_new.dp[:]
 
     def track(self, beam):
-        if self._mpi:
+        if isinstance(self._mpi, basestring):
+                self._mpi_track_optimized(beam, self._mpi)
+
+        elif self._mpi:
             self._mpi_track(beam)
         else:
             self._serial_track(beam)
