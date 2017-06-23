@@ -32,7 +32,7 @@ class Particles(Printing):
         The dictionary coords_n_momenta_dict contains the coordinate and
         conjugate momenta names and assigns to each the corresponding array.
         e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
-
+t
         '''
         self.macroparticlenumber = macroparticlenumber
 
@@ -40,8 +40,8 @@ class Particles(Printing):
         self.gamma = gamma
         self.charge = charge
 
-        '''TODO: Make intensity the explicity variable, also as argument in the
-        contructor, and have _particleumber_per_macroparticle as implicity
+        '''TODO: Make intensity the explicit variable, also as argument in the
+        constructor, and have particlenumber_per_macroparticle as implicit
         variable used to compute the intensity also during losses.
 
         '''
@@ -325,7 +325,7 @@ class Particles(Printing):
         '''
         ids = set(self.bunch_id)
         if len(ids) == 1:
-            return list(self)
+            return list([self])
 
         ix = [self.bunch_id == id for id in ids]
         bunches_list = [Particles(
