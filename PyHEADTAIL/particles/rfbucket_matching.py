@@ -100,8 +100,9 @@ class RFBucketMatcher(Printing):
             ec_bar = brentq(error_from_target_epsn, epsn_z/100, 2*epsn_max,
                             rtol=1e-5)
         except ValueError:
-            self.warns('Failed to converge with Brent method, '
-                       'continuing with Newton-Raphson method.')
+            self.warns(
+                'RFBucketMatcher: failed to converge with Brent method, '
+                'continuing with Newton-Raphson method.')
             ec_bar = newton(error_from_target_epsn, epsn_z, tol=1e-5)
 
         self.psi_object.H0 = self.rfbucket.guess_H0(
@@ -140,8 +141,9 @@ class RFBucketMatcher(Printing):
             sc_bar = brentq(error_from_target_sigma, sigma/100, 2*sigma_max,
                             rtol=1e-5)
         except ValueError:
-            self.warns('Failed to converge with Brent method, '
-                       'continuing with Newton-Raphson method.')
+            self.warns(
+                'RFBucketMatcher: failed to converge with Brent method, '
+                'continuing with Newton-Raphson method.')
             sc_bar = newton(error_from_target_sigma, sigma, tol=1e-5)
 
         self.psi_object.H0 = self.rfbucket.guess_H0(
