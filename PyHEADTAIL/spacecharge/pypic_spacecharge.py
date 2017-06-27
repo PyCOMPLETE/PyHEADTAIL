@@ -177,8 +177,10 @@ class FrozenGaussianSpaceCharge25D(FieldMapSliceWise):
         be_sc = TransverseGaussianSpaceCharge(None, None)
         fields_beamframe = be_sc.get_efieldn(xg, yg, 0, 0, sigma_x, sigma_y)
 
-        # Lorentz trafo to lab frame:
-        fields = [f/gamma for f in fields_beamframe]
+        # Lorentz trafo to lab frame + magnetic fields:
+        # F = q E_beam / gamma = q (E_n_BassErsk * lambda_beam) / gamma
+        #   = q E_n_BassErsk * lambda_lab / gamma^2
+        fields = [f * gamma**-2 for f in fields_beamframe]
 
         super(FrozenGaussianSpaceCharge25D, self).__init__(
             slicer=slicer, length=length, mesh=mesh, fields=fields,
