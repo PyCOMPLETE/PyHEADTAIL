@@ -278,9 +278,6 @@ class MpiGatherer(object):
                                           self._n_slices,
                                           self._n_bunches,
                                           self._id_list)
-        print self.total_data.z_bins
-        import time
-        time.sleep(10.)
 
         for idx in xrange(self._n_bunches):
             self.bunch_by_bunch_data.append(

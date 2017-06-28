@@ -1,15 +1,15 @@
 import numpy as np
+import copy
 
 """ This file contains the core functions and variables for signal processing.
 """
 
-# TODO: automated Debug extension
 # TODO: change the base unit from distance to time
 
 
 def Parameters(signal_class=0, bin_edges=np.array([]), n_segments=0,
-               n_bins_per_segment=0, segment_midpoints=np.array([]),
-               location=0, beta=1.):
+               n_bins_per_segment=0, segment_ref_points=np.array([]),
+               previous_parameters = [], location=0, beta=1.):
     """
     Returns a prototype for signal parameters.
 
@@ -26,8 +26,11 @@ def Parameters(signal_class=0, bin_edges=np.array([]), n_segments=0,
         the signal can be divided
     n_bins_per_segment : int
         A number of bins per segment. `len(bin_edges)/n_segments`
-    segment_midpoints : NumPy array
-        A numpy array of original midpoints of the segments
+    segment_ref_points : NumPy array
+        A numpy array of the reference point for the segments
+    previous_parameters : array
+        A list of Parameters, which tracks how the samping has been changed
+        during the signal processing
     location : float
         A location of the signal in betatron phase.
     beta : float
@@ -38,7 +41,8 @@ def Parameters(signal_class=0, bin_edges=np.array([]), n_segments=0,
             'bin_edges': bin_edges,
             'n_segments': n_segments,
             'n_bins_per_segment': n_bins_per_segment,
-            'segment_midpoints': segment_midpoints,
+            'segment_ref_points': segment_ref_points,
+            'previous_parameters': previous_parameters,
             'location': location,
             'beta': beta
             }
@@ -51,7 +55,7 @@ def Signal(signal=[]):
 
 def process(parameters, signal, processors, **kwargs):
     """
-    Returns a prototype for signal parameters.
+    Processes a signal through the given signal processors
 
     Parameters
     ----------
@@ -74,11 +78,34 @@ def process(parameters, signal, processors, **kwargs):
 
     for processor in processors:
         parameters, signal = processor.process(parameters, signal, **kwargs)
+#        if signal is None:
+#            print 'None signal!'
+#            break
 
     return parameters, signal
 
 
-def get_processor_extensions(processors, available_extensions=None):
+def bin_widths(bin_edges):
+    return (bin_edges[:, 1]-bin_edges[:, 0])
+
+
+def bin_mids(bin_edges):
+    return (bin_edges[:, 0]+bin_edges[:, 1])/2.
+
+
+def bin_edges_to_z_bins(bin_edges):
+    return np.append(bin_edges[:, 0], bin_edges[-1, 1])
+
+
+def z_bins_to_bin_edges(z_bins):
+    return np.transpose(np.array([z_bins[:-1], z_bins[1:]]))
+
+
+def append_bin_edges(bin_edges_1, bin_edges_2):
+    return np.concatenate((bin_edges_1, bin_edges_2), axis=0)
+
+
+def get_processor_extensions(processors, external_extensions=None):
     """
     A function, which checks available extensions from the processors.
 
@@ -86,7 +113,7 @@ def get_processor_extensions(processors, available_extensions=None):
     ----------
     processors : list
         A list of signal processors.
-    available_extensions : list
+    external_extensions : list
         A list of external extensions, which will be added to the list
 
     Returns
@@ -95,8 +122,10 @@ def get_processor_extensions(processors, available_extensions=None):
         A list of found extensions
     """
 
-    if available_extensions is None:
+    if external_extensions is None:
         available_extensions = []
+    else:
+        available_extensions = external_extensions
 
     for processor in processors:
         if processor.extensions is not None:
@@ -107,8 +136,8 @@ def get_processor_extensions(processors, available_extensions=None):
     return available_extensions
 
 
-# Extension specific functions
-#########################
+#--- Extension specific functions ------
+#---------------------------------------
 
 def get_processor_variables(processors, required_variables=None):
     """
@@ -119,8 +148,8 @@ def get_processor_variables(processors, required_variables=None):
     ----------
     processors : list
         A list of signal processors.
-    required_variables : list
-        A list of external extensions, which will be added to the list
+    external_variables : list
+        A list of external variables, which will be added to the list
 
     Returns
     -------
@@ -141,3 +170,43 @@ def get_processor_variables(processors, required_variables=None):
         required_variables.remove('z_bins')
 
     return required_variables
+
+
+def debug_extension(target_object, label=None, **kwargs):
+    """
+    A debug extension, which can be added to the extension object list in the
+    signal processors. If input parameter debug = True is given to the signal
+    processor, the input and output parameters and signals are stored to
+    the signal processor.
+
+    Parameters
+    ----------
+    processors : list
+        A list of signal processors.
+    external_variables : list
+        A list of external variables, which will be added to the list
+
+    Returns
+    -------
+    list
+        A list of found statistical variables
+    """
+    if 'debug' in kwargs:
+        setattr(target_object, 'debug', kwargs['debug'])
+    else:
+        setattr(target_object, 'debug', False)
+    setattr(target_object, 'label', label)
+    setattr(target_object, 'input_parameters', None)
+    setattr(target_object, 'input_signal', None)
+    setattr(target_object, 'output_parameters', None)
+    setattr(target_object, 'output_signal', None)
+
+    def store_data(target_object, input_parameters, input_signal,
+                   output_parameters, output_signal, *args, **kwargs):
+        if target_object.debug:
+            target_object.input_parameters = copy.copy(input_parameters)
+            target_object.input_signal = np.copy(input_signal)
+            target_object.output_parameters = copy.copy(output_parameters)
+            target_object.output_signal = np.copy(output_signal)
+
+    return store_data

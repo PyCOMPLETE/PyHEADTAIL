@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import numpy as np
 from scipy.constants import c, pi
+from ..core import debug_extension
 import copy
 
 class Multiplication(object):
@@ -9,7 +10,7 @@ class Multiplication(object):
         a slice property (determined by the input parameter 'seed') and passing it through the abstract method
         multiplication_function(seed).
     """
-    def __init__(self, seed, normalization = None, recalculate_multiplier = False, store_signal = False):
+    def __init__(self, seed, normalization = None, recalculate_multiplier = False, **kwargs):
         """
         :param seed: a seed for the multiplier, which can be 'bin_length', 'bin_midpoint', 'signal' or any slice
             property found from slice_set
@@ -35,18 +36,12 @@ class Multiplication(object):
 
         self.signal_classes = (0,0)
 
-        self.extensions = ['store']
-        self._store_signal = store_signal
-
+        self.extensions = ['debug']
+        self._extension_objects = [debug_extension(self, 'Multiplication', **kwargs)]
         if self._seed not in ['bin_length','bin_midpoint','signal','ones']:
             self.extensions.append('bunch')
             self.required_variables = [self._seed]
 
-        self.input_signal = None
-        self.input_parameters = None
-
-        self.output_signal = None
-        self.output_parameters = None
 
     @abstractmethod
     def multiplication_function(self, seed):
@@ -59,11 +54,9 @@ class Multiplication(object):
 
         output_signal =  self._multiplier*signal
 
-        if self._store_signal:
-            self.input_signal = np.copy(signal)
-            self.input_parameters = copy.copy(parameters)
-            self.output_signal = np.copy(output_signal)
-            self.output_parameters = copy.copy(parameters)
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, parameters, output_signal,
+                      *args, **kwargs)
 
         # process the signal
         return parameters, output_signal
