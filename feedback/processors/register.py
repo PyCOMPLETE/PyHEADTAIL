@@ -5,6 +5,7 @@ import numpy as np
 from scipy.constants import pi
 
 from ..core import Parameters
+from ..core import debug_extension
 
 
 class Register(object):
@@ -12,7 +13,7 @@ class Register(object):
     Stores signals to the register. The obejct is iterable, i.e. iteration
     returns the stored signals after the given delay.
     """
-    def __init__(self, n_values, tune, delay=0, store_signal=False):
+    def __init__(self, n_values, tune, delay=0, **kwargs):
         """
         Parameters
         ----------
@@ -34,14 +35,8 @@ class Register(object):
         self._signal_register = deque(maxlen=(n_values + delay))
         self._parameter_register = deque(maxlen=(n_values + delay))
 
-        self.extensions = ['store', 'register']
-
-        self._store_signal = store_signal
-        self.label = 'Register'
-        self.input_signal = None
-        self.input_parameters = None
-        self.output_signal = None
-        self.output_parameters = None
+        self.extensions = ['debug', 'register']
+        self._extension_objects = [debug_extension(self, 'Register', **kwargs)]
 
     @property
     def parameters(self):
@@ -90,11 +85,9 @@ class Register(object):
 
     def process(self, parameters, signal, *args, **kwargs):
 
-        if self._store_signal:
-            self.input_signal = np.copy(signal)
-            self.input_parameters = copy.copy(parameters)
-            self.output_signal = np.copy(signal)
-            self.output_parameters = copy.copy(parameters)
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, parameters, signal,
+                      *args, **kwargs)
 
         self._parameter_register.append(parameters)
         self._signal_register.append(signal)
@@ -106,8 +99,7 @@ class Combiner(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, registers, target_location, target_beta=None,
-                 additional_phase_advance=0., beta_conversion = '0_deg',
-                 store_signal=False):
+                 additional_phase_advance=0., beta_conversion = '0_deg', **kwargs):
         """
         Parameters
         ----------
@@ -136,22 +128,17 @@ class Combiner(object):
 
         self._combined_parameters = None
 
-        self.extensions = ['store', 'combiner']
 
-        self._store_signal = store_signal
-        self.label = 'Register'
-        self.input_signal = None
-        self.input_parameters = None
-        self.output_signal = None
-        self.output_parameters = None
+        self.extensions = ['debug', 'combiner']
+        self._extension_objects = [debug_extension(self, 'Combiner', **kwargs)]
 
     @abstractmethod
     def combine(self, registers, target_location, target_beta, additional_phase_advance, beta_conversion):
         pass
 
-    def process(self, *args, **kwargs):
+    def process(self, parameters=None, signal=None, *args, **kwargs):
 
-        signal = self.combine(self._registers,
+        output_signal = self.combine(self._registers,
                               self._target_location,
                               self._target_beta,
                               self._additional_phase_advance,
@@ -162,15 +149,15 @@ class Combiner(object):
             self._combined_parameters['location'] = self._target_location
             self._combined_parameters['beta'] = self._target_beta
 
-        if self._store_signal:
-            self.input_signal = None
-            self.input_parameters = None
-            self.output_signal = np.copy(signal)
-            self.output_parameters = copy.copy(self._combined_parameters)
+
+
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, self._combined_parameters, output_signal,
+                      *args, **kwargs)
 
 #        print 'Combiner output: ' + str(signal)
 
-        return self._combined_parameters, signal
+        return self._combined_parameters, output_signal
 
 # TODO: add beta correction, which depends if x -> x or x -> xp
 class CosineSumCombiner(Combiner):
@@ -454,7 +441,8 @@ class FIRCombiner(Combiner):
         super(self.__class__, self).__init__(*args, **kwargs)
         self.label = 'FIR combiner'
 
-    def combine(self, registers, target_location, additional_phase_advance):
+    def combine(self, registers, target_location, target_beta,
+                additional_phase_advance, beta_conversion):
         combined_signal = None
 
         for register in registers:
@@ -468,42 +456,47 @@ class FIRCombiner(Combiner):
 
 
 class TurnFIRFilter(object):
-    def __init__(self, coefficients, tune, store_signal=False):
+    def __init__(self, coefficients, tune, delay = 0, additional_phase_advance = 0., **kwargs):
         self._coefficients = coefficients
         self._tune = tune
+        self._additional_phase_advance = additional_phase_advance
+        self._register = Register(len(self._coefficients), self._tune, delay)
+        self._combiner = None
 
-        self._register = Register(len(self._coefficients), self._tune)
-        self._combiner = FIRCombiner(self._coefficients)
-
-        self.extensions = ['store', 'bunch']
-
-        self._store_signal = store_signal
-        self.label = 'TurnDelay'
-        self.input_signal = None
-        self.input_parameters = None
-        self.output_signal = None
-        self.output_parameters = None
+        self.extensions = ['debug']
+        self._extension_objects = [debug_extension(self, 'TurnFIRFilter', **kwargs)]
 
     def process(self, parameters, signal, *args, **kwargs):
         self._register.process(parameters, signal, *args, **kwargs)
+        if self._combiner is None:
+            self.__init_combiner(parameters)
 
         output_parameters, output_signal = self._combiner.process(parameters,
                                                                   signal,
                                                                   *args,
                                                                   **kwargs)
 
-        if self._store_signal:
-            self.input_signal = np.copy(signal)
-            self.input_parameters = copy.copy(parameters)
-            self.output_signal = np.copy(output_signal)
-            self.output_parameters = copy.copy(output_parameters)
+        if output_signal is None:
+            output_parameters = parameters
+            output_signal = np.zeros(len(signal))
+
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, output_parameters, output_signal,
+                      *args, **kwargs)
 
         return output_parameters, output_signal
 
+    def __init_combiner(self, parameters):
+        registers = [self._register]
+        target_location = parameters['location']
+        target_beta = parameters['beta']
+        extra_phase = self._additional_phase_advance
+        self._combiner = FIRCombiner(self._coefficients,registers, target_location,
+                                                   target_beta, extra_phase)
 
 class TurnDelay(object):
     def __init__(self, delay, tune, n_taps=2, combiner='vector_sum',
-                 additional_phase_advance=0, store_signal=False):
+                 additional_phase_advance=0, **kwargs):
 
         self._delay = delay
         self._tune = tune
@@ -514,14 +507,8 @@ class TurnDelay(object):
         self._register = Register(self._n_taps, self._tune, self._delay)
         self._combiner = None
 
-        self.extensions = ['store']
-
-        self._store_signal = store_signal
-        self.label = 'TurnDelay'
-        self.input_signal = None
-        self.input_parameters = None
-        self.output_signal = None
-        self.output_parameters = None
+        self.extensions = ['debug']
+        self._extension_objects = [debug_extension(self, 'TurnDelay', **kwargs)]
 
     def process(self, parameters, signal, *args, **kwargs):
         self._register.process(parameters, signal, *args, **kwargs)
@@ -534,11 +521,13 @@ class TurnDelay(object):
                                                                   *args,
                                                                   **kwargs)
 
-        if self._store_signal:
-            self.input_signal = np.copy(signal)
-            self.input_parameters = copy.copy(parameters)
-            self.output_signal = np.copy(output_signal)
-            self.output_parameters = copy.copy(output_parameters)
+        if output_signal is None:
+            output_parameters = parameters
+            output_signal = np.zeros(len(signal))
+
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, output_parameters, output_signal,
+                      *args, **kwargs)
 
         return output_parameters, output_signal
 

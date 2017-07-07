@@ -2,6 +2,7 @@ import numpy as np
 import collections
 from PyHEADTAIL.mpi import mpi_data
 from core import get_processor_variables, process, Parameters
+from core import z_bins_to_bin_edges, append_bin_edges
 from processors.register import VectorSumCombiner, CosineSumCombiner
 from processors.register import HilbertCombiner
 """
@@ -73,26 +74,25 @@ def get_mpi_slice_sets(superbunch, mpi_gatherer):
 def generate_parameters(signal_slice_sets, location=0., beta=1.):
 
     bin_edges = None
-    segment_midpoints = []
+    segment_ref_points = []
 
     for slice_set in signal_slice_sets:
-            edges = np.transpose(np.array([slice_set.z_bins[:-1],
-                                           slice_set.z_bins[1:]]))
-            segment_midpoints.append(np.mean(slice_set.z_bins))
+            edges = z_bins_to_bin_edges(slice_set.z_bins)
+            segment_ref_points.append(np.mean(slice_set.z_bins))
             if bin_edges is None:
                 bin_edges = np.copy(edges)
             else:
-                bin_edges = np.append(bin_edges, edges, axis=0)
+                bin_edges = append_bin_edges(bin_edges, edges)
 
     n_bins_per_segment = len(bin_edges)/len(signal_slice_sets)
-    segment_midpoints = np.array(segment_midpoints)
+    segment_ref_points = np.array(segment_ref_points)
 
     parameters = Parameters()
     parameters['class'] = 0
     parameters['bin_edges'] = bin_edges
     parameters['n_segments'] = len(signal_slice_sets)
     parameters['n_bins_per_segment'] = n_bins_per_segment
-    parameters['segment_midpoints'] = segment_midpoints
+    parameters['segment_ref_points'] = segment_ref_points
     parameters['location'] = location
     parameters['beta'] = beta
 
@@ -435,24 +435,3 @@ class Kicker(object):
 
         if self._mpi:
             self._mpi_gatherer.rebunch(bunch)
-
-class TransverseDamper(object):
-
-    def __init__(self, dampingrate_x, dampingrate_y, phase_x_deg=90, phase_y_deg=90,
-                 beta_x=1, beta_y=1):
-        self.gain_x = 2./dampingrate_x
-        self.gain_y = 2./dampingrate_y
-
-        self.phase_x = phase_x_deg * np.pi/180
-        self.phase_y = phase_y_deg * np.pi/180
-
-        self.beta_x = beta_x
-        self.beta_y = beta_y
-
-    def track(self, beam):
-        beam.xp -= self.gain_x * (np.cos(self.phase_x)*beam.mean_x()/self.beta_x +
-                                  np.sin(self.phase_x)*beam.mean_xp())
-        beam.yp -= self.gain_y * (np.cos(self.phase_y)*beam.mean_y()/self.beta_y +
-                                  np.sin(self.phase_y)*beam.mean_yp())
-        # beam.xp -= self.gain_x * beam.mean_xp()
-	# beam.yp -= self.gain_y * beam.mean_yp()

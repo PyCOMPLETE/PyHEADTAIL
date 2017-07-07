@@ -101,6 +101,9 @@ class MpiGatherer(object):
         self.bunch_by_bunch_data = []
         self.total_data = None
 
+        self._id_list = None
+        self._local_id_list = None
+
     @property
     def mpi_rank(self):
         return self._mpi_rank
@@ -207,6 +210,26 @@ class MpiGatherer(object):
             idx = int(np.sum(self._bunch_distribution[:self.mpi_rank]) + i)
             self._local_bunch_indexes.append(idx)
 
+
+        # BUNCH IDS ###########################################################
+        #######################################################################
+
+        self._id_list = np.zeros(self._n_bunches, dtype=np.uint32)
+
+        self._local_id_list = list(set(superbunch.bunch_id))
+        self._local_id_list = np.array(sorted(self._local_id_list, reverse=True), dtype=np.uint32)
+
+        id_list_sizes = (np.ones(self._mpi_size, dtype=np.uint32) *
+                                  self._bunch_distribution)
+        id_list_offsets = np.zeros(self._mpi_size, dtype=np.uint32)
+        id_list_offsets[1:] = np.cumsum(id_list_sizes)[:-1]
+
+        temp_id_list = [self._id_list,
+                             id_list_sizes,
+                             id_list_offsets, MPI.INT32_T]
+
+        self._mpi_comm.Allgatherv(self._local_id_list, temp_id_list)
+
         # BUFFER INITIALIZATION ###############################################
         #######################################################################
         # FIXME: a problem in variable types because int(...) is required
@@ -253,11 +276,12 @@ class MpiGatherer(object):
                                           self._raw_bin_data,
                                           self._required_variables,
                                           self._n_slices,
-                                          self._n_bunches)
+                                          self._n_bunches,
+                                          self._id_list)
 
         for idx in xrange(self._n_bunches):
             self.bunch_by_bunch_data.append(
-                BunchDataAccess(idx,
+                BunchDataAccess(idx, self._id_list[idx],
                                 self._raw_data,
                                 self._raw_bin_data,
                                 self._required_variables,
@@ -291,7 +315,7 @@ class BunchDataAccess(object):
         SliceDataSetReference.n_macroparticles_per_slice)
 
     """
-    def __init__(self, bunch_idx, raw_data, raw_bin_data,
+    def __init__(self, bunch_idx, bunch_id, raw_data, raw_bin_data,
                  variables, n_slices):
         """:param bunch_idx: a list index of the bunch
 
@@ -311,6 +335,7 @@ class BunchDataAccess(object):
         self._variables = variables
         self._n_variables = len(variables)
         self._n_slices = n_slices
+        self.bunch_id = bunch_id
 
         idx_from = self._bunch_idx * (self._n_slices + 1)
         idx_to = (self._bunch_idx+1) * (self._n_slices + 1)
@@ -335,7 +360,7 @@ class TotalDataAccess(object):
     """
 
     def __init__(self, local_bunches, raw_data, raw_bin_data,
-                 variables, n_slices, n_bunches):
+                 variables, n_slices, n_bunches, id_list):
         """:param local_bunches: a list of list indexes for bunches in this processor
 
         :param raw_data: raw slice set data from mpi.Allgatherv(...)
@@ -359,16 +384,7 @@ class TotalDataAccess(object):
         self._n_bunches = n_bunches
         v_bin = memoryview(raw_bin_data)
         self.bin_edges = []
-        
-        # print 'n_bunches:'
-        # print n_bunches
-
-        # print 'n_slices:'
-        # print n_slices
-
-        # print 'len(raw_bin_data):'
-        # print len(raw_bin_data)
-        # print raw_bin_data
+        self.id_list = id_list
 
         # TODO: Different format for the bin set is used here. Is it fine?
         for i in xrange(n_bunches):

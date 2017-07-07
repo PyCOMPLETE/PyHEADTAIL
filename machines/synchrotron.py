@@ -129,10 +129,9 @@ class Synchrotron(Element):
     ########################################################################
     ### SINGLE AND MULTI BUNCH GENERATORS OF SYNCHROTRON CLASS
     ########################################################################
-    # TODO: How about class names here?
     def generate_6D_Gaussian_bunch(
             self, macroparticlenumber, intensity, epsn_x, epsn_y,
-            sigma_z=None, epsn_z=None, matched=False, filling_scheme=None, kicker=None):
+            sigma_z=None, epsn_z=None, matched=False, filling_scheme=None):
         """
         :param macroparticlenumber:
         :param intensity:
@@ -142,8 +141,6 @@ class Synchrotron(Element):
         :param epsn_z:
         :param filling_scheme:
             a list of bucket indices for the bunches, which are created
-        :param kicker: a function, which gives initial kicks for the bunches.
-            An input parameter for the function is a bunch object
         :return: A merged bunch for every processor
         """
 
@@ -172,9 +169,6 @@ class Synchrotron(Element):
                 macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z, sigma_z, bucket, matched)
                 for bucket in buckets_for_this_processor]
 
-            if kicker is not None:
-                for b in bunches:
-                    kicker(b)
             bunch = sum(bunches)  # superbunch
 
         else:

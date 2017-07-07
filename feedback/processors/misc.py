@@ -1,29 +1,23 @@
 import copy
 import numpy as np
+from ..core import debug_extension
 
 class Bypass(object):
     """ A fast bypass processor, whichi does not modify the signal. A black sheep, which does not fit for
         the abstract classes.
     """
 
-    def __init__(self, store_signal = False):
+    def __init__(self, **kwargs):
         self.signal_classes = (0, 0)
-        self.extensions = ['store']
 
-        self.label = 'Bypass'
-        self._store_signal = store_signal
-        self.input_signal = None
-        self.input_parameters = None
-        self.output_signal = None
-        self.output_parameters = None
+        self.extensions = ['debug']
+        self._extension_objects = [debug_extension(self, 'Bypass', **kwargs)]
 
-    def process(self,parameters, signal, *args, **kwargs):
+    def process(self, parameters, signal, *args, **kwargs):
 
-        if self._store_signal:
-            self.input_signal = np.copy(signal)
-            self.input_parameters = copy.copy(parameters)
-            self.output_signal = np.copy(signal)
-            self.output_parameters = copy.copy(parameters)
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, parameters, signal,
+                      *args, **kwargs)
 
 
         return parameters, signal
@@ -31,22 +25,17 @@ class Bypass(object):
 
 class Average(object):
 
-    def __init__(self, avg_type = 'bunch', store_signal = False):
+    def __init__(self, avg_type = 'bunch', **kwargs):
         self.label = 'Average'
         self._avg_type = avg_type
 
 
         self.signal_classes = (0, 0)
-        self.extensions = ['store']
-
-        self._store_signal = store_signal
-        self.input_signal = None
-        self.input_signal_parameters = None
-        self.output_signal = None
-        self.output_signal_parameters = None
+        self.extensions = ['debug']
+        self._extension_objects = [debug_extension(self, 'Average', **kwargs)]
 
 
-    def process(self,signal_parameters, signal, *args, **kwargs):
+    def process(self, parameters, signal, *args, **kwargs):
 
         if self._avg_type == 'bunch':
             n_segments = signal_parameters.n_segments
@@ -66,11 +55,9 @@ class Average(object):
         else:
             raise ValueError('Unknown value in Average._avg_type')
 
-        if self._store_signal:
-            self.input_signal = np.copy(signal)
-            self.input_signal_parameters = copy.copy(signal_parameters)
-            self.output_signal = np.copy(output_signal)
-            self.output_signal_parameters = copy.copy(signal_parameters)
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, parameters, output_signal,
+                      *args, **kwargs)
 
 
-        return signal_parameters, output_signal
+        return parameters, output_signal

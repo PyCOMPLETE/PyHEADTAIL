@@ -9,6 +9,7 @@ import scipy.integrate as integrate
 import scipy.special as special
 from scipy import linalg
 from cython_hacks import cython_matrix_product
+from ..core import debug_extension
 
 # TODO: clean code here!
 
@@ -21,7 +22,7 @@ class LinearTransform(object):
     """
 
     def __init__(self, mode = 'bunch_by_bunch', normalization=None,
-                 bin_middle = 'bin', store_signal = False):
+                 bin_middle = 'bin', label = 'LinearTransform', **kwargs):
         """
 
         :param norm_type: Describes normalization method for the transfer matrix
@@ -56,17 +57,12 @@ class LinearTransform(object):
         self._n_bins_per_segment = None
         self._mid_bunch = None
 
-        self.extensions = ['store']
+        self.extensions = ['debug']
         if bin_middle == 'particles':
             self.extensions.append('bunch')
             self.required_variables = ['mean_z']
 
-        self.label = None
-        self._store_signal = store_signal
-        self.input_signal = None
-        self.input_parameters = None
-        self.output_signal = None
-        self.output_parameters = None
+        self._extension_objects = [debug_extension(self, label, **kwargs)]
 
 
 
@@ -105,11 +101,9 @@ class LinearTransform(object):
         else:
             raise ValueError('Unknown value for LinearTransform._mode ')
 
-        if self._store_signal:
-            self.input_signal = np.copy(signal)
-            self.input_parameters = copy.copy(parameters)
-            self.output_signal = np.copy(output_signal)
-            self.output_parameters = copy.copy(parameters)
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, parameters, output_signal,
+                      *args, **kwargs)
 
         return parameters, output_signal
 
