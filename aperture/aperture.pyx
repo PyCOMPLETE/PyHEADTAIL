@@ -62,6 +62,7 @@ class Aperture(Element):
             beam.yp = beam.yp[:n_alive]
             beam.dp = beam.dp[:n_alive]
             beam.id = beam.id[:n_alive]
+            beam.bunch_id = beam.bunch_id[:n_alive]
 
             # Empty slice_set cache of the beam.
             beam.clean_slices()
@@ -220,10 +221,11 @@ def relocate_lost_particles(beam, int[::1] alive):
     cdef double[::1] yp = beam.yp
     cdef double[::1] dp = beam.dp
     cdef int[::1] id = beam.id
+    cdef int[::1] bunch_id = beam.bunch_id
 
     # Temporary variables for swapping entries.
     cdef double t_x, t_xp, t_y, t_yp, t_z, t_dp
-    cdef int t_alive, t_id
+    cdef int t_alive, t_id, t_bunch_id
 
     # Find last_alive index.
     cdef int n_alive_pri = alive.shape[0]
@@ -239,15 +241,18 @@ def relocate_lost_particles(beam, int[::1] alive):
             # Swap lost particle coords with last_alive.
             t_x, t_y, t_z = x[i], y[i], z[i]
             t_xp, t_yp, t_dp = xp[i], yp[i], dp[i]
-            t_id, t_alive = id[i], alive[i]
+            t_id, t_bunch_id = id[i], bunch_id[i]
+            t_alive = alive[i]
 
             x[i], y[i], z[i] = x[last_alive], y[last_alive], z[last_alive]
             xp[i], yp[i], dp[i] = xp[last_alive], yp[last_alive], dp[last_alive]
-            id[i], alive[i] = id[last_alive], alive[last_alive]
+            id[i], bunch_id[i] = id[last_alive], bunch_id[last_alive]
+            alive[i] = alive[last_alive]
 
             x[last_alive], y[last_alive], z[last_alive] = t_x, t_y, t_z
             xp[last_alive], yp[last_alive], dp[last_alive] = t_xp, t_yp, t_dp
-            id[last_alive], alive[last_alive] = t_id, t_alive
+            id[last_alive], bunch_id[last_alive] = t_id, t_bunch_id
+            alive[last_alive] = t_alive
 
             # Move last_alive pointer and update number of alive
             # particles.

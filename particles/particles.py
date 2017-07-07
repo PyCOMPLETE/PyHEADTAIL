@@ -32,9 +32,10 @@ class Particles(Printing):
         The dictionary coords_n_momenta_dict contains the coordinate and
         conjugate momenta names and assigns to each the corresponding array.
         e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
-t
+
         '''
         self.macroparticlenumber = macroparticlenumber
+        # self.intensity = intensity
 
         self.mass = mass
         self.gamma = gamma
