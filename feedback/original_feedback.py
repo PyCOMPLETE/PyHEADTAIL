@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class TransverseDamper(object):
 
     def __init__(self, dampingrate_x, dampingrate_y, phase_x_deg=90, phase_y_deg=90,
