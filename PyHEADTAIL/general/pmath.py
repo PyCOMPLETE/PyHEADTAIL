@@ -273,7 +273,9 @@ if has_pycuda:
             allocator=gpu_utils.memory_pool.allocate, **kwargs),
         'empty': lambda *args, **kwargs: pycuda.gpuarray.empty(*args,
             allocator=gpu_utils.memory_pool.allocate, **kwargs),
-        'empty_like': pycuda.gpuarray.empty_like,
+        'empty_like': lambda ary, *args, **kwargs: pycuda.gpuarray.empty(
+            ary.shape, ary.dtype, *args,
+            allocator=gpu_utils.memory_pool.allocate, **kwargs),
         'ones': lambda *args, **kwargs: pycuda.gpuarray.zeros(*args,
             allocator=gpu_utils.memory_pool.allocate, **kwargs) + 1,
         'device': 'GPU',
