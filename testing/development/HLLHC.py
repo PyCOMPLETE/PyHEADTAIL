@@ -7,13 +7,14 @@ from PyHEADTAIL.machines.synchrotron import Synchrotron
 class HLLHC(Synchrotron):
 
     def __init__(self, machine_configuration=None,
-                 optics_mode='smooth', longitudinal_mode='non-linear',
-                 **kwargs):
+                 optics_mode='smooth', longitudinal_mode='non-linear', h_RF = 35640,
+                 circumference = 26658.883, **kwargs):
 
         charge = e
         mass = m_p
         alpha = 53.86**-2
-        h_RF = 35640
+#        h_RF = 35640
+        self.h_RF = h_RF
         RF_at = 'middle'
 
         if machine_configuration == '7_TeV_collision_tunes':
@@ -33,7 +34,7 @@ class HLLHC(Synchrotron):
 
             name = None
             n_segments = kwargs['n_segments']
-            circumference = 26658.883
+#            circumference = 26658.883
 
             s = None
             alpha_x = None

@@ -34,7 +34,8 @@ class WakeField(Element):
 
     """
 
-    def __init__(self, slicer, wake_sources_list, circumference=0, mpi=None):
+    def __init__(self, slicer, wake_sources_list, circumference=0, mpi=None,
+                 h_rf=None, h_bunch=None):
         """Stores slicer and wake sources list and manages wake history.
 
         Obtains a slicer and a wake sources list. Owns a slice set deque of
@@ -81,6 +82,10 @@ class WakeField(Element):
             raise ValueError(
                 "Circumference must be provided for multi turn wakes!")
         self.circumference = circumference
+        self.h_rf = h_rf
+        self.h_bunch = h_bunch
+        
+        
 
         self._mpi = mpi
         self._mpi_gatherer = None
@@ -309,7 +314,7 @@ class WakeField(Element):
         for kick in self.wake_kicks:
             kick.apply(bunch_list, all_slice_sets,local_slice_sets,
                                  local_bunch_indexes, optimization_method,
-                                 self.circumference)
+                                 self.circumference, self.h_rf, self.h_bunch)
 
         # At the end the superbunch must be rebunched. Without that the kicks
         # do not apply to the next turn

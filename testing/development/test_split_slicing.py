@@ -50,9 +50,9 @@ rank = comm.Get_rank()
 #     plt.show()
 # wurstel
 
-n_turns = 4
+n_turns = 1
 chroma = 0
-n_bunches = 6
+n_bunches = 5
 intensity = 2.3e11
 n_macroparticles = 20000
 
@@ -68,8 +68,8 @@ machine = HLLHC(charge=e, mass=m_p, n_segments=1,
                 Qp_x=chroma, Qp_y=chroma, wrap_z=True)
 C = machine.circumference
 h = np.min(machine.longitudinal_map.harmonics) * 1.
-filling_scheme = sorted([5 + 2*i**1.2 + h*j for i in range(n_bunches) for j in range(1)])
-filling_scheme_synth = sorted([5 + 2*i**1.2 + h*j for i in range(n_bunches) for j in range(n_turns)])
+filling_scheme = sorted([5 + 2*i**2 + h*j for i in range(n_bunches) for j in range(1)])
+filling_scheme_synth = sorted([5 + 2*i**2 + h*j for i in range(n_bunches) for j in range(n_turns)])
 
 
 # BEAM
@@ -105,9 +105,27 @@ slicer_for_wakefields = UniformBinSlicer(20, z_cuts=(-0.4, 0.4))
 
 # CREATE WAKES
 # ============
-wakes = CircularResonator(1e6, 20e6, 10, n_turns_wake=10)
+wakes = CircularResonator(1e6, 43e6, 10, n_turns_wake=n_turns)
+#
+#wake_field = WakeField(slicer_for_wakefields, wakes,
+#                       circumference=machine.circumference,h_rf=40, h_bunch=40, mpi='original_optimized')
+#
+#wake_field = WakeField(slicer_for_wakefields, wakes,
+#                       circumference=machine.circumference,h_rf=40, h_bunch=40, mpi='loop_minimized')
+#
+#wake_field = WakeField(slicer_for_wakefields, wakes,
+#                       circumference=machine.circumference,h_rf=40, h_bunch=40, mpi='memory_optimized')
+#
+#wake_field = WakeField(slicer_for_wakefields, wakes,
+#                       circumference=machine.circumference,h_rf=40, h_bunch=40, mpi='full_ring_fft')
+
 wake_field = WakeField(slicer_for_wakefields, wakes,
-                       circumference=machine.circumference, mpi='optimized')
+                       circumference=machine.circumference,h_rf=40, h_bunch=40, mpi='mpi_full_ring_fft')
+#
+#wake_field = WakeField(slicer_for_wakefields, wakes,
+#                       circumference=machine.circumference,h_rf=40, mpi='dummy')
+
+
 #wake_field = WakeField(slicer_for_wakefields, wakes,
 #                       circumference=machine.circumference, mpi=True)
 # wake_field = ParallelWakes(slicer_for_wakefields, wake_sources_list=None,

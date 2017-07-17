@@ -217,7 +217,7 @@ class MpiGatherer(object):
         self._id_list = np.zeros(self._n_bunches, dtype=np.uint32)
 
         self._local_id_list = list(set(superbunch.bunch_id))
-        self._local_id_list = np.array(sorted(self._local_id_list, reverse=True), dtype=np.uint32)
+        self._local_id_list = np.array(sorted(self._local_id_list, reverse=True), dtype=np.int32)
 
         id_list_sizes = (np.ones(self._mpi_size, dtype=np.uint32) *
                                   self._bunch_distribution)
@@ -281,7 +281,7 @@ class MpiGatherer(object):
 
         for idx in xrange(self._n_bunches):
             self.bunch_by_bunch_data.append(
-                BunchDataAccess(idx, self._id_list[idx],
+                BunchDataAccess(idx, int(self._id_list[idx]),
                                 self._raw_data,
                                 self._raw_bin_data,
                                 self._required_variables,
@@ -427,3 +427,132 @@ class TotalDataAccess(object):
                 temp_data[local_from:local_to] = self._v[buffer_from:buffer_to]
 
             setattr(self, variable, temp_data)
+
+class MpiDataShare(object):
+    def __init__(self, data_type, segment_length):
+
+        self._mpi_comm = MPI.COMM_WORLD
+        self._mpi_size = self._mpi_comm.Get_size()
+        self._mpi_rank = self._mpi_comm.Get_rank()
+
+        self._np_data_type = data_type
+
+        if data_type == np.float32:
+            self._mpi_data_type = MPI.FLOAT
+        elif data_type == np.float64:
+            self._mpi_data_type = MPI.DOUBLE
+        elif data_type == np.int8:
+            self._mpi_data_type = MPI.INT8_T
+        elif data_type == np.int16:
+            self._mpi_data_type = MPI.INT16_T
+        elif data_type == np.int32:
+            self._mpi_data_type = MPI.INT32_T
+        elif data_type == np.int64:
+            self._mpi_data_type = MPI.INT64_T
+        elif data_type == np.uint8:
+            self._mpi_data_type = MPI.UINT8_T
+        elif data_type == np.uint16:
+            self._mpi_data_type = MPI.UINT16_T
+        elif data_type == np.uint32:
+            self._mpi_data_type = MPI.UINT32_T
+        elif data_type == np.uint64:
+            self._mpi_data_type = MPI.UINT64_T
+        else:
+            raise ValueError('Unknown data type.')
+
+        self._segment_length = segment_length
+        self._output_data = None
+        self._input_data = None
+        self._n_local_segments = None
+        self._n_total_segments = None
+        self._segment_distribution = None
+        self._local_segment_indexes = None
+
+        self._mpi_array = None
+
+
+    @property
+    def comm(self):
+        return self._mpi_comm
+
+    @property
+    def mpi_size(self):
+        return self._mpi_size
+
+    @property
+    def rank(self):
+        return self._mpi_rank
+
+    @property
+    def n_local_segments(self):
+        return self._n_local_segments
+
+    @property
+    def n_total_segments(self):
+        return self._n_total_segments
+
+    @property
+    def segment_distribution(self):
+        return self._segment_distribution
+
+    @property
+    def local_segment_indexes(self):
+        return self._local_segment_indexes
+
+
+    def _get_segment_distribution(self, data):
+        self._segment_distribution = np.zeros(self.mpi_size, dtype=np.int32)
+        self._n_local_segments = len(data)
+
+        segments_in_this_rank = np.zeros(1, dtype=np.int32)
+        segments_in_this_rank[0] = self._n_local_segments
+        segment_distribution_sizes = np.ones(self._mpi_size, dtype=np.int32) * 1
+        segment_distribution_offsets = np.zeros(self._mpi_size)
+        segment_distribution_offsets[1:] = np.cumsum(segment_distribution_sizes)[:-1]
+
+        temp_list = [self._segment_distribution,
+                     segment_distribution_sizes,
+                     segment_distribution_offsets,
+                     MPI.INT32_T
+                     ]
+
+        self._mpi_comm.Allgatherv(segments_in_this_rank, temp_list)
+
+        self._n_total_segments = np.sum(self._segment_distribution)
+
+        self._local_segment_indexes = []
+        for i in xrange(self._n_local_segments):
+            idx = int(np.sum(self._segment_distribution[:self.rank]) + i)
+            self._local_segment_indexes.append(idx)
+
+    def _init_mpi_parameters(self,data):
+        if self._segment_distribution is None:
+            self._get_segment_distribution(data)
+
+        self._output_data = np.zeros(int(self._n_local_segments*self._segment_length), dtype=self._np_data_type)
+        self._input_data = np.zeros(int(self._n_total_segments*self._segment_length), dtype=self._np_data_type)
+
+        self._rank_data_sizes = (np.ones(self._mpi_size, dtype=np.int32) *
+                          self._segment_distribution * self._segment_length)
+        self._rank_data_offsets = np.zeros(self._mpi_size, dtype=np.int32)
+        self._rank_data_offsets[1:] = np.cumsum(self._rank_data_sizes)[:-1]
+
+        self._mpi_array = [self._input_data, self._rank_data_sizes, self._rank_data_offsets, MPI.DOUBLE]
+
+    def _fill_output_buffer(self, data):
+        for set_idx, data_set in enumerate(data):
+            idx_from = set_idx * self._segment_length
+            idx_to = (set_idx+1) * self._segment_length
+            np.copyto(self._output_data[idx_from:idx_to],data_set)
+
+    def share(self, data):
+        if self._mpi_array is None:
+            self._init_mpi_parameters(data)
+
+        self._fill_output_buffer(data)
+        self._mpi_comm.Allgatherv(self._output_data, self._mpi_array)
+
+        if len(self._input_data) == self._segment_length:
+            return [self._input_data]
+        else:
+            return np.split(self._input_data, self._n_total_segments)

@@ -8,6 +8,7 @@ import time, copy
 import numpy as np
 from mpi4py import MPI
 from scipy.constants import c, e, m_p
+import matplotlib.pyplot as plt
 
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import CircularResonator, WakeTable, WakeField
@@ -25,10 +26,12 @@ def generate_machine_and_bunches(n_bunches, n_macroparticles, intensity, chroma)
     machine = HLLHC(charge=e, mass=m_p, n_segments=1,
                     machine_configuration='7_TeV_collision_tunes',
                     longitudinal_focusing='non-linear',
-                    Qp_x=chroma, Qp_y=chroma, wrap_z=True)
+                    Qp_x=chroma, Qp_y=chroma, wrap_z=True,h_RF = 350,
+                 circumference = 266.58883)
+#    machine.circumference = 300.
     C = machine.circumference
     h = np.min(machine.longitudinal_map.harmonics) * 1.
-    filling_scheme = sorted([10 + 10*i for i in range(n_bunches) for j in range(1)])
+    filling_scheme = sorted([20*i for i in range(n_bunches) for j in range(1)])
 
     # BEAM
     # ====
@@ -39,6 +42,11 @@ def generate_machine_and_bunches(n_bunches, n_macroparticles, intensity, chroma)
         n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
         filling_scheme=filling_scheme, matched=True)
 
+#    bunch_list = allbunches.split()
+#    for bunch in bunch_list:
+#        bunch.x[:] = bunch.x[:] + (np.random.random() - 0.5)*1e-6
+#
+#    return machine, sum(bunch_list)
     return machine, allbunches
 
 def track_n_turns(machine, bunches, mpi_settings, n_turns, n_slices):
@@ -46,14 +54,14 @@ def track_n_turns(machine, bunches, mpi_settings, n_turns, n_slices):
 
     # CREATE BEAM SLICERS
     # ===================
-    slicer_for_wakefields = UniformBinSlicer(n_slices, z_cuts=(-0.4, 0.4))
+    slicer_for_wakefields = UniformBinSlicer(n_slices, z_cuts=(-0.5, 0.5))
     # slicers_list = [UniformBinSlicer(20, z_cuts=(-0.4-f*C/h, 0.4-f*C/h)) for f in filling_scheme]
 
 
     # CREATE WAKES
     # ============
     if mpi_settings is not None:
-        wakes = CircularResonator(1e6, 20e6, 10, n_turns_wake=10)
+        wakes = CircularResonator(1e12, 10e6, 10, n_turns_wake=10)
 #        wakefile = '../interactive-tests/wake_table.dat'
 #        wakes = WakeTable(wakefile,
 #                          ['time', 'dipole_x', 'dipole_y', 'noquadrupole_x', 'noquadrupole_y',
@@ -66,81 +74,97 @@ def track_n_turns(machine, bunches, mpi_settings, n_turns, n_slices):
 
         machine.one_turn_map.append(wake_field)
 
+    bunch_list = bunches.split()
+
     track_time_data = np.zeros(n_turns)
+    x_data = np.zeros((n_turns, len(bunch_list)))
 
 
     for i in range(n_turns):
-        if rank == 0:
-            t0 = time.clock()
+#        if rank == 0:
+        t0 = time.clock()
 
         machine.track(bunches)
 
-        if rank == 0:
-            if i == 0:
-                print 'mpi_settings = ' + str(mpi_settings) + ', n_bunches = ' + str(n_bunches)
-            t1 = time.clock()
-            track_time_data[i] = (t1-t0)*1e3
+#        if rank == 0:
+        if i == 0:
+            print 'mpi_settings = ' + str(mpi_settings) + ', n_bunches = ' + str(n_bunches)
+        t1 = time.clock()
+        track_time_data[i] = (t1-t0)*1e3
+        bunch_list = bunches.split()
+        for j, bunch in enumerate(bunch_list):
+            x_data[i,j] = bunch.mean_x()
 
-            print('Turn {:d}, {:g} ms, {:s}'.format(i, (t1-t0)*1e3, time.strftime(
-                "%d/%m/%Y %H:%M:%S", time.localtime())))
 
-    if rank == 0:
-        return track_time_data
+        print('Turn {:d}, {:g} ms, {:s}'.format(i, (t1-t0)*1e3, time.strftime(
+            "%d/%m/%Y %H:%M:%S", time.localtime())))
 
-number_of_bunches = [8, 16, 32, 64, 128, 256, 512]
+#    if rank == 0:
+    return track_time_data, x_data
+
+number_of_bunches = [8]
 # number_of_bunches = [4,8,16]
 chroma = 0
 intensity = 2.3e11
-n_turns = 20
+n_turns = 100
 n_macroparticles = 200
-n_slices = 100
+n_slices = 10
 
 output_filename = '2performance_data_resonator_n_slices_' + str(n_slices) + '.txt'
 
 mpi_settings_for_testing = [
 #    None,
     'dummy',
-#    True,
-#    'loop_minimized',
+    'loop_minimized',
     'memory_optimized',
-#    'full_ring_fft',
-    'mpi_full_ring_fft'
+    'full_ring_fft',
+    'mpi_full_ring_fft',
+#    True,
 
     ]
 
 mpi_setting_labels = [
 #    'without wake objects',
     'without wakes',
-#    'original',
-#    'loop_minimized',
+    'loop_minimized',
     'memory_optimized',
-#    'full_ring_fft',
-    'mpi_full_ring_fft'
+    'full_ring_fft',
+    'mpi_full_ring_fft',
+#    'original',
     ]
 
 data = []
-
+data_x = []
 for i, n_bunches in enumerate(number_of_bunches):
+    data_x.append([])
     ref_machine, ref_bunches = generate_machine_and_bunches(n_bunches, n_macroparticles, intensity, chroma)
     for j, mpi_settings in enumerate(mpi_settings_for_testing):
         machine = copy.deepcopy(ref_machine)
         bunches = copy.deepcopy(ref_bunches)
         if i == 0:
             data.append(np.zeros((n_turns,len(number_of_bunches))))
-        data[j][:,i] = track_n_turns(machine, bunches, mpi_settings, n_turns, n_slices)
+        track_time_data, x_data = track_n_turns(machine, bunches, mpi_settings, n_turns, n_slices)
+        data[j][:,i] = track_time_data
+        data_x[-1].append(x_data)
 
-if rank == 0:
-    row_labels = np.linspace(1,n_turns,n_turns)
-    with open(output_filename, "w") as text_file:
-        text_file.write('n_turns: ' + str(n_turns) + '\n')
-        text_file.write('n_macroparticles per bunch: ' + str(n_macroparticles) + '\n')
-        text_file.write('n_slices per bunch: ' + str(n_slices) + '\n')
-        text_file.write('number_of_bunches: ' + str(number_of_bunches) + '\n')
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, figsize=(16, 9), sharex=True, tight_layout=False)
+for i in xrange(len(data_x[0])):
+    ax1.plot(data_x[0][i][:,0], label = mpi_setting_labels[i])
+    ax3.plot(data_x[0][i][:,1])
+    if i > 1:
+        ref_diff_1 = np.max(data_x[0][1][:,0]-data_x[0][0][:,0])
+        ref_diff_2 = np.max(data_x[0][1][:,1]-data_x[0][0][:,1])
+        ax2.plot((data_x[0][i][:,0]-data_x[0][1][:,0])/ref_diff_1, label = mpi_setting_labels[i])
+        ax4.plot((data_x[0][i][:,1]-data_x[0][1][:,1])/ref_diff_2)
 
-        for i in xrange(len(mpi_settings_for_testing)):
-            text_file.write('' + '\n')
-            text_file.write('' + '\n')
-            text_file.write('     Turn by turn tracking time [ms], ' + mpi_setting_labels[i]  + '\n')
-            text_file.write('%s  %s\n' % ('   ', ' '.join('%05s' % i for i in number_of_bunches)))
-            for row_label, row in zip(row_labels, data[i]):
-                text_file.write('%s [%s]\n' % ('% 3.0f' %row_label, ' '.join('% 5.0f' %i  for i in row)))
+ax1.legend()
+ax2.legend()
+ax1.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)) + ', mean_x')
+ax2.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)) + ', relative error')
+ax3.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)+1) + ', mean_x')
+ax4.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)+1) + ', relative error')
+ax4.set_xlabel('Turn')
+plt.show()
+
+# -*- coding: utf-8 -*-
+
