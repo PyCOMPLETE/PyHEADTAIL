@@ -18,11 +18,17 @@ import argparse
 import importlib # available from PyPI for Python <2.7
 import os, subprocess
 
+# python2/3 compatibility for raw_input/input:
+if hasattr(__builtins__, 'raw_input'):
+    input = raw_input
+
 # CONFIG
 version_location = 'PyHEADTAIL._version' # in python relative module notation
 # (e.g. PyHEADTAIL._version for PyHEADTAIL/_version.py)
 test_script_location = 'prepush' # in python relative module notation
 release_branch_prefix = 'release/v' # prepended name of release branch
+github_user = 'PyCOMPLETE'
+github_repo = 'PyHEADTAIL'
 
 
 parser = argparse.ArgumentParser(
@@ -132,6 +138,61 @@ def ensure_hub_is_installed():
             'Please install hub from https://hub.github.com/ !'
         )
 
+def ensure_gothub_is_installed():
+    '''Check whether gothub (to draft github releases) is installed.
+    If not, throw an error with an installation note.
+    '''
+    try:
+        assert subprocess.call(["gothub", "--version"]) == 0
+    except OSError:
+        raise OSError(
+            'The gothub command-line tool is needed for '
+            'drafting releases on github. '
+            'Please install gothub from '
+            'https://github.com/itchio/gothub !'
+        )
+
+def ensure_gitpulls_is_installed():
+    '''Check whether the gem git-pulls (to get github pull requests) is
+    installed.
+    If not, throw an error with an installation note.
+    '''
+    try:
+        assert subprocess.call(["git", "pulls"]) == 0
+    except OSError:
+        raise OSError(
+            'The gothub command-line tool is needed for '
+            'checking the pull request text from the release. '
+            'Please install git-pulls '
+            'from https://github.com/schacon/git-pulls !'
+        )
+
+def check_release_tools():
+    '''Return whether git-pulls and gothub are installed (needed for
+    drafting the github release from CLI). If not, ask whether user
+    wants to continue and draft the release manually (if this is not
+    the case, raise exception!).
+    '''
+    try:
+        ensure_gitpulls_is_installed()
+        ensure_gothub_is_installed()
+        return True
+    except EnvironmentError:
+        answer = ''
+        accept = ['y', 'yes', 'n', 'no']
+        while answer not in accept:
+            answer = input(
+                '!!! You do not have all required tools installed to '
+                'automatically draft a release. Do you want to continue '
+                'and manually draft the release on github afterwards? '
+                '[y/N]').lower()
+            if not answer:
+                answer = 'n'
+        if answer == 'n' or answer == 'no':
+            raise
+        else:
+            return False
+
 def current_branch():
     '''Return current git branch name.'''
     # get the current branch name, strip trailing whitespaces using rstrip()
@@ -171,6 +232,31 @@ def git_status():
         ['git', 'status', 'HEAD']
     )
     print (output)
+
+def get_pullrequest_message(release_version):
+    '''Fetch message from open pull request corresponding to this
+    release_version.
+    '''
+    fetched = subprocess.check_output(['git', 'pulls', 'update'])
+    pr_number = None
+    for line in fetched.split('\n'):
+        if "PyCOMPLETE:release/v{}".format(release_version) in line:
+            pr_number = line.split()[0]
+            break
+    if pr_number is None:
+        raise EnvironmentError(
+            'Could not find open pull request for this release version. '
+            'Did you properly initiate the release process '
+            '(step 1 in ./release.py --help)?')
+    text = subprocess.check_output(['git', 'pulls', 'show', pr_number])
+    output = []
+    for line in text.split('\n')[5:]:
+        if line != '------------':
+            output.append(line)
+        else:
+            break
+    output[0] = output[0][11:] # remove "Title    : "
+    return '\n'.join(output)
 
 
 # DEFINE TWO STEPS FOR RELEASE PROCESS:
@@ -218,6 +304,9 @@ def finalise_release():
     print ('*** The PyHEADTAIL tests have successfully terminated.')
     new_version = establish_new_version(version_location)
 
+    # all tools installed to automatically draft release?
+    draft_release = check_release_tools()
+
     # make sure to push any possible release branch commits
     assert subprocess.call(["git", "push", "origin"]) == 0
     # --> might instead be done via git fetch and suggesting to push
@@ -243,11 +332,22 @@ def finalise_release():
     assert subprocess.call(["git", "merge", "master"]) == 0
     assert subprocess.call(["git", "push", "origin", "develop"]) == 0
 
-    # TO DO: publish github release (with text from pull request open in editor)
-
     # delete release branch
     assert subprocess.call(["git", "branch", "-d", rbranch]) == 0
     assert subprocess.call(["git", "push", "origin", ":" + rbranch]) == 0
+
+    # publish github release (with message from pull request)
+    if draft_release:
+        message = get_pullrequest_message(new_version)
+        assert subprocess.call(
+            ['gothub', 'release', '-u', github_user, '-r', github_repo,
+             '-t', 'v' + new_version,
+             '-n', '"PyHEADTAIL v{}"'.format(new_version),
+             '-d', '"{}"'.format(message),
+             '-c', 'master'])
+    else:
+        print ('*** Remember to manually draft this release from the '
+               'github website.')
 
 # ALGORITHM FOR RELEASE PROCESS:
 if __name__ == '__main__':
