@@ -9,7 +9,6 @@ from __future__ import division
 import numpy as np
 from scipy.special import k0
 from scipy.constants import c, e
-import pylab as plt
 
 
 class TransverseDamper(object):
