@@ -131,7 +131,7 @@ def ensure_hub_is_installed():
     '''
     try:
         assert subprocess.call(["hub", "--version"]) == 0
-    except OSError:
+    except (OSError, AssertionError):
         raise OSError(
             'The github command-line tool is needed for '
             'opening the pull request for the release. '
@@ -144,7 +144,7 @@ def ensure_gothub_is_installed():
     '''
     try:
         assert subprocess.call(["gothub", "--version"]) == 0
-    except OSError:
+    except (OSError, AssertionError):
         raise OSError(
             'The gothub command-line tool is needed for '
             'drafting releases on github. '
@@ -159,7 +159,7 @@ def ensure_gitpulls_is_installed():
     '''
     try:
         assert subprocess.call(["git", "pulls"]) == 0
-    except OSError:
+    except (OSError, AssertionError):
         raise OSError(
             'The gothub command-line tool is needed for '
             'checking the pull request text from the release. '
@@ -177,15 +177,15 @@ def check_release_tools():
         ensure_gitpulls_is_installed()
         ensure_gothub_is_installed()
         return True
-    except EnvironmentError:
+    except OSError:
         answer = ''
         accept = ['y', 'yes', 'n', 'no']
         while answer not in accept:
             answer = input(
                 '!!! You do not have all required tools installed to '
                 'automatically draft a release. Do you want to continue '
-                'and manually draft the release on github afterwards? '
-                '[y/N]').lower()
+                'and manually draft the release on github afterwards?\n'
+                '[y/N] ').lower()
             if not answer:
                 answer = 'n'
         if answer == 'n' or answer == 'no':
@@ -302,10 +302,12 @@ def finalise_release():
         raise EnvironmentError('The PyHEADTAIL tests fail. Please fix '
                                'the tests first!')
     print ('*** The PyHEADTAIL tests have successfully terminated.')
-    new_version = establish_new_version(version_location)
 
     # all tools installed to automatically draft release?
     draft_release = check_release_tools()
+
+    # bump version file
+    new_version = establish_new_version(version_location)
 
     # make sure to push any possible release branch commits
     assert subprocess.call(["git", "push", "origin"]) == 0
