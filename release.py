@@ -5,9 +5,9 @@ workflow, cf. the PyHEADTAIL wiki:
 https://github.com/PyCOMPLETE/PyHEADTAIL/wiki/Our-Development-Workflow
 
 Requires git, hub (the github tool, https://hub.github.com/) and importlib
-(included in python >=2.7) installed.
+(included in python >=2.7) to be installed.
 
-Should be PEP440 conformal.
+Conforms with PEP440 (especially the versioning needs to follow this).
 
 @copyright: CERN
 @date: 26.01.2017
@@ -177,9 +177,12 @@ def git_status():
 
 def init_release(part):
     '''Initialise release process.'''
-    if not current_branch() == 'develop':
+    if not current_branch() == 'develop' and not (
+            current_branch()[:7] == 'hotfix/' and
+            part == 'patch'):
         raise EnvironmentError(
-            'Releases can only be initiated from the develop branch!')
+            'Releases can only be initiated from the develop branch! '
+            '(Releasing a patch is allowed from a hotfix/ branch as well.)')
     if is_worktree_dirty():
         git_status()
         raise EnvironmentError('Release process can only be initiated on '
