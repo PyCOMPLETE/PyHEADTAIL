@@ -305,6 +305,8 @@ def finalise_release():
 
     # all tools installed to automatically draft release?
     draft_release = check_release_tools()
+    if draft_release:
+        message = get_pullrequest_message(new_version)
 
     # bump version file
     new_version = establish_new_version(version_location)
@@ -340,7 +342,6 @@ def finalise_release():
 
     # publish github release (with message from pull request)
     if draft_release:
-        message = get_pullrequest_message(new_version)
         assert subprocess.call(
             ['gothub', 'release', '-u', github_user, '-r', github_repo,
              '-t', 'v' + new_version,
