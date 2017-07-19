@@ -47,7 +47,7 @@ class SpaceChargePIC(Element):
     '''
 
     def __init__(self, length, pypic_algorithm, sort_particles=False,
-                 *args, **kwargs):
+                 pic_dtype=np.float32, *args, **kwargs):
         '''Arguments:
             - length: interaction length over which the space charge
               force is integrated.
@@ -60,6 +60,11 @@ class SpaceChargePIC(Element):
               particle-to-mesh and mesh-to-particles methods
               due to coalesced memory access, especially on the GPU
               (test the timing for your parameters though!).
+            - pic_dtype: can be np.float32 or np.float64 and determines
+              (for sort_particles == False) which atomicAdd should be
+              used on the GPU. On GPUs with computing capability <v6.0
+              the double precision atomicAdd is not hardware accelerated
+              and thus much slower.
 
               (NB: sort_particles=True is necessarily required for the
                PyPIC_GPU.sorted_particles_to_mesh method.)
@@ -67,6 +72,7 @@ class SpaceChargePIC(Element):
         self.length = length
         self.pypic = pypic_algorithm
         self.sort_particles = sort_particles
+        self.pic_dtype = pic_dtype
         self.is_25D = getattr(self.pypic.poissonsolver, 'is_25D', False)
         if self.pypic.mesh.dimension != 3:
             raise RuntimeError(
@@ -78,6 +84,7 @@ class SpaceChargePIC(Element):
         solve_kwargs = {
             'charge': beam.charge_per_mp,
             'state': pypic_state,
+            'dtype': self.pic_dtype,
         }
         if self.is_25D:
             # 2.5D: macro-particle charge becomes line density in beam frame
