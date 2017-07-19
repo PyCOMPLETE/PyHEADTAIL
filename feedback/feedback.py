@@ -4,7 +4,7 @@ from PyHEADTAIL.mpi import mpi_data
 from core import get_processor_variables, process, Parameters
 from core import z_bins_to_bin_edges, append_bin_edges
 from processors.register import VectorSumCombiner, CosineSumCombiner
-from processors.register import HilbertCombiner
+from processors.register import HilbertCombiner, DummyCombiner
 """
     This file contains feedback modules for PyHEADTAIL, which can be used as interfaces between
     PyHEADTAIL and the signal processors.
@@ -98,8 +98,8 @@ def generate_parameters(signal_slice_sets, location=0., beta=1.):
 
     return parameters
 
-
-def read_signal(signal_x, signal_y, signal_slice_sets, axis, mpi):
+def read_signal(signal_x, signal_y, signal_slice_sets, axis, mpi,
+                phase_x, phase_y, beta_x, beta_y):
     # TODO: change the mpi code to support n_slices
     if mpi:
         n_slices_per_bunch = signal_slice_sets[0]._n_slices
@@ -119,11 +119,28 @@ def read_signal(signal_x, signal_y, signal_slice_sets, axis, mpi):
         idx_to = (idx + 1) * n_slices_per_bunch
 
         if axis == 'divergence':
-            np.copyto(signal_x[idx_from:idx_to], slice_set.mean_xp)
-            np.copyto(signal_y[idx_from:idx_to], slice_set.mean_yp)
+            if phase_x is None:
+                np.copyto(signal_x[idx_from:idx_to], slice_set.mean_xp)
+            else:
+                np.copyto(signal_x[idx_from:idx_to], (-np.sin(phase_x)*slice_set.mean_x/beta_x +
+                                  np.cos(phase_x)*slice_set.mean_xp))
+            if phase_y is None:
+                np.copyto(signal_y[idx_from:idx_to], slice_set.mean_yp)
+            else:
+                np.copyto(signal_y[idx_from:idx_to], (-np.sin(phase_y)*slice_set.mean_y/beta_y +
+                                  np.cos(phase_y)*slice_set.mean_yp))
+
         elif axis == 'displacement':
-            np.copyto(signal_x[idx_from:idx_to], slice_set.mean_x)
-            np.copyto(signal_y[idx_from:idx_to], slice_set.mean_y)
+            if phase_x is None:
+                np.copyto(signal_x[idx_from:idx_to], slice_set.mean_x)
+            else:
+                np.copyto(signal_x[idx_from:idx_to], (np.cos(phase_x)*slice_set.mean_x +
+                                  beta_x*np.sin(phase_x)*slice_set.mean_xp))
+            if phase_y is None:
+                np.copyto(signal_y[idx_from:idx_to], slice_set.mean_y)
+            else:
+                np.copyto(signal_y[idx_from:idx_to], (np.cos(phase_y)*slice_set.mean_y +
+                                  beta_y*np.sin(phase_y)*slice_set.mean_yp))
         else:
             raise ValueError('Unknown axis')
 
@@ -161,10 +178,13 @@ def kick_bunches(local_slice_sets, bunch_list, local_bunch_indexes,
             raise ValueError('Unknown axis')
 
 
+
+
 class OneboxFeedback(object):
 
     def __init__(self, gain, slicer, processors_x, processors_y,
-                 axis='divergence', mpi=False):
+                 pickup_axis='divergence', kicker_axis=None, mpi=False,
+                 phase_x=None, phase_y=None, beta_x=1., beta_y=1.):
 
         if isinstance(gain, collections.Container):
             self._gain_x = gain[0]
@@ -178,12 +198,37 @@ class OneboxFeedback(object):
         self._processors_x = processors_x
         self._processors_y = processors_y
 
+        self._phase_x = phase_x
+        self._phase_y = phase_y
 
-        self._axis = axis
-        if axis == 'divergence':
-            self._required_variables = ['mean_xp', 'mean_yp']
-        elif axis == 'displacement':
-            self._required_variables = ['mean_x', 'mean_y']
+        self._beta_x = beta_x
+        self._beta_y = beta_y
+
+
+        self._pickup_axis = pickup_axis
+        if kicker_axis is None:
+            self._kicker_axis = pickup_axis
+        else:
+            self._kicker_axis = kicker_axis
+
+        self._required_variables = []
+        if (self._pickup_axis == 'divergence') or \
+            (self._kicker_axis == 'divergence') or \
+            (phase_x is not None) or \
+            (phase_y is not None):
+            print 'I am adding divergence parameters!'
+
+            self._required_variables.append('mean_xp')
+            self._required_variables.append('mean_yp')
+
+        if (self._pickup_axis == 'displacement') or \
+            (self._kicker_axis == 'displacement') or \
+            (phase_x is not None) or \
+            (phase_y is not None):
+            print 'I am adding displacement parameters!'
+
+            self._required_variables.append('mean_x')
+            self._required_variables.append('mean_y')
 
         self._required_variables = get_processor_variables(self._processors_x,
                                                      self._required_variables)
@@ -230,7 +275,8 @@ class OneboxFeedback(object):
 
 
         read_signal(self._signal_x, self._signal_y, signal_slice_sets,
-                    self._axis,self._mpi)
+                    self._pickup_axis,self._mpi, self._phase_x, self._phase_y,
+                    self._beta_x, self._beta_y)
 
         kick_parameters_x, kick_signal_x = process(self._parameters_x,
                                                    self._signal_x,
@@ -240,6 +286,11 @@ class OneboxFeedback(object):
         if kick_signal_x is not None:
             kick_signal_x = kick_signal_x * self._gain_x
 
+            if self._pickup_axis == 'displacement' and self._kicker_axis == 'divergence':
+                kick_signal_x = kick_signal_x / self._beta_x
+            elif self._pickup_axis == 'divergence' and self._kicker_axis == 'displacement':
+                kick_signal_x = kick_signal_x * self._beta_x
+
         kick_parameters_y, kick_signal_y = process(self._parameters_y,
                                                    self._signal_y,
                                                    self._processors_y,
@@ -247,26 +298,37 @@ class OneboxFeedback(object):
         if kick_signal_x is not None:
             kick_signal_y = kick_signal_y * self._gain_y
 
+            if self._pickup_axis == 'displacement' and self._kicker_axis == 'divergence':
+                kick_signal_y = kick_signal_y / self._beta_y
+            elif self._pickup_axis == 'divergence' and self._kicker_axis == 'displacement':
+                kick_signal_y = kick_signal_y * self._beta_y
+
 
 #        print 'signal_x: ' + str(kick_signal_x)
 #        print 'self._gain_x: ' + str(self._gain_x)
 
         kick_bunches(bunch_slice_sets, bunch_list, self._local_bunch_indexes,
-                 kick_signal_x, kick_signal_y, self._axis)
+                 kick_signal_x, kick_signal_y, self._kicker_axis)
 
         if self._mpi:
             self._mpi_gatherer.rebunch(bunch)
 
 class PickUp(object):
     def __init__(self, slicer, processors_x, processors_y, location_x, beta_x,
-                 location_y, beta_y, mpi=False):
+                 location_y, beta_y, mpi=False, phase_x=None, phase_y=None):
 
         self._slicer = slicer
 
         self._processors_x = processors_x
         self._processors_y = processors_y
 
+        self._phase_x = phase_x
+        self._phase_y = phase_y
+
         self._required_variables = ['mean_x', 'mean_y']
+        if (phase_x is not None) or (phase_x is not None):
+            self._required_variables.append('mean_xp')
+            self._required_variables.append('mean_yp')
 
         self._required_variables = get_processor_variables(self._processors_x,
                                                      self._required_variables)
@@ -319,7 +381,8 @@ class PickUp(object):
             self._signal_y = np.zeros(n_segments * n_bins_per_segment)
 
         read_signal(self._signal_x, self._signal_y, signal_slice_sets,
-                    'displacement',self._mpi)
+                    'displacement', self._mpi, self._phase_x, self._phase_y,
+                    self._beta_x, self._beta_y)
 
         if self._signal_x is not None:
             end_parameters_x, end_signal_x = process(self._parameters_x,
@@ -378,6 +441,14 @@ class Kicker(object):
                                                      location_x, beta_x,
                                                      beta_conversion = '90_deg')
                 self._combiner_y = HilbertCombiner(registers_y,
+                                                     location_y, beta_y,
+                                                     beta_conversion = '90_deg')
+
+            elif combiner == 'dummy':
+                self._combiner_x = DummyCombiner(registers_x,
+                                                     location_x, beta_x,
+                                                     beta_conversion = '90_deg')
+                self._combiner_y = DummyCombiner(registers_y,
                                                      location_y, beta_y,
                                                      beta_conversion = '90_deg')
             else:

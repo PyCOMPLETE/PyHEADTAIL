@@ -95,6 +95,40 @@ class Register(object):
         return parameters, signal
 
 
+class UncorrectedDelay(object):
+    def __init__(self, delay, **kwargs):
+
+        self._delay = delay
+        self._register = Register(n_values=1, tune=1., delay=self._delay)
+
+        self.extensions = ['debug', 'register']
+        self._extension_objects = [debug_extension(self, 'Register', **kwargs)]
+
+    @property
+    def delay(self):
+        return self._delay
+
+    def process(self, parameters, signal, *args, **kwargs):
+        self._register.process(parameters, signal, *args, **kwargs)
+        output_parameters = None
+        output_signal = None
+
+        for (parameters_i, signal_i, delay_i) in self._register:
+            output_parameters = parameters_i
+            output_signal = signal_i
+
+        if output_parameters is None:
+            output_parameters = parameters
+            output_signal = np.zeros(len(signal))
+
+        for extension in self._extension_objects:
+            extension(self, parameters, signal, output_parameters, output_signal,
+                      *args, **kwargs)
+
+        return output_parameters, output_signal
+
+
+
 class Combiner(object):
     __metaclass__ = ABCMeta
 
@@ -159,13 +193,12 @@ class Combiner(object):
 
         return self._combined_parameters, output_signal
 
-# TODO: add beta correction, which depends if x -> x or x -> xp
 class CosineSumCombiner(Combiner):
     def __init__(self, *args, **kwargs):
         super(self.__class__, self).__init__(*args, **kwargs)
         self.label = 'Cosine sum combiner'
 
-    def combine(self, registers, target_location, target_beta, additional_phase_advance):
+    def combine(self, registers, target_location, target_beta, additional_phase_advance, beta_conversion):
         combined_signal = None
         n_signals = 0
 
@@ -194,6 +227,25 @@ class CosineSumCombiner(Combiner):
 
         return combined_signal
 
+class DummyCombiner(Combiner):
+    def __init__(self, *args, **kwargs):
+        super(self.__class__, self).__init__(*args, **kwargs)
+        self.label = 'Dummy combiner'
+
+    def combine(self, registers, target_location, target_beta, additional_phase_advance, beta_conversion):
+        combined_signal = None
+
+        for (parameters, signal, delay) in registers[0]:
+            combined_signal = signal
+
+        if target_beta is not None:
+            beta_correction = 1. / np.sqrt(parameters['beta'] * target_beta)
+        else:
+            beta_correction = 1.
+
+
+        return beta_correction*combined_signal
+
 class HilbertCombiner(Combiner):
     def __init__(self, *args, **kwargs):
         if 'n_taps' in kwargs:
@@ -218,7 +270,7 @@ class HilbertCombiner(Combiner):
         if self._coefficients is None:
             print registers
             if self._n_taps is None:
-                self._n_taps = registers[0].max_length
+                self._n_taps = registers[0].maxlen
             self._coefficients = [None]*len(registers)
 
         combined_signal = None
@@ -520,7 +572,7 @@ class TurnDelay(object):
                                                                   signal,
                                                                   *args,
                                                                   **kwargs)
-
+#        print output_signal
         if output_signal is None:
             output_parameters = parameters
             output_signal = np.zeros(len(signal))

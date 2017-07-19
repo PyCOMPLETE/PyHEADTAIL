@@ -1,15 +1,12 @@
-import itertools
-import math
-import copy
 from collections import deque
 from abc import ABCMeta, abstractmethod
 import numpy as np
 from scipy.constants import c, pi
 import scipy.integrate as integrate
-import scipy.special as special
 from scipy import linalg
 from cython_hacks import cython_matrix_product
 from ..core import debug_extension
+import abstract_filter_responses
 
 # TODO: clean code here!
 
@@ -21,8 +18,7 @@ class LinearTransform(object):
         the ref_bin to the bin)
     """
 
-    def __init__(self, mode = 'bunch_by_bunch', normalization=None,
-                 bin_middle = 'bin', label = 'LinearTransform', **kwargs):
+    def __init__(self, mode = 'bunch_by_bunch', normalization=None, bin_middle = 'bin', **kwargs):
         """
 
         :param norm_type: Describes normalization method for the transfer matrix
@@ -62,12 +58,12 @@ class LinearTransform(object):
             self.extensions.append('bunch')
             self.required_variables = ['mean_z']
 
-        self._extension_objects = [debug_extension(self, label, **kwargs)]
+        self._extension_objects = [debug_extension(self, 'LinearTransform', **kwargs)]
 
 
 
     @abstractmethod
-    def response_function(self, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
+    def response_function(self, parameters, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
         # Impulse response function of the processor
         pass
 
@@ -87,7 +83,7 @@ class LinearTransform(object):
             self._n_segments = parameters['n_segments']
             self._n_bins_per_segment = parameters['n_bins_per_segment']
 
-            self.__generate_matrix(parameters['bin_edges'],bin_midpoints)
+            self.__generate_matrix(parameters, parameters['bin_edges'],bin_midpoints)
 
         if self._mode == 'total':
             output_signal = np.array(cython_matrix_product(self._matrix, signal))
@@ -121,20 +117,16 @@ class LinearTransform(object):
                 print "{:6.3f}".format(element),
             print "]"
 
-    def __generate_matrix(self,bin_edges, bin_midpoints):
+    def __generate_matrix(self,parameters, bin_edges, bin_midpoints):
 
         self._mid_bunch = int(self._n_segments/2)
 
         bunch_mid = (bin_edges[0,0]+bin_edges[(self._n_bins_per_segment - 1),1]) / 2.
 
-        total_mid = bin_midpoints[int(len(bin_midpoints)/2)]
-
         norm_bunch_midpoints = bin_midpoints[:self._n_bins_per_segment]
         norm_bunch_midpoints = norm_bunch_midpoints - bunch_mid
         norm_bin_edges = bin_edges[:self._n_bins_per_segment]
         norm_bin_edges = norm_bin_edges - bunch_mid
-
-        bin_spacing = np.mean(norm_bin_edges[:, 1] - norm_bin_edges[:, 0])
 
         if self._mode == 'bunch_by_bunch':
 
@@ -142,19 +134,19 @@ class LinearTransform(object):
 
             for i, midpoint_i in enumerate(norm_bunch_midpoints):
                 for j, midpoint_j in enumerate(norm_bunch_midpoints):
-                    self._matrix[j][i] = self.response_function(midpoint_i,norm_bin_edges[i,0],norm_bin_edges[i,1],
+                    self._matrix[j][i] = self.response_function(parameters,
+                                                                midpoint_i,norm_bin_edges[i,0],norm_bin_edges[i,1],
                                                                 midpoint_j,norm_bin_edges[j,0],norm_bin_edges[j,1])
         elif self._mode == 'total':
             self._matrix = np.identity(len(bin_midpoints))
             for i, midpoint_i in enumerate(bin_midpoints):
                 for j, midpoint_j in enumerate(bin_midpoints):
-                    self._matrix[j][i] = self.response_function(midpoint_i, bin_edges[i, 0], bin_edges[i, 1],
+                    self._matrix[j][i] = self.response_function(parameters,
+                                                                midpoint_i, bin_edges[i, 0], bin_edges[i, 1],
                                                                 midpoint_j, bin_edges[j, 0], bin_edges[j, 1])
 
         else:
             raise ValueError('Unrecognized value in LinearTransform._mode')
-
-        matrix_size = self._matrix.shape
 
         total_impulse = np.append(self._matrix[:,-1],self._matrix[1:,0])
         bin_widths = bin_edges[:, 1]-bin_edges[:, 0]
@@ -186,7 +178,7 @@ class Averager(LinearTransform):
         super(self.__class__, self).__init__(mode, normalization, **kwargs)
         self.label = 'Averager'
 
-    def response_function(self, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
+    def response_function(self, parameters, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
         return 1
 
 class Delay(LinearTransform):
@@ -197,7 +189,7 @@ class Delay(LinearTransform):
         super(self.__class__, self).__init__( **kwargs)
         self.label = 'Delay'
 
-    def response_function(self, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
+    def response_function(self, parameters, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
 
         return self.__CDF(bin_to, ref_bin_from, ref_bin_to) - self.__CDF(bin_from, ref_bin_from, ref_bin_to)
 
@@ -222,11 +214,11 @@ class LinearTransformFromFile(LinearTransform):
         super(self.__class__, self).__init__( **kwargs)
         self.label = 'LT from file'
 
-    def response_function(self, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
+    def response_function(self, parameters, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
             return np.interp(bin_mid - ref_bin_mid, self._data[:, 0], self._data[:, 1])
 
 
-class LtFilter(LinearTransform):
+class LinearTransformFilter(LinearTransform):
     __metaclass__ = ABCMeta
     """ A general class for (analog) filters. Impulse response of the filter must be determined by overwriting
         the function raw_impulse_response.
@@ -235,88 +227,140 @@ class LtFilter(LinearTransform):
 
     """
 
-    def __init__(self, filter_type, filter_symmetry,f_cutoff, delay = 0., f_cutoff_2nd = None, bunch_spacing = None
-                 , **kwargs):
-        """
-        :param filter_type: Options are:
-                'lowpass'
-                'highpass'
-        :param f_cutoff: a cut-off frequency of the filter [Hz]
-        :param delay: a delay in the units of seconds
-        :param f_cutoff_2nd: a second cutoff frequency [Hz], which is implemented by cutting the tip of the impulse
-                    response function
-        :param norm_type: see class LinearTransform
-        :param norm_range: see class LinearTransform
-        """
+    def __init__(self, scaling, zero_bin_value=None, normalization=None, **kwargs):
 
+        self._scaling = scaling
 
-        self._bunch_spacing = bunch_spacing
-        self._f_cutoff = f_cutoff
-        self._delay_z = delay * c
-        self._filter_type = filter_type
-        self._filter_symmetry = filter_symmetry
-
-        self._impulse_response = self.__impulse_response_generator(f_cutoff_2nd)
-        super(LtFilter, self).__init__(**kwargs)
-
-
-        self._CDF_time = None
-        self._CDF_value = None
-        self._PDF = None
-
-
-    @abstractmethod
-    def raw_impulse_response(self, x):
-        """ Impulse response of the filter.
-        :param x: normalized time (t*2.*pi*f_c)
-        :return: response at the given time
-        """
-        pass
-
-    def __impulse_response_generator(self,f_cutoff_2nd):
-        """ A function which generates the response function from the raw impulse response. If 2nd cut-off frequency
-            is given, the value of the raw impulse response is set to constant at the time scale below that.
-            The integral over the response function is normalized to value 1.
-        """
-
-        if f_cutoff_2nd is not None:
-            threshold_tau = (2.*pi * self._f_cutoff) / (2.*pi * f_cutoff_2nd)
-            threshold_val_neg = self.raw_impulse_response(-1.*threshold_tau)
-            threshold_val_pos = self.raw_impulse_response(threshold_tau)
-            integral_neg, _ = integrate.quad(self.raw_impulse_response, -100., -1.*threshold_tau)
-            integral_pos, _ = integrate.quad(self.raw_impulse_response, threshold_tau, 100.)
-
-            norm_coeff = np.abs(integral_neg + integral_pos + (threshold_val_neg + threshold_val_pos) * threshold_tau)
-
-            def transfer_function(x):
-                if np.abs(x) < threshold_tau:
-                    return self.raw_impulse_response(np.sign(x)*threshold_tau) / norm_coeff
-                else:
-                    return self.raw_impulse_response(x) / norm_coeff
+        if normalization == 'sum':
+            self._filter_normalization = None
+            matrix_normalization = normalization
         else:
-            norm_coeff, _ = integrate.quad(self.raw_impulse_response, -100., 100.)
-            norm_coeff = np.abs(norm_coeff)
-            def transfer_function(x):
-                    return self.raw_impulse_response(x) / norm_coeff
+            self._filter_normalization = normalization
+            matrix_normalization = None
 
-        return transfer_function
+        self._zero_bin_value = zero_bin_value
+        super(LinearTransformFilter, self).__init__(normalization = matrix_normalization, **kwargs)
+        self.label='LinearTransformFilter'
 
+        self._norm_coeff = None
 
-    def response_function(self, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
+    def response_function(self, parameters, ref_bin_mid, ref_bin_from, ref_bin_to, bin_mid, bin_from, bin_to):
         # Frequency scaling must be done by scaling integral limits, because integration by substitution doesn't work
         # with np.quad (see quad_problem.ipynbl). An ugly way, which could be fixed.
 
-        scaling = 2. * pi * self._f_cutoff / c
-        temp, _ = integrate.quad(self._impulse_response, scaling * (bin_from - (ref_bin_mid + self._delay_z)),
-                                 scaling * (bin_to - (ref_bin_mid + self._delay_z)))
+        temp, _ = integrate.quad(self._impulse_response, self._scaling * (bin_from - (ref_bin_mid)),
+                                 self._scaling * (bin_to - (ref_bin_mid)))
+
+#        temp, _ = integrate.quad(self._impulse_response, self._scaling * (bin_from - (ref_bin_mid + self._delay_z)),
+#                                 self._scaling * (bin_to - (ref_bin_mid + self._delay_z)))
 
         if ref_bin_mid == bin_mid:
-            if self._filter_type == 'highpass':
-                temp += 1.
+            if self._zero_bin_value is not None:
+                temp += self._zero_bin_value
 
-        return temp
+        if self._norm_coeff is None:
+            self._norm_coeff = self._normalization_coefficient(parameters)
 
-class Sinc(LtFilter):
+        return temp/self._norm_coeff
+
+    def _normalization_coefficient(self, parameters):
+
+        if self._filter_normalization is None:
+            norm_coeff = 1.
+        elif isinstance(self._filter_normalization, tuple):
+            if self._filter_normalization[0] == 'integral':
+                norm_coeff, _ = integrate.quad(self._impulse_response, self._filter_normalization[1][0], self._filter_normalization[1][1])
+            elif self._filter_normalization[0] == 'bunch_by_bunch':
+                f_h = self._filter_normalization[1]
+
+                norm_coeff = 0.
+                for i in xrange(-1000,1000):
+                    x = float(i)* (1./f_h) * self._scaling * c
+                    norm_coeff += self._impulse_response(x)
+
+                bin_edges = parameters['bin_edges']
+                n_bins_per_segment = parameters['n_bins_per_segment']
+                segment_length = bin_edges[n_bins_per_segment-1,1] - bin_edges[0,0]
+
+                norm_coeff = norm_coeff*(segment_length * self._scaling)
+            else:
+                raise ValueError('Unknown normalization method!')
+#        elif self._normalization == 'sum':
+#            norm_coeff = np.sum(impulse)
+
+        else:
+            raise ValueError('Unknown normalization method!')
+
+        return norm_coeff
+
+class Lowpass(LinearTransformFilter):
+    """ A classical lowpass filter, which is also known as a RC-filter or one
+        poll roll off.
+    """
+    def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
+        scaling = 2. * pi * f_cutoff / c
+
+        if normalization is None:
+            normalization=('integral',(-max_impulse_length,max_impulse_length))
+
+        self._impulse_response = abstract_filter_responses.normalized_lowpass(max_impulse_length)
+
+        super(self.__class__, self).__init__(scaling, normalization=normalization,**kwargs)
+        self.label = 'Lowpass filter'
+
+
+class Highpass(LinearTransformFilter):
+    """ A high pass version of the lowpass filter, which is constructed by
+        multiplying the lowpass filter by a factor of -1 and adding to the first
+        bin 1
+    """
+    def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
+        scaling = 2. * pi * f_cutoff / c
+
+        if normalization is None:
+            normalization=('integral',(-max_impulse_length,max_impulse_length))
+
+        self._impulse_response = abstract_filter_responses.normalized_highpass(max_impulse_length)
+
+        super(self.__class__, self).__init__( scaling, zero_bin_value= 1., normalization=normalization, **kwargs)
+        self.label = 'Highpass filter'
+
+class PhaseLinearizedLowpass(LinearTransformFilter):
+    """ A phase linearized 1st order lowpass filter. Note that the narrow and
+        sharp peak of the impulse response makes the filter to be sensitive
+        to the bin width and may yield an unrealistically good response for the
+        short signals. Thus, it is recommended to use a higher bandwidth Gaussian
+        filter together with this filter.
+    """
+
+    def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
+        scaling = 2. * pi * f_cutoff / c
+
+        if normalization is None:
+            normalization=('integral',(-max_impulse_length,max_impulse_length))
+
+        self._impulse_response = abstract_filter_responses.normalized_phase_linearized_lowpass(max_impulse_length)
+
+        super(self.__class__, self).__init__( scaling, normalization=normalization, **kwargs)
+        self.label = 'Phaselinearized lowpass filter'
+
+
+class Gaussian(LinearTransformFilter):
+    """ A Gaussian low pass filter, which impulse response is a Gaussian function.
+    """
+    def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
+        scaling = 2. * pi * f_cutoff / c
+
+        if normalization is None:
+            normalization=('integral',(-max_impulse_length,max_impulse_length))
+
+        self._impulse_response = abstract_filter_responses.normalized_Gaussian(max_impulse_length)
+
+        super(self.__class__, self).__init__( scaling, normalization=normalization, **kwargs)
+        self.label = 'Gaussian lowpass filter'
+
+
+class Sinc(LinearTransformFilter):
     """ A nearly ideal lowpass filter, i.e. a windowed Sinc filter. The impulse response of the ideal lowpass filter
         is Sinc function, but because it is infinite length in both positive and negative time directions, it can not be
         used directly. Thus, the length of the impulse response is limited by using windowing. Properties of the filter
@@ -327,7 +371,8 @@ class Sinc(LtFilter):
         code in example/test 004_analog_signal_processors.ipynb
     """
 
-    def __init__(self, f_cutoff, window_width = 3, window_type = 'blackman', **kwargs):
+    def __init__(self, f_cutoff, window_width = 3., window_type = 'blackman', normalization=None,
+                 **kwargs):
         """
         :param f_cutoff: a cutoff frequency of the filter
         :param delay: a delay of the filter [s]
@@ -336,61 +381,12 @@ class Sinc(LtFilter):
         :param norm_type: see class LinearTransform
         :param norm_range: see class LinearTransform
         """
-        self.window_width = float(window_width)
-        self.window_type = window_type
-        super(self.__class__, self).__init__('lowpass', 'symmetric', f_cutoff, **kwargs)
+        scaling = 2. * pi * f_cutoff / c
+
+        if normalization is None:
+            normalization=('integral',(-window_width,window_width))
+
+        self._impulse_response = abstract_filter_responses.normalized_sinc(window_type, window_width)
+
+        super(self.__class__, self).__init__(scaling,normalization=normalization, **kwargs)
         self.label = 'Sinc filter'
-
-    def raw_impulse_response(self, x):
-        if np.abs(x/pi) > self.window_width:
-            return 0.
-        else:
-            if self.window_type == 'blackman':
-                return np.sinc(x/pi)*self.blackman_window(x)
-            elif self.window_type == 'hamming':
-                return np.sinc(x/pi)*self.hamming_window(x)
-
-    def blackman_window(self,x):
-        return 0.42-0.5*np.cos(2.*pi*(x/pi+self.window_width)/(2.*self.window_width))\
-               +0.08*np.cos(4.*pi*(x/pi+self.window_width)/(2.*self.window_width))
-
-    def hamming_window(self, x):
-        return 0.54-0.46*np.cos(2.*pi*(x/pi+self.window_width)/(2.*self.window_width))
-
-
-class Lowpass(LtFilter):
-    """ Classical first order lowpass filter (e.g. a RC filter), which impulse response can be described as exponential
-        decay.
-        """
-    def __init__(self, f_cutoff, **kwargs):
-        super(self.__class__, self).__init__('lowpass','delay', f_cutoff, **kwargs)
-        self.label = 'Lowpass filter'
-
-    def raw_impulse_response(self, x):
-        if x < 0.:
-            return 0.
-        else:
-            return math.exp(-1. * x)
-
-class Highpass(LtFilter):
-    """The classical version of a highpass filter, which """
-    def __init__(self, f_cutoff, **kwargs):
-        super(self.__class__, self).__init__('highpass','advance', f_cutoff, **kwargs)
-        self.label = 'Highpass filter'
-
-    def raw_impulse_response(self, x):
-        if x < 0.:
-            return 0.
-        else:
-            return -1.*math.exp(-1. * x)
-
-class PhaseLinearizedLowpass(LtFilter):
-    def __init__(self, f_cutoff, **kwargs):
-        super(self.__class__, self).__init__('lowpass','symmetric', f_cutoff, **kwargs)
-        self.label = 'Phaselinearized lowpass filter'
-
-    def raw_impulse_response(self, x):
-        if x == 0.:
-            return 0.
-        else:
-            return special.k0(abs(x))
