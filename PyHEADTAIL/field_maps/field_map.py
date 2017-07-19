@@ -132,7 +132,13 @@ class FieldMapSliceWise(FieldMap):
         NB: mesh needs to be a two-dimensional mesh describing the
         discrete domain of the transverse fields.
 
-        NB2: the field values should be charge-density-normalised as
+        NB2: wrt_beam_centroid=True is implemented as a slice-by-slice
+        transverse centring of the beam as opposed to the superclass
+        FieldMap's 3D implementation, which sets the entire beam
+        centroid including the longitudinal centre-of-gravity to the
+        zero origin.
+
+        NB3: the field values should be charge-density-normalised as
         they are multiplied by the line charge density for each slice,
         c.f. e.g. the Bassetti-Erskine formula without Q (as in the
         spacecharge module's
@@ -150,12 +156,15 @@ class FieldMapSliceWise(FieldMap):
 
     def track(self, beam):
         # prepare argument for PyPIC mesh to particle interpolation
-        mx, my, mz = 0, 0, 0
+        mx, my = 0, 0
         if self.wrt_beam_centroid:
-            mx, my, mz = beam.mean_x(), beam.mean_y(), beam.mean_z()
+            slices = beam.get_slices(
+                self.slicer, statistics=["mean_x", "mean_y"])
+            mx = slices.convert_to_particles(slices.mean_x)
+            my = slices.convert_to_particles(slices.mean_y)
         mp_coords = [beam.x - mx,
                      beam.y - my,
-                     beam.z - mz] # zip will cut to #fields
+                     beam.z] # zip will cut to #fields
 
         mesh_fields_and_mp_coords = zip(self.fields, mp_coords)
 
