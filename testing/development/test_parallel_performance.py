@@ -39,6 +39,10 @@ def generate_machine_and_bunches(n_bunches, n_macroparticles, intensity, chroma)
         n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
         filling_scheme=filling_scheme, matched=True)
 
+a = machine.one_turn_map.pop()
+a = machine.one_turn_map.pop()
+a = machine.one_turn_map.pop()
+
     return machine, allbunches
 
 def track_n_turns(machine, bunches, mpi_settings, n_turns, n_slices):
