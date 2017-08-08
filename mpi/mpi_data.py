@@ -1,10 +1,343 @@
 import numpy as np
 import copy
 from mpi4py import MPI
-from abc import ABCMeta, abstractmethod
 
 
-# TODO: total slice data monitor map?
+def my_rank():
+    """ Returns the rank index of this processors.
+
+        Note that this is a slow function, and it is only recommended to use for
+        initializing things.
+
+        Returns
+        -------
+        int
+            Rank of this processor
+    """
+    mpi_comm = MPI.COMM_WORLD
+    return mpi_comm.Get_rank()
+
+
+def num_procs():
+    """ Returns the total number of processors (ranks).
+
+        Note that this is a slow function, and it is only recommended to use for
+        initializing things.
+
+        Returns
+        -------
+        int
+            Total number of processors in parallel
+    """
+    mpi_comm = MPI.COMM_WORLD
+    return mpi_comm.Get_size()
+
+
+def split_tasks(tasks):
+    """ Splits a list of tasks to sublists, which correspond to the tasks for
+        different processors.
+
+        Note that this is a slow function, and it is only recommended to use for
+        initializing things.
+
+        Parameters
+        ----------
+        tasks : list
+            A list of tasks for all processors
+
+        Returns
+        -------
+        list
+            A list of lists, which correspond to the tasks for
+            different processors.
+    """
+
+    n_procs = num_procs()
+    n_tasks = len(tasks)
+
+    n_tasks_on_rank = [n_tasks//n_procs + 1 if i < n_tasks % n_procs else
+                       n_tasks//n_procs + 0 for i in range(n_procs)]
+
+    n_tasks_cumsum = np.insert(np.cumsum(n_tasks_on_rank), 0, 0)
+
+    return [tasks[n_tasks_cumsum[i]:n_tasks_cumsum[i+1]] for i in range(n_procs)]
+
+
+def my_tasks(tasks):
+    """ Picks tasks for this processor.
+
+        Note that this is a slow function, and it is only recommended to use for
+        initializing things.
+
+        Parameters
+        ----------
+        tasks : list
+            A list of tasks for all processors
+
+        Returns
+        -------
+        list
+            A list of tasks to be executed in this processor.
+    """
+
+    idx = my_rank()
+    splitted_tasks = split_tasks(tasks)
+    return splitted_tasks[idx]
+
+
+def share_numbers(my_number):
+    """ Shares numbers with all processors.
+
+        Note that this is a slow function, and it is only recommended to use for
+        initializing things.
+
+        Parameters
+        ----------
+        my_number : number
+            A number to be shared
+
+        Returns
+        -------
+        NumPy array
+            Numbers from all processors
+    """
+
+    mpi_comm = MPI.COMM_WORLD
+    n_procs = mpi_comm.Get_size()
+
+    local_number = np.array([my_number])
+    data_type = local_number.dtype
+
+    number_array = np.zeros(n_procs, dtype=data_type)
+
+    segment_sizes = np.ones(n_procs, dtype=np.int32)
+    segment_offsets = np.zeros(n_procs, dtype=np.int32)
+    segment_offsets[1:] = np.cumsum(segment_sizes)[:-1]
+
+    mpi_input = [number_array,
+                 segment_sizes,
+                 segment_offsets,
+                 numpy_type_to_mpi_type(data_type)
+                 ]
+
+    mpi_comm.Allgatherv(local_number, mpi_input)
+
+    return number_array
+
+def share_arrays(my_array):
+    """ Shares array data with all processors.
+
+        Note that this is a slow function, and it is only recommended to use for
+        initializing things.
+
+        Parameters
+        ----------
+        my_array : NumPy array
+            A array to be shared
+
+        Returns
+        -------
+        NumPy array
+            Data from all processors
+    """
+    mpi_comm = MPI.COMM_WORLD
+    n_procs = mpi_comm.Get_size()
+
+    data_type = my_array.dtype
+
+    segment_sizes = share_numbers(len(my_array), np.int32)
+
+    all_data = np.zeros(sum(segment_sizes), dtype=data_type)
+    segment_offsets = np.zeros(n_procs)
+    segment_offsets[1:] = np.cumsum(segment_sizes)[:-1]
+
+    mpi_input = [all_data,
+                 segment_sizes,
+                 segment_offsets,
+                 numpy_type_to_mpi_type(data_type)
+                 ]
+
+    mpi_comm.Allgatherv(my_array, mpi_input)
+
+    return all_data
+
+
+def share_array_lists(my_arrays):
+    """ Shares a list arrays with all processors.
+
+        Note that this is a slow function, and it is only recommended to use for
+        initializing things.
+
+        Parameters
+        ----------
+        my_arrays : NumPy array
+            A list of arrays to be shared
+
+        Returns
+        -------
+        list
+            A list of all arrays from all processors
+    """
+    mpi_comm = MPI.COMM_WORLD
+    n_procs = mpi_comm.Get_size()
+
+    data_type = my_arrays[0].dtype
+
+    local_segment_sizes = np.zeros(len(my_arrays), dtype=np.int32)
+    local_total_length = 0
+    for i, array in enumerate(my_arrays):
+        local_segment_sizes[i] = len(array)
+        local_total_length += len(array)
+
+    segment_sizes_for_splitting = share_arrays(local_segment_sizes, np.int32)
+    segment_sizes_for_data_sharing = share_numbers(local_total_length, np.int32)
+
+    local_data = np.zeros(local_total_length, dtype=data_type)
+
+    counter = 0
+    for i, array in enumerate(my_arrays):
+        np.copyto(local_data[counter:(counter + len(array))], array, casting='unsafe')
+        counter += len(array)
+
+    all_data = np.zeros(sum(segment_sizes_for_data_sharing), dtype=data_type)
+
+    segment_offsets = np.zeros(n_procs)
+    segment_offsets[1:] = np.cumsum(segment_sizes_for_data_sharing)[:-1]
+
+    mpi_input = [all_data,
+                 segment_sizes_for_data_sharing,
+                 segment_offsets,
+                 numpy_type_to_mpi_type(data_type)
+                 ]
+
+    mpi_comm.Allgatherv(local_data, mpi_input)
+
+    all_arrays = []
+
+    counter = 0
+    for segment_size in segment_sizes_for_splitting:
+        all_arrays.append(all_data[counter:(counter+segment_size)])
+        counter += segment_size
+
+    return all_arrays
+
+
+def mpi_type_to_numpy_type(data_type):
+    """ Converts mpi4py data type to NumPy data type
+
+        Parameters
+        ----------
+        data_type : mpi4py data type, e.g. MPI.FLOAT, MPI.INT32_T, MPI.UINT64_T, etc
+
+        Returns
+        -------
+        NumPy data type
+            A list of all arrays from all processors
+    """
+    if data_type == MPI.FLOAT:
+        return np.float32
+    elif data_type == MPI.DOUBLE:
+        return np.float64
+    elif data_type == MPI.INT8_T:
+        return np.int8
+    elif data_type == MPI.INT16_T:
+        return np.int16
+    elif data_type == MPI.INT32_T:
+        return np.int32
+    elif data_type == MPI.INT64_T:
+        return np.int64
+    elif data_type == MPI.UINT8_T:
+        return np.uint8
+    elif data_type == MPI.UINT16_T:
+        return np.uint16
+    elif data_type == MPI.UINT32_T:
+        return np.uint32
+    elif data_type == MPI.UINT64_T:
+        return np.uint64
+    else:
+        raise ValueError('Unknown data type.')
+    pass
+
+
+def numpy_type_to_mpi_type(data_type):
+    """ Converts NumPy data type to mpi4py data type
+
+        Parameters
+        ----------
+        data_type : NumPy data type, e.g. np.int32, np.int64, np.float, etc
+
+        Returns
+        -------
+        mpi4py data type
+            A list of all arrays from all processors
+    """
+    if data_type == np.float32:
+        return MPI.FLOAT
+    elif data_type == np.float64:
+        return MPI.DOUBLE
+    elif data_type == np.int8:
+        return MPI.INT8_T
+    elif data_type == np.int16:
+        return MPI.INT16_T
+    elif data_type == np.int32:
+        return MPI.INT32_T
+    elif data_type == np.int64:
+        return MPI.INT64_T
+    elif data_type == np.uint8:
+        return MPI.UINT8_T
+    elif data_type == np.uint16:
+        return MPI.UINT16_T
+    elif data_type == np.uint32:
+        return MPI.UINT32_T
+    elif data_type == np.uint64:
+        return MPI.UINT64_T
+    else:
+        raise ValueError('Unknown data type.')
+
+
+class MpiArrayShare(object):
+    """ Shares a NumpyArray with other processors.
+    """
+    def __init__(self):
+
+        self._mpi_comm = MPI.COMM_WORLD
+        self._mpi_size = self._mpi_comm.Get_size()
+
+        self._numpy_type = None
+        self._mpi_type = None
+
+        self._segment_sizes = None
+        self._segment_offsets = None
+
+    def _init_sharing(self, local_data):
+        self._numpy_type = local_data.dtype
+        self._mpi_type = numpy_type_to_mpi_type(self._numpy_type)
+
+        local_segment_size = len(local_data)
+        self._segment_sizes = share_numbers(local_segment_size)
+        self._segment_offsets = np.zeros(self._mpi_size)
+        self._segment_offsets[1:] = np.cumsum(self._segment_sizes)[:-1]
+
+    def share(self, local_data, all_data):
+        """ A method which is called, when data is shared
+
+            Parameters
+            ----------
+            local_data : NumPy array
+                Data which are sent to the all processors
+            all_data : NumPy array
+                An array where the all data from all processors are stored
+        """
+        if self._segment_sizes is None:
+            self._init_sharing(local_data)
+
+        mpi_input = [all_data,
+                     self._segment_sizes,
+                     self._segment_offsets,
+                     self._mpi_type
+                     ]
+
+        self._mpi_comm.Allgatherv(local_data, mpi_input)
 
 
 class MpiSniffer(object):
@@ -427,132 +760,3 @@ class TotalDataAccess(object):
                 temp_data[local_from:local_to] = self._v[buffer_from:buffer_to]
 
             setattr(self, variable, temp_data)
-
-class MpiDataShare(object):
-    def __init__(self, data_type, segment_length):
-
-        self._mpi_comm = MPI.COMM_WORLD
-        self._mpi_size = self._mpi_comm.Get_size()
-        self._mpi_rank = self._mpi_comm.Get_rank()
-
-        self._np_data_type = data_type
-
-        if data_type == np.float32:
-            self._mpi_data_type = MPI.FLOAT
-        elif data_type == np.float64:
-            self._mpi_data_type = MPI.DOUBLE
-        elif data_type == np.int8:
-            self._mpi_data_type = MPI.INT8_T
-        elif data_type == np.int16:
-            self._mpi_data_type = MPI.INT16_T
-        elif data_type == np.int32:
-            self._mpi_data_type = MPI.INT32_T
-        elif data_type == np.int64:
-            self._mpi_data_type = MPI.INT64_T
-        elif data_type == np.uint8:
-            self._mpi_data_type = MPI.UINT8_T
-        elif data_type == np.uint16:
-            self._mpi_data_type = MPI.UINT16_T
-        elif data_type == np.uint32:
-            self._mpi_data_type = MPI.UINT32_T
-        elif data_type == np.uint64:
-            self._mpi_data_type = MPI.UINT64_T
-        else:
-            raise ValueError('Unknown data type.')
-
-        self._segment_length = segment_length
-        self._output_data = None
-        self._input_data = None
-        self._n_local_segments = None
-        self._n_total_segments = None
-        self._segment_distribution = None
-        self._local_segment_indexes = None
-
-        self._mpi_array = None
-
-
-    @property
-    def comm(self):
-        return self._mpi_comm
-
-    @property
-    def mpi_size(self):
-        return self._mpi_size
-
-    @property
-    def rank(self):
-        return self._mpi_rank
-
-    @property
-    def n_local_segments(self):
-        return self._n_local_segments
-
-    @property
-    def n_total_segments(self):
-        return self._n_total_segments
-
-    @property
-    def segment_distribution(self):
-        return self._segment_distribution
-
-    @property
-    def local_segment_indexes(self):
-        return self._local_segment_indexes
-
-
-    def _get_segment_distribution(self, data):
-        self._segment_distribution = np.zeros(self.mpi_size, dtype=np.int32)
-        self._n_local_segments = len(data)
-
-        segments_in_this_rank = np.zeros(1, dtype=np.int32)
-        segments_in_this_rank[0] = self._n_local_segments
-        segment_distribution_sizes = np.ones(self._mpi_size, dtype=np.int32) * 1
-        segment_distribution_offsets = np.zeros(self._mpi_size)
-        segment_distribution_offsets[1:] = np.cumsum(segment_distribution_sizes)[:-1]
-
-        temp_list = [self._segment_distribution,
-                     segment_distribution_sizes,
-                     segment_distribution_offsets,
-                     MPI.INT32_T
-                     ]
-
-        self._mpi_comm.Allgatherv(segments_in_this_rank, temp_list)
-
-        self._n_total_segments = np.sum(self._segment_distribution)
-
-        self._local_segment_indexes = []
-        for i in xrange(self._n_local_segments):
-            idx = int(np.sum(self._segment_distribution[:self.rank]) + i)
-            self._local_segment_indexes.append(idx)
-
-    def _init_mpi_parameters(self,data):
-        if self._segment_distribution is None:
-            self._get_segment_distribution(data)
-
-        self._output_data = np.zeros(int(self._n_local_segments*self._segment_length), dtype=self._np_data_type)
-        self._input_data = np.zeros(int(self._n_total_segments*self._segment_length), dtype=self._np_data_type)
-
-        self._rank_data_sizes = (np.ones(self._mpi_size, dtype=np.int32) *
-                          self._segment_distribution * self._segment_length)
-        self._rank_data_offsets = np.zeros(self._mpi_size, dtype=np.int32)
-        self._rank_data_offsets[1:] = np.cumsum(self._rank_data_sizes)[:-1]
-
-        self._mpi_array = [self._input_data, self._rank_data_sizes, self._rank_data_offsets, MPI.DOUBLE]
-
-    def _fill_output_buffer(self, data):
-        for set_idx, data_set in enumerate(data):
-            idx_from = set_idx * self._segment_length
-            idx_to = (set_idx+1) * self._segment_length
-            np.copyto(self._output_data[idx_from:idx_to],data_set)
-
-    def share(self, data):
-        if self._mpi_array is None:
-            self._init_mpi_parameters(data)
-
-        self._fill_output_buffer(data)
-        self._mpi_comm.Allgatherv(self._output_data, self._mpi_array)
-
-        if len(self._input_data) == self._segment_length:
-            return [self._input_data]
-        else:
-            return np.split(self._input_data, self._n_total_segments)

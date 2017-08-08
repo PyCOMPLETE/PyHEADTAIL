@@ -106,7 +106,7 @@ number_of_bunches = [8]
 # number_of_bunches = [4,8,16]
 chroma = 0
 intensity = 2.3e11
-n_turns = 100
+n_turns = 1000
 n_macroparticles = 200
 n_slices = 10
 
@@ -115,9 +115,9 @@ output_filename = '2performance_data_resonator_n_slices_' + str(n_slices) + '.tx
 mpi_settings_for_testing = [
 #    None,
     'dummy',
-    'loop_minimized',
-    'memory_optimized',
     'full_ring_fft',
+    'memory_optimized',
+#    'loop_minimized',
     'mpi_full_ring_fft',
 #    True,
 
@@ -126,9 +126,9 @@ mpi_settings_for_testing = [
 mpi_setting_labels = [
 #    'without wake objects',
     'without wakes',
-    'loop_minimized',
-    'memory_optimized',
     'full_ring_fft',
+    'memory_optimized',
+#    'loop_minimized',
     'mpi_full_ring_fft',
 #    'original',
     ]
@@ -147,23 +147,36 @@ for i, n_bunches in enumerate(number_of_bunches):
         data[j][:,i] = track_time_data
         data_x[-1].append(x_data)
 
-fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, figsize=(16, 9), sharex=True, tight_layout=False)
+ref_values = np.zeros(n_turns)
+for i in xrange(n_turns):
+    ref_values[i] = np.sum(np.abs(data_x[0][1][i,:]))
+
+fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(16, 9), sharex=True, tight_layout=False)
 for i in xrange(len(data_x[0])):
     ax1.plot(data_x[0][i][:,0], label = mpi_setting_labels[i])
-    ax3.plot(data_x[0][i][:,1])
+    ax2.plot(data_x[0][i][:,1])
+
     if i > 1:
-        ref_diff_1 = np.max(data_x[0][1][:,0]-data_x[0][0][:,0])
-        ref_diff_2 = np.max(data_x[0][1][:,1]-data_x[0][0][:,1])
-        ax2.plot((data_x[0][i][:,0]-data_x[0][1][:,0])/ref_diff_1, label = mpi_setting_labels[i])
-        ax4.plot((data_x[0][i][:,1]-data_x[0][1][:,1])/ref_diff_2)
+        values = np.zeros(n_turns)
+        for j in xrange(n_turns):
+            values[j] = np.sum(np.abs(data_x[0][i][j,:]))
+
+        ref_diff_1 = (values-ref_values)/ref_values
+        ax3.plot(ref_diff_1, label = mpi_setting_labels[i])
+
+#    if i > 1:
+#        ref_diff_1 = np.max(data_x[0][1][:,0]-data_x[0][0][:,0])
+#        ref_diff_2 = np.max(data_x[0][1][:,1]-data_x[0][0][:,1])
+#        ax2.plot((data_x[0][i][:,0]-data_x[0][1][:,0])/ref_diff_1, label = mpi_setting_labels[i])
+#        ax4.plot((data_x[0][i][:,1]-data_x[0][1][:,1])/ref_diff_2)
 
 ax1.legend()
-ax2.legend()
+ax3.legend()
 ax1.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)) + ', mean_x')
-ax2.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)) + ', relative error')
-ax3.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)+1) + ', mean_x')
-ax4.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)+1) + ', relative error')
-ax4.set_xlabel('Turn')
+ax2.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)+1) + ', mean_x')
+ax3.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)) + ', relative error')
+#ax4.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)+1) + ', relative error')
+#ax4.set_xlabel('Turn')
 plt.show()
 
 # -*- coding: utf-8 -*-

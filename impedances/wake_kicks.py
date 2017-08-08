@@ -686,6 +686,7 @@ class WakeKick(Printing):
                                 local_bunch_indexes, circumference, h_rf, h_bunch):
 
         bunch_spacing = circumference/float(h_bunch)
+        every_n_bucket_fillted = int(h_rf/h_bunch)
 
         # total number of bunches
         self._n_target_bunches = len(local_bunch_indexes)
@@ -693,67 +694,58 @@ class WakeKick(Printing):
         # number of slices per bunch
         n_slices = len(all_slice_sets[0].mean_x)
 
-        # number of extra slices added to each side of the bunch
+        # number of extra slices to be added to each side of the bunch
         empty_space_per_side = int(math.ceil(n_slices/2.))
 
         # total number of bins per bunch
         self._n_bins_per_kick = (n_slices + 2*empty_space_per_side)
+
         # total number of bins per turn
-        n_bins_per_turn = h_bunch * self._n_bins_per_kick
-        self._moment = np.zeros(n_bins_per_turn)
+        self._n_bins_per_turn = h_bunch * self._n_bins_per_kick
 
-        self._accumulated_signal_list = [] # Standard lick list to the kick objects
-        self._accumulated_data = [] # Raw turn by turn data from the convolutions
-        for k in xrange(self.n_turns_wake):
-            self._accumulated_data.append(np.zeros(n_bins_per_turn))
+        # a buffer array for moment data
+        self._moment = np.zeros(self._n_bins_per_turn)
 
-        self._idx_data = [] #
+        # a buffer for wake data, which are gathered from all processors
+        self._new_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
 
-        # calculates the mid points of the bunches from the z_bins
-        # the bunch_id could be used here
-        bunch_mids = []
-        for slice_set in all_slice_sets:
-            bunch_mids.append(((slice_set.z_bins[0]+slice_set.z_bins[-1])/2.))
+        # Raw accumulated data from turn by turn convolutions
+        self._accumulated_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
 
+        # Splitted accumulated data for local bunches
+        self._accumulated_signal_list = []
         for j,local_bunch_idx in enumerate(local_bunch_indexes):
-            local_mid = bunch_mids[local_bunch_idx]
-            local_idx = -int(round(local_mid/bunch_spacing))
-            kick_from = empty_space_per_side + local_idx * self._n_bins_per_kick
-            kick_to = empty_space_per_side + local_idx * self._n_bins_per_kick + n_slices
-            self._accumulated_signal_list.append(np.array(self._accumulated_data[0][kick_from:kick_to], copy=False))
+            idx = all_slice_sets[local_bunch_idx].bunch_id/every_n_bucket_fillted
+            kick_from = empty_space_per_side + idx * self._n_bins_per_kick
+            kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
+            self._accumulated_signal_list.append(np.array(self._accumulated_data[kick_from:kick_to], copy=False))
 
-        for j, bunch_mid in enumerate(bunch_mids):
-            idx = -int(round(bunch_mid/bunch_spacing))
+
+        # A list of indexes, which indicate locations of the moment data from
+        # individual slice sets in the total moment data array
+        self._idx_data = []
+        for j, slice_set in enumerate(all_slice_sets):
+            idx = slice_set.bunch_id/every_n_bucket_fillted
             kick_from = empty_space_per_side + idx * self._n_bins_per_kick
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
             temp_idx_data = (kick_from, kick_to)
             self._idx_data.append(temp_idx_data)
 
-        self._mpi_data_share = mpi_data.MpiDataShare(np.double, n_bins_per_turn)
+        # initializes an object for data sharing through mpi and splits wake
+        # convolutions to processors
+        self._mpi_array_share = mpi_data.MpiArrayShare()
+        all_wake_turns = np.arange(self.n_turns_wake)
+        my_wake_turns = mpi_data.my_tasks(all_wake_turns)
 
-        my_rank = self._mpi_data_share.rank
-        n_ranks = self._mpi_data_share.mpi_size
+        if len(my_wake_turns) > 0:
+            # if convulations are calculated in this processor
+            # wake functions are initiliazed
 
-        if my_rank < self.n_turns_wake:
+            # a buffer for the data calculated in this processor
+            self._my_data = np.zeros(self._n_bins_per_turn*len(my_wake_turns))
 
-            if n_ranks >= self.n_turns_wake:
-                my_turns = [my_rank]
-            else:
-                n_turns_on_rank = [self.n_turns_wake//n_ranks + 1 if i < self.n_turns_wake % n_ranks else
-                                 self.n_turns_wake//n_ranks + 0 for i in range(n_ranks)]
-                n_turns_cumsum = np.insert(np.cumsum(n_turns_on_rank), 0, 0)
-                turn_list = range(self.n_turns_wake)
-
-                turns_on_rank_list = [
-                    turn_list[n_turns_cumsum[i]:n_turns_cumsum[i+1]] for i in range(n_ranks)]
-
-                my_turns = turns_on_rank_list[my_rank]
-
-            self._my_data = []
-            for i in xrange(len(my_turns)):
-                self._my_data.append(np.zeros(n_bins_per_turn))
-
-            # determines normalized zbins for a wake function of a bunch
+            # calculates normalized mid points z-bins, i.e. z-bins for a bunch
+            # are bunch_id * bunch_spacing * z_bin_mids
             raw_z_bins = local_slice_sets[0].z_bins
             raw_z_bins = raw_z_bins - ((raw_z_bins[0]+raw_z_bins[-1])/2.)
             bin_width = np.mean(raw_z_bins[1:]-raw_z_bins[:-1])
@@ -764,24 +756,23 @@ class WakeKick(Printing):
             z_bin_mids = np.append(z_bin_mids, original_z_bin_mids[-1] + np.linspace(1,
                                    empty_space_per_side, empty_space_per_side)*bin_width)
 
-            self._dashed_wake_functions = [] # Turn by turn wake functions for the convolution
-
-            z_values = np.zeros(n_bins_per_turn)
-
+            # determines z-bins for the entire ring
+            z_values = np.zeros(self._n_bins_per_turn)
             for i in xrange(h_bunch):
                 idx_from = i * self._n_bins_per_kick
                 idx_to = (i + 1) * self._n_bins_per_kick
-
                 offset = (i*bunch_spacing)
-
                 temp_mids = z_bin_mids+offset
-
                 np.copyto(z_values[idx_from:idx_to],temp_mids)
 
+            # for FFT convolution time of the array must start from zero.
+            # Thus, rolls z-bins in order put negative z-bins to the end of the array
             n_roll = sum((z_bin_mids<0.))
             z_values = np.roll(z_values,-n_roll)
 
-            for k in my_turns:
+            # calculates wake function values for convolution for different turns
+            self._dashed_wake_functions = []
+            for k in my_wake_turns:
                 turn_offset = (float(k) * circumference)
                 temp_z = np.copy(z_values)
                 if k==0:
@@ -790,10 +781,12 @@ class WakeKick(Printing):
                 self._dashed_wake_functions.append(self.wake_function(-(temp_z+turn_offset)/c, beta=local_slice_sets[0].beta))
 
         else:
+            # if convolutions are not calculated in this procecessors,
+            # zero length arrays are initiliazed
             self._dashed_wake_functions = []
-            self._my_data=[]
+            self._my_data = np.array([])
 
-    def _accumulate_mpi_full_fft_ring(self, all_slice_sets, local_slice_sets,
+    def _accumulate_mpi_full_ring_fft(self, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference, moments,
                                                  h_rf, h_bunch):
@@ -825,20 +818,26 @@ class WakeKick(Printing):
 
         # convolution calculations are distributed to different processors
         for i, wake in enumerate(self._dashed_wake_functions):
-            np.copyto(self._my_data[i], np.real(np.fft.ifft(np.fft.fft(wake) * np.fft.fft(self._moment))))
+            i_from = i*self._n_bins_per_turn
+            i_to = (i+1) * self._n_bins_per_turn
+            np.copyto(self._my_data[i_from:i_to], np.real(np.fft.ifft(np.fft.fft(wake) * np.fft.fft(self._moment))))
 
-        # total wake data is gathered from all processors
-        new_data = self._mpi_data_share.share(self._my_data)
+        # gathers total wake data from all processors
+        self._mpi_array_share.share(self._my_data, self._new_wake_data)
 
-        # moves previous turn data one turn forward and adds the new data
-        for k in xrange(self.n_turns_wake):
-            if k < (self.n_turns_wake-1):
-                np.copyto(self._accumulated_data[k], self._accumulated_data[k+1]+new_data[k])
-            else:
-                np.copyto(self._accumulated_data[k], new_data[k])
+        # copies the old wake data
+        old_data_from = self._n_bins_per_turn
+        old_data_to = self.n_turns_wake*self._n_bins_per_turn
+        old_data = np.append(self._accumulated_data[old_data_from:old_data_to],
+                             np.zeros(self._n_bins_per_turn))
+
+        # accumulates new wake data from the old and new data
+        np.copyto(self._accumulated_data,
+                  self._new_wake_data+old_data)
+
 
         # flips the accumulated kicks back to original order and
-        # multiplies them by a wake factor
+        # multiplies by the wake factor
         kick_list = []
         for i, value in enumerate(self._accumulated_signal_list):
             kick_list.append(value[::-1]*self._wake_factor(bunch_list[i]))
@@ -932,7 +931,7 @@ class WakeKick(Printing):
             #   - calculation time does not depend on the number of bunches, which prefers
             #   use of the memory_optimized version for a small number of bunches in large accelerators
 
-            return  self._accumulate_mpi_full_fft_ring(all_slice_sets, local_slice_sets,
+            return  self._accumulate_mpi_full_ring_fft(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference, moments,
                                                  h_rf, h_bunch)
