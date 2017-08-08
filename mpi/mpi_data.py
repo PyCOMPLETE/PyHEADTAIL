@@ -4,15 +4,15 @@ from mpi4py import MPI
 
 
 def my_rank():
-    """ Returns the rank index of this processors.
+    """Returns the rank index of this processors.
 
-        Note that this is a slow function, and it is only recommended to use for
-        initializing things.
+    Note that this is a slow function, and it is only recommended to use for
+    initializing things.
 
-        Returns
-        -------
-        int
-            Rank of this processor
+    Returns
+    -------
+    int
+        Rank of this processor
     """
     mpi_comm = MPI.COMM_WORLD
     return mpi_comm.Get_rank()
@@ -21,13 +21,13 @@ def my_rank():
 def num_procs():
     """ Returns the total number of processors (ranks).
 
-        Note that this is a slow function, and it is only recommended to use for
-        initializing things.
+    Note that this is a slow function, and it is only recommended to use for
+    initializing things.
 
-        Returns
-        -------
-        int
-            Total number of processors in parallel
+    Returns
+    -------
+    int
+        Total number of processors in parallel
     """
     mpi_comm = MPI.COMM_WORLD
     return mpi_comm.Get_size()
@@ -35,21 +35,21 @@ def num_procs():
 
 def split_tasks(tasks):
     """ Splits a list of tasks to sublists, which correspond to the tasks for
+    different processors.
+
+    Note that this is a slow function, and it is only recommended to use for
+    initializing things.
+
+    Parameters
+    ----------
+    tasks : list
+        A list of tasks for all processors
+
+    Returns
+    -------
+    list
+        A list of lists, which correspond to the tasks for
         different processors.
-
-        Note that this is a slow function, and it is only recommended to use for
-        initializing things.
-
-        Parameters
-        ----------
-        tasks : list
-            A list of tasks for all processors
-
-        Returns
-        -------
-        list
-            A list of lists, which correspond to the tasks for
-            different processors.
     """
 
     n_procs = num_procs()
@@ -66,18 +66,18 @@ def split_tasks(tasks):
 def my_tasks(tasks):
     """ Picks tasks for this processor.
 
-        Note that this is a slow function, and it is only recommended to use for
-        initializing things.
+    Note that this is a slow function, and it is only recommended to use for
+    initializing things.
 
-        Parameters
-        ----------
-        tasks : list
-            A list of tasks for all processors
+    Parameters
+    ----------
+    tasks : list
+        A list of tasks for all processors
 
-        Returns
-        -------
-        list
-            A list of tasks to be executed in this processor.
+    Returns
+    -------
+    list
+        A list of tasks to be executed in this processor.
     """
 
     idx = my_rank()
@@ -88,18 +88,18 @@ def my_tasks(tasks):
 def share_numbers(my_number):
     """ Shares numbers with all processors.
 
-        Note that this is a slow function, and it is only recommended to use for
-        initializing things.
+    Note that this is a slow function, and it is only recommended to use for
+    initializing things.
 
-        Parameters
-        ----------
-        my_number : number
-            A number to be shared
+    Parameters
+    ----------
+    my_number : number
+        A number to be shared
 
-        Returns
-        -------
-        NumPy array
-            Numbers from all processors
+    Returns
+    -------
+    NumPy array
+        Numbers from all processors
     """
 
     mpi_comm = MPI.COMM_WORLD
@@ -127,25 +127,25 @@ def share_numbers(my_number):
 def share_arrays(my_array):
     """ Shares array data with all processors.
 
-        Note that this is a slow function, and it is only recommended to use for
-        initializing things.
+    Note that this is a slow function, and it is only recommended to use for
+    initializing things.
 
-        Parameters
-        ----------
-        my_array : NumPy array
-            A array to be shared
+    Parameters
+    ----------
+    my_array : NumPy array
+        A array to be shared
 
-        Returns
-        -------
-        NumPy array
-            Data from all processors
+    Returns
+    -------
+    NumPy array
+        Data from all processors
     """
     mpi_comm = MPI.COMM_WORLD
     n_procs = mpi_comm.Get_size()
 
     data_type = my_array.dtype
 
-    segment_sizes = share_numbers(len(my_array), np.int32)
+    segment_sizes = share_numbers(len(my_array))
 
     all_data = np.zeros(sum(segment_sizes), dtype=data_type)
     segment_offsets = np.zeros(n_procs)
@@ -165,18 +165,18 @@ def share_arrays(my_array):
 def share_array_lists(my_arrays):
     """ Shares a list arrays with all processors.
 
-        Note that this is a slow function, and it is only recommended to use for
-        initializing things.
+    Note that this is a slow function, and it is only recommended to use for
+    initializing things.
 
-        Parameters
-        ----------
-        my_arrays : NumPy array
-            A list of arrays to be shared
+    Parameters
+    ----------
+    my_arrays : NumPy array
+        A list of arrays to be shared
 
-        Returns
-        -------
-        list
-            A list of all arrays from all processors
+    Returns
+    -------
+    list
+        A list of all arrays from all processors
     """
     mpi_comm = MPI.COMM_WORLD
     n_procs = mpi_comm.Get_size()
@@ -189,14 +189,15 @@ def share_array_lists(my_arrays):
         local_segment_sizes[i] = len(array)
         local_total_length += len(array)
 
-    segment_sizes_for_splitting = share_arrays(local_segment_sizes, np.int32)
-    segment_sizes_for_data_sharing = share_numbers(local_total_length, np.int32)
+    segment_sizes_for_splitting = share_arrays(local_segment_sizes)
+    segment_sizes_for_data_sharing = share_numbers(local_total_length)
 
     local_data = np.zeros(local_total_length, dtype=data_type)
 
     counter = 0
     for i, array in enumerate(my_arrays):
-        np.copyto(local_data[counter:(counter + len(array))], array, casting='unsafe')
+        np.copyto(local_data[counter:(counter + len(array))], array,
+                  casting='unsafe')
         counter += len(array)
 
     all_data = np.zeros(sum(segment_sizes_for_data_sharing), dtype=data_type)
@@ -227,12 +228,11 @@ def mpi_type_to_numpy_type(data_type):
 
         Parameters
         ----------
-        data_type : mpi4py data type, e.g. MPI.FLOAT, MPI.INT32_T, MPI.UINT64_T, etc
+        data_type : mpi4py data type, e.g. MPI.FLOAT, MPI.INT32_T, etc
 
         Returns
         -------
         NumPy data type
-            A list of all arrays from all processors
     """
     if data_type == MPI.FLOAT:
         return np.float32
@@ -269,7 +269,6 @@ def numpy_type_to_mpi_type(data_type):
         Returns
         -------
         mpi4py data type
-            A list of all arrays from all processors
     """
     if data_type == np.float32:
         return MPI.FLOAT
@@ -341,10 +340,10 @@ class MpiArrayShare(object):
 
 
 class MpiSniffer(object):
-    """
-        Sniffer object, which can be used for getting information about the number of processors and the rank of the
-        processors. The separated object has been implemented, because it might offer a way to avoid importing mpi4py
-        without a real need.
+    """ Sniffer object, which can be used for getting information about
+        the number of processors and the rank of the processors. The
+        separated object has been implemented, because it might offer
+        a way to avoid importing mpi4py without a real need.
     """
     def __init__(self):
         self._mpi_comm = MPI.COMM_WORLD
@@ -365,40 +364,44 @@ class MpiSniffer(object):
 
 
 class MpiGatherer(object):
-    """MpiGather is an object, which gathers slice data from other processors. The
-        data between processors are shared by using MPI message-passing
-        system. The data can be accessed by calling the total_data or
-        bunch_by_bunch_data objects. The object total_data includes slice set
-        data from all bunches in all processors in one array, whereas the
-        object bunch_by_bunch_data is a list of objects, which includes slice
-        set data from individual bunches.  Those objects emulates orginal
-        slice_set objects, data can be accessed by calling same variable names
-        (e.g. mean_x, sigma_x and n_macroparticles_per_slice) than in the slice
-        set object. For example, by calling total_data.mean_x returns a single
-        array, which includes mean_x values from all slices in all bunches and
-        bunch_by_bunch_data[0].mean_x returns mean_x values from the slice set
-        of the first bunch in the filling scheme
-
+    """An object, which gathers slice data from other processors. The
+    data between processors are shared by using MPI message-passing
+    system. The data can be accessed by calling the total_data or
+    bunch_by_bunch_data objects. The object total_data includes slice set
+    data from all bunches in all processors in one array, whereas the
+    object bunch_by_bunch_data is a list of objects, which includes slice
+    set data from individual bunches.  Those objects emulates orginal
+    slice_set objects, data can be accessed by calling same variable names
+    (e.g. mean_x, sigma_x and n_macroparticles_per_slice) than in the slice
+    set object. For example, by calling total_data.mean_x returns a single
+    array, which includes mean_x values from all slices in all bunches and
+    bunch_by_bunch_data[0].mean_x returns mean_x values from the slice set
+    of the first bunch in the filling scheme.
     """
 
     def __init__(self, slicer, required_variables):
-        """:param slicer: PyHEADTAIL slicer object
-
-        :param required_variables: a list of variable names in a slice set
-        object which are shared (e.g. n_macro_particles, mean_x, sigma_y, etc)
-
+        """
+        Parameters
+        ----------
+        slicer : PyHEADTAIL slicer object
+            A list index of the bunch
+        required_variables : list
+            A list of PyHEADTAIL slice_set variable names, which data
+            are shared between the processors.
         """
 
         self._mpi_comm = MPI.COMM_WORLD
         self._mpi_size = self._mpi_comm.Get_size()
         self._mpi_rank = self._mpi_comm.Get_rank()
 
-        self._n_bunches = None  # total number of bunches simulated in all
-                                # processors
-        self._n_local_bunches = None  # number of bunches simulated in this
-                                      # rank
-        self._local_bunch_indexes = None  # list indexes for bunches simulated
-                                          # in this rank
+        # total number of bunches simulated in all processors
+        self._n_bunches = None
+
+        # number of bunches simulated in this rank
+        self._n_local_bunches = None
+
+        # list indexes for the bunches simulated in this rank
+        self._local_bunch_indexes = None
 
         # lists of bunch and slice set object in this rank
         self.bunch_list = None
@@ -494,10 +497,6 @@ class MpiGatherer(object):
 
         self._fill_output_buffer(superbunch, self.slice_set_list)
 
-        # another way to implement this could be to use separated
-        # Allgatherv(...) calls for each statistical variable. It would allow
-        # to use memoryviews also in TotalDataSet object, but multiple
-        # Allgatherv(...)  calls might cost too much in time.
         self._mpi_comm.Allgatherv(
             self._output_buffer,
             [self._raw_data, self._slice_data_sizes,
@@ -517,65 +516,34 @@ class MpiGatherer(object):
 
     def _initialize_buffers(self, superbunch, slice_set_list):
 
-        # BUNCH DISTRIBUTION ON PROCESSORS ####################################
-        #######################################################################
         self._n_local_bunches = len(slice_set_list)
         self._n_slices = slice_set_list[0].n_slices
 
-        self._bunch_distribution = np.zeros(self.mpi_size, dtype=np.uint32)
-
-        bunches_in_this_rank = np.zeros(1, dtype=np.uint32)
-        bunches_in_this_rank[0] = self._n_local_bunches
-        bunch_distribution_sizes = np.ones(self._mpi_size, dtype=np.uint32) * 1
-        bunch_distribution_offsets = np.zeros(self._mpi_size)
-        bunch_distribution_offsets[1:] = np.cumsum(bunch_distribution_sizes)[:-1]
-
-        bunches_temp_list = [self._bunch_distribution,
-                             bunch_distribution_sizes,
-                             bunch_distribution_offsets, MPI.INT32_T]
-
-        self._mpi_comm.Allgatherv(bunches_in_this_rank, bunches_temp_list)
-
+        # determines how many bunches per processor are simulated
+        self._bunch_distribution = share_numbers(self._n_local_bunches)
         self._n_bunches = np.sum(self._bunch_distribution)
 
+        # calculates list indexes for the local bunches
         self._local_bunch_indexes = []
         for i in xrange(self._n_local_bunches):
             idx = int(np.sum(self._bunch_distribution[:self.mpi_rank]) + i)
             self._local_bunch_indexes.append(idx)
 
 
-        # BUNCH IDS ###########################################################
-        #######################################################################
-
-        self._id_list = np.zeros(self._n_bunches, dtype=np.uint32)
-
+        # determines ids (bucket numbers) for all the bunches
         self._local_id_list = list(set(superbunch.bunch_id))
         self._local_id_list = np.array(sorted(self._local_id_list, reverse=True), dtype=np.int32)
+        self._id_list = share_arrays(self._local_id_list)
 
-        id_list_sizes = (np.ones(self._mpi_size, dtype=np.uint32) *
-                                  self._bunch_distribution)
-        id_list_offsets = np.zeros(self._mpi_size, dtype=np.uint32)
-        id_list_offsets[1:] = np.cumsum(id_list_sizes)[:-1]
-
-        temp_id_list = [self._id_list,
-                             id_list_sizes,
-                             id_list_offsets, MPI.INT32_T]
-
-        self._mpi_comm.Allgatherv(self._local_id_list, temp_id_list)
-
-        # BUFFER INITIALIZATION ###############################################
-        #######################################################################
-        # FIXME: a problem in variable types because int(...) is required
+        # initializes buffers for the actual data sharing
         raw_data_len = int(self._n_variables * self._n_slices *
                            self._n_bunches)
         self._raw_data = np.zeros(raw_data_len)
 
-        # FIXME: a problem in variable types because int(...) is required
         output_buffer_len = int(self._n_variables * self._n_slices *
                                 self._n_local_bunches)
         self._output_buffer = np.zeros(output_buffer_len)
 
-        # FIXME: a problem in variable types because int(...) is required
         values_per_bunch = int(self._n_variables * self._n_slices)
 
         self._slice_data_sizes = (np.ones(self._mpi_size) *
@@ -583,27 +551,15 @@ class MpiGatherer(object):
         self._slice_data_offsets = np.zeros(self._mpi_size)
         self._slice_data_offsets[1:] = np.cumsum(self._slice_data_sizes)[:-1]
 
-        # BIN DATA SET ########################################################
-        #######################################################################
+        # gathers z_bin data from all the bunches
         bin_data_length = len(slice_set_list[0].z_bins)
         local_bin_data = np.zeros(self._n_local_bunches*bin_data_length)
-
         for i, slice_set in enumerate(slice_set_list):
             local_bin_data[i*bin_data_length:(i+1)*bin_data_length] = slice_set.z_bins
 
-        # FIXME: a problem in variable types because int(...) is required
-        raw_bin_data_len = int(bin_data_length * self._n_bunches)
-        self._raw_bin_data = np.zeros(raw_bin_data_len)
+        self._raw_bin_data = share_arrays(local_bin_data)
 
-        bin_data_sizes = (np.ones(self._mpi_size) *
-                          self._bunch_distribution * bin_data_length)
-        bin_data_offsets = np.zeros(self._mpi_size)
-        bin_data_offsets[1:] = np.cumsum(bin_data_sizes)[:-1]
-
-        self._mpi_comm.Allgatherv(
-            local_bin_data,
-            [self._raw_bin_data, bin_data_sizes, bin_data_offsets, MPI.DOUBLE])
-
+        # creates objects for easier data acces for the shared data
         self.total_data = TotalDataAccess(self._local_bunch_indexes,
                                           self._raw_data,
                                           self._raw_bin_data,
@@ -639,31 +595,34 @@ class MpiGatherer(object):
         return statistical_variables
 
 
-# TODO: Do we need both BunchData and AllData objects?
 class BunchDataAccess(object):
-    """An object, which emulates a slice set object by creating pointers to the
-        shared data of the specific bunch. In other words, the data can be
-        accessed by using same methods than in the case of slice set object
-        (e.g. by calling SliceDataSetReference.mean_x or
-        SliceDataSetReference.n_macroparticles_per_slice)
-
+    """An object, which emulates a PyHEADTAIL slice set object for shared data
+    from an individual bunch. In the other words, the data can be accessed
+    by using same methods as in the case of slice set object (e.g. by using
+    bunchdataaccess.mean_x or bunchdataaccess.n_macroparticles_per_slice)
     """
     def __init__(self, bunch_idx, bunch_id, raw_data, raw_bin_data,
                  variables, n_slices):
-        """:param bunch_idx: a list index of the bunch
-
-        :param raw_data: raw slice set data from mpi.Allgatherv(...)
-
-        :param raw_bin_data: raw bin set data from mpi.Allgatherv(...)
-
-        :param variables: a list of variable names in the slice set, which are
-        shared between bunches
-
-        :param n_slices: a number of slices per bunch
+        """
+        Parameters
+        ----------
+        bunch_idx : int
+            A list index of the bunch
+        bunch_id : int
+            A bucket index of the bunch
+        raw_data : NumPy array
+            Raw slice set data from mpi.Allgatherv(...), which includes all
+            the data from the all bunches
+        raw_bin_data : NumPy array
+            z bin data from all bunches
+        variables : list
+            A list of slice set variable names, which data is shared between
+            the bunches.
+        n_slices : number
+            A number of slices per bunch
 
         """
-        self._v = memoryview(raw_data)
-        self._v_bin = memoryview(raw_bin_data)
+
         self._bunch_idx = bunch_idx
         self._variables = variables
         self._n_variables = len(variables)
@@ -673,79 +632,79 @@ class BunchDataAccess(object):
         idx_from = self._bunch_idx * (self._n_slices + 1)
         idx_to = (self._bunch_idx+1) * (self._n_slices + 1)
 
-        self.z_bins = np.array(self._v_bin[idx_from:idx_to], copy=False)
+        self.z_bins = np.array(raw_bin_data[idx_from:idx_to], copy=False)
 
         for idx, variable in enumerate(self._variables):
             idx_from = (self._bunch_idx * self._n_slices * self._n_variables +
                         idx*self._n_slices)
             idx_to = (self._bunch_idx * self._n_slices * self._n_variables +
                       (idx+1)*self._n_slices)
-
-            exec ('self.' + variable +
-                  ' = np.array(self._v[idx_from:idx_to],copy = False)')
+            setattr(self, variable,
+                    np.array(raw_data[idx_from:idx_to], copy=False))
 
 
 class TotalDataAccess(object):
-    """Produces an object, which contains data from all bunches in a single
-        list. For example, by calling TotalDataSet.mean_x returns a single
-        list, which contains mean_x values of all slices in all bunches
-
+    """An object, which emulates a PyHEADTAIL slice set object for data
+    from all the bunches. In the other words, the data can be accessed
+    by using same variable names as in the case of slice set object (e.g.
+    by using bunchdataaccess.mean_x or bunchdataaccess.n_macroparticles_per_slice)
+    and those variables includes data from all the bunches in a single array.
     """
 
     def __init__(self, local_bunches, raw_data, raw_bin_data,
                  variables, n_slices, n_bunches, id_list):
-        """:param local_bunches: a list of list indexes for bunches in this processor
+        """
+        Parameters
+        ----------
+        local_bunches : int
 
-        :param raw_data: raw slice set data from mpi.Allgatherv(...)
-
-        :param raw_bin_data: raw bin set data from mpi.Allgatherv(...)
-
-        :param variables: a list of variable names in the slice set, which are
-        shared between bunches :param n_slices: a number of slices per bunch
-
-        :param n_bunches: a total number of bunches in the all processors
-
+        bunch_id : int
+            A bucket index of the bunch
+        raw_data : NumPy array
+            Raw slice set data from mpi.Allgatherv(...), which includes all
+            the data from all the bunches
+        raw_bin_data : NumPy array
+            z bin data from all bunches
+        variables : list
+            A list of slice set variable names, which data is shared between
+            the processors
+        n_slices : number
+            A number of slices per bunch
+        n_bunches : int
+            A total number of bunches in all the processors
+        id_list : list
+            A list of bucket indexes for all the bunches
         """
 
         self._local_bunches = local_bunches
         self.local_data_locations = []
         self.z_bins = raw_bin_data
-        self._v = memoryview(raw_data)
+        self._raw_data = np.array(raw_data, copy=False)
         self._variables = variables
         self._n_variables = len(variables)
         self._n_slices = n_slices
         self._n_bunches = n_bunches
-        v_bin = memoryview(raw_bin_data)
         self.bin_edges = []
         self.id_list = id_list
 
-        # TODO: Different format for the bin set is used here. Is it fine?
+        # determines bin edges for all the bunches
         for i in xrange(n_bunches):
             if i in local_bunches:
                 self.local_data_locations.append((i * self._n_slices,
                                                   (i + 1) * self._n_slices))
-
             idx_from = i * (self._n_slices + 1)
             idx_to = (i + 1) * (self._n_slices + 1)
-
-            bin_set = np.array(v_bin[idx_from:idx_to], copy=False)
-
+            bin_set = np.array(self.z_bins[idx_from:idx_to], copy=False)
             for i, j in zip(bin_set, bin_set[1:]):
                 self.bin_edges.append((i, j))
 
         self.bin_edges = np.array(self.bin_edges)
 
-        # print 'self.local_data_locations:' + str(self.local_data_locations)
-        # self.local_data_position =
-        # (self._bunch_idx*self._n_slices,(self._bunch_idx+1)*self._n_slices)
-
         self._data_length = int(self._n_slices * self._n_bunches)
         for idx, variable in enumerate(self._variables):
-            exec 'self.' + variable + ' = np.zeros(self._data_length)'
+            setattr(self, variable, np.zeros(self._data_length))
 
     def update(self):
-        # This method might be too slow (it copies data). It can be optimized
-        # after the decision about the data transfer API between processors
 
         for idx, variable in enumerate(self._variables):
             temp_data = np.zeros(self._data_length)
@@ -757,6 +716,7 @@ class TotalDataAccess(object):
                 buffer_to = (bunch_idx*self._n_slices*self._n_variables +
                              (idx+1)*self._n_slices)
 
-                temp_data[local_from:local_to] = self._v[buffer_from:buffer_to]
+                np.copyto(temp_data[local_from:local_to],
+                          self._raw_data[buffer_from:buffer_to])
 
             setattr(self, variable, temp_data)

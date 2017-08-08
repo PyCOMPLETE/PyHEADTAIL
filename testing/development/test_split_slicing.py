@@ -50,7 +50,7 @@ rank = comm.Get_rank()
 #     plt.show()
 # wurstel
 
-n_turns = 1
+n_turns = 3
 chroma = 0
 n_bunches = 5
 intensity = 2.3e11

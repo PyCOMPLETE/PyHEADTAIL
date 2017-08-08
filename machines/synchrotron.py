@@ -5,7 +5,7 @@ from scipy.constants import c
 
 from ..general.decorators import deprecated
 from PyHEADTAIL.particles import generators
-from PyHEADTAIL.mpi.mpi_data import MpiSniffer
+from PyHEADTAIL.mpi import mpi_data
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.trackers.rf_bucket import RFBucket
 from PyHEADTAIL.trackers.wrapper import LongWrapper
@@ -145,26 +145,15 @@ class Synchrotron(Element):
         """
 
         if filling_scheme is not None:
-
-            sniffer = MpiSniffer()
             sorted_filling_scheme = list(reversed(sorted(filling_scheme)))
-            # sorted_filling_scheme = list((sorted(filling_scheme)))
 
-            n_bunches = len(sorted_filling_scheme)
-            n_processors = sniffer.size
-
-            n_bunches_on_proc = [n_bunches//n_processors + 1 if i < n_bunches % n_processors else
-                                 n_bunches//n_processors + 0 for i in range(n_processors)]
-            n_bunches_cumsum = np.insert(np.cumsum(n_bunches_on_proc), 0, 0)
-
-            bunches_on_proc_list = [
-                sorted_filling_scheme[n_bunches_cumsum[i]:n_bunches_cumsum[i+1]] for i in range(n_processors)]
-            if not all(bunches_on_proc_list):
-                raise Exception('\n*** The of bunches should be larger ' +
+            if mpi_data.num_procs() > len(filling_scheme):
+                raise Exception('\n*** The number of bunches should be larger ' +
                                 'or equal to number of processors')
 
-            buckets_for_this_processor = bunches_on_proc_list[sniffer.rank]
-            print("*** I am rank {:d} - my buckets are {:s}".format(sniffer.rank, buckets_for_this_processor))
+            buckets_for_this_processor = mpi_data.my_tasks(sorted_filling_scheme)
+
+            print("*** I am rank {:d} - my buckets are {:s}".format(mpi_data.my_rank(), buckets_for_this_processor))
             bunches = [self._create_6D_Gaussian_bunch(
                 macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z, sigma_z, bucket, matched)
                 for bucket in buckets_for_this_processor]
