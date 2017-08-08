@@ -115,18 +115,20 @@ output_filename = '2performance_data_resonator_n_slices_' + str(n_slices) + '.tx
 mpi_settings_for_testing = [
 #    None,
     'dummy',
-    'full_ring_fft',
     'memory_optimized',
+
+    # if you want to compare accuratyly the loop minimized version to the other versions
+    # please uncomment the line marked with 'UNCOMMENT THIS' (~line 370) in wake_kicks.py
+    # because of the small rounding errors
 #    'loop_minimized',
+
     'mpi_full_ring_fft',
 #    True,
-
     ]
 
 mpi_setting_labels = [
 #    'without wake objects',
     'without wakes',
-    'full_ring_fft',
     'memory_optimized',
 #    'loop_minimized',
     'mpi_full_ring_fft',
@@ -164,19 +166,12 @@ for i in xrange(len(data_x[0])):
         ref_diff_1 = (values-ref_values)/ref_values
         ax3.plot(ref_diff_1, label = mpi_setting_labels[i])
 
-#    if i > 1:
-#        ref_diff_1 = np.max(data_x[0][1][:,0]-data_x[0][0][:,0])
-#        ref_diff_2 = np.max(data_x[0][1][:,1]-data_x[0][0][:,1])
-#        ax2.plot((data_x[0][i][:,0]-data_x[0][1][:,0])/ref_diff_1, label = mpi_setting_labels[i])
-#        ax4.plot((data_x[0][i][:,1]-data_x[0][1][:,1])/ref_diff_2)
-
 ax1.legend()
 ax3.legend()
 ax1.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)) + ', mean_x')
 ax2.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)+1) + ', mean_x')
-ax3.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)) + ', relative error')
-#ax4.set_ylabel('Bunch ' +str(int(rank*number_of_bunches[0]/size)+1) + ', relative error')
-#ax4.set_xlabel('Turn')
+ax3.set_ylabel('Relative total error')
+
 plt.show()
 
 # -*- coding: utf-8 -*-

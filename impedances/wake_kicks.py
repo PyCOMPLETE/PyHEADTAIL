@@ -366,8 +366,8 @@ class WakeKick(Printing):
                     # the target bunch must be after the source bunch
                     delta_mid += circumference
 
-#               This must be uncommented if the traces are compared to those given by
-#               the different approaches. The lack of small rounding gives a notable difference.
+                # UNCOMMENT THIS if you want to compare accurately the different wake kick
+                # approaches (because of small rounding errors)
 #                delta_mid = bunch_spacing*round(delta_mid/bunch_spacing)
 
                 if i == 0:
@@ -547,140 +547,6 @@ class WakeKick(Printing):
             kick_list.append(value*self._wake_factor(bunch_list[i]))
 
         return kick_list
-
-
-    def _init_full_ring_fft(self, all_slice_sets, local_slice_sets, bunch_list,
-                                local_bunch_indexes, circumference, h_rf, h_bunch):
-
-        bunch_spacing = circumference/float(h_bunch)
-
-        # total number of bunches
-        self._n_target_bunches = len(local_bunch_indexes)
-
-        # number of slices per bunch
-        n_slices = len(all_slice_sets[0].mean_x)
-
-        # number of extra slices added to each side of the bunch
-        empty_space_per_side = int(math.ceil(n_slices/2.))
-
-        # total number of bins per bunch
-        self._n_bins_per_kick = (n_slices + 2*empty_space_per_side)
-        # total number of bins per turn
-        n_bins_per_turn = h_bunch * self._n_bins_per_kick
-
-        # determines normalized zbins for a wake function of a bunch
-        raw_z_bins = local_slice_sets[0].z_bins
-        raw_z_bins = raw_z_bins - ((raw_z_bins[0]+raw_z_bins[-1])/2.)
-        bin_width = np.mean(raw_z_bins[1:]-raw_z_bins[:-1])
-        original_z_bin_mids = (raw_z_bins[1:]+raw_z_bins[:-1])/2.
-        z_bin_mids = original_z_bin_mids[0] - np.linspace(empty_space_per_side, 1,
-                                        empty_space_per_side)*bin_width
-        z_bin_mids = np.append(z_bin_mids, original_z_bin_mids)
-        z_bin_mids = np.append(z_bin_mids, original_z_bin_mids[-1] + np.linspace(1,
-                               empty_space_per_side, empty_space_per_side)*bin_width)
-
-        self._accumulated_signal_list = [] # Standard lick list to the kick objects
-        self._kick_data = [] #
-        self._idx_data = [] #
-        self._accumulated_data = [] # Raw turn by turn data from the convolutions
-
-        self._dashed_wake_functions = [] # Turn by turn wake functions for the convolution
-        self._moment = np.zeros(n_bins_per_turn)
-
-        # calculates the mid points of the bunches from the z_bins
-        # the bunch_id could be used here
-        bunch_mids = []
-        for slice_set in all_slice_sets:
-            bunch_mids.append(((slice_set.z_bins[0]+slice_set.z_bins[-1])/2.))
-
-
-        z_values = np.zeros(n_bins_per_turn)
-        for i in xrange(h_bunch):
-            idx_from = i * self._n_bins_per_kick
-            idx_to = (i + 1) * self._n_bins_per_kick
-
-            offset = (i*bunch_spacing)
-
-            temp_mids = z_bin_mids+offset
-
-            np.copyto(z_values[idx_from:idx_to],temp_mids)
-
-
-        for k in xrange(self.n_turns_wake):
-            self._accumulated_data.append(np.zeros(n_bins_per_turn))
-            turn_offset = (float(k) * circumference)
-            temp_z = np.copy(z_values)
-            if k==0:
-                np.copyto(temp_z[:-int(self._n_bins_per_kick/2)],z_values[int(self._n_bins_per_kick/2):])
-                np.copyto(temp_z[-int(self._n_bins_per_kick/2):],np.zeros(len(temp_mids)/2))
-            else:
-                np.copyto(temp_z[:-int(self._n_bins_per_kick/2)],z_values[int(self._n_bins_per_kick/2):])
-                np.copyto(temp_z[-int(self._n_bins_per_kick/2):],z_values[:int(self._n_bins_per_kick/2)])
-
-            self._dashed_wake_functions.append(self.wake_function(-(temp_z+turn_offset)/c, beta=local_slice_sets[0].beta))
-
-
-        for j,local_bunch_idx in enumerate(local_bunch_indexes):
-            local_mid = bunch_mids[local_bunch_idx]
-            local_idx = -int(round(local_mid/bunch_spacing))
-            kick_from = empty_space_per_side + local_idx * self._n_bins_per_kick
-            kick_to = empty_space_per_side + local_idx * self._n_bins_per_kick + n_slices
-            self._accumulated_signal_list.append(np.array(self._accumulated_data[0][kick_from:kick_to], copy=False))
-
-        for j, bunch_mid in enumerate(bunch_mids):
-            idx = -int(round(bunch_mid/bunch_spacing))
-            kick_from = empty_space_per_side + idx * self._n_bins_per_kick
-            kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
-            temp_idx_data = (kick_from, kick_to)
-            self._idx_data.append(temp_idx_data)
-
-
-
-
-    def _accumulate_full_fft_ring(self, all_slice_sets, local_slice_sets,
-                                                 bunch_list, local_bunch_indexes,
-                                                 optimization_method, circumference, moments, h_rf, h_bunch):
-
-        if not hasattr(self,'_dashed_wake_functions'):
-            self. _init_full_ring_fft(all_slice_sets, local_slice_sets,
-                                         bunch_list, local_bunch_indexes,
-                                         circumference, h_rf, h_bunch)
-
-        # processes moment data for the convolutions
-        self._moment.fill(0.)
-        for i  in xrange(len(all_slice_sets)):
-            i_from = self._idx_data[i][0]
-            i_to = self._idx_data[i][1]
-
-            if moments == 'zero':
-                moment = all_slice_sets[i].n_macroparticles_per_slice
-            elif moments == 'mean_x':
-                moment = all_slice_sets[i].mean_x*all_slice_sets[i].n_macroparticles_per_slice
-            elif moments == 'mean_y':
-                moment = all_slice_sets[i].mean_y*all_slice_sets[i].n_macroparticles_per_slice
-            else:
-                raise ValueError("Please specify moments as either " +
-                                 "'zero', 'mean_x' or 'mean_y'!")
-            # because of the historical reasons, moment data must be flipped
-            np.copyto(self._moment[i_from:i_to],moment[::-1])
-#            np.copyto(self._moment[i_from:i_to],moment)
-
-        # calculates the convolutions and moves previous turn data one turn forward
-        for k in xrange(self.n_turns_wake):
-            if k < (self.n_turns_wake-1):
-                np.copyto(self._accumulated_data[k], self._accumulated_data[k+1] + np.real(np.fft.ifft(np.fft.fft(self._dashed_wake_functions[k]) * np.fft.fft(self._moment))))
-            else:
-                np.copyto(self._accumulated_data[k], np.real(np.fft.ifft(np.fft.fft(self._dashed_wake_functions[k]) * np.fft.fft(self._moment))))
-
-        # flips the accumulated kicks back to original order and
-        # multiplies them by a wake factor
-        kick_list = []
-        for i, value in enumerate(self._accumulated_signal_list):
-            kick_list.append(value[::-1]*self._wake_factor(bunch_list[i]))
-#            real_values.append(value)*self._wake_factor(bunch_list[i]))
-
-        return kick_list
-
 
     def _init_mpi_full_ring_fft(self, all_slice_sets, local_slice_sets, bunch_list,
                                 local_bunch_indexes, circumference, h_rf, h_bunch):
@@ -872,58 +738,36 @@ class WakeKick(Printing):
             # Similar to the loop_minimized version, but wake functions for each source bunch are not
             # keep in memory, but they are reconstructed during accumulation from precalculated
             # wake functions by assuming constant bunch spacing over the ring. By using this,
-            # the memory limitations of the previous solutions can be avoided
+            # the memory limitations of the previous solution can be avoided
             #
             # Assumptions:
-            #   - slicing identical for each bunch, but bunch spacing can vary arbitrarily
-            #   - bunch spacing is an integer times the minimum bunch spacing
+            #   - slicing identical for each bunch
+            #   - bunch spacing is a multiple of the minimum bunch spacing
             #   (determined by the harmonic number of bunches, h_bunch)
             #
             # Drawbacks:
             #   - more assumtpions
             #   - a maximum number of simulated bunces is limited by the computing power
             #   (practical limit probably between 100-1000 bunches for 100 slices per bunch,
-            #     depending on the number of processors available)
+            #    depending on the number of processors available)
 
             return  self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference, moments,
                                                  h_rf, h_bunch)
-            pass
-        elif optimization_method == 'full_ring_fft':
-            # Follows the idea of the previous solutions, but the convolution is calculated over
+
+        elif optimization_method == 'mpi_full_ring_fft':
+            # Follows the idea from the previous solutions, but the convolution is calculated over
             # each (bunch) bucket in the accelerator (even if they are not filled). This allow
-            # the use of the circular fft convolution (ifft(fft(moment)*fft(wake))), which
-            # extremely fast. The computing time does not depend on the number of simulated
+            # the use of the circular fft convolution (ifft(fft(moment)*fft(wake))), which is
+            # extremely fast. The wake calculations for different turns are parallelized by
+            # using MPI.  The computing time does not depend on the number of simulated
             # bunches, but this solution is practical only when the accelerator is small (<LHC)
             # or there are more than 50 bunches simulated (>=LHC)
             #
             # Assumptions:
-            #   - slicing identical for each bunch, but bunch spacing can vary arbitrarily
-            #   - bunch spacing is an integer times the minimum bunch spacing
-            #   (determined by the harmonic number of bunches, h_bunch)
-            #
-            # Drawbacks:
-            #   - more assumtpions
-            #   - calculation time does not depend on the number of bunches, which prefers
-            #   use of the memory_optimized version for a small number of bunches in large accelerators
-
-            return  self._accumulate_full_fft_ring(all_slice_sets, local_slice_sets,
-                                                 bunch_list, local_bunch_indexes,
-                                                 optimization_method, circumference, moments,
-                                                 h_rf, h_bunch)
-        elif optimization_method == 'mpi_full_ring_fft':
-            # Same as the 'full_ring_fft', but the wake calculations are parallelized by calculating
-            # convolutions for different turns in different processors byt using MPI. One turn convultion
-            # for 3564 buckets (100 slices per bucket), takes ~100-150 ms, so in principle a 10 turn
-            # wake kick for the entire accelerator can be calculated below 200 ms, if over 10 processors
-            # are available. However, there are sometimes problems performance issues with np.fft
-            # with the MPI environment, which slows down this solution (numpy, HDF5, mpi4py, etc.
-            # should be probably carefully compiled with all the optimization flags)
-            #
-            # Assumptions:
-            #   - slicing identical for each bunch, but bunch spacing can vary arbitrarily
-            #   - bunch spacing is an integer times the minimum bunch spacing
+            #   - slicing identical for each bunch
+            #   - bunch spacing is a multiple of the minimum bunch spacing
             #   (determined by the harmonic number of bunches, h_bunch)
             #
             # Drawbacks:

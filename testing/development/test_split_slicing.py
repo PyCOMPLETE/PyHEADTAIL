@@ -115,9 +115,6 @@ wakes = CircularResonator(1e6, 43e6, 10, n_turns_wake=n_turns)
 #
 #wake_field = WakeField(slicer_for_wakefields, wakes,
 #                       circumference=machine.circumference,h_rf=40, h_bunch=40, mpi='memory_optimized')
-#
-#wake_field = WakeField(slicer_for_wakefields, wakes,
-#                       circumference=machine.circumference,h_rf=40, h_bunch=40, mpi='full_ring_fft')
 
 wake_field = WakeField(slicer_for_wakefields, wakes,
                        circumference=machine.circumference,h_rf=40, h_bunch=40, mpi='mpi_full_ring_fft')

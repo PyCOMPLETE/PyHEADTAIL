@@ -107,7 +107,6 @@ mpi_settings_for_testing = [
 #    True,
 #    'loop_minimized',
     'memory_optimized',
-#    'full_ring_fft',
     'mpi_full_ring_fft'
 
     ]
@@ -118,7 +117,6 @@ mpi_setting_labels = [
 #    'original',
 #    'loop_minimized',
     'memory_optimized',
-#    'full_ring_fft',
     'mpi_full_ring_fft'
     ]
 
