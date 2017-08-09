@@ -95,14 +95,17 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size,
         ]
         if symmetrize_mesh_to_slices:
             mesh_origin[-1] += mesh_distances[-1]/2.
-        mesh_size = mesh_size + [slices.n_slices]
+        # n_slices+1 because front slice (highest slice id) should be inside
+        # mesh while the highest mesh node ends the last cell (fence post error!)
+        mesh_size = mesh_size + [slices.n_slices + 1]
     dim = len(mesh_origin)
     if not dim == len(mesh_distances) == len(mesh_size):
         raise ValueError('All arguments for the mesh need to have as '
                          'many entries as the mesh should have dimensions!')
     mesh_class = getattr(meshing, 'RectMesh{dim}D'.format(dim=dim))
     return mesh_class(map(ensure_cpu, mesh_origin),
-                      map(ensure_cpu, mesh_distances), mesh_size,
+                      map(ensure_cpu, mesh_distances),
+                      map(ensure_cpu, mesh_size),
                       mathlib=pm)
 
 
