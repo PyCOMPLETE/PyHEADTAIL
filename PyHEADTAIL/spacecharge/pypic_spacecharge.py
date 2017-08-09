@@ -47,7 +47,7 @@ class SpaceChargePIC(Element):
     '''
 
     def __init__(self, length, pypic_algorithm, sort_particles=False,
-                 pic_dtype=np.float32, *args, **kwargs):
+                 pic_dtype=np.float64, *args, **kwargs):
         '''Arguments:
             - length: interaction length over which the space charge
               force is integrated.
