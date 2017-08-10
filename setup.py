@@ -87,7 +87,7 @@ setup(
         'for simulating macro-particle beam dynamics with collective effects.',
     url='https://github.com/PyCOMPLETE/PyHEADTAIL',
     author='Kevin Li',
-    author_email='Kevin.Li@cern.ch',
+    author_email='Kevin.Shing.Bruce.Li@cern.ch',
     maintainer='Adrian Oeftiger',
     maintainer_email='Adrian.Oeftiger@cern.ch',
     packages=find_packages(),

@@ -35,8 +35,10 @@ parser = argparse.ArgumentParser(
     description=(
         'Release a new version of PyHEADTAIL in 2 steps:\n'
         '1. prepare new release from develop branch '
-        '(requires release type argument)\n'
-        '2. publish new release (requires to be on release branch already)'),
+        '(requires release type argument "part")\n'
+        '2. publish new release (requires to be on release branch already)\n'
+        'optionally: release PyHEADTAIL to PyPI '
+        '(requires to be on master branch)'),
     formatter_class=argparse.RawTextHelpFormatter
 )
 parser.add_argument(
@@ -75,6 +77,15 @@ def get_version(version_location):
     '''Retrieve the version from version_location file.'''
     return importlib.import_module(version_location).__version__
 
+def do_tag_and_version_match(version):
+    '''Return whether the current git tag and the given version match.
+    NB: returns True if and only if the current commit is tagged with
+    the version tag.
+    '''
+    current_commit = subprocess.check_output(
+        ['git', 'describe', '--dirty']).rstrip().decode("utf-8")
+    return current_commit == 'v{}'.format(version)
+
 def which_part_increases(last_version, new_version):
     '''Return a string which version part is increased. Raise an error
     if new_version is not a valid direct successor to last_version.
@@ -101,6 +112,22 @@ def which_part_increases(last_version, new_version):
         raise ValueError(
             'new_version is not a direct successor of last_version.')
 
+def validate_release_version(version_location):
+    '''Validate the new release version new_version by comparing the
+    release branch name to the bumped previous version last_version,
+    which is read from version_location.
+    Raise an error if new_version is not a valid direct successor to
+    last_version. Return new_version.
+    '''
+    last_version = get_version(version_location)
+    release_version = current_branch()[len(release_branch_prefix):]
+
+    # make sure release_version incrementally succeeds last_version
+    which_part_increases(last_version, release_version)
+
+    return release_version
+
+
 def establish_new_version(version_location):
     '''Write the new release version to version_location.
     Check that this agrees with the bumped previous version.
@@ -109,11 +136,7 @@ def establish_new_version(version_location):
         - version_location: string, relative python module notation
         (e.g. PyHEADTAIL._version for PyHEADTAIL/_version.py)
     '''
-    last_version = get_version(version_location)
-    release_version = current_branch()[len(release_branch_prefix):]
-
-    # make sure release_version incrementally succeeds last_version
-    which_part_increases(last_version, release_version)
+    release_version = validate_release_version(version_location)
 
     vpath = version_location.replace('.', '/') + '.py'
     with open(vpath, 'wt') as vfile:
@@ -305,6 +328,9 @@ def finalise_release():
 
     # all tools installed to automatically draft release?
     draft_release = check_release_tools()
+    if draft_release:
+        new_version = validate_release_version(version_location)
+        message = get_pullrequest_message(new_version)
 
     # bump version file
     new_version = establish_new_version(version_location)
@@ -340,7 +366,6 @@ def finalise_release():
 
     # publish github release (with message from pull request)
     if draft_release:
-        message = get_pullrequest_message(new_version)
         assert subprocess.call(
             ['gothub', 'release', '-u', github_user, '-r', github_repo,
              '-t', 'v' + new_version,
@@ -351,6 +376,29 @@ def finalise_release():
         print ('*** Remember to manually draft this release from the '
                'github website.')
 
+def release_pip():
+    '''Release current version from master branch to PyPI.'''
+    if is_worktree_dirty():
+        git_status()
+        raise EnvironmentError('Release process can only be initiated on '
+                               'a clean git repository. You have uncommitted '
+                               'changes in your files, please fix this first.')
+    if current_branch() != "master":
+        raise EnvironmentError(
+            'PyPI releases can only be initiated from the master branch!')
+    current_version = get_version(version_location)
+    if not do_tag_and_version_match(current_version):
+        raise EnvironmentError(
+            'the current master branch commit needs to be the tagged version '
+            'which matches the version stored in the version file!')
+
+    assert subprocess.call(['python', 'setup.py', 'sdist']) == 0
+    assert subprocess.call(
+        ['twine', 'upload', '-r', 'pypi',
+         'dist/PyHEADTAIL-{}.tar.gz'.format(current_version)]) == 0
+    assert subprocess.call(['rm', '-r', 'dist', 'PyHEADTAIL.egg-info']) == 0
+
+
 # ALGORITHM FOR RELEASE PROCESS:
 if __name__ == '__main__':
     print ('*** Current working directory:\n' + os.getcwd() + '\n')
@@ -360,6 +408,8 @@ if __name__ == '__main__':
     if not (current_branch()[:len(release_branch_prefix)] ==
             release_branch_prefix):
         args = parser.parse_args()
+        if current_branch() == 'master':
+            release_pip()
         init_release(args.part)
     else:
         finalise_release()
