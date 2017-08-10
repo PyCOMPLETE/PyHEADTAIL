@@ -162,10 +162,12 @@ class FieldMapSliceWise(FieldMap):
                 self.slicer, statistics=["mean_x", "mean_y"])
             mx = slices.convert_to_particles(slices.mean_x)
             my = slices.convert_to_particles(slices.mean_y)
+        else:
+            slices = beam.get_slices(self.slicer)
+
         mp_coords = [beam.x - mx,
                      beam.y - my,
                      beam.z] # zip will cut to #fields
-
         mesh_fields_and_mp_coords = zip(self.fields, mp_coords)
 
         # electric fields at each particle position in lab frame [V/m]
@@ -173,13 +175,12 @@ class FieldMapSliceWise(FieldMap):
 
         # weigh electric field with slice line charge density;
         # integrate over dt, p0 comes from kicking xp=p_x/p0 instead of p_x
-        slices = beam.get_slices(self.slicer)
         lambda_z = slices.convert_to_particles(slices.lambda_z(smoothen=False))
         kick_factor = (self.length / (beam.beta*c) * beam.charge / beam.p0
                        * lambda_z)
 
         # apply kicks for 1-3 planes depending on #entries in fields
-        for beam_momentum, force_field in zip(['xp', 'yp', 'zp'], part_fields):
+        for beam_momentum, force_field in zip(['xp', 'yp', 'dp'], part_fields):
             val = getattr(beam, beam_momentum)
             setattr(beam, beam_momentum, val + force_field * kick_factor)
         # for 3D, the for loop explicitly does:
