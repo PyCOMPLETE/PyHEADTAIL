@@ -407,9 +407,10 @@ if __name__ == '__main__':
     # are we on a release branch already?
     if not (current_branch()[:len(release_branch_prefix)] ==
             release_branch_prefix):
-        args = parser.parse_args()
         if current_branch() == 'master':
             release_pip()
-        init_release(args.part)
+        else:
+            args = parser.parse_args()
+            init_release(args.part)
     else:
         finalise_release()
