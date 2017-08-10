@@ -112,6 +112,22 @@ def which_part_increases(last_version, new_version):
         raise ValueError(
             'new_version is not a direct successor of last_version.')
 
+def validate_release_version(version_location):
+    '''Validate the new release version new_version by comparing the
+    release branch name to the bumped previous version last_version,
+    which is read from version_location.
+    Raise an error if new_version is not a valid direct successor to
+    last_version. Return new_version.
+    '''
+    last_version = get_version(version_location)
+    release_version = current_branch()[len(release_branch_prefix):]
+
+    # make sure release_version incrementally succeeds last_version
+    which_part_increases(last_version, release_version)
+
+    return release_version
+
+
 def establish_new_version(version_location):
     '''Write the new release version to version_location.
     Check that this agrees with the bumped previous version.
@@ -120,11 +136,7 @@ def establish_new_version(version_location):
         - version_location: string, relative python module notation
         (e.g. PyHEADTAIL._version for PyHEADTAIL/_version.py)
     '''
-    last_version = get_version(version_location)
-    release_version = current_branch()[len(release_branch_prefix):]
-
-    # make sure release_version incrementally succeeds last_version
-    which_part_increases(last_version, release_version)
+    release_version = validate_release_version(version_location)
 
     vpath = version_location.replace('.', '/') + '.py'
     with open(vpath, 'wt') as vfile:
@@ -317,6 +329,7 @@ def finalise_release():
     # all tools installed to automatically draft release?
     draft_release = check_release_tools()
     if draft_release:
+        new_version = validate_release_version(version_location)
         message = get_pullrequest_message(new_version)
 
     # bump version file
