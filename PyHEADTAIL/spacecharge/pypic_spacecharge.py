@@ -135,21 +135,35 @@ class FrozenGaussianSpaceCharge25D(FieldMapSliceWise):
     This frozen space charge model essentially acts equivalently to an
     external magnet and fails to provide self-consistent treatment of
     space charge related effects like quadrupolar envelope breathing
-    etc.
+    etc. Also the sum of all kicks does not vanish resulting in a net
+    kick for the centroid as opposed to the SpaceChargePIC treatment.
+
+    FrozenGaussianSpaceCharge25D can continuously recompute and update
+    the fields during tracking of the beam if a relative change of the
+    beam RMS sizes is fixed via the argument sigma_rtol. If sigma_rtol
+    is None, the stored fields are not updated and remain constant.
     '''
-    def __init__(self, slicer, length, sigma_x, sigma_y, gamma,
+
+    '''A tuple of field maps in the beam rest frame.'''
+    fields = None
+
+    def __init__(self, slicer, length, beam=None, sigma_x=None, sigma_y=None,
                  n_mesh_sigma=[6, 6], mesh_size=[1024, 1024],
-                 *args, **kwargs):
+                 sigma_rtol=None, *args, **kwargs):
         '''Arguments:
             - slicer: determines the longitudinal discretisation for the
               local line charge density, with which the field is
               multiplied at each track call.
             - length: interaction length around the accelerator over
               which the force of the field is integrated.
+            - beam: the Particles instance of which sigma_x, sigma_y and
+              gamma are evaluated to compute the field map.
+              Cannot provide sigma_x and sigma_y arguments when
+              giving beam argument.
             - sigma_x, sigma_y: the horizontal and vertical RMS width of
               the transverse Gaussian distribution modelling the beam
-              distribution.
-            - gamma: the relativistic Lorentz factor of the beam.
+              distribution. Either provide both sigma_x and sigma_y
+              as an argument or the beam instead.
 
         Optional arguments:
             - n_mesh_sigma: 2-list of number of beam RMS values in
@@ -157,14 +171,40 @@ class FrozenGaussianSpaceCharge25D(FieldMapSliceWise):
               field interpolation.
             - mesh_size: 2-list of number of mesh nodes per transverse
               plane [x, y].
+            - sigma_rtol: relative tolerance (float between 0 and 1)
+              which is compared between the stored fields RMS size and
+              the tracked beam RMS size, it determines when the fields
+              are recomputed. For sigma_rtol == None (default value)
+              the fields remain constant. E.g. sigma_rtol = 0.05 means
+              if beam.sigma_x changes by more than 5%, the fields will
+              be recomputed taking into account the new beam.sigma_x.
+              A negative sigma_rtol will lead to continuous field
+              updates at every track call.
 
         NB: FrozenGaussianSpaceCharge25D instances should be initialised
         in the proper context. If the FrozenGaussianSpaceCharge25D will
         track on the GPU, it should be initiated within a GPU context:
-        >>> with PyHEADTAIL.general.contextmanager.GPU(beam) as cmg:
+        >>> with PyHEADTAIL.general.contextmanager.GPU(beam):
         >>>     frozen_sc_node = FrozenGaussianSpaceCharge25D(...)
         '''
         wrt_beam_centroid = True
+        self._n_mesh_sigma = n_mesh_sigma
+        self.sigma_rtol = sigma_rtol
+
+        if beam is not None:
+            if sigma_x is not None or sigma_y is not None:
+                raise ValueError('FrozenGaussianSpaceCharge25D accepts either '
+                                 'beam as an argument or both sigma_x '
+                                 'and sigma_y. Do not mix these args!')
+            sigma_x = pm.ensure_CPU(beam.sigma_x())
+            sigma_y = pm.ensure_CPU(beam.sigma_y())
+        else:
+            if sigma_x is None or sigma_y is None:
+                raise ValueError('FrozenGaussianSpaceCharge25D requires both '
+                                 'sigma_x and sigma_y as arguments. '
+                                 'Alternatively provide a beam whose sigma are '
+                                 'evaluated.')
+
         mesh = create_mesh(
             mesh_origin=[-n_mesh_sigma[0] * sigma_x,
                          -n_mesh_sigma[1] * sigma_y],
@@ -184,11 +224,58 @@ class FrozenGaussianSpaceCharge25D(FieldMapSliceWise):
         be_sc = TransverseGaussianSpaceCharge(None, None)
         fields_beamframe = be_sc.get_efieldn(xg, yg, 0, 0, sigma_x, sigma_y)
 
+        super(FrozenGaussianSpaceCharge25D, self).__init__(
+            slicer=slicer, length=length, mesh=mesh,
+            fields=fields_beamframe,
+            wrt_beam_centroid=wrt_beam_centroid, *args, **kwargs)
+
+    @property
+    def sigma_x(self):
+        return -self.pypic.mesh.x0 / self._n_mesh_sigma[0]
+
+    @property
+    def sigma_y(self):
+        return -self.pypic.mesh.y0 / self._n_mesh_sigma[1]
+
+    @property
+    def mesh_size(self):
+        return self.pypic.mesh.shape_r
+
+    def update_field(self, beam=None, sigma_x=None, sigma_y=None):
+        '''Update the stored Gaussian field to new RMS sizes.
+        Take either the RMS values from the provided Particles instance
+        beam or use sigma_x and sigma_y.
+
+        NB: make sure to call this method in the proper context
+        (CPU/GPU), cf. comment in __init__ method.
+        '''
+        sigma_x = pm.ensure_CPU(sigma_x)
+        sigma_y = pm.ensure_CPU(sigma_y)
+        self.__init__(slicer=self.slicer, length=self.length, beam=beam,
+                      sigma_x=sigma_x, sigma_y=sigma_y,
+                      n_mesh_sigma=self._n_mesh_sigma,
+                      mesh_size=self.mesh_size,
+                      sigma_rtol=self.sigma_rtol)
+
+    def track(self, beam):
+        # in contrast to FieldMap's length, here length becomes a float
+        # storing the interaction length including the Lorentz transform,
+        # so the integrated part of the accelerator x gamma**-2.
         # Lorentz trafo to lab frame + magnetic fields:
         # F = q E_beam / gamma = q (E_n_BassErsk * lambda_beam) / gamma
         #   = q E_n_BassErsk * lambda_lab / gamma^2
-        fields = [f * gamma**-2 for f in fields_beamframe]
+        # this trick avoids multiplying the field arrays twice:
+        interaction_length = self.length
+        self.length *= beam.gamma**-2
 
-        super(FrozenGaussianSpaceCharge25D, self).__init__(
-            slicer=slicer, length=length, mesh=mesh, fields=fields,
-            wrt_beam_centroid=wrt_beam_centroid, *args, **kwargs)
+        # update field?
+        if self.sigma_rtol is not None:
+            if (np.abs(pm.ensure_CPU(beam.sigma_x()) - self.sigma_x)
+                    > self.sigma_rtol * self.sigma_x):
+                self.prints('FrozenGaussianSpaceCharge25D: '
+                            'updating field maps...')
+                self.update_field(beam)
+
+        super(FrozenGaussianSpaceCharge25D, self).track(beam)
+
+        self.length = interaction_length
