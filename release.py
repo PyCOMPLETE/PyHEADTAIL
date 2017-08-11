@@ -175,6 +175,23 @@ def ensure_gothub_is_installed():
             'https://github.com/itchio/gothub !'
         )
 
+def check_or_setup_github_OAuth_token():
+    '''Check if github OAuth security token is set as an environment
+    variable. If not ask for it and give instruction how to get it.
+    The token is needed for gothub.
+    '''
+    if os.environ.get('GITHUB_TOKEN', None):
+        print ('\n*** github OAuth security token found in $GITHUB_TOKEN.\n')
+        return
+    print (
+        '\n*** No github OAuth security token found in $GITHUB_TOKEN.'
+        ' You need the token for gothub to draft the release on github!'
+        ' (Get the security token via github\'s website, cf.'
+        '\n*** https://help.github.com/articles/creating-a-personal-access-'
+        'token-for-the-command-line/ )\n')
+    token = input('--> Please enter your github OAuth security token:\n')
+    os.environ['GITHUB_TOKEN'] = token
+
 def ensure_gitpulls_is_installed():
     '''Check whether the gem git-pulls (to get github pull requests) is
     installed.
@@ -195,10 +212,12 @@ def check_release_tools():
     drafting the github release from CLI). If not, ask whether user
     wants to continue and draft the release manually (if this is not
     the case, raise exception!).
+    If no github OAuth security token is set, ask for it.
     '''
     try:
         ensure_gitpulls_is_installed()
         ensure_gothub_is_installed()
+        check_or_setup_github_OAuth_token()
         return True
     except OSError:
         answer = ''
@@ -366,12 +385,18 @@ def finalise_release():
 
     # publish github release (with message from pull request)
     if draft_release:
-        assert subprocess.call(
+        release_failed = subprocess.call(
             ['gothub', 'release', '-u', github_user, '-r', github_repo,
              '-t', 'v' + new_version,
              '-n', '"PyHEADTAIL v{}"'.format(new_version),
              '-d', '"{}"'.format(message),
              '-c', 'master'])
+        if release_failed:
+            print ('*** Drafting the release via gothub failed. '
+                   'Did you provide the correct github OAuth security '
+                   'token via $GITHUB_TOKEN? '
+                   'You may draft this release manually from the '
+                   'github website.')
     else:
         print ('*** Remember to manually draft this release from the '
                'github website.')
