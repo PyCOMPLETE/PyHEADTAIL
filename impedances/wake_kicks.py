@@ -552,7 +552,7 @@ class WakeKick(Printing):
                                 local_bunch_indexes, circumference, h_rf, h_bunch):
 
         bunch_spacing = circumference/float(h_bunch)
-        every_n_bucket_fillted = int(h_rf/h_bunch)
+        every_n_bucket_filled = int(h_rf/h_bunch)
 
         # total number of bunches
         self._n_target_bunches = len(local_bunch_indexes)
@@ -581,9 +581,11 @@ class WakeKick(Printing):
         # Splitted accumulated data for local bunches
         self._accumulated_signal_list = []
         for j,local_bunch_idx in enumerate(local_bunch_indexes):
-            idx = all_slice_sets[local_bunch_idx].bunch_id/every_n_bucket_fillted
+            idx = int(all_slice_sets[local_bunch_idx].bunch_id/every_n_bucket_filled)
+
             kick_from = empty_space_per_side + idx * self._n_bins_per_kick
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
+
             self._accumulated_signal_list.append(np.array(self._accumulated_data[kick_from:kick_to], copy=False))
 
 
@@ -591,7 +593,7 @@ class WakeKick(Printing):
         # individual slice sets in the total moment data array
         self._idx_data = []
         for j, slice_set in enumerate(all_slice_sets):
-            idx = slice_set.bunch_id/every_n_bucket_fillted
+            idx = int(slice_set.bunch_id/every_n_bucket_filled)
             kick_from = empty_space_per_side + idx * self._n_bins_per_kick
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
             temp_idx_data = (kick_from, kick_to)
