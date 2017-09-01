@@ -4,6 +4,15 @@ Context manager classes
 @data 30.09.2015
 '''
 import numpy as np
+
+class UnknownContextManagerError(Exception):
+    '''Raise if context manager is not found, e.g. cannot determine
+    whether on CPU or on GPU.
+    '''
+    def __init__(self, message='Failed to determine current context, e.g. '
+                               'whether pmath.device is "CPU" or "GPU".'):
+        self.message = message
+
 import pmath as pm
 from ..gpu import gpu_utils
 try:
@@ -102,15 +111,6 @@ if has_pycuda:
     pycuda.gpuarray.GPUArray.__mul__ = patch_binop('*', '__mul__')
     pycuda.gpuarray.GPUArray.__div__ = patch_binop('/', '__div__')
     pycuda.gpuarray.GPUArray.__truediv__ = pycuda.gpuarray.GPUArray.__div__
-
-
-class UnknownContextManagerError(Exception):
-    '''Raise if context manager is not found, e.g. cannot determine
-    whether on CPU or on GPU.
-    '''
-    def __init__(self, message='Failed to determine current context, e.g. '
-                               'whether pmath.device is "CPU" or "GPU".'):
-        self.message = message
 
 
 class Context(object):
