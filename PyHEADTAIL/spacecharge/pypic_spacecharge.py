@@ -198,6 +198,8 @@ class SpaceChargePIC_Adaptive25D(SpaceChargePIC):
         self.save_memory = save_memory
         self.slicer = slicer
 
+        sigma_x = pm.ensure_CPU(beam.sigma_x())
+        sigma_y = pm.ensure_CPU(beam.sigma_y())
         # if beam is not None:
         #     if sigma_x is not None or sigma_y is not None:
         #         raise ValueError('SpaceChargePIC_Adaptive25D accepts either '
