@@ -130,7 +130,7 @@ class SpaceChargePIC_Adaptive25D(SpaceChargePIC):
     of the beam size is fixed via the argument sigma_rtol. If sigma_rtol
     is None, the grid size is not updated and remains constant.
     '''
-    def __init__(self, length, slicer, beam=None, sigma_x=None, sigma_y=None,
+    def __init__(self, length, slicer, beam,#=None, sigma_x=None, sigma_y=None,
                  n_mesh_sigma=[6, 6], mesh_size=[1024, 1024],
                  sigma_rtol=None, sort_particles=False, pic_dtype=np.float64,
                  save_memory=False, *args, **kwargs):
@@ -184,24 +184,33 @@ class SpaceChargePIC_Adaptive25D(SpaceChargePIC):
         >>> with PyHEADTAIL.general.contextmanager.GPU(beam):
         >>>     pic_sc_node = SpaceChargePIC_Adaptive25D(...)
         '''
+
+        # TODO:
+        # - do not check beam emittance but instead slice emittances
+        # - do this check on the CPU/GPU staying on the same device
+        #   instead of always CPU
+        # - update mesh and green's function of poisson solver only
+        # - allow non-GPU poisson solvers...
+
         self._wrt_beam_centroid = True
         self._n_mesh_sigma = n_mesh_sigma
         self.sigma_rtol = sigma_rtol
         self.save_memory = save_memory
+        self.slicer = slicer
 
-        if beam is not None:
-            if sigma_x is not None or sigma_y is not None:
-                raise ValueError('SpaceChargePIC_Adaptive25D accepts either '
-                                 'beam as an argument or both sigma_x '
-                                 'and sigma_y. Do not mix these args!')
-            sigma_x = pm.ensure_CPU(beam.sigma_x())
-            sigma_y = pm.ensure_CPU(beam.sigma_y())
-        else:
-            if sigma_x is None or sigma_y is None:
-                raise ValueError('SpaceChargePIC_Adaptive25D requires both '
-                                 'sigma_x and sigma_y as arguments. '
-                                 'Alternatively provide a beam whose sigma are '
-                                 'evaluated.')
+        # if beam is not None:
+        #     if sigma_x is not None or sigma_y is not None:
+        #         raise ValueError('SpaceChargePIC_Adaptive25D accepts either '
+        #                          'beam as an argument or both sigma_x '
+        #                          'and sigma_y. Do not mix these args!')
+        #     sigma_x = pm.ensure_CPU(beam.sigma_x())
+        #     sigma_y = pm.ensure_CPU(beam.sigma_y())
+        # else:
+        #     if sigma_x is None or sigma_y is None:
+        #         raise ValueError('SpaceChargePIC_Adaptive25D requires both '
+        #                          'sigma_x and sigma_y as arguments. '
+        #                          'Alternatively provide a beam whose sigma are '
+        #                          'evaluated.')
 
         mesh = create_mesh(
             mesh_origin=[-n_mesh_sigma[0] * sigma_x,
@@ -209,6 +218,7 @@ class SpaceChargePIC_Adaptive25D(SpaceChargePIC):
             mesh_distances=[sigma_x * 2 * n_mesh_sigma[0] / mesh_size[0],
                             sigma_y * 2 * n_mesh_sigma[1] / mesh_size[1]],
             mesh_size=mesh_size,
+            slices=beam.get_slices(self.slicer)
         )
 
         if pm.device is not 'GPU':
@@ -230,8 +240,6 @@ class SpaceChargePIC_Adaptive25D(SpaceChargePIC):
             length=length, pypic_algorithm=pypic,
             sort_particles=sort_particles, pic_dtype=np.float64,
             *args, **kwargs)
-
-    # create mesh auslagern, sigma_rtol einbeziehen im track um neuen poissonsolver zu erzeugen.
 
     @property
     def sigma_x(self):
