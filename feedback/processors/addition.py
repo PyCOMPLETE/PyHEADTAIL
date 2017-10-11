@@ -1,8 +1,13 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 import numpy as np
-import copy
 from scipy.constants import c, pi
-from ..core import debug_extension
+from ..core import default_macros
+
+"""Signal processors based on addition operation.
+
+@author Jani Komppula
+@date: 11/10/2017
+"""
 
 class Addition(object):
     __metaclass__ = ABCMeta
@@ -38,13 +43,12 @@ class Addition(object):
 
         self.signal_classes = (0,0)
 
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'Addition', **kwargs)
+
         if self._seed not in ['bin_length','bin_midpoint','signal']:
             self.extensions.append('bunch')
             self.required_variables = [self._seed]
-
-
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, label, **kwargs)]
 
     @abstractmethod
     def addend_function(self, seed):
@@ -56,11 +60,6 @@ class Addition(object):
             self.__calculate_addend(parameters, signal, slice_sets)
 
         output_signal = signal + self._addend
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, parameters, output_signal,
-                      *args, **kwargs)
-
 
         # process the signal
         return parameters, output_signal
@@ -178,9 +177,9 @@ class AdditionFromFile(Addition):
         self._data = np.loadtxt(self._filename)
 
         if self._x_axis == 'time':
-            self._data[:, 0] = self._data[:, 0] * c
-        elif self._x_axis == 'position':
             pass
+        elif self._x_axis == 'position':
+            self._data[:, 0] = self._data[:, 0] / c
         else:
             raise ValueError('Unknown value in AdditionFromFile._x_axis')
 

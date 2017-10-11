@@ -1,14 +1,18 @@
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
-from ..core import Parameters, Signal
-from ..core import bin_widths, bin_mids, bin_edges_to_z_bins, z_bins_to_bin_edges
-from ..core import debug_extension
-from scipy.constants import c, pi
+from ..core import bin_widths, bin_mids, bin_edges_to_z_bins
+from ..core import default_macros, Parameters
+from scipy.constants import pi
 import scipy.integrate as integrate
 from scipy.interpolate import UnivariateSpline
 import abstract_filter_responses
-# TODO: - 2nd order cutoff by using gaussian filter
+
+"""Signal processors based on convolution operation.
+
+@author Jani Komppula
+@date: 11/10/2017
+"""
 
 class Convolution(object):
     __metaclass__ = ABCMeta
@@ -22,8 +26,8 @@ class Convolution(object):
         self._n_seg = None
         self._n_bins = None
 
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, 'Convolution', **kwargs)]
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'Convolution', **kwargs)
 
     def _init_convolution(self, parameters):
 
@@ -32,12 +36,12 @@ class Convolution(object):
         self._n_seg = parameters['n_segments']
         self._n_bins = parameters['n_bins_per_segment']
         bin_edges = parameters['bin_edges']
-        n_seg = parameters['n_segments']
-        n_bins = parameters['n_bins_per_segment']
-#        ref_points = parameters['segment_ref_points']
+
+        original_segment_length = bin_edges[self._n_bins-1,1] - bin_edges[0,0]
 
         # a number of impulse values added to the both side of the segments
-        extra_bins = int(np.ceil(n_bins/2.))
+        extra_bins = int(np.ceil(self._n_bins/2.))
+#        extra_bins = 0
 
         # Reference bin edges for one segment
         impulse_ref_edges = None
@@ -50,24 +54,29 @@ class Convolution(object):
 
         # List of impulses to the corresponding segments
         self._impulses_to_segments = []
-        for i in xrange(n_seg):
+        for i in xrange(self._n_seg):
             self._impulses_to_segments.append([])
 
         ref_points = []
 
-        for i in xrange(n_seg):
-            i_from = i*n_bins
-            i_to = (i+1)*n_bins
+        for i in xrange(self._n_seg):
+            i_from = i*self._n_bins
+            i_to = (i+1)*self._n_bins
 
             # original bins corresponing to the signal
             org_edges = bin_edges[i_from:i_to, :]
-            # extra bins before the original bins
-            prefix_offset = org_edges[(extra_bins-1), 1]-org_edges[0, 0]
-            # extra bins after the original bins
-            postfix_offset = org_edges[-extra_bins, 0]-org_edges[-1, 1]
+            offset = org_edges[-1,1] - org_edges[0,0]
+            edges = np.concatenate((org_edges[-extra_bins:]-offset,org_edges),axis=0)
+            edges = np.concatenate((edges,org_edges[:extra_bins]+offset),axis=0)
 
-            edges = np.concatenate(((org_edges[:extra_bins]-prefix_offset), org_edges), axis=0)
-            edges = np.concatenate((edges, org_edges[extra_bins:]-postfix_offset), axis=0)
+            # extra bins before the original bins
+#            prefix_offset = org_edges[(extra_bins-1), 1]-org_edges[0, 0]
+#            # extra bins after the original bins
+#            postfix_offset = org_edges[-extra_bins, 0]-org_edges[-1, 1]
+
+#            edges = np.copy(org_edges)
+#            edges = np.concatenate(((org_edges[:extra_bins]-prefix_offset), org_edges), axis=0)
+#            edges = np.concatenate((edges, org_edges[extra_bins:]-postfix_offset), axis=0)
 
             # reference points of the segments, which correspond to midpoint of
             # the bin sets in this case.
@@ -104,10 +113,9 @@ class Convolution(object):
                     mid_offset = -1 * max_min
 
             impulse_edges = impulse_edges - mid_offset
-            original_segment_length = bin_edges[n_bins-1,1]-bin_edges[0,0]
 
             # calculates impulse response for the determined bin set
-            dashed_impulse_response = self.response_function(impulse_edges, n_seg,
+            dashed_impulse_response = self.response_function(impulse_edges, self._n_seg,
                                                                            original_segment_length)
 
             cleaned_impulse = np.array([])
@@ -116,10 +124,15 @@ class Convolution(object):
 
             # cleans the calculated impulse response, i.e. removes the segments where
             # response is zero.
-            n_bins_per_segment = n_bins + 2* extra_bins
-            for k in xrange(n_seg):
+            n_bins_per_segment = self._n_bins + 2*extra_bins
+
+            for k in xrange(self._n_seg):
+
                 i_from = k * n_bins_per_segment
                 i_to = (k+1) * n_bins_per_segment
+
+#                target_segments.append(k)
+#                cleaned_impulse = np.append(cleaned_impulse, dashed_impulse_response[i_from:i_to])
 
                 if np.sum(np.abs(dashed_impulse_response[i_from:i_to])) > 0.:
                     target_segments.append(k)
@@ -127,11 +140,12 @@ class Convolution(object):
 
             self._dashed_impulse_responses.append(cleaned_impulse)
 
-            self._impulses_from_segments.append(np.zeros(len(cleaned_impulse)))
+            self._impulses_from_segments.append(np.zeros(len(cleaned_impulse)+idx_offset))
+
             for idx, target_idx in enumerate(target_segments):
-                i_from = idx * n_bins_per_segment + extra_bins + idx_offset
-                i_to = idx * n_bins_per_segment + extra_bins + n_bins + idx_offset
-                self._impulses_to_segments[target_idx].append(np.array(self._impulses_from_segments[i][i_from:i_to], copy=False))
+                i_from = idx * n_bins_per_segment + idx_offset + extra_bins
+                i_to = i_from + self._n_bins
+                self._impulses_to_segments[target_idx].append(np.array(self._impulses_from_segments[-1][i_from:i_to], copy=False))
 
     @abstractmethod
     def response_function(self, impulse_ref_edges, n_seg, original_segment_length):
@@ -148,7 +162,7 @@ class Convolution(object):
         for i in xrange(self._n_seg):
             i_from = i*self._n_bins
             i_to = (i+1)*self._n_bins
-            np.copyto(self._impulses_from_segments[i],
+            np.copyto(self._impulses_from_segments[i][:len(self._dashed_impulse_responses[i])],
                       np.convolve(self._dashed_impulse_responses[i],
                                   signal[i_from:i_to], mode='same'))
 
@@ -158,6 +172,10 @@ class Convolution(object):
 
             i_from = i*self._n_bins
             i_to = (i+1)*self._n_bins
+#            print np.sum(self._impulses_to_segments[i], axis=0)
+#            print len(np.sum(self._impulses_to_segments[i], axis=0))
+#            print output_signal[i_from:i_to]
+#            print len(output_signal[i_from:i_to])
             np.copyto(output_signal[i_from:i_to], np.sum(self._impulses_to_segments[i], axis=0))
 
         return output_signal
@@ -165,10 +183,6 @@ class Convolution(object):
     def process(self, parameters, signal, *args, **kwargs):
 
         output_signal = self._apply_convolution(parameters, signal)
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, parameters, output_signal,
-                      *args, **kwargs)
 
         return parameters, output_signal
 
@@ -178,7 +192,7 @@ class Delay(Convolution):
 
     def __init__(self,delay, **kwargs):
 
-        self._z_delay = delay*c
+        self._delay = delay
 
         super(self.__class__, self).__init__(**kwargs)
         self.label = 'Delay'
@@ -187,8 +201,8 @@ class Delay(Convolution):
         impulse_values = np.zeros(len(impulse_ref_edges))
         bin_spacing =  np.mean(impulse_ref_edges[:,1]-impulse_ref_edges[:,0])
 
-        ref_bin_from = -0.5*bin_spacing+self._z_delay
-        ref_bin_to = 0.5*bin_spacing+self._z_delay
+        ref_bin_from = -0.5*bin_spacing+self._delay
+        ref_bin_to = 0.5*bin_spacing+self._delay
 
         for i, edges in enumerate(impulse_ref_edges):
             impulse_values[i] = self._CDF(edges[1],ref_bin_from,ref_bin_to) - self._CDF(edges[0],ref_bin_from,ref_bin_to)
@@ -220,7 +234,7 @@ class MovingAverage(Convolution):
                 A number of copies
         """
 
-        self._window = (-0.5 * window_length * c, 0.5 * window_length * c)
+        self._window = (-0.5 * window_length, 0.5 * window_length)
 
         super(self.__class__, self).__init__(**kwargs)
         self.label = 'Average'
@@ -268,7 +282,7 @@ class WaveletGenerator(Convolution):
             self._i_from = min(self._n_copies,0)
             self._i_to = max(self._n_copies,0)
 
-        self._window = (self._i_from*self._spacing*c,self._i_to*self._spacing*c)
+        self._window = (self._i_from*self._spacing,self._i_to*self._spacing)
 
         super(self.__class__, self).__init__(**kwargs)
         self.label = 'Wavelet generator'
@@ -281,7 +295,7 @@ class WaveletGenerator(Convolution):
         impulse_values = np.zeros(len(impulse_bin_mids))
 
         for i in xrange(self._i_from,(self._i_to+1)):
-            copy_mid = i*self._spacing*c
+            copy_mid = i*self._spacing
             copy_from = copy_mid - 0.5 * bin_spacing
             copy_to = copy_mid + 0.5 * bin_spacing
 
@@ -406,7 +420,7 @@ class ConvolutionFilter(Convolution):
 
                 norm_coeff = 0.
                 for i in xrange(-1000,1000):
-                    x = float(i)* (1./f_h) * self._scaling * c
+                    x = float(i)* (1./f_h) * self._scaling
                     norm_coeff += self._impulse_response(x)
                 #print norm_coeff
                 #print x
@@ -497,7 +511,7 @@ class Lowpass(ConvolutionFilter):
         poll roll off.
     """
     def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-max_impulse_length,max_impulse_length))
@@ -514,7 +528,7 @@ class Highpass(ConvolutionFilter):
         bin 1
     """
     def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-max_impulse_length,max_impulse_length))
@@ -533,7 +547,7 @@ class PhaseLinearizedLowpass(ConvolutionFilter):
     """
 
     def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-max_impulse_length,max_impulse_length))
@@ -548,7 +562,7 @@ class Gaussian(ConvolutionFilter):
     """ A Gaussian low pass filter, which impulse response is a Gaussian function.
     """
     def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-max_impulse_length,max_impulse_length))
@@ -580,7 +594,7 @@ class Sinc(ConvolutionFilter):
         :param norm_type: see class LinearTransform
         :param norm_range: see class LinearTransform
         """
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-window_width,window_width))

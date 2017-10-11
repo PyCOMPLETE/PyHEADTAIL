@@ -5,10 +5,14 @@ from scipy.constants import c, pi
 import scipy.integrate as integrate
 from scipy import linalg
 from cython_hacks import cython_matrix_product
-from ..core import debug_extension
+from ..core import default_macros
 import abstract_filter_responses
 
-# TODO: clean code here!
+"""Signal processors based on linear transformation.
+
+@author Jani Komppula
+@date: 11/10/2017
+"""
 
 class LinearTransform(object):
     __metaclass__ = ABCMeta
@@ -53,13 +57,12 @@ class LinearTransform(object):
         self._n_bins_per_segment = None
         self._mid_bunch = None
 
-        self.extensions = ['debug']
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'LinearTransform', **kwargs)
+
         if bin_middle == 'particles':
             self.extensions.append('bunch')
             self.required_variables = ['mean_z']
-
-        self._extension_objects = [debug_extension(self, 'LinearTransform', **kwargs)]
-
 
 
     @abstractmethod
@@ -96,10 +99,6 @@ class LinearTransform(object):
                 np.copyto(output_signal[idx_from:idx_to],cython_matrix_product(self._matrix, signal[idx_from:idx_to]))
         else:
             raise ValueError('Unknown value for LinearTransform._mode ')
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, parameters, output_signal,
-                      *args, **kwargs)
 
         return parameters, output_signal
 
@@ -194,10 +193,10 @@ class Delay(LinearTransform):
         return self.__CDF(bin_to, ref_bin_from, ref_bin_to) - self.__CDF(bin_from, ref_bin_from, ref_bin_to)
 
     def __CDF(self,x,ref_bin_from, ref_bin_to):
-        if (x-self._delay*c) <= ref_bin_from:
+        if (x-self._delay) <= ref_bin_from:
             return 0.
-        elif (x-self._delay*c) < ref_bin_to:
-            return ((x-self._delay*c)-ref_bin_from)/float(ref_bin_to-ref_bin_from)
+        elif (x-self._delay) < ref_bin_to:
+            return ((x-self._delay)-ref_bin_from)/float(ref_bin_to-ref_bin_from)
         else:
             return 1.
 
@@ -209,7 +208,7 @@ class LinearTransformFromFile(LinearTransform):
         self._x_axis = x_axis
         self._data = np.loadtxt(self._filename)
         if self._x_axis == 'time':
-            self._data[:, 0]=self._data[:, 0]*c
+            self._data[:, 0]=self._data[:, 0]
 
         super(self.__class__, self).__init__( **kwargs)
         self.label = 'LT from file'
@@ -275,7 +274,7 @@ class LinearTransformFilter(LinearTransform):
 
                 norm_coeff = 0.
                 for i in xrange(-1000,1000):
-                    x = float(i)* (1./f_h) * self._scaling * c
+                    x = float(i)* (1./f_h) * self._scaling
                     norm_coeff += self._impulse_response(x)
 
                 bin_edges = parameters['bin_edges']
@@ -298,7 +297,7 @@ class Lowpass(LinearTransformFilter):
         poll roll off.
     """
     def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-max_impulse_length,max_impulse_length))
@@ -315,7 +314,7 @@ class Highpass(LinearTransformFilter):
         bin 1
     """
     def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-max_impulse_length,max_impulse_length))
@@ -334,7 +333,7 @@ class PhaseLinearizedLowpass(LinearTransformFilter):
     """
 
     def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-max_impulse_length,max_impulse_length))
@@ -349,7 +348,7 @@ class Gaussian(LinearTransformFilter):
     """ A Gaussian low pass filter, which impulse response is a Gaussian function.
     """
     def __init__(self,f_cutoff, normalization=None, max_impulse_length = 5., **kwargs):
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-max_impulse_length,max_impulse_length))
@@ -381,7 +380,7 @@ class Sinc(LinearTransformFilter):
         :param norm_type: see class LinearTransform
         :param norm_range: see class LinearTransform
         """
-        scaling = 2. * pi * f_cutoff / c
+        scaling = 2. * pi * f_cutoff
 
         if normalization is None:
             normalization=('integral',(-window_width,window_width))

@@ -1,6 +1,5 @@
-import copy
 import numpy as np
-from ..core import debug_extension
+from ..core import default_macros
 
 class Bypass(object):
     """ A fast bypass processor, whichi does not modify the signal. A black sheep, which does not fit for
@@ -10,15 +9,10 @@ class Bypass(object):
     def __init__(self, **kwargs):
         self.signal_classes = (0, 0)
 
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, 'Bypass', **kwargs)]
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'Bypass', **kwargs)
 
     def process(self, parameters, signal, *args, **kwargs):
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, parameters, signal,
-                      *args, **kwargs)
-
 
         return parameters, signal
 
@@ -31,15 +25,16 @@ class Average(object):
 
 
         self.signal_classes = (0, 0)
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, 'Average', **kwargs)]
+
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'Average', **kwargs)
 
 
     def process(self, parameters, signal, *args, **kwargs):
 
         if self._avg_type == 'bunch':
-            n_segments = signal_parameters.n_segments
-            n_slices_per_segment = signal_parameters.n_slices_per_segment
+            n_segments = parameters.n_segments
+            n_slices_per_segment = parameters.n_slices_per_segment
 
             output_signal = np.zeros(len(signal))
             ones = np.ones(n_slices_per_segment)
@@ -54,10 +49,5 @@ class Average(object):
 
         else:
             raise ValueError('Unknown value in Average._avg_type')
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, parameters, output_signal,
-                      *args, **kwargs)
-
 
         return parameters, output_signal

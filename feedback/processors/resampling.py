@@ -1,16 +1,15 @@
 import numpy as np
-from scipy.constants import c, pi
 import copy
 from scipy import interpolate
-from ..core import Parameters, bin_edges_to_z_bins, z_bins_to_bin_edges, append_bin_edges, bin_mids
-from ..core import debug_extension
 from scipy.sparse import csr_matrix
 
-"""
-    @author Jani Komppula
-    @date 29/06/2017
-    @copyright CERN
+from ..core import Parameters, bin_edges_to_z_bins, z_bins_to_bin_edges
+from ..core import append_bin_edges, bin_mids, default_macros
 
+"""Signal processors for resampling a signal.
+
+@author Jani Komppula
+@date: 11/10/2017
 """
 
 class Resampler(object):
@@ -53,19 +52,22 @@ class Resampler(object):
             reference points in the units of bins.
         data_conversion : string
             A method how the data of the input signal are converted to the output
-            binset. The output signal can be converted by:
+            binset. The output signal can be converted by using:
                 'interpolation'
-                    interpolating from the input data.
+                    interpolates from the input data.
                 'sum'
-                    calculating a bin value sum over the over lapping bins
+                    calculates a bin value sum over the over lapping bins
                 'integral'
-                    integrating the input signal over an output bin
+                    integrates the input signal over an output bin
                 'average'
-                    calculating a bin width weighted average of the overlaping bins
+                    calculates a bin width weighted average of the overlaping bins
                 'average_bin_value'
-                    caclulating an average value of the overlaping bins
+                    calculates an average value of the overlaping bins
                 'value'
-                    returning a value of the overlapping bin
+                    returns a value of the overlapping bin
+                ('upsampler_kernel', list)
+                    uses a kernel to map an old value to a corresponding
+                    section of upsampled bins
         n_extras : int
             A number of extra samples added before the first segment and after
             the last segment
@@ -84,8 +86,8 @@ class Resampler(object):
 
         self._convert_signal = None
 
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, 'Resampler', **kwargs)]
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'Resampler', **kwargs)
         self.signal_classes = None
 
     def _init_harmonic_bins(self, parameters, signal):
@@ -107,7 +109,7 @@ class Resampler(object):
         else:
             n_bins_per_segment = 1
 
-        segment_length = c/base_frequency
+        segment_length = 1./base_frequency
         bin_width = segment_length/float(n_bins_per_segment)
 
         n_sampled_sequencies = (max_ref_point-min_ref_point) / segment_length + 1
@@ -162,7 +164,7 @@ class Resampler(object):
 
     def _init_sequenced_bins(self, parameters, signal):
         self.signal_classes = (0,1)
-        bin_width = 1./self._method[1]*c
+        bin_width = 1./self._method[1]
         if self._n_samples is not None:
             n_bins_per_segment = self._n_samples
         else:
@@ -171,7 +173,7 @@ class Resampler(object):
             raw_segment_length = segment_to - segment_from
             n_bins_per_segment = int(np.ceil(raw_segment_length/bin_width))
 
-        segment_z_bins = np.linspace(0, n_bins_per_segment/self._method[1]*c, n_bins_per_segment+1)
+        segment_z_bins = np.linspace(0, n_bins_per_segment/self._method[1], n_bins_per_segment+1)
         segment_z_bins = segment_z_bins - np.mean(segment_z_bins) + self._offset*bin_width
         segment_bin_edges = z_bins_to_bin_edges(segment_z_bins)
 
@@ -220,7 +222,7 @@ class Resampler(object):
                 temp_edges[i,0] = edges[0] + i * new_bin_width
                 temp_edges[i,1] = edges[0] + (i + 1) * new_bin_width
 
-            if new_edges == None:
+            if new_edges is None:
                 new_edges = temp_edges
             else:
                 new_edges = append_bin_edges(new_edges,temp_edges)
@@ -261,7 +263,7 @@ class Resampler(object):
                 temp_edges[0,0] = original_edges[first_edge,0]
                 temp_edges[0,1] = original_edges[last_edge,1]
 
-                if new_edges == None:
+                if new_edges is None:
                     new_edges = temp_edges
                 else:
                     new_edges = append_bin_edges(new_edges,temp_edges)
@@ -321,7 +323,20 @@ class Resampler(object):
         for i, output_edges in enumerate(self._output_parameters['bin_edges']):
             for j, input_edges in enumerate(parameters['bin_edges']):
                 big_matrix[i, j] = CDF(output_edges[1], input_edges) - CDF(output_edges[0], input_edges)
+        sparse_matrix = csr_matrix(big_matrix)
 
+        def convert_signal(input_signal):
+            return sparse_matrix.dot(input_signal)
+
+        return convert_signal
+
+    def _init_upsampler_kernel_conversion(self, parameters, signal):
+        kernel = self._data_conversion[1]
+        big_matrix = np.zeros((len(self._output_signal), len(signal)))
+        for j, input_edges in enumerate(parameters['bin_edges']):
+            for k in range(len(kernel)):
+                i = j*len(kernel) + k
+                big_matrix[i, j] = kernel[k]
         sparse_matrix = csr_matrix(big_matrix)
 
         def convert_signal(input_signal):
@@ -443,10 +458,9 @@ class Resampler(object):
                 self._init_downsampling(parameters, signal)
             else:
                 raise ValueError('Unknown sampling method')
-
         else:
             raise ValueError('Unknown sampling method')
-
+        
         if self._data_conversion == 'interpolation':
             self._convert_signal = self._init_interp_conversion(parameters, signal)
         elif self._data_conversion == 'sum':
@@ -459,6 +473,11 @@ class Resampler(object):
             self._convert_signal = self._init_avg_bin_conversion(parameters, signal)
         elif self._data_conversion == 'value':
             self._convert_signal = self._init_value_conversion(parameters, signal)
+        elif isinstance(self._method, tuple):
+            if self._data_conversion[0] == 'upsampler_kernel':
+                self._convert_signal = self._init_upsampler_kernel_conversion(parameters, signal)
+            else:
+                raise ValueError('Unknown data conversion method')
         else:
             raise ValueError('Unknown data conversion method')
 
@@ -467,10 +486,6 @@ class Resampler(object):
             self._init_variables(parameters,signal)
 
         output_signal = self._convert_signal(signal)
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, self._output_parameters, output_signal,
-                      *args, **kwargs)
 
         return self._output_parameters, output_signal
 
@@ -496,18 +511,14 @@ class Quantizer(object):
 
         self.signal_classes = (0, 0)
 
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, 'Quantizer', **kwargs)]
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'Quantizer', **kwargs)
 
     def process(self, parameters, signal, *args, **kwargs):
         output_signal = self._step_size*np.floor(signal/self._step_size+0.5)
 
         output_signal[output_signal < self._input_range[0]] = self._input_range[0]
         output_signal[output_signal > self._input_range[1]] = self._input_range[1]
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, parameters, output_signal,
-                      *args, **kwargs)
 
         return parameters, output_signal
 
@@ -545,10 +556,8 @@ class ADC(object):
         elif (n_bits is not None) or (input_range is not None):
             raise ValueError('Both n_bits and input_range are required for the Quantizer.')
 
-
-
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, 'ADC', **kwargs)]
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'ADC', **kwargs)
 
     def process(self, parameters, signal, *args, **kwargs):
         output_parameters, output_signal = self._resampler.process(parameters, signal, *args, **kwargs)
@@ -556,10 +565,6 @@ class ADC(object):
         if self._digitizer is not None:
             output_parameters, output_signal = self._digitizer.process(output_parameters, output_signal
                                                                               , *args, **kwargs)
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, output_parameters, output_signal,
-                      *args, **kwargs)
 
         return output_parameters, output_signal
 
@@ -595,8 +600,8 @@ class HarmonicADC(object):
         elif (n_bits is not None) or (input_range is not None):
             raise ValueError('Both n_bits and input_range are required for the Quantizer.')
 
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, 'HarmonicADC', **kwargs)]
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'HarmonicADC', **kwargs)
 
     def process(self, parameters, signal, *args, **kwargs):
         output_parameters, output_signal = self._resampler.process(parameters, signal, *args, **kwargs)
@@ -604,10 +609,6 @@ class HarmonicADC(object):
         if self._digitizer is not None:
             output_parameters, output_signal = self._digitizer.process(output_parameters, output_signal
                                                                               , *args, **kwargs)
-
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, output_parameters, output_signal,
-                      *args, **kwargs)
 
         return output_parameters, output_signal
 
@@ -648,8 +649,8 @@ class DAC(object):
         elif (n_bits is not None) or (output_range is not None):
             raise ValueError('Both n_bits and input_range are required for the Quantizer.')
 
-        self.extensions = ['debug']
-        self._extension_objects = [debug_extension(self, 'DAC', **kwargs)]
+        self.extensions = []
+        self._macros = [] + default_macros(self, 'DAC', **kwargs)
 
     def process(self, parameters, signal, *args, **kwargs):
         output_parameters, output_signal = self._resampler.process(parameters, signal, *args, **kwargs)
@@ -658,11 +659,34 @@ class DAC(object):
             output_parameters, output_signal = self._digitizer.process(output_parameters, output_signal,
                                                                               *args, **kwargs)
 
-        for extension in self._extension_objects:
-            extension(self, parameters, signal, output_parameters, output_signal,
-                      *args, **kwargs)
 
         return output_parameters, output_signal
+
+class Upsampler(Resampler):
+    def __init__(self, multiplier, kernel=None, **kwargs):
+        """
+        Multiplies sampling rate by a given number
+        
+        Parameters
+        ----------
+        multiplier : int
+            A number of new samples per old sample
+        kernel : list
+            A list of number, which is used as a kernel (map) to determine
+            values to the upsampled bins
+        """
+        if kernel is None:
+            data_conversion = 'value'
+        else:
+            if multiplier != len(kernel):
+                raise ValueError('Kernel length must match the multiplier ')
+            
+            data_conversion = ('upsampler_kernel',kernel)
+            
+        
+        super(self.__class__, self).__init__(('upsampling', multiplier),
+                  data_conversion=data_conversion, **kwargs)
+        self.label='Upsampler'
 
 class BackToOriginalBins(Resampler):
     def __init__(self, data_conversion='interpolation', target_binset = 0, **kwargs):
