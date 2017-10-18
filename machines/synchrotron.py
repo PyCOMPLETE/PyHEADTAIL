@@ -149,22 +149,61 @@ class Synchrotron(Element):
 
             if mpi_data.num_procs() > len(filling_scheme):
                 raise Exception('\n*** The number of bunches should be larger ' +
-                                'or equal to number of processors')
+                                'or equal to the number of processors')
 
             buckets_for_this_processor = mpi_data.my_tasks(sorted_filling_scheme)
 
             print("*** I am rank {:d} - my buckets are {:s}".format(mpi_data.my_rank(), buckets_for_this_processor))
-            bunches = [self._create_6D_Gaussian_bunch(
-                macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z, sigma_z, bucket, matched)
-                for bucket in buckets_for_this_processor]
+            
 
-            bunch = sum(bunches)  # superbunch
+
+            n_levels = int(np.ceil(np.log(len(buckets_for_this_processor))/np.log(2)))
+            tree = []
+            for i in range(n_levels):
+                tree.append([])
+                
+            for bucket in buckets_for_this_processor:
+                print "I'm generating bucket: " + str(bucket)
+                tree[0].append(self._create_6D_Gaussian_bunch(macroparticlenumber,
+                                                           intensity, epsn_x,
+                                                           epsn_y, epsn_z,
+                                                           sigma_z, bucket,
+                                                           matched)) 
+                for j in range(n_levels):
+                    if len(tree[j]) > 1:
+                        tree[j+1].append(tree[j][0]+tree[j][1])
+                        tree[j] = []
+                    else:
+                        break
+                    
+            bunch = None
+            gathering_level = None
+            
+            for i in range(n_levels):
+                j = n_levels - 1 - i 
+                print "I'm summing level: " + str(j)
+                if len(tree[j]) > 0:
+                    if gathering_level is None:
+                        gathering_level = j
+                    else:
+                        tree[gathering_level][0] = tree[gathering_level][0] + tree[j][0]
+                        tree[j][0] = []
+                        
+            return tree[gathering_level][0]
+            
+# The original solution
+#            
+#            bunches = [self._create_6D_Gaussian_bunch(
+#                macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z, sigma_z, bucket, matched)
+#                for bucket in buckets_for_this_processor]
+#
+#            bunch = sum(bunches)  # superbunch
 
         else:
             bunch = self._create_6D_Gaussian_bunch(
                 macroparticlenumber, intensity, epsn_x, epsn_y, sigma_z, epsn_z, bucket=0, matched=matched)
 
-        return bunch
+            return bunch
 
     def _create_6D_Gaussian_bunch(self, macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z,
                                   sigma_z, bucket, matched=False):

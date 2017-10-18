@@ -759,7 +759,10 @@ class LinearMap(LongitudinalOneTurnMap):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp
         '''
-        bunches_list = beam.split()
+#        print 'before: beam.x[0:10]:' + str(beam.x[0:10])
+#        print 'before: beam.z[0:10]:' + str(beam.z[0:10])
+#        print 'before: beam.dp[0:10]:' + str(beam.dp[0:10])
+        bunches_list = beam.split_to_views()
 
         for i, b in enumerate(bunches_list):
             omega_0 = 2 * pm.pi * b.beta * c / self.circumference
@@ -774,23 +777,31 @@ class LinearMap(LongitudinalOneTurnMap):
             dp0 = b.dp
 
             # self.eta(0, b.gamma) is identical to using first order eta!
-            b.z = (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
-                      omega_s * dp0 * sindQ_s)
+#            b.z = (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
+#                      omega_s * dp0 * sindQ_s)
+            np.copyto(b.z, (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
+                      omega_s * dp0 * sindQ_s))
 
             b.x -= self.D_x*b.dp
             b.y -= self.D_y*b.dp
-            b.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
-                       (b.beta * c) * z0 * sindQ_s)
+#            b.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
+#                       (b.beta * c) * z0 * sindQ_s)
+            np.copyto(b.dp,(dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
+                       (b.beta * c) * z0 * sindQ_s))
             b.x += self.D_x*b.dp
             b.y += self.D_y*b.dp
 
             b.z -= b.bunch_id * self.circumference/self.harmonics
 
-        beam_new = sum(bunches_list)
-        beam.update({'x': beam_new.x,
-                     'y': beam_new.y,
-                     'z': beam_new.z,
-                     'xp': beam_new.xp,
-                     'yp': beam_new.yp,
-                     'dp': beam_new.dp
-        })
+#        print 'after: beam.x[0:10]:' + str(beam.x[0:10])
+#        print 'after: beam.z[0:10]:' + str(beam.z[0:10])
+#        print 'after: beam.dp[0:10]:' + str(beam.dp[0:10])
+
+#        beam_new = sum(bunches_list)
+#        beam.update({'x': beam_new.x,
+#                     'y': beam_new.y,
+#                     'z': beam_new.z,
+#                     'xp': beam_new.xp,
+#                     'yp': beam_new.yp,
+#                     'dp': beam_new.dp
+#        })

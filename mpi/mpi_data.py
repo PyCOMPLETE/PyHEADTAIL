@@ -469,7 +469,7 @@ class MpiGatherer(object):
         return self._local_bunch_indexes
 
     def gather(self, superbunch):
-        self.bunch_list = superbunch.split()
+        self.bunch_list = superbunch.split_to_views()
 
         self.slice_set_list = []
         if self._slicer.config[3] is not None:
@@ -506,13 +506,14 @@ class MpiGatherer(object):
         self.total_data.update()
 
     def rebunch(self, superbunch):
-        superbunch_new = sum(self.bunch_list)
-        superbunch.x[:] = superbunch_new.x[:]
-        superbunch.xp[:] = superbunch_new.xp[:]
-        superbunch.y[:] = superbunch_new.y[:]
-        superbunch.yp[:] = superbunch_new.yp[:]
-        superbunch.z[:] = superbunch_new.z[:]
-        superbunch.dp[:] = superbunch_new.dp[:]
+        pass
+#        superbunch_new = sum(self.bunch_list)
+#        superbunch.x[:] = superbunch_new.x[:]
+#        superbunch.xp[:] = superbunch_new.xp[:]
+#        superbunch.y[:] = superbunch_new.y[:]
+#        superbunch.yp[:] = superbunch_new.yp[:]
+#        superbunch.z[:] = superbunch_new.z[:]
+#        superbunch.dp[:] = superbunch_new.dp[:]
 
     def _initialize_buffers(self, superbunch, slice_set_list):
 

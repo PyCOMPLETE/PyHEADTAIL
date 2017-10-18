@@ -129,7 +129,7 @@ class WakeField(Element):
 
     def _serial_track(self, beam):
 
-        bunches_list = beam.split()
+        bunches_list = beam.split_to_views()
 
         # Updates ages of bunches in slice_set_deque
         for i, turnbyturn in enumerate(self.slice_set_deque):
@@ -348,7 +348,7 @@ class WakeField(Element):
         n_slices = self.slicer.n_slices
         stride = 2 + 4*n_slices
 
-        bunches_list = beam.split()
+        bunches_list = beam.split_to_views()
         n_bunches_counts = self.comm.allgather(len(bunches_list))
         n_bunches_offsets = np.cumsum(n_bunches_counts)
         n_bunches_total = sum(n_bunches_counts)

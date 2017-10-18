@@ -67,7 +67,7 @@ class BunchMonitor(Monitor):
         """ Evaluate the statistics like mean and standard deviation for
         the given bunch and write the data to the HDF5 file. """
 
-        bunch_list = bunches.split()
+        bunch_list = bunches.split_to_views()
         if self.buffer is None:
             self.local_bunch_ids = [ b.bunch_id[0] for b in bunch_list ]
             self._init_buffer()
@@ -125,7 +125,7 @@ class BunchMonitor(Monitor):
         """ Store the data in the self.buffer dictionary before writing
         them to file. The buffer is implemented as a shift register. """
 
-        bunch_list = bunches.split()
+        bunch_list = bunches.split_to_views()
         for b in bunch_list:
             bid = b.bunch_id[0]
             for stats in self.stats_to_store:
@@ -317,7 +317,12 @@ class SliceMonitor(Monitor):
         slicing configuration self.slicer must be requested from the
         bunch (instance of the Particles class), including all the
         statistics that are to be saved. """
+        
+        z_delay = bunch.mean_z()
+        bunch.z -= z_delay
         slice_set = bunch.get_slices(self.slicer, statistics=True)
+        bunch.z += z_delay
+        
 
         # Handle the different statistics quantities, which can
         # either be methods (like mean(), ...) or simply attributes
@@ -335,7 +340,10 @@ class SliceMonitor(Monitor):
 
         # slice_set-specific data.
         for stats in self.slice_stats_to_store:
-            self.buffer_slice[stats][:, write_pos] = getattr(slice_set, stats)
+            if stats == 'mean_z':
+                self.buffer_slice[stats][:, write_pos] = getattr(slice_set, stats) + z_delay
+            else:
+                self.buffer_slice[stats][:, write_pos] = getattr(slice_set, stats)
 
     def _write_buffer_to_file(self):
         """ Write buffer contents to the HDF5 file. The file is opened
