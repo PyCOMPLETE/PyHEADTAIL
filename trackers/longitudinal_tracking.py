@@ -777,17 +777,17 @@ class LinearMap(LongitudinalOneTurnMap):
             dp0 = b.dp
 
             # self.eta(0, b.gamma) is identical to using first order eta!
-#            b.z = (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
-#                      omega_s * dp0 * sindQ_s)
-            np.copyto(b.z, (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
-                      omega_s * dp0 * sindQ_s))
+            b.z = (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
+                      omega_s * dp0 * sindQ_s)
+#            np.copyto(b.z, (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
+#                      omega_s * dp0 * sindQ_s))
 
             b.x -= self.D_x*b.dp
             b.y -= self.D_y*b.dp
-#            b.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
-#                       (b.beta * c) * z0 * sindQ_s)
-            np.copyto(b.dp,(dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
-                       (b.beta * c) * z0 * sindQ_s))
+            b.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
+                       (b.beta * c) * z0 * sindQ_s)
+#            np.copyto(b.dp,(dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
+#                       (b.beta * c) * z0 * sindQ_s))
             b.x += self.D_x*b.dp
             b.y += self.D_y*b.dp
 
