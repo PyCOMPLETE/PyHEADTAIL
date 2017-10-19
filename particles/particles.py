@@ -76,6 +76,8 @@ class ParticlesView(Printing):
         '''
 #        self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
         self.id = np.array(p_id, copy=False)
+#        print 'My unique ids: ' + str(np.unique(bunch_id))
+        
         self.bunch_id = np.array(bunch_id,copy=False)
 
         # '''Enables to specify a reference z position for every bunch - this is used
