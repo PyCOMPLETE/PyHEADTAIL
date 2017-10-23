@@ -50,9 +50,9 @@ rank = comm.Get_rank()
 #     plt.show()
 # wurstel
 
-n_turns = 3
+n_turns = 2
 chroma = 0
-n_bunches = 5
+n_bunches = 4
 intensity = 2.3e11
 n_macroparticles = 20000
 

@@ -925,7 +925,7 @@ class Particles(Printing):
     
     def split_to_views(self):
         if self._bunch_views is None:
-            print "I'm generateing new views!"
+            print "I'm generating new views!"
             self._bunch_views = self.generate_views()
             
         return self._bunch_views

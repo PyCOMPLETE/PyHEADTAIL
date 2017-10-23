@@ -157,13 +157,12 @@ class Synchrotron(Element):
             
 
 
-            n_levels = int(np.ceil(np.log(len(buckets_for_this_processor))/np.log(2)))
+            n_levels = int(np.ceil(np.log(len(buckets_for_this_processor))/np.log(2)))+1
             tree = []
             for i in range(n_levels):
                 tree.append([])
                 
             for bucket in buckets_for_this_processor:
-                print "I'm generating bucket: " + str(bucket)
                 tree[0].append(self._create_6D_Gaussian_bunch(macroparticlenumber,
                                                            intensity, epsn_x,
                                                            epsn_y, epsn_z,
@@ -181,7 +180,6 @@ class Synchrotron(Element):
             
             for i in range(n_levels):
                 j = n_levels - 1 - i 
-                print "I'm summing level: " + str(j)
                 if len(tree[j]) > 0:
                     if gathering_level is None:
                         gathering_level = j
