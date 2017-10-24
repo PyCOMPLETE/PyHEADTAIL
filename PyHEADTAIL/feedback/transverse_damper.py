@@ -10,19 +10,28 @@ import numpy as np
 from scipy.special import k0
 from scipy.constants import c, e
 
+from . import Element
 
-class TransverseDamper(object):
+class TransverseDamper(Element):
 
-    def __init__(self, dampingrate_x, dampingrate_y):
-        self.gain_x = 2/dampingrate_x
-        self.gain_y = 2/dampingrate_y
+    def __init__(self, dampingrate_x, dampingrate_y, *args, **kwargs):
 
         if dampingrate_x and not dampingrate_y:
+            self.gain_x = 2/dampingrate_x
             self.track = self.track_horizontal
+            self.prints('Damper in V active')
         elif not dampingrate_x and dampingrate_y:
+            self.gain_y = 2/dampingrate_y
             self.track = self.track_vertical
+            self.prints('Damper in Y active')
+        elif not dampingrate_x and not dampingrate_y:
+            self.prints('Dampers not active')
+            self.track = lambda x: 0
         else:
+            self.gain_x = 2/dampingrate_x
+            self.gain_y = 2/dampingrate_y
             self.track = self.track_all
+            self.prints('Dampers active')
 
     def track_horizontal(self, beam):
         beam.xp -= self.gain_x * beam.mean_xp()
