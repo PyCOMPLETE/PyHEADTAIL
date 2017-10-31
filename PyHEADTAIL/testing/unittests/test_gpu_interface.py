@@ -296,7 +296,7 @@ class TestGPUInterface(unittest.TestCase):
         bunch_gpu = self.create_all1_bunch()
         dampingrate_x = 0.01
         dampingrate_y =  0.05
-        damp = TransverseDamper(dampingrate_x, dampingrate_y)
+        damp = TransverseDamper(dampingrate_x, dampingrate_y, printer=SilentPrinter())
         self.assertTrue(self._track_cpu_gpu([damp], bunch_cpu, bunch_gpu),
             'Tracking TransverseDamper CPU/GPU differs')
 

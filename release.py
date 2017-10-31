@@ -388,8 +388,8 @@ def finalise_release():
         release_failed = subprocess.call(
             ['gothub', 'release', '-u', github_user, '-r', github_repo,
              '-t', 'v' + new_version,
-             '-n', '"PyHEADTAIL v{}"'.format(new_version),
-             '-d', '"{}"'.format(message),
+             '-n', 'PyHEADTAIL v{}'.format(new_version),
+             '-d', '{}'.format(message),
              '-c', 'master'])
         if release_failed:
             print ('*** Drafting the release via gothub failed. '

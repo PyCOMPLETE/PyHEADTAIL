@@ -270,8 +270,13 @@ class FrozenGaussianSpaceCharge25D(FieldMapSliceWise):
 
         # update field?
         if self.sigma_rtol is not None:
-            if (np.abs(pm.ensure_CPU(beam.sigma_x()) - self.sigma_x)
-                    > self.sigma_rtol * self.sigma_x):
+            x_too_large = (
+                np.abs(pm.ensure_CPU(beam.sigma_x()) - self.sigma_x)
+                    > self.sigma_rtol * self.sigma_x)
+            y_too_large = (
+                np.abs(pm.ensure_CPU(beam.sigma_y()) - self.sigma_y)
+                    > self.sigma_rtol * self.sigma_y)
+            if x_too_large or y_too_large:
                 self.prints('FrozenGaussianSpaceCharge25D: '
                             'updating field maps...')
                 self.update_field(beam)
