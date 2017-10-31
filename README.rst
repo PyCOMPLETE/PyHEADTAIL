@@ -4,8 +4,27 @@ PyHEADTAIL
 CERN PyHEADTAIL numerical n-body simulation code
 for simulating macro-particle beam dynamics with collective effects.
 
-Installation
-------------
+PyHEADTAIL is written in C and Python.
+Currently, PyHEADTAIL is compatible with Python v2.7.
+
+Installation for Users
+----------------------
+
+For using PyHEADTAIL without modifying the source code,
+we recommend to install the latest version via PyPI:
+
+    $ pip install PyHEADTAIL
+
+Installation for Developers
+---------------------------
+
+For developers of PyHEADTAIL, we recommend to install a stand-alone
+package from the source code using git. For GPU usage, the developer
+version is required (the Makefile is included in the source code
+version only).
+
+We recommend to use the Anaconda package manager (for Python 2.7) to simplify installing.
+You can obtain it from anaconda.org .
 
 Installation of PyHEADTAIL on linux (having git installed)
 is straight forward.
@@ -36,13 +55,7 @@ And there you go, start using PyHEADTAIL!
 
     In [1]: import PyHEADTAIL
 
-    PyHEADTAIL v1.11.2
+    PyHEADTAIL v1.12.2
 
-
--------------------------------------------------------------------------------
-
-Please use the pre-push script ``prepush.py`` if you want to contribute
-to the repository. It only lets you push to the develop and master branch if
-no unit tests fail.
-
-To install (creates a symlink): ``ln -s ../../prepush.py .git/hooks/pre-push``
+For a single installation of PyHEADTAIL we recommended to add
+the PyHEADTAIL path to your PYTHONPATH.
