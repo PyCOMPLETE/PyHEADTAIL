@@ -26,12 +26,15 @@ class TransverseDamper(Element):
             self.prints('Damper in Y active')
         elif not dampingrate_x and not dampingrate_y:
             self.prints('Dampers not active')
-            self.track = lambda x: 0
         else:
             self.gain_x = 2/dampingrate_x
             self.gain_y = 2/dampingrate_y
             self.track = self.track_all
             self.prints('Dampers active')
+
+    # will be overwritten at initialisation
+    def track(self, beam):
+        pass
 
     def track_horizontal(self, beam):
         beam.xp -= self.gain_x * beam.mean_xp()
