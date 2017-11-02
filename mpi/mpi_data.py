@@ -475,15 +475,19 @@ class MpiGatherer(object):
         if self._slicer.config[3] is not None:
             # In this case, we need to bring bunches back to zero
             for i, b in enumerate(self.bunch_list):
-                z_delay = b.mean_z()
-                b.z -= z_delay
+                
+#                For particle by particle comparison to the original code,
+#                the following lines must be uncommented
+#
+#                z_delay = b.mean_z()
+#                b.z -= z_delay
                 s = b.get_slices(self._slicer,
                                  statistics=self._statistical_variables)
-                b.z += z_delay
-                s.z_bins += z_delay
-                # Correct back mean_z which had delay removed
-                if 'mean_z' in self._statistical_variables:
-                    s.mean_z += z_delay
+#                b.z += z_delay
+#                s.z_bins += z_delay
+##                 Correct back mean_z which had delay removed
+#                if 'mean_z' in self._statistical_variables:
+#                    s.mean_z += z_delay
 
                 self.slice_set_list.append(s)
         else:
@@ -532,7 +536,7 @@ class MpiGatherer(object):
 
 
         # determines ids (bucket numbers) for all the bunches
-        self._local_id_list = list(set(superbunch.bunch_id))
+        self._local_id_list = list(set(superbunch.bucket_id))
         self._local_id_list = np.array(sorted(self._local_id_list, reverse=True), dtype=np.int32)
         self._id_list = share_arrays(self._local_id_list)
 
@@ -602,14 +606,14 @@ class BunchDataAccess(object):
     by using same methods as in the case of slice set object (e.g. by using
     bunchdataaccess.mean_x or bunchdataaccess.n_macroparticles_per_slice)
     """
-    def __init__(self, bunch_idx, bunch_id, raw_data, raw_bin_data,
+    def __init__(self, bunch_idx, bucket_id, raw_data, raw_bin_data,
                  variables, n_slices):
         """
         Parameters
         ----------
         bunch_idx : int
             A list index of the bunch
-        bunch_id : int
+        bucket_id : int
             A bucket index of the bunch
         raw_data : NumPy array
             Raw slice set data from mpi.Allgatherv(...), which includes all
@@ -628,7 +632,7 @@ class BunchDataAccess(object):
         self._variables = variables
         self._n_variables = len(variables)
         self._n_slices = n_slices
-        self.bunch_id = bunch_id
+        self.bucket_id = bucket_id
 
         idx_from = self._bunch_idx * (self._n_slices + 1)
         idx_to = (self._bunch_idx+1) * (self._n_slices + 1)

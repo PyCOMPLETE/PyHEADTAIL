@@ -259,7 +259,7 @@ def track_n_turns(machine, bunches, wakes, mpi_settings,simulation_parameters):
     if mpi_settings is not None:
 
         wake_field = WakeField(slicer_for_wakefields, wakes,
-                               circumference=machine.circumference,h_rf=simulation_parameters['h_RF'], h_bunch=simulation_parameters['h_RF'], mpi=mpi_settings)
+                               circumference=machine.circumference, h_bunch=simulation_parameters['h_RF'], mpi=mpi_settings)
 
         machine.one_turn_map.append(wake_field)
 
@@ -288,20 +288,20 @@ def track_n_turns(machine, bunches, wakes, mpi_settings,simulation_parameters):
 mpi_settings_for_testing = [
 #    None,
     'dummy',
-#    'memory_optimized',
+    'memory_optimized',
     'mpi_full_ring_fft',
 #    'loop_minimized',
-    True,
+#    True,
 
     ]
 
 mpi_setting_labels = [
 #    'without wake objects',
     'without wakes',
-#    'memory_optimized',
+    'memory_optimized',
     'mpi_full_ring_fft',
 #    'loop_minimized',
-    'original',
+#    'original',
     'pure_convolution',
     ]
 

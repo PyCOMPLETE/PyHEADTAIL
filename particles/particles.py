@@ -89,19 +89,6 @@ class ParticlesView(Printing):
 
         self._update(coords_n_momenta_dict)
 
-        '''Is just an offset in z added to the bunch particles - upon generation,
-        bunches are always initialized around z=0. This allows to modify the
-        actual z centroid position of the bunch upon initialization. Useful
-        when generating multi-bunch beams.
-
-        TODO: May think of renaming - not entirely clear - better for consitency "z_initial_position"
-
-        '''
-        z_delay = kwargs.pop('z_delay', None)
-        if z_delay and hasattr(self, 'z'):
-            self.z += -self.mean_z()
-            self.z += z_delay
-
     @property
     def x(self):
         return self._x
@@ -486,20 +473,8 @@ class Particles(Printing):
         # self.z_reference_position = z_reference_position
 
         self.update(coords_n_momenta_dict)
-
-        '''Is just an offset in z added to the bunch particles - upon generation,
-        bunches are always initialized around z=0. This allows to modify the
-        actual z centroid position of the bunch upon initialization. Useful
-        when generating multi-bunch beams.
-
-        TODO: May think of renaming - not entirely clear - better for consitency "z_initial_position"
-
-        '''
-        z_delay = kwargs.pop('z_delay', None)
-        if z_delay and hasattr(self, 'z'):
-            self.z += -self.mean_z()
-            self.z += z_delay
-            
+#        if hasattr(self, '_z'):
+#            self._z += -self.mean_z()
         self._bunch_views = None
 
     @property
@@ -782,7 +757,7 @@ class Particles(Printing):
             bucket_id=id) for i, id in enumerate(ids)]
 
         bunches_list = sorted(bunches_list,
-                              key=lambda x: x.mean_z(), reverse=False) # , reverse=False)
+                              key=lambda x: x.bucket_id[0], reverse=True) # , reverse=False)
 
         return bunches_list
     
@@ -821,7 +796,7 @@ class Particles(Printing):
             bucket_id=np.array(self.bucket_id[i_from:i_to],copy=False), p_id=np.array(self.id[i_from:i_to],copy=False)))
 
         bunches_list = sorted(bunches_list,
-                              key=lambda x: x.mean_z(), reverse=False) # , reverse=False)
+                              key=lambda x: x.bucket_id[0], reverse=True) # , reverse=False)
 
         return bunches_list
 

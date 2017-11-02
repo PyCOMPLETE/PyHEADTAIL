@@ -1,8 +1,8 @@
 from __future__ import division
 
-#import sys, os
-#BIN = os.path.expanduser("../../../")
-#sys.path.append(BIN)
+import sys, os
+BIN = os.path.expanduser("../../../")
+sys.path.append(BIN)
 
 import time, copy
 import numpy as np
@@ -69,7 +69,7 @@ def track_n_turns(machine, bunches, mpi_settings, n_turns, n_slices):
 #                           circumference=machine.circumference)
 
         wake_field = WakeField(slicer_for_wakefields, wakes,
-                               circumference=machine.circumference,h_rf=machine.h_RF, h_bunch=int(machine.h_RF/10), mpi=mpi_settings)
+                               circumference=machine.circumference, h_bunch=int(machine.h_RF/10), mpi=mpi_settings)
 
 
         machine.one_turn_map.append(wake_field)
@@ -115,7 +115,7 @@ output_filename = '2performance_data_resonator_n_slices_' + str(n_slices) + '.tx
 mpi_settings_for_testing = [
 #    None,
     'dummy',
-    'memory_optimized',
+#    'memory_optimized',
 
     # if you want to compare accuratyly the loop minimized version to the other versions
     # please uncomment the line marked with 'UNCOMMENT THIS' (~line 370) in wake_kicks.py
@@ -129,7 +129,7 @@ mpi_settings_for_testing = [
 mpi_setting_labels = [
 #    'without wake objects',
     'without wakes',
-    'memory_optimized',
+#    'memory_optimized',
 #    'loop_minimized',
     'mpi_full_ring_fft',
 #    'original',

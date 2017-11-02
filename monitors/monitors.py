@@ -69,7 +69,7 @@ class BunchMonitor(Monitor):
 
         bunch_list = bunches.split_to_views()
         if self.buffer is None:
-            self.local_bunch_ids = [ b.bunch_id[0] for b in bunch_list ]
+            self.local_bunch_ids = [ b.bucket_id[0] for b in bunch_list ]
             self._init_buffer()
 
         self._write_data_to_buffer(bunches)
@@ -127,7 +127,7 @@ class BunchMonitor(Monitor):
 
         bunch_list = bunches.split_to_views()
         for b in bunch_list:
-            bid = b.bunch_id[0]
+            bid = b.bucket_id[0]
             for stats in self.stats_to_store:
                 evaluate_stats = getattr(b, stats)
 
@@ -318,12 +318,11 @@ class SliceMonitor(Monitor):
         bunch (instance of the Particles class), including all the
         statistics that are to be saved. """
         
-        z_delay = bunch.mean_z()
-        bunch.z -= z_delay
+#        z_delay = bunch.mean_z()
+#        bunch.z -= z_delay
         slice_set = bunch.get_slices(self.slicer, statistics=True)
-        bunch.z += z_delay
+#        bunch.z += z_delay
         
-
         # Handle the different statistics quantities, which can
         # either be methods (like mean(), ...) or simply attributes
         # (macroparticlenumber or n_macroparticles_per_slice) of the bunch
@@ -341,7 +340,8 @@ class SliceMonitor(Monitor):
         # slice_set-specific data.
         for stats in self.slice_stats_to_store:
             if stats == 'mean_z':
-                self.buffer_slice[stats][:, write_pos] = getattr(slice_set, stats) + z_delay
+                self.buffer_slice[stats][:, write_pos] = getattr(slice_set, stats)
+#                self.buffer_slice[stats][:, write_pos] = getattr(slice_set, stats)+ z_delay
             else:
                 self.buffer_slice[stats][:, write_pos] = getattr(slice_set, stats)
 

@@ -333,10 +333,10 @@ class WakeKick(Printing):
 
 
         # calculates the mid points of the bunches from the z_bins
-        # the bunch_id could be used here
+        # the bucket_id could be used here
         bunch_mids = []
         for slice_set in all_slice_sets:
-            bunch_mids.append(((slice_set.z_bins[0]+slice_set.z_bins[-1])/2.))
+            bunch_mids.append(-slice_set.bucket * circumference / float(h_bunch))
 
         # calculates normalized bin coordinates for a bin set in the dashed_wake_functions
         raw_z_bins = local_slice_sets[0].z_bins
@@ -354,10 +354,10 @@ class WakeKick(Printing):
             z_values = np.zeros(total_array_length)
 
             # loop of target bunches
-            for j,target_bunch_idx in enumerate(local_bunch_indexes):
+            for j,target_bucket_idx in enumerate(local_bunch_indexes):
 
                 source_mid = mid_i
-                target_mid = bunch_mids[target_bunch_idx]
+                target_mid = bunch_mids[target_bucket_idx]
 
                 # Calculates the distance difference between the source and the target bunches
                 delta_mid = target_mid-source_mid
@@ -463,17 +463,13 @@ class WakeKick(Printing):
 
         self._wake_database = [] # A database of wake function values for all bunches in all turns
 
-        bunch_mids = []
-        for slice_set in all_slice_sets:
-            bunch_mids.append(((slice_set.z_bins[0]+slice_set.z_bins[-1])/2.))
-
         for i, slice_set in enumerate(all_slice_sets):
             # loop of target bunches
             self._idx_data.append([])
-            for j,target_bunch_idx in enumerate(local_bunch_indexes):
+            for j,target_bucket_idx in enumerate(local_bunch_indexes):
 
-                source_id = slice_set.bunch_id
-                target_id = all_slice_sets[target_bunch_idx].bunch_id
+                source_id = slice_set.bucket_id
+                target_id = all_slice_sets[target_bucket_idx].bucket_id
 
                 # Calculates the distance difference between the source and the target bunches
                 delta_id = target_id - source_id
@@ -578,8 +574,8 @@ class WakeKick(Printing):
 
         # Splitted accumulated data for local bunches
         self._accumulated_signal_list = []
-        for j,local_bunch_idx in enumerate(local_bunch_indexes):
-            idx = int(all_slice_sets[local_bunch_idx].bunch_id)
+        for j,local_bucket_idx in enumerate(local_bunch_indexes):
+            idx = int(all_slice_sets[local_bucket_idx].bucket_id)
 
             kick_from = empty_space_per_side + idx * self._n_bins_per_kick
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
@@ -591,7 +587,7 @@ class WakeKick(Printing):
         # individual slice sets in the total moment data array
         self._idx_data = []
         for j, slice_set in enumerate(all_slice_sets):
-            idx = int(slice_set.bunch_id)
+            idx = int(slice_set.bucket_id)
             kick_from = empty_space_per_side + idx * self._n_bins_per_kick
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
             temp_idx_data = (kick_from, kick_to)
@@ -611,7 +607,7 @@ class WakeKick(Printing):
             self._my_data = np.zeros(self._n_bins_per_turn*len(my_wake_turns))
 
             # calculates normalized mid points z-bins, i.e. z-bins for a bunch
-            # are bunch_id * bunch_spacing * z_bin_mids
+            # are bucket_id * bunch_spacing * z_bin_mids
             raw_z_bins = local_slice_sets[0].z_bins
             raw_z_bins = raw_z_bins - ((raw_z_bins[0]+raw_z_bins[-1])/2.)
             bin_width = np.mean(raw_z_bins[1:]-raw_z_bins[:-1])
@@ -664,6 +660,8 @@ class WakeKick(Printing):
 
         # processes moment data for the convolutions
         self._moment.fill(0.)
+#        print 'all_slice_sets[0].mean_x[:20]: '
+#        print all_slice_sets[0].mean_x[:20]
         for i  in xrange(len(all_slice_sets)):
             i_from = self._idx_data[i][0]
             i_to = self._idx_data[i][1]
@@ -708,7 +706,8 @@ class WakeKick(Printing):
         for i, value in enumerate(self._accumulated_signal_list):
             kick_list.append(value[::-1]*self._wake_factor(bunch_list[i]))
 #            real_values.append(value)*self._wake_factor(bunch_list[i]))
-
+#        print 'kick_list[0][:20]: '
+#        print kick_list[0][:20]
         return kick_list
 
 
