@@ -140,8 +140,12 @@ class Synchrotron(Element):
         :param sigma_z:
         :param epsn_z:
         :param filling_scheme:
-            a list of bucket indices for the bunches, which are created
-        :return: A merged bunch for every processor
+            A list of bucket indices, which are filled. The index refers to the
+            harmonic bunch number, h_bunch.
+                h_bunch = circumference/bunch_spacing/c
+                        = h_rf/every_n_cycle_filled
+        :return: Beam/merged bunch, which includes all the particles simulated
+            on this processor.
         """
 
         if filling_scheme is not None:
@@ -155,19 +159,24 @@ class Synchrotron(Element):
 
             print("*** I am rank {:d} - my buckets are {:s}".format(mpi_data.my_rank(), buckets_for_this_processor))
             
-
-
+            # uses a binary tree for merging the generated bunches
+            
+            # a number of levels in the tree
             n_levels = int(np.ceil(np.log(len(buckets_for_this_processor))/np.log(2)))+1
             tree = []
             for i in range(n_levels):
                 tree.append([])
-                
+            
+            # generates the bunches
             for bucket in buckets_for_this_processor:
                 tree[0].append(self._create_6D_Gaussian_bunch(macroparticlenumber,
                                                            intensity, epsn_x,
                                                            epsn_y, epsn_z,
                                                            sigma_z, bucket,
                                                            matched)) 
+                
+                # checks if there are two bunches on the level. In that case
+                # merges the bunches and moves the bunch into the upper level
                 for j in range(n_levels):
                     if len(tree[j]) > 1:
                         tree[j+1].append(tree[j][0]+tree[j][1])
@@ -178,6 +187,8 @@ class Synchrotron(Element):
             bunch = None
             gathering_level = None
             
+            # gathers the merged bunches from all the levels and returns
+            # the beam
             for i in range(n_levels):
                 j = n_levels - 1 - i 
                 if len(tree[j]) > 0:
@@ -186,10 +197,10 @@ class Synchrotron(Element):
                     else:
                         tree[gathering_level][0] = tree[gathering_level][0] + tree[j][0]
                         tree[j][0] = []
-                        
             return tree[gathering_level][0]
             
-# The original solution
+# The original solution, which is orders of magnitude slower than the binary
+# tree approach
 #            
 #            bunches = [self._create_6D_Gaussian_bunch(
 #                macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z, sigma_z, bucket, matched)
@@ -253,7 +264,7 @@ class Synchrotron(Element):
             beta_y=injection_optics['beta_y'],
             D_y=injection_optics['D_y'],
             distribution_z=longitudinal_distribution,
-            bunch_id=bucket, z_delay=-bucket * C / h).generate()
+            bucket_id=bucket).generate()
 
         return bunch
 

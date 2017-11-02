@@ -297,7 +297,7 @@ class WakeKick(Printing):
         return accumulated_signal_list
 
     def _init_loop_minimized(self, all_slice_sets, local_slice_sets, bunch_list,
-                                local_bunch_indexes, circumference, h_rf, h_bunch):
+                                local_bunch_indexes, circumference, h_bunch):
 
         bunch_spacing = circumference/float(h_bunch)
         # total number of bunches
@@ -393,12 +393,12 @@ class WakeKick(Printing):
 
     def _accumulate_loop_minimized(self, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
-                                                 optimization_method, circumference, moments, h_rf, h_bunch):
+                                                 optimization_method, circumference, moments, h_bunch):
 
         if not hasattr(self,'_dashed_wake_functions'):
             self. _init_loop_minimized(all_slice_sets, local_slice_sets,
                                          bunch_list, local_bunch_indexes,
-                                         circumference, h_rf, h_bunch)
+                                         circumference, h_bunch)
 
         # Copies the perivous turn data forward
         np.copyto(self._accumulated_kick[:-1*self._n_bins_per_turn], self._accumulated_kick[self._n_bins_per_turn:])
@@ -426,10 +426,9 @@ class WakeKick(Printing):
         return kick_list
 
     def _init_memory_optimized(self, all_slice_sets, local_slice_sets, bunch_list,
-                                local_bunch_indexes, circumference, h_rf, h_bunch):
+                                local_bunch_indexes, circumference, h_bunch):
 
         bunch_spacing = circumference/float(h_bunch)
-        every_n_bucket_fillted = int(h_rf/h_bunch)
 
         # total number of bunches
         self._n_target_bunches = len(local_bunch_indexes)
@@ -478,7 +477,7 @@ class WakeKick(Printing):
 
                 # Calculates the distance difference between the source and the target bunches
                 delta_id = target_id - source_id
-                delta_id = delta_id/every_n_bucket_fillted
+                delta_id = delta_id
                 if delta_id < 0:
                     # the target bunch must be after the source bunch
                     delta_id = delta_id + h_bunch
@@ -512,12 +511,12 @@ class WakeKick(Printing):
 
     def _accumulate_memory_optimized(self, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
-                                                 optimization_method, circumference, moments, h_rf, h_bunch):
+                                                 optimization_method, circumference, moments, h_bunch):
 
         if not hasattr(self,'_wake_database'):
             self. _init_memory_optimized(all_slice_sets, local_slice_sets,
                                          bunch_list, local_bunch_indexes,
-                                         circumference, h_rf, h_bunch)
+                                         circumference, h_bunch)
 
         # Copies the perivous turn data forward
         np.copyto(self._accumulated_kick[:-1*self._n_bins_per_turn], self._accumulated_kick[self._n_bins_per_turn:])
@@ -549,10 +548,9 @@ class WakeKick(Printing):
         return kick_list
 
     def _init_mpi_full_ring_fft(self, all_slice_sets, local_slice_sets, bunch_list,
-                                local_bunch_indexes, circumference, h_rf, h_bunch):
+                                local_bunch_indexes, circumference, h_bunch):
 
         bunch_spacing = circumference/float(h_bunch)
-        every_n_bucket_filled = int(h_rf/h_bunch)
 
         # total number of bunches
         self._n_target_bunches = len(local_bunch_indexes)
@@ -581,7 +579,7 @@ class WakeKick(Printing):
         # Splitted accumulated data for local bunches
         self._accumulated_signal_list = []
         for j,local_bunch_idx in enumerate(local_bunch_indexes):
-            idx = int(all_slice_sets[local_bunch_idx].bunch_id/every_n_bucket_filled)
+            idx = int(all_slice_sets[local_bunch_idx].bunch_id)
 
             kick_from = empty_space_per_side + idx * self._n_bins_per_kick
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
@@ -593,7 +591,7 @@ class WakeKick(Printing):
         # individual slice sets in the total moment data array
         self._idx_data = []
         for j, slice_set in enumerate(all_slice_sets):
-            idx = int(slice_set.bunch_id/every_n_bucket_filled)
+            idx = int(slice_set.bunch_id)
             kick_from = empty_space_per_side + idx * self._n_bins_per_kick
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
             temp_idx_data = (kick_from, kick_to)
@@ -657,12 +655,12 @@ class WakeKick(Printing):
     def _accumulate_mpi_full_ring_fft(self, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference, moments,
-                                                 h_rf, h_bunch):
+                                                 h_bunch):
 
         if not hasattr(self,'_dashed_wake_functions'):
             self. _init_mpi_full_ring_fft(all_slice_sets, local_slice_sets,
                                          bunch_list, local_bunch_indexes,
-                                         circumference, h_rf, h_bunch)
+                                         circumference, h_bunch)
 
         # processes moment data for the convolutions
         self._moment.fill(0.)
@@ -717,7 +715,7 @@ class WakeKick(Printing):
     def _accumulate_optimized(self, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
-                                                 moments = 'zero', h_rf=None, h_bunch=None):
+                                                 moments = 'zero', h_bunch=None):
 
         if optimization_method == 'loop_minimized':
             # This version mimizes the number of inner loops, by calculating kicks for all target bunches
@@ -734,7 +732,7 @@ class WakeKick(Printing):
             return  self._accumulate_loop_minimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference, moments,
-                                                 h_rf, h_bunch)
+                                                 h_bunch)
             pass
         elif optimization_method == 'memory_optimized':
             # Similar to the loop_minimized version, but wake functions for each source bunch are not
@@ -756,7 +754,7 @@ class WakeKick(Printing):
             return  self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference, moments,
-                                                 h_rf, h_bunch)
+                                                 h_bunch)
 
         elif optimization_method == 'mpi_full_ring_fft':
             # Follows the idea from the previous solutions, but the convolution is calculated over
@@ -780,7 +778,7 @@ class WakeKick(Printing):
             return  self._accumulate_mpi_full_ring_fft(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference, moments,
-                                                 h_rf, h_bunch)
+                                                 h_bunch)
         elif optimization_method == 'dummy':
             if not hasattr(self,'_dummy_values'):
                 self._dummy_values = []
@@ -801,7 +799,7 @@ class ConstantWakeKickX(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a constant wake kick to bunch.xp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -814,7 +812,7 @@ class ConstantWakeKickX(WakeKick):
             constant_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
@@ -828,7 +826,7 @@ class ConstantWakeKickY(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a constant wake kick to bunch.yp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -841,7 +839,7 @@ class ConstantWakeKickY(WakeKick):
             constant_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -854,7 +852,7 @@ class ConstantWakeKickZ(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a constant wake kick to bunch.dp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -867,7 +865,7 @@ class ConstantWakeKickZ(WakeKick):
             constant_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -880,7 +878,7 @@ class DipoleWakeKickX(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a dipolar wake kick to bunch.xp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -894,7 +892,7 @@ class DipoleWakeKickX(WakeKick):
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
                                                  moments='mean_x',
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
@@ -908,7 +906,7 @@ class DipoleWakeKickXY(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a dipolar (cross term x-y) wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing region,
         i.e particles_within_cuts (defined by the slice_set) experience the
@@ -923,7 +921,7 @@ class DipoleWakeKickXY(WakeKick):
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
                                                  moments='mean_y',
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
@@ -937,7 +935,7 @@ class DipoleWakeKickY(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a dipolar wake kick to bunch.yp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -951,7 +949,7 @@ class DipoleWakeKickY(WakeKick):
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
                                                  moments='mean_y',
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
@@ -965,7 +963,7 @@ class DipoleWakeKickYX(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a dipolar (cross term y-x) wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing region,
         i.e particles_within_cuts (defined by the slice_set) experience the
@@ -980,7 +978,7 @@ class DipoleWakeKickYX(WakeKick):
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
                                                  moments='mean_x',
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
@@ -994,7 +992,7 @@ class QuadrupoleWakeKickX(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a quadrupolar wake kick to bunch.xp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -1007,7 +1005,7 @@ class QuadrupoleWakeKickX(WakeKick):
             quadrupole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
@@ -1021,7 +1019,7 @@ class QuadrupoleWakeKickXY(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a quadrupolar (cross term x-y) wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing region,
         i.e particles_within_cuts (defined by the slice_set) experience the
@@ -1035,7 +1033,7 @@ class QuadrupoleWakeKickXY(WakeKick):
             quadrupole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
@@ -1049,7 +1047,7 @@ class QuadrupoleWakeKickY(WakeKick):
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a quadrupolar wake kick to bunch.yp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -1062,7 +1060,7 @@ class QuadrupoleWakeKickY(WakeKick):
             quadrupole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
@@ -1076,7 +1074,7 @@ class QuadrupoleWakeKickYX(WakeKick):
 
      def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              circumference=None, h_rf=None, h_bunch=None):
+              circumference=None, h_bunch=None):
         """Calculates and applies a quadrupolar (cross term y-x) wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing region,
         i.e particles_within_cuts (defined by the slice_set) experience the
@@ -1090,7 +1088,7 @@ class QuadrupoleWakeKickYX(WakeKick):
             quadrupole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, circumference,
-                                                 h_rf=h_rf, h_bunch=h_bunch)
+                                                 h_bunch=h_bunch)
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):

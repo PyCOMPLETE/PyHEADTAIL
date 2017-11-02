@@ -21,7 +21,7 @@ class ParticlesView(Printing):
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma, coords_n_momenta_dict={},
-                 bunch_id=None,p_id=None, **kwargs):
+                 bucket_id=None,p_id=None, **kwargs):
         '''Fundamental parameters:
         - macroparticlenumber
         - charge
@@ -76,9 +76,9 @@ class ParticlesView(Printing):
         '''
 #        self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
         self.id = np.array(p_id, copy=False)
-#        print 'My unique ids: ' + str(np.unique(bunch_id))
+#        print 'My unique ids: ' + str(np.unique(bucket_id))
         
-        self.bunch_id = np.array(bunch_id,copy=False)
+        self.bucket_id = np.array(bucket_id,copy=False)
 
         # '''Enables to specify a reference z position for every bunch - this is used
         # e.g. by the linear RF bucket to specify around which point in z to
@@ -188,22 +188,6 @@ class ParticlesView(Printing):
     @z_beamframe.setter
     def z_beamframe(self, value):
         self.z = value / self.gamma
-
-    # @property
-    # def t_delay(self):
-    #     return self.mean_z()/self.beta/c
-    # @t_delay.setter
-    # def t_delay(self, value):
-    #     self.z += -self.mean_z()
-    #     self.z += value * self.beta * c
-
-    # @property
-    # def z_delay(self):
-    #     return self.mean_z()
-    # @z_delay.setter
-    # def z_delay(self, value):
-    #     self.z += -self.mean_z()
-    #     self.z += value
 
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
@@ -339,133 +323,6 @@ class ParticlesView(Printing):
             setattr(self, '_'+coord, np.array(array,copy=False))
         self.coords_n_momenta.update(coords_n_momenta_dict.keys())
 
-#    def reference(self, coords_n_momenta_dict):
-#        '''Assigns the keys of the dictionary coords_n_momenta_dict as attributes to
-#        this Particles instance and puts references to the corresponding
-#        values. Attention: overwrites existing coordinate / momentum
-#        attributes.
-#
-#        '''
-#        if any(len(v) != self.macroparticlenumber for v in
-#               coords_n_momenta_dict.values()):
-#            raise ValueError("lengths of given phase space coordinate arrays" +
-#                             " do not coincide with self.macroparticlenumber.")
-#        for coord, array in coords_n_momenta_dict.items():
-#            setattr(self, coord, array)
-#        self.coords_n_momenta.update(coords_n_momenta_dict.keys())
-#
-#    def add(self, coords_n_momenta_dict):
-#        '''Add the coordinates and momenta with their according arrays
-#        to the attributes of the Particles instance (via
-#        self.update(coords_n_momenta_dict)). Does not allow existing
-#        coordinate or momentum attributes to be overwritten.
-#        '''
-#        if any(s in self.coords_n_momenta
-#               for s in coords_n_momenta_dict.keys()):
-#            raise ValueError("One or more of the specified coordinates or" +
-#                             " momenta already exist and cannot be added." +
-#                             " Use self.update(...) for this purpose.")
-#        self.update(coords_n_momenta_dict)
-#
-#    def split(self):
-#        '''We're starting to comment this function...;): Caution - we assume here all
-#        subbunches have the same number of macroparticles
-#
-#        '''
-#        ids = set(self.bunch_id)
-#        if len(ids) == 1:
-#            return list([self])
-#
-#        ix = [self.bunch_id == id for id in ids]
-#        bunches_list = [Particles(
-#            macroparticlenumber=self.macroparticlenumber/len(ids),
-#            particlenumber_per_mp=self.particlenumber_per_mp,
-#            charge=self.charge, gamma=self.gamma, mass=self.mass,
-#            circumference=self.circumference,
-#            coords_n_momenta_dict={
-#                coord: array[ix[i]] for coord, array in self.get_coords_n_momenta_dict().items()},
-#            bunch_id=id) for i, id in enumerate(ids)]
-#
-#        bunches_list = sorted(bunches_list,
-#                              key=lambda x: x.mean_z(), reverse=False) # , reverse=False)
-#
-#        return bunches_list
-#
-#    def sort_for(self, attr):
-#        '''Sort the named particle attribute (coordinate / momentum)
-#        array and reorder all particles accordingly.
-#        '''
-#        permutation = np.argsort(getattr(self, attr))
-#        self.reorder(permutation)
-#
-#    def reorder(self, permutation, except_for_attrs=[]):
-#        '''Reorder all particle coordinate and momentum arrays
-#        (in self.coords_n_momenta) and ids except for except_for_attrs
-#        according to the given index array permutation.
-#        '''
-#        to_be_reordered = ['id'] + list(self.coords_n_momenta)
-#        for attr in to_be_reordered:
-#            if attr in except_for_attrs:
-#                continue
-#            reordered = getattr(self, attr)[permutation]
-#            setattr(self, attr, reordered)
-#
-#    def __add__(self, other):
-#        '''Merges two beams.
-#
-#        '''
-#        # print 'Checks still to be added!!!!!!'
-#
-#        self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
-#        other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
-#
-#        result = Particles(
-#            macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
-#            particlenumber_per_mp=self.particlenumber_per_mp,
-#            charge=self.charge, gamma=self.gamma, mass=self.mass,
-#            circumference=self.circumference,
-#            coords_n_momenta_dict={})
-#
-#        for coord in self_coords_n_momenta_dict.keys():
-#            # setattr(result, coord, np.concatenate(
-#            #     (self_coords_n_momenta_dict[coord].copy(),
-#            #      other_coords_n_momenta_dict[coord].copy())))
-#            result.update({coord: np.concatenate(
-#                (self_coords_n_momenta_dict[coord].copy(),
-#                 other_coords_n_momenta_dict[coord].copy()))})
-#
-#        result.id = np.concatenate(
-#            (self.id.copy(), other.id.copy()))
-#        result.bunch_id = np.concatenate(
-#            (self.bunch_id.copy(), other.bunch_id.copy()))
-#
-#        return result
-#
-#    def __radd__(self, other):
-#
-#        if other == 0:
-#            self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
-#            result = Particles(
-#                macroparticlenumber=self.macroparticlenumber,
-#                particlenumber_per_mp=self.particlenumber_per_mp,
-#                charge=self.charge, mass=self.mass, gamma=self.gamma,
-#                circumference=self.circumference,
-#                coords_n_momenta_dict={})
-#
-#            for coord in self_coords_n_momenta_dict.keys():
-#                # setattr(result, coord, np.concatenate(
-#                #     (self_coords_n_momenta_dict[coord].copy(),
-#                #      other_coords_n_momenta_dict[coord].copy())))
-#                result.update({coord: self_coords_n_momenta_dict[coord].copy()})
-#            result.id = self.id.copy()
-#            result.bunch_id = self.bunch_id.copy()
-#        else:
-#            result = self.__add__(other)
-#
-#        return result
-#
-#    # Statistics methods
-
     def mean_x(self):
         return mean(self.x)
 
@@ -557,7 +414,7 @@ class Particles(Printing):
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma, coords_n_momenta_dict={},
-                 bunch_id=0, **kwargs):
+                 bucket_id=0, **kwargs):
         '''Fundamental parameters:
         - macroparticlenumber
         - charge
@@ -611,8 +468,15 @@ class Particles(Printing):
 
         '''
         self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
-        self.bunch_id = np.ones(
-            self.macroparticlenumber, dtype=np.int32) * bunch_id
+        
+        '''The bucket_id refers into the harmonic number of bunches, i.e
+            bunch_location = -bucket_id * circumference / h_bunch
+            bunch_spacing = circumference / h_bunch / c [s]
+            h_bunch = circumference / bunch_spacing / c
+                    = h_RF / every_n_cycle_filled
+        '''
+        self.bucket_id = np.ones(
+            self.macroparticlenumber, dtype=np.int32) * bucket_id
 
         # '''Enables to specify a reference z position for every bunch - this is used
         # e.g. by the linear RF bucket to specify around which point in z to
@@ -903,11 +767,11 @@ class Particles(Printing):
         subbunches have the same number of macroparticles
 
         '''
-        ids = set(self.bunch_id)
+        ids = set(self.bucket_id)
         if len(ids) == 1:
             return list([self])
 
-        ix = [self.bunch_id == id for id in ids]
+        ix = [self.bucket_id == id for id in ids]
         bunches_list = [Particles(
             macroparticlenumber=self.macroparticlenumber/len(ids),
             particlenumber_per_mp=self.particlenumber_per_mp,
@@ -915,7 +779,7 @@ class Particles(Printing):
             circumference=self.circumference,
             coords_n_momenta_dict={
                 coord: array[ix[i]] for coord, array in self.get_coords_n_momenta_dict().items()},
-            bunch_id=id) for i, id in enumerate(ids)]
+            bucket_id=id) for i, id in enumerate(ids)]
 
         bunches_list = sorted(bunches_list,
                               key=lambda x: x.mean_z(), reverse=False) # , reverse=False)
@@ -935,17 +799,17 @@ class Particles(Printing):
         subbunches have the same number of macroparticles
 
         '''
-        ids = set(self.bunch_id)
+        ids = set(self.bucket_id)
         if len(ids) == 1:
             return list([self])
 
-#        ix = [self.bunch_id == id for id in ids]
+#        ix = [self.bucket_id == id for id in ids]
         
         bunches_list = []
         
         for t_id in ids:
-            i_from = np.min(np.where(self.bunch_id == t_id))
-            i_to = np.max(np.where(self.bunch_id == t_id))+1
+            i_from = np.min(np.where(self.bucket_id == t_id))
+            i_to = np.max(np.where(self.bucket_id == t_id))+1
             
             bunches_list.append(ParticlesView(
             macroparticlenumber=self.macroparticlenumber/len(ids),
@@ -954,7 +818,7 @@ class Particles(Printing):
             circumference=self.circumference,
             coords_n_momenta_dict={
                 coord: np.array(array[i_from:i_to],copy=False) for coord, array in self.get_coords_n_momenta_dict().items()},
-            bunch_id=np.array(self.bunch_id[i_from:i_to],copy=False), p_id=np.array(self.id[i_from:i_to],copy=False)))
+            bucket_id=np.array(self.bucket_id[i_from:i_to],copy=False), p_id=np.array(self.id[i_from:i_to],copy=False)))
 
         bunches_list = sorted(bunches_list,
                               key=lambda x: x.mean_z(), reverse=False) # , reverse=False)
@@ -1006,8 +870,8 @@ class Particles(Printing):
 
         result.id = np.concatenate(
             (self.id.copy(), other.id.copy()))
-        result.bunch_id = np.concatenate(
-            (self.bunch_id.copy(), other.bunch_id.copy()))
+        result.bucket_id = np.concatenate(
+            (self.bucket_id.copy(), other.bucket_id.copy()))
 
         return result
 
@@ -1028,7 +892,7 @@ class Particles(Printing):
                 #      other_coords_n_momenta_dict[coord].copy())))
                 result.update({coord: self_coords_n_momenta_dict[coord].copy()})
             result.id = self.id.copy()
-            result.bunch_id = self.bunch_id.copy()
+            result.bucket_id = self.bucket_id.copy()
         else:
             result = self.__add__(other)
 
