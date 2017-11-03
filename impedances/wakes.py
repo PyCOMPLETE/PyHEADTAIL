@@ -317,7 +317,7 @@ class WakeField(Element):
 
         # At the end the superbunch must be rebunched. Without that the kicks
         # do not apply to the next turn
-        self._mpi_gatherer.rebunch(beam)
+        # self._mpi_gatherer.rebunch(beam)
 
     def track_classic(self, beam):
         """Update macroparticle momenta according to wake kick.

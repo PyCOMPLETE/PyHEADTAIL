@@ -153,15 +153,9 @@ class TransverseSegmentMap(Element):
         are close to (1e-3) 0.
         It computes the transverse tracking given the matrix elements Mij
         """
-        
-        bunch_list = beam.split_to_views()
 
-        for i, b in enumerate(bunch_list):
-            b.x, b.xp = M00*b.x + M01*b.xp, M10*b.x + M11*b.xp
-            b.y, b.yp = M22*b.y + M23*b.yp, M32*b.y + M33*b.yp
-
-#        beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
-#        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
+        beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
+        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
 
     def track(self, beam):
         """ The dphi_{x,y} denote the phase advance in the horizontal
@@ -172,40 +166,79 @@ class TransverseSegmentMap(Element):
         all instances of the SegmentDetuner child classes).
         The transport matrix is defined by the coefficients M_{ij}. """
 
-        # Calculate phase advance for this segment (betatron motion in
-        # this segment and incoherent tune shifts introduced by detuning
-        # effects).
-        dphi_x = self.dQ_x
-        dphi_y = self.dQ_y
+        bunch_list = beam.split_to_views()
 
-        for element in self.segment_detuners:
-            detune_x, detune_y = element.detune(beam)
-            dphi_x += detune_x
-            dphi_y += detune_y
+        for i, b in enumerate(bunch_list):
 
-        dphi_x *= 2.*np.pi
-        dphi_y *= 2.*np.pi
+            # Calculate phase advance for this segment (betatron motion in
+            # this segment and incoherent tune shifts introduced by detuning
+            # effects).
+            dphi_x = self.dQ_x
+            dphi_y = self.dQ_y
+            
+            for element in self.segment_detuners:
+                detune_x, detune_y = element.detune(b)
+                dphi_x += detune_x
+                dphi_y += detune_y
+    
+            dphi_x *= 2.*np.pi
+            dphi_y *= 2.*np.pi
+    
+            s_dphi_x, c_dphi_x = sincos(np.atleast_1d(dphi_x))
+            s_dphi_y, c_dphi_y = sincos(np.atleast_1d(dphi_y))
+            # c_dphi_x = cos(dphi_x)
+            # c_dphi_y = cos(dphi_y)
+            # s_dphi_x = sin(dphi_x)
+            # s_dphi_y = sin(dphi_y)
+    
+            # Calculate the matrix M and transport the transverse phase
+            # spaces through the segment.
+            M00 = self.I[0, 0] * c_dphi_x + self.J[0, 0] * s_dphi_x
+            M01 = self.I[0, 1] * c_dphi_x + self.J[0, 1] * s_dphi_x
+            M10 = self.I[1, 0] * c_dphi_x + self.J[1, 0] * s_dphi_x
+            M11 = self.I[1, 1] * c_dphi_x + self.J[1, 1] * s_dphi_x
+            M22 = self.I[2, 2] * c_dphi_y + self.J[2, 2] * s_dphi_y
+            M23 = self.I[2, 3] * c_dphi_y + self.J[2, 3] * s_dphi_y
+            M32 = self.I[3, 2] * c_dphi_y + self.J[3, 2] * s_dphi_y
+            M33 = self.I[3, 3] * c_dphi_y + self.J[3, 3] * s_dphi_y
+    
+            # bound to _track_with_dispersion or _track_without_dispersion
+            self._track(b, M00, M01, M10, M11, M22, M23, M32, M33)
 
-        s_dphi_x, c_dphi_x = sincos(np.atleast_1d(dphi_x))
-        s_dphi_y, c_dphi_y = sincos(np.atleast_1d(dphi_y))
-        # c_dphi_x = cos(dphi_x)
-        # c_dphi_y = cos(dphi_y)
-        # s_dphi_x = sin(dphi_x)
-        # s_dphi_y = sin(dphi_y)
-
-        # Calculate the matrix M and transport the transverse phase
-        # spaces through the segment.
-        M00 = self.I[0, 0] * c_dphi_x + self.J[0, 0] * s_dphi_x
-        M01 = self.I[0, 1] * c_dphi_x + self.J[0, 1] * s_dphi_x
-        M10 = self.I[1, 0] * c_dphi_x + self.J[1, 0] * s_dphi_x
-        M11 = self.I[1, 1] * c_dphi_x + self.J[1, 1] * s_dphi_x
-        M22 = self.I[2, 2] * c_dphi_y + self.J[2, 2] * s_dphi_y
-        M23 = self.I[2, 3] * c_dphi_y + self.J[2, 3] * s_dphi_y
-        M32 = self.I[3, 2] * c_dphi_y + self.J[3, 2] * s_dphi_y
-        M33 = self.I[3, 3] * c_dphi_y + self.J[3, 3] * s_dphi_y
-
-        # bound to _track_with_dispersion or _track_without_dispersion
-        self._track(beam, M00, M01, M10, M11, M22, M23, M32, M33)
+#        # Calculate phase advance for this segment (betatron motion in
+#        # this segment and incoherent tune shifts introduced by detuning
+#        # effects).
+#        dphi_x = self.dQ_x
+#        dphi_y = self.dQ_y
+#        
+#        for element in self.segment_detuners:
+#            detune_x, detune_y = element.detune(beam)
+#            dphi_x += detune_x
+#            dphi_y += detune_y
+#
+#        dphi_x *= 2.*np.pi
+#        dphi_y *= 2.*np.pi
+#
+#        s_dphi_x, c_dphi_x = sincos(np.atleast_1d(dphi_x))
+#        s_dphi_y, c_dphi_y = sincos(np.atleast_1d(dphi_y))
+#        # c_dphi_x = cos(dphi_x)
+#        # c_dphi_y = cos(dphi_y)
+#        # s_dphi_x = sin(dphi_x)
+#        # s_dphi_y = sin(dphi_y)
+#
+#        # Calculate the matrix M and transport the transverse phase
+#        # spaces through the segment.
+#        M00 = self.I[0, 0] * c_dphi_x + self.J[0, 0] * s_dphi_x
+#        M01 = self.I[0, 1] * c_dphi_x + self.J[0, 1] * s_dphi_x
+#        M10 = self.I[1, 0] * c_dphi_x + self.J[1, 0] * s_dphi_x
+#        M11 = self.I[1, 1] * c_dphi_x + self.J[1, 1] * s_dphi_x
+#        M22 = self.I[2, 2] * c_dphi_y + self.J[2, 2] * s_dphi_y
+#        M23 = self.I[2, 3] * c_dphi_y + self.J[2, 3] * s_dphi_y
+#        M32 = self.I[3, 2] * c_dphi_y + self.J[3, 2] * s_dphi_y
+#        M33 = self.I[3, 3] * c_dphi_y + self.J[3, 3] * s_dphi_y
+#
+#        # bound to _track_with_dispersion or _track_without_dispersion
+#        self._track(beam, M00, M01, M10, M11, M22, M23, M32, M33)
 
 
 class TransverseMap(Printing):

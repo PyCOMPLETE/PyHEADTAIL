@@ -759,11 +759,7 @@ class LinearMap(LongitudinalOneTurnMap):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp
         '''
-#        print 'before: beam.x[0:10]:' + str(beam.x[0:10])
-#        print 'before: beam.z[0:10]:' + str(beam.z[0:10])
-#        print 'before: beam.dp[0:10]:' + str(beam.dp[0:10])
         bunch_list = beam.split_to_views()
-#        bunches_list = beam.split()
 
         for i, b in enumerate(bunch_list):
             omega_0 = 2 * pm.pi * b.beta * c / self.circumference
@@ -773,7 +769,6 @@ class LinearMap(LongitudinalOneTurnMap):
             cosdQ_s = pm.cos(dQ_s)  # use np because dQ_s is always a scalar
             sindQ_s = pm.sin(dQ_s)  # use np because dQ_s is always a scalar
 
-#            b.z += b.bucket_id * self.circumference/self.harmonics
             z0 = np.copy(b.z)
             dp0 = np.copy(b.dp)
 #
@@ -781,20 +776,15 @@ class LinearMap(LongitudinalOneTurnMap):
             b.z = (z0 * cosdQ_s - self.eta(0, b.gamma) * b.beta * c /
                       omega_s * dp0 * sindQ_s)
 
-            b.x -= self.D_x*b.dp
-            b.y -= self.D_y*b.dp
+            if self.D_x != 0:
+                b.x -= self.D_x*b.dp
+            if self.D_y != 0:
+                b.y -= self.D_y*b.dp
+            
             b.dp = (dp0 * cosdQ_s + omega_s / self.eta(0, b.gamma) /
                        (b.beta * c) * z0 * sindQ_s)
-            b.x += self.D_x*b.dp
-            b.y += self.D_y*b.dp
-
-#            b.z -= b.bucket_id * self.circumference/self.harmonics
-
-#        beam_new = sum(bunches_list)
-#        beam.update({'x': beam_new.x,
-#                     'y': beam_new.y,
-#                     'z': beam_new.z,
-#                     'xp': beam_new.xp,
-#                     'yp': beam_new.yp,
-#                     'dp': beam_new.dp
-#        })
+            
+            if self.D_x != 0:
+                b.x += self.D_x*b.dp
+            if self.D_y != 0:
+                b.y += self.D_y*b.dp
