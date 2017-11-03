@@ -762,10 +762,10 @@ class LinearMap(LongitudinalOneTurnMap):
 #        print 'before: beam.x[0:10]:' + str(beam.x[0:10])
 #        print 'before: beam.z[0:10]:' + str(beam.z[0:10])
 #        print 'before: beam.dp[0:10]:' + str(beam.dp[0:10])
-        bunches_list = beam.split_to_views()
+        bunch_list = beam.split_to_views()
 #        bunches_list = beam.split()
 
-        for i, b in enumerate(bunches_list):
+        for i, b in enumerate(bunch_list):
             omega_0 = 2 * pm.pi * b.beta * c / self.circumference
             omega_s = self.Q_s * omega_0
 
@@ -774,7 +774,6 @@ class LinearMap(LongitudinalOneTurnMap):
             sindQ_s = pm.sin(dQ_s)  # use np because dQ_s is always a scalar
 
 #            b.z += b.bucket_id * self.circumference/self.harmonics
-            b.z += 0.
             z0 = np.copy(b.z)
             dp0 = np.copy(b.dp)
 #
@@ -790,7 +789,6 @@ class LinearMap(LongitudinalOneTurnMap):
             b.y += self.D_y*b.dp
 
 #            b.z -= b.bucket_id * self.circumference/self.harmonics
-            b.z -= 0.
 
 #        beam_new = sum(bunches_list)
 #        beam.update({'x': beam_new.x,

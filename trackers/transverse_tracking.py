@@ -154,19 +154,14 @@ class TransverseSegmentMap(Element):
         It computes the transverse tracking given the matrix elements Mij
         """
         
-#        beam_x_new = M00*beam.x + M01*beam.xp
-#        beam_xp_new = M10*beam.x + M11*beam.xp
-#        beam_y_new = M22*beam.y + M23*beam.yp
-#        beam_yp_new = M32*beam.y + M33*beam.yp
-#        
-#        np.copyto(beam.x, beam_x_new)
-#        np.copyto(beam.xp, beam_xp_new)
-#        np.copyto(beam.y, beam_y_new)
-#        np.copyto(beam.yp, beam_yp_new)
-        
+        bunch_list = beam.split_to_views()
 
-        beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
-        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
+        for i, b in enumerate(bunch_list):
+            b.x, b.xp = M00*b.x + M01*b.xp, M10*b.x + M11*b.xp
+            b.y, b.yp = M22*b.y + M23*b.yp, M32*b.y + M33*b.yp
+
+#        beam.x, beam.xp = M00*beam.x + M01*beam.xp, M10*beam.x + M11*beam.xp
+#        beam.y, beam.yp = M22*beam.y + M23*beam.yp, M32*beam.y + M33*beam.yp
 
     def track(self, beam):
         """ The dphi_{x,y} denote the phase advance in the horizontal
