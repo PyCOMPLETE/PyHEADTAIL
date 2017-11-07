@@ -29,6 +29,7 @@ class Machine(Synchrotron):
         mass = m_p
         alpha = 53.86**-2
         self.h_RF = 35640
+        self.h_bunch = 3564
 
         p0 = 450e9 * e / c
         p_increment = 0.
@@ -174,7 +175,7 @@ class BeamTracker(object):
     def dump(self):
         self.turn=np.append(self.turn,[self.counter])
         
-        bunch_list = self.beam.split()
+        bunch_list = self.beam.split_to_views()
         
         temp_mean_x = np.zeros(len(bunch_list))
         temp_mean_y = np.zeros(len(bunch_list))
@@ -204,7 +205,7 @@ class BeamTracker(object):
         
         for i, bunch in enumerate(bunch_list):
             if get_ids:
-                self.bunch_ids.append(bunch.bunch_id[0])
+                self.bunch_ids.append(bunch.bucket_id[0])
         
             temp_mean_x[i] = bunch.mean_x()
             temp_mean_y[i] = bunch.mean_y()
@@ -350,6 +351,7 @@ def compare_projections(bunches, labels, n_particles = 300):
     ax_z_y.legend(loc='upper right')
     ax_z_y.set_xlabel('z [m]')
     ax_z_y.set_ylabel('y [mm]')
+    plt.tight_layout()
     plt.show()
 
 def compare_beam_projections(beams, labels):
@@ -378,6 +380,7 @@ def compare_beam_projections(beams, labels):
     ax_z_y.legend(loc='upper right')
     ax_z_y.set_xlabel('z [m]')
     ax_z_y.set_ylabel('y [mm]')
+    plt.tight_layout()
     plt.show()
 
 def particle_position_difference(ref_bunch,bunch):
@@ -460,7 +463,12 @@ def plot_debug_data(processors, source = 'input'):
     ax22 = ax2.twiny()
 
     coeff = 1.
-
+    
+    min_t = None
+    max_t = None
+    
+    min_z = None
+    max_z = None
 
     for i, processor in enumerate(processors):
         if source == 'input':
@@ -475,6 +483,17 @@ def plot_debug_data(processors, source = 'input'):
                     ax2.plot(t*1e9,signal*1e3)
                     ax22.plot(z, np.zeros(len(z)))
                     ax22.cla()
+                    
+                    if (min_t is None) or (np.min(t*1e9)<min_t):
+                        min_t = np.min(t*1e9)
+                    if (max_t is None) or (np.max(t*1e9)>max_t):
+                        max_t = np.max(t*1e9)
+                        
+                    if (min_z is None) or (np.min(z)<min_z):
+                        min_z = np.min(t)
+                    if (max_z is None) or (np.max(z)>max_z):
+                        max_z = np.max(z)
+                    
         elif source == 'output':
             if hasattr(processor, 'output_signal'):
                 if processor.debug:
@@ -487,17 +506,35 @@ def plot_debug_data(processors, source = 'input'):
                     ax2.plot(t*1e9,signal*1e3)
                     ax22.plot(z, np.zeros(len(z)))
                     ax22.cla()
+                    
+                    if (min_t is None) or (np.min(t*1e9)<min_t):
+                        min_t = np.min(t*1e9)
+                    if (max_t is None) or (np.max(t*1e9)>max_t):
+                        max_t = np.max(t*1e9)
+                        
+                    if (min_z is None) or (np.min(z)<min_z):
+                        min_z = np.min(t)
+                    if (max_z is None) or (np.max(z)>max_z):
+                        max_z = np.max(z)
 
     ax1.set_ylim(coeff,0)
-    ax1.set_xticklabels(())
+#    plt.setp(ax1.get_xticklabels(), visible=False)
+#    ax1.set_xticklabels(())
     ax1.legend(loc='upper right')
     ax1.set_ylabel('Signal processor #')
+    ax1.set_xlabel('Time [ns]')
+    ax1.set_xlim(min_t,max_t)
+    ax11.set_xlim(min_z,max_z)
     ax11.set_xlabel('Distance [m]')
 
     ax2.set_xlabel('Time [ns]')
     ax2.set_ylabel('Signal [mm]')
+    ax2.set_xlim(min_t,max_t)
+    ax22.set_xlim(min_z,max_z)
     ax22.set_xticklabels(())
+#    ax1.set_xticklabels(())
 
+    plt.tight_layout()
     plt.show()
     return fig, ax1, ax2
 
@@ -624,5 +661,6 @@ def plot3Dtraces(tracker, labels, show_holes=True, bunches=None,
         ax_damping.legend(loc='upper right')
         
     
+    plt.tight_layout()
     plt.show()
     

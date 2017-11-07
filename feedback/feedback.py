@@ -20,40 +20,65 @@ from scipy.constants import c
 class IdealBunchFeedback(object):
     """ The simplest possible feedback. It corrects a gain fraction of a mean xp/yp value of the bunch.
     """
-    def __init__(self,gain):
+    def __init__(self,gain, multi_bunch=False):
         if isinstance(gain, collections.Container):
             self._gain_x = gain[0]
             self._gain_y = gain[1]
         else:
             self._gain_x = gain
             self._gain_y = gain
+            
+        self.multi_bunch = multi_bunch
 
     def track(self,bunch):
-        bunch.xp -= self._gain_x *bunch.mean_xp()
-        bunch.yp -= self._gain_y*bunch.mean_yp()
+        
+        if self.multi_bunch:
+            bunch_list = bunch.split_to_views()
+            
+            for b in bunch_list:
+                b.xp -= self._gain_x *b.mean_xp()
+                b.yp -= self._gain_y*b.mean_yp()
+        else:
+            bunch.xp -= self._gain_x *bunch.mean_xp()
+            bunch.yp -= self._gain_y*bunch.mean_yp()
 
 
 class IdealSliceFeedback(object):
     """Corrects a gain fraction of a mean xp/yp value of each slice in the bunch."""
-    def __init__(self,gain,slicer):
+    def __init__(self,gain,slicer, multi_bunch=False):
         if isinstance(gain, collections.Container):
             self._gain_x = gain[0]
             self._gain_y = gain[1]
         else:
             self._gain_x = gain
             self._gain_y = gain
+            
+        self.multi_bunch = multi_bunch
 
         self._slicer = slicer
 
     def track(self,bunch):
-        slice_set = bunch.get_slices(self._slicer, statistics = ['mean_xp', 'mean_yp'])
-
-        # Reads a particle index and a slice index for each macroparticle
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
-
-        bunch.xp[p_idx] -= self._gain_x * slice_set.mean_xp[s_idx]
-        bunch.yp[p_idx] -= self._gain_y * slice_set.mean_yp[s_idx]
+        
+        if self.multi_bunch:
+            bunch_list = bunch.split_to_views()
+            
+            for b in bunch_list:
+                slice_set = b.get_slices(self._slicer, statistics = ['mean_xp', 'mean_yp'])
+                p_idx = slice_set.particles_within_cuts
+                s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        
+                b.xp[p_idx] -= self._gain_x * slice_set.mean_xp[s_idx]
+                b.yp[p_idx] -= self._gain_y * slice_set.mean_yp[s_idx]
+        
+        else:
+            slice_set = bunch.get_slices(self._slicer, statistics = ['mean_xp', 'mean_yp'])
+    
+            # Reads a particle index and a slice index for each macroparticle
+            p_idx = slice_set.particles_within_cuts
+            s_idx = slice_set.slice_index_of_particle.take(p_idx)
+    
+            bunch.xp[p_idx] -= self._gain_x * slice_set.mean_xp[s_idx]
+            bunch.yp[p_idx] -= self._gain_y * slice_set.mean_yp[s_idx]
 
 
 def get_local_slice_sets(bunch, slicer, required_variables):
@@ -73,14 +98,19 @@ def get_mpi_slice_sets(superbunch, mpi_gatherer):
     return signal_slice_sets, bunch_slice_sets, bunch_list
 
 
-def generate_parameters(signal_slice_sets, location=0., beta=1.):
+def generate_parameters(signal_slice_sets, location=0., beta=1.,
+                        circumference=None, h_bunch=None):
 
     bin_edges = None
     segment_ref_points = []
 
     for slice_set in signal_slice_sets:
-            edges = -1.*z_bins_to_bin_edges(slice_set.z_bins)/c
-            segment_ref_points.append(-1.*np.mean(slice_set.z_bins)/c)
+            z_bins = np.copy(slice_set.z_bins)
+            if circumference is not None:
+                z_bins -= slice_set.bucket_id*circumference/float(h_bunch)
+        
+            edges = -1.*z_bins_to_bin_edges(z_bins)/c
+            segment_ref_points.append(-1.*np.mean(z_bins)/c)
             if bin_edges is None:
                 bin_edges = np.copy(edges)
             else:
@@ -198,7 +228,8 @@ class OneboxFeedback(object):
 
     def __init__(self, gain, slicer, processors_x, processors_y,
                  pickup_axis='divergence', kicker_axis=None, mpi=False,
-                 phase_x=None, phase_y=None, beta_x=1., beta_y=1.):
+                 phase_x=None, phase_y=None, beta_x=1., beta_y=1.,
+                 circumference=None, h_bunch=None):
         """
         Parameters
         ----------
@@ -249,6 +280,14 @@ class OneboxFeedback(object):
 
         self._beta_x = beta_x
         self._beta_y = beta_y
+        
+        if mpi:
+            if (circumference is None) or (h_bunch is None):
+                raise ValueError("""Both circumference and h_bunch must be
+                                 given if the feedback module is used in the
+                                 mpi mode""")
+        self._circumference = circumference
+        self._h_bunch = h_bunch
 
 
         self._pickup_axis = pickup_axis
@@ -308,13 +347,17 @@ class OneboxFeedback(object):
                 self._local_bunch_indexes = [0]
 
         if (self._parameters_x is None) or (self._signal_x is None):
-            self._parameters_x = generate_parameters(signal_slice_sets)
+            self._parameters_x = generate_parameters(signal_slice_sets,
+                                                     circumference=self._circumference,
+                                                     h_bunch=self._h_bunch)
             n_segments = self._parameters_x['n_segments']
             n_bins_per_segment = self._parameters_x['n_bins_per_segment']
             self._signal_x = np.zeros(n_segments * n_bins_per_segment)
 
         if (self._parameters_y is None) or (self._signal_y is None):
-            self._parameters_y = generate_parameters(signal_slice_sets)
+            self._parameters_y = generate_parameters(signal_slice_sets,
+                                                     circumference=self._circumference,
+                                                     h_bunch=self._h_bunch)
             n_segments = self._parameters_y['n_segments']
             n_bins_per_segment = self._parameters_y['n_bins_per_segment']
             self._signal_y = np.zeros(n_segments * n_bins_per_segment)
@@ -370,7 +413,8 @@ class PickUp(object):
     """
 
     def __init__(self, slicer, processors_x, processors_y, location_x, beta_x,
-                 location_y, beta_y, mpi=False, phase_x=None, phase_y=None):
+                 location_y, beta_y, mpi=False, phase_x=None, phase_y=None,
+                 circumference=None, h_bunch=None):
         """
         Parameters
         ----------
@@ -424,6 +468,14 @@ class PickUp(object):
         self._beta_x = beta_x
         self._location_y = location_y
         self._beta_y = beta_y
+        
+        if mpi:
+            if (circumference is None) or (h_bunch is None):
+                raise ValueError("""Both circumference and h_bunch must be
+                                 given if the feedback module is used in the
+                                 mpi mode""")
+        self._circumference = circumference
+        self._h_bunch = h_bunch
 
         self._parameters_x = None
         self._parameters_y = None
@@ -452,13 +504,21 @@ class PickUp(object):
 
 
         if (self._parameters_x is None) or (self._signal_x is None):
-            self._parameters_x = generate_parameters(signal_slice_sets, self._location_x, self._beta_x)
+            self._parameters_x = generate_parameters(signal_slice_sets,
+                                                     self._location_x,
+                                                     self._beta_x,
+                                                     self._circumference,
+                                                     self._h_bunch)
             n_segments = self._parameters_x['n_segments']
             n_bins_per_segment = self._parameters_x['n_bins_per_segment']
             self._signal_x = np.zeros(n_segments * n_bins_per_segment)
 
         if (self._parameters_y is None) or (self._signal_y is None):
-            self._parameters_y = generate_parameters(signal_slice_sets, self._location_y, self._beta_y)
+            self._parameters_y = generate_parameters(signal_slice_sets,
+                                                     self._location_y,
+                                                     self._beta_y,
+                                                     self._circumference,
+                                                     self._h_bunch)
             n_segments = self._parameters_y['n_segments']
             n_bins_per_segment = self._parameters_y['n_bins_per_segment']
             self._signal_y = np.zeros(n_segments * n_bins_per_segment)
@@ -545,7 +605,6 @@ class Kicker(object):
         self._parameters_y = None
         self._signal_x = None
         self._signal_y = None
-
 
         if isinstance(combiner, (str,unicode)):
             if combiner == 'vector_sum':

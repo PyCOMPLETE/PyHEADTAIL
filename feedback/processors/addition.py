@@ -3,7 +3,9 @@ import numpy as np
 from scipy.constants import c, pi
 from ..core import default_macros
 
-"""Signal processors based on addition operation.
+""" This file contains dimensionless impulse responses function for different
+analog filters, which can be used in different signal processor implementations
+(e.g. based on convolution and linear transformation).
 
 @author Jani Komppula
 @date: 11/10/2017
