@@ -310,14 +310,48 @@ class WakeField(Element):
         local_bunch_indexes = self._mpi_gatherer.local_bunch_indexes
 
 
+        if not hasattr(self, '_turns_on_this_proc'):
+            kick_turn_data = []
+            
+            total_n_turns = 0
+            for kick in self.wake_kicks:
+                kick_turn_data.append(np.arange(total_n_turns,
+                                                 total_n_turns+kick.n_turns_wake))
+                total_n_turns += kick.n_turns_wake
+            
+            all_convolutions = np.arange(total_n_turns)
+            my_convolutions = mpi_data.my_tasks(all_convolutions)
+    
+            self._turns_on_this_proc = []
+    
+            for i in range(len(self.wake_kicks)):
+                calculate_on_this_proc = []
+                for j in my_convolutions:
+                    if j in kick_turn_data[i]:
+                        for k, val  in enumerate(kick_turn_data[i]):
+                            if val == j:
+                                calculate_on_this_proc.append(k)
+                                    
+                self._turns_on_this_proc.append(calculate_on_this_proc)
+            
+        # Calculates wakes fields for different turns in parallel if possible.
+        # Because a wake field calculation for one turn is difficult to
+        # parallelize, the parallelization occurs by splitting different turns
+        # in different kicks to different processors. The wake fields from
+        # different tursn are gathered when the kicks are applied.
+        
+        for kick, turns in zip(self.wake_kicks, self._turns_on_this_proc):
+            kick.calculate_field(bunch_list, all_slice_sets,local_slice_sets,
+                                 local_bunch_indexes, optimization_method,
+                                 self.circumference, self.h_bunch,turns)
+            
+        # ensures that everything is calculated, i.e. synchronizes threads
+        mpi_data.share_numbers(1)
+        
         for kick in self.wake_kicks:
             kick.apply(bunch_list, all_slice_sets,local_slice_sets,
                                  local_bunch_indexes, optimization_method,
                                  self.circumference, self.h_bunch)
-
-        # At the end the superbunch must be rebunched. Without that the kicks
-        # do not apply to the next turn
-        # self._mpi_gatherer.rebunch(beam)
 
     def track_classic(self, beam):
         """Update macroparticle momenta according to wake kick.

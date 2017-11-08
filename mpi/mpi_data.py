@@ -307,8 +307,16 @@ class MpiArrayShare(object):
 
         self._segment_sizes = None
         self._segment_offsets = None
+        
+    @property
+    def segment_sizes(self):
+        return self._segment_sizes
+        
+    @property
+    def segment_offsets(self):
+        return self._segment_offsets
 
-    def _init_sharing(self, local_data):
+    def _init_sharing(self, local_data, all_data):
         self._numpy_type = local_data.dtype
         self._mpi_type = numpy_type_to_mpi_type(self._numpy_type)
 
@@ -316,6 +324,9 @@ class MpiArrayShare(object):
         self._segment_sizes = share_numbers(local_segment_size)
         self._segment_offsets = np.zeros(self._mpi_size)
         self._segment_offsets[1:] = np.cumsum(self._segment_sizes)[:-1]
+        
+        if all_data is None:
+            all_data = np.zeros(np.sum(self._segment_sizes))
 
     def share(self, local_data, all_data):
         """ A method which is called, when data is shared
@@ -328,7 +339,7 @@ class MpiArrayShare(object):
                 An array where the all data from all processors are stored
         """
         if self._segment_sizes is None:
-            self._init_sharing(local_data)
+            self._init_sharing(local_data, all_data)
 
         mpi_input = [all_data,
                      self._segment_sizes,
