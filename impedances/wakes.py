@@ -244,7 +244,8 @@ class WakeField(Element):
 
 
         for kick in self.wake_kicks:
-            kick.apply(self._mpi_gatherer.bunch_list, self.slice_set_deque)
+            kick.apply(self._mpi_gatherer.bunch_list, self.slice_set_deque,
+                       circumference=self.circumference, h_bunch=self.h_bunch)
 
         # At the end the superbunch must be rebunched. Without that the kicks
         # do not apply to the next turn

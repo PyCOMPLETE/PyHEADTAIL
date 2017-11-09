@@ -226,7 +226,7 @@ class WakeKick(Printing):
         # print betas_list
 
         # Check for strictly descending order
-        z_delays = [b.mean_z() for b in bunches]
+        z_delays = [b.mean_z()+offset for b, offset in zip(bunches, bunch_offset)]
         assert all(later <= earlier
                    for later, earlier in zip(z_delays, z_delays[1:])), \
             ("Bunches are not ordered. Make sure that bunches are in" +
@@ -859,8 +859,12 @@ class ConstantWakeKickX(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
+            
             constant_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets)
+                    bunch_list, all_slice_sets, bunch_offset=offsets)
         else:
             constant_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -897,8 +901,12 @@ class ConstantWakeKickY(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
+                
             constant_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets)
+                    bunch_list, all_slice_sets, bunch_offset=offsets)
         else:
             constant_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -934,8 +942,11 @@ class ConstantWakeKickZ(WakeKick):
 
         """
         if optimization_method is None:
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
             constant_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets)
+                    bunch_list, all_slice_sets, bunch_offset=offsets)
+            offsets = []
         else:
             constant_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -971,8 +982,12 @@ class DipoleWakeKickX(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
+                
             dipole_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets, moments='mean_x')
+                    bunch_list, all_slice_sets, moments='mean_x', bunch_offset=offsets)
         else:
             dipole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -1011,8 +1026,11 @@ class DipoleWakeKickXY(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
             dipole_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets, moments='mean_y')
+                    bunch_list, all_slice_sets, moments='mean_y', bunch_offset=offsets)
         else:
             dipole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -1050,8 +1068,11 @@ class DipoleWakeKickY(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
             dipole_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets, moments='mean_y')
+                    bunch_list, all_slice_sets, moments='mean_y', bunch_offset=offsets)
         else:
             dipole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -1090,8 +1111,11 @@ class DipoleWakeKickYX(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
             dipole_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets, moments='mean_x')
+                    bunch_list, all_slice_sets, moments='mean_x', bunch_offset=offsets)
         else:
             dipole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -1129,8 +1153,11 @@ class QuadrupoleWakeKickX(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
             quadrupole_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets)
+                    bunch_list, all_slice_sets, bunch_offset=offsets)
         else:
             quadrupole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -1168,8 +1195,11 @@ class QuadrupoleWakeKickXY(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
             quadrupole_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets)
+                    bunch_list, all_slice_sets, bunch_offset=offsets)
         else:
             quadrupole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -1206,8 +1236,11 @@ class QuadrupoleWakeKickY(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
             quadrupole_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets)
+                    bunch_list, all_slice_sets, bunch_offset=offsets)
         else:
             quadrupole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
@@ -1245,8 +1278,11 @@ class QuadrupoleWakeKickYX(WakeKick):
 
         """
         if optimization_method is None:
+            offsets = []
+            for b in bunch_list:
+                offsets.append(-b.bucket_id[0]*circumference/float(h_bunch))
             quadrupole_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets)
+                    bunch_list, all_slice_sets, bunch_offset=offsets)
         else:
             quadrupole_kick = self._accumulate_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,

@@ -75,8 +75,8 @@ class SliceSet(Printing):
     '''
 
     def __init__(self, z_bins, slice_index_of_particle, mode,
-                 n_macroparticles_per_slice=None,
-                 beam_parameters={}):
+                 n_macroparticles_per_slice=None, beam_parameters={},
+                 circumference=None, h_bunch=None, bucket_id=None):
         '''Is intended to be created by the Slicer factory method.  A SliceSet is given
         a set of intervals defining the slicing region and the histogram over
         the thereby defined slices.
@@ -115,6 +115,10 @@ class SliceSet(Printing):
 
         '''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
+        
+        self.circumference = circumference
+        self.h_bunch = h_bunch
+        self.bucket_id = bucket_id 
 
         for p_name, p_value in beam_parameters.iteritems():
             if hasattr(self, p_name):
@@ -138,7 +142,12 @@ class SliceSet(Printing):
 
     @property
     def t_centers(self):
-        return self.convert_to_time(self.z_centers)
+        if (self.circumference is not None) and (self.h_bunch is not None):
+            offset = -self.bucket_id*self.circumference/float(self.h_bunch)
+        else:
+            offset = 0.
+        
+        return self.convert_to_time(self.z_centers+offset)
 
     @property
     def n_slices(self):
@@ -317,13 +326,16 @@ class Slicer(Printing):
 
     @property
     def config(self):
-        return (self.mode, self.n_slices, self.n_sigma_z, self.z_cuts)
+        return (self.mode, self.n_slices, self.n_sigma_z, self.z_cuts,
+                self.circumference, self.h_bunch)
     @config.setter
     def config(self, value):
         self.mode = value[0]
         self.n_slices = value[1]
         self.n_sigma_z = value[2]
         self.z_cuts = value[3]
+        self.circumference = value[4]
+        self.h_bunch = value[5]
         if(self.z_cuts != None and self.z_cuts[0] >= self.z_cuts[1]):
             self.warns('Slicer.config: z_cut_tail >= z_cut_head,' +
                        ' this leads to negative ' +
@@ -355,6 +367,8 @@ class Slicer(Printing):
         sliceset_kwargs = self.compute_sliceset_kwargs(beam)
         sliceset_kwargs['beam_parameters'] = (
             self.extract_beam_parameters(beam))
+        sliceset_kwargs['circumference'] = self.circumference
+        sliceset_kwargs['h_bunch'] = self.h_bunch
         sliceset = SliceSet(**sliceset_kwargs)
         if 'statistics' in kwargs:
             self.add_statistics(sliceset, beam, kwargs['statistics'])
@@ -437,10 +451,17 @@ class Slicer(Printing):
                           'epsn_x', 'epsn_y', 'epsn_z',
                           'eff_epsn_x', 'eff_epsn_y']
         for stat in statistics:
+            
+            avail_statistics = ['mean_x', 'mean_y', 'mean_z',
+                          'mean_xp', 'mean_yp', 'mean_dp',
+                          'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp',
+                          'epsn_x', 'epsn_y', 'epsn_z',
+                          'eff_epsn_x', 'eff_epsn_y']
             if not hasattr(sliceset, stat):
-                stat_caller = getattr(self, '_' + stat)
-                values = stat_caller(sliceset, beam)
-                setattr(sliceset, stat, values)
+                if stat in avail_statistics:
+                    stat_caller = getattr(self, '_' + stat)
+                    values = stat_caller(sliceset, beam)
+                    setattr(sliceset, stat, values)
 
     def _mean_x(self, sliceset, beam):
         return self._mean(sliceset, beam.x)
@@ -520,7 +541,8 @@ class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
 
     def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
-                 z_sample_points=None, *args, **kwargs):
+                 z_sample_points=None, circumference=None, h_bunch=None,
+                 *args, **kwargs):
         '''
         Return a UniformBinSlicer object. Set and store the
         corresponding slicing configuration in self.config.
@@ -538,7 +560,7 @@ class UniformBinSlicer(Slicer):
                        " combination of z_cuts and z_sampling_points.")
             n_slices, z_cuts = self._get_slicing_from_z_sample_points(
                 z_sample_points, z_cuts)
-        self.config = (mode, n_slices, n_sigma_z, z_cuts)
+        self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
 
     def _get_slicing_from_z_sample_points(self, z_sample_points, z_cuts=None):
         '''
@@ -599,7 +621,8 @@ class UniformBinSlicer(Slicer):
 
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
-                    mode='uniform_bin')
+                    mode='uniform_bin',
+                    bucket_id=beam.bucket_id[0])
 
 
 class UniformChargeSlicer(Slicer):
@@ -607,7 +630,8 @@ class UniformChargeSlicer(Slicer):
     slicing region.
     '''
 
-    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None, *args, **kwargs):
+    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
+                 circumference=None, h_bunch=None, *args, **kwargs):
         '''
         Return a UniformChargeSlicer object. Set and store the
         corresponding slicing configuration in self.config .
@@ -618,7 +642,7 @@ class UniformChargeSlicer(Slicer):
             raise ValueError("Both arguments n_sigma_z and z_cuts are" +
                              " given while only one is accepted!")
         mode = 'uniform_charge'
-        self.config = (mode, n_slices, n_sigma_z, z_cuts)
+        self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
 
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
@@ -670,4 +694,5 @@ class UniformChargeSlicer(Slicer):
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
                     mode='uniform_charge',
-                    n_macroparticles_per_slice=n_part_per_slice)
+                    n_macroparticles_per_slice=n_part_per_slice,
+                    bucket_id=beam.bucket_id[0])

@@ -252,7 +252,8 @@ def track_n_turns(machine, bunches, wakes, mpi_settings,simulation_parameters):
 
     # CREATE BEAM SLICERS
     # ===================
-    slicer_for_wakefields = UniformBinSlicer(1, z_cuts=(-4., 4.))
+    slicer_for_wakefields = UniformBinSlicer(1, z_cuts=(-4., 4.),
+                               circumference=machine.circumference, h_bunch=simulation_parameters['h_RF'])
 
     # CREATE WAKES
     # ============
@@ -288,20 +289,20 @@ def track_n_turns(machine, bunches, wakes, mpi_settings,simulation_parameters):
 mpi_settings_for_testing = [
 #    None,
     'dummy',
-    'memory_optimized',
+#    'memory_optimized',
     'mpi_full_ring_fft',
 #    'loop_minimized',
-#    True,
+    True,
 
     ]
 
 mpi_setting_labels = [
 #    'without wake objects',
     'without wakes',
-    'memory_optimized',
+#    'memory_optimized',
     'mpi_full_ring_fft',
 #    'loop_minimized',
-#    'original',
+    'original',
     'pure_convolution',
     ]
 
