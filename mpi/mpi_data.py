@@ -647,6 +647,11 @@ class BunchDataAccess(object):
             the bunches.
         n_slices : number
             A number of slices per bunch
+        circumference : number
+            A circumference of the simulated accelerator
+        h_bunch : number
+            A harmonic bunch number of the simulated accelerator, i.e.
+            the maximum number bunches if every bucket is filled without gaps.
 
         """
 
@@ -705,6 +710,11 @@ class TotalDataAccess(object):
             A total number of bunches in all the processors
         id_list : list
             A list of bucket indexes for all the bunches
+        circumference : number
+            A circumference of the simulated accelerator
+        h_bunch : number
+            A harmonic bunch number of the simulated accelerator, i.e.
+            the maximum number bunches if every bucket is filled without gaps.
         """
 
         self.circumference = circumference
