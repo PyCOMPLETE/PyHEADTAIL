@@ -310,137 +310,6 @@ class WakeKick(Printing):
 
         return accumulated_signal_list
 
-    def _init_loop_minimized(self, all_slice_sets, local_slice_sets,
-                             bunch_list, local_bunch_indexes):
-        
-        circumference = local_slice_sets[0].circumference
-        h_bunch = local_slice_sets[0].h_bunch
-        
-        bunch_spacing = circumference/float(h_bunch)
-        # total number of bunches
-        self._n_target_bunches = len(local_bunch_indexes)
-        n_source_bunches = len(all_slice_sets)
-
-        # number of slices per bunch
-        n_slices = len(all_slice_sets[0].mean_x)
-
-        # Valid convolution of the noncontinous (partially defined) data requires that
-        # the length of the wake function is at lest twice of the length of the bunch.
-        # Thus, extra 'slices' have been added to the both sides of the bunch to
-        # the dashed_wake_function
-
-        # number of extra slices added to each side of the bunch
-        empty_space_per_side = int(math.ceil(n_slices/2.))
-
-        # total number of bins per bunch in dashed_wake_functions
-        self._n_bins_per_kick = (n_slices + 2*empty_space_per_side)
-        # total length of the dashed_wake_functions
-        total_array_length = self.n_turns_wake * self._n_target_bunches * self._n_bins_per_kick
-
-        self._n_bins_per_turn = self._n_target_bunches * self._n_bins_per_kick
-
-        self._dashed_wake_functions = []
-
-        # we have only one list
-        self._accumulated_signal_list = []
-        self._accumulated_kick = np.zeros(total_array_length)
-
-        for i in xrange(n_source_bunches):
-            self._dashed_wake_functions.append(np.zeros(total_array_length))
-
-
-        # calculates the mid points of the bunches from the z_bins
-        # the bucket_id could be used here
-        bunch_mids = []
-        for slice_set in all_slice_sets:
-            bunch_mids.append(-slice_set.bucket * circumference / float(h_bunch))
-
-        # calculates normalized bin coordinates for a bin set in the dashed_wake_functions
-        raw_z_bins = local_slice_sets[0].z_bins
-        raw_z_bins = raw_z_bins - ((raw_z_bins[0]+raw_z_bins[-1])/2.)
-        bin_width = np.mean(raw_z_bins[1:]-raw_z_bins[:-1])
-        original_z_bin_mids = (raw_z_bins[1:]+raw_z_bins[:-1])/2.
-        z_bin_mids = original_z_bin_mids[0] - np.linspace(empty_space_per_side, 1,
-                                        empty_space_per_side)*bin_width
-        z_bin_mids = np.append(z_bin_mids, original_z_bin_mids)
-        z_bin_mids = np.append(z_bin_mids, original_z_bin_mids[-1] + np.linspace(1,
-                               empty_space_per_side, empty_space_per_side)*bin_width)
-
-        # loop over source buches
-        for i, mid_i in enumerate(bunch_mids):
-            z_values = np.zeros(total_array_length)
-
-            # loop of target bunches
-            for j,target_bucket_idx in enumerate(local_bunch_indexes):
-
-                source_mid = mid_i
-                target_mid = bunch_mids[target_bucket_idx]
-
-                # Calculates the distance difference between the source and the target bunches
-                delta_mid = target_mid-source_mid
-                delta_mid = -1.*delta_mid
-                if delta_mid < 0.:
-                    # the target bunch must be after the source bunch
-                    delta_mid += circumference
-
-                # UNCOMMENT THIS if you want to compare accurately the different wake kick
-                # approaches (because of small rounding errors)
-#                delta_mid = bunch_spacing*round(delta_mid/bunch_spacing)
-
-                if i == 0:
-                    kick_from = empty_space_per_side + j * self._n_bins_per_kick
-                    kick_to = empty_space_per_side + j * self._n_bins_per_kick + n_slices
-                    self._accumulated_signal_list.append(np.array(self._accumulated_kick[kick_from:kick_to], copy=False))
-
-                # z values for the wake functions
-                for k in xrange(self.n_turns_wake):
-                    idx_from = k * self._n_bins_per_turn + j * self._n_bins_per_kick
-                    idx_to = k * self._n_bins_per_turn + (j + 1) * self._n_bins_per_kick
-
-                    offset = (float(k) * circumference + delta_mid)
-                    temp_mids = -z_bin_mids+offset
-                    np.copyto(z_values[idx_from:idx_to],temp_mids)
-
-            # calculates wake function values for each source bunch
-            wake = np.zeros(len(z_values))
-            value_map = (z_values>0.)
-            wake[value_map] =  self.wake_function(-z_values[value_map]/c, beta=local_slice_sets[0].beta)
-            np.copyto(self._dashed_wake_functions[i], wake)
-
-
-    def _accumulate_loop_minimized(self, all_slice_sets, local_slice_sets,
-                                   bunch_list, local_bunch_indexes,
-                                   optimization_method, moments):
-
-        if not hasattr(self,'_dashed_wake_functions'):
-            self. _init_loop_minimized(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes)
-
-        # Copies the perivous turn data forward
-        np.copyto(self._accumulated_kick[:-1*self._n_bins_per_turn], self._accumulated_kick[self._n_bins_per_turn:])
-        np.copyto(self._accumulated_kick[-1*self._n_bins_per_turn:], np.zeros(self._n_bins_per_turn))
-
-        # Acculumates kick data from the previous turn data and new kicks caused from each circulating bunch
-        for i, wake in enumerate(self._dashed_wake_functions):
-
-            if moments == 'zero':
-                moment = all_slice_sets[i].n_macroparticles_per_slice
-            elif moments == 'mean_x':
-                moment = all_slice_sets[i].mean_x*all_slice_sets[i].n_macroparticles_per_slice
-            elif moments == 'mean_y':
-                moment = all_slice_sets[i].mean_y*all_slice_sets[i].n_macroparticles_per_slice
-            else:
-                raise ValueError("Please specify moments as either " +
-                                 "'zero', 'mean_x' or 'mean_y'!")
-
-            np.copyto(self._accumulated_kick, self._accumulated_kick+np.convolve(wake, moment, 'same'))
-
-        kick_list = []
-        for i, value in enumerate(self._accumulated_signal_list):
-            kick_list.append(value*self._wake_factor(bunch_list[i]))
-
-        return kick_list
-
     def _init_memory_optimized(self, all_slice_sets, local_slice_sets, bunch_list,
                                 local_bunch_indexes):
         
@@ -745,23 +614,7 @@ class WakeKick(Printing):
                               bunch_list, local_bunch_indexes, 
                               optimization_method, moments='zero'):
 
-        if optimization_method == 'loop_minimized':
-            # This version mimizes the number of inner loops, by calculating kicks for all target bunches
-            # in one go. This is done by calculating a convolution between one source bunch and a wake function
-            # covering all target bunches in all turns. The size of the wake function is minimized by removing
-            # the values from the empty spaces between the target bunches.
-            #
-            # Assumptions:
-            #   -slicing identical for each bunch, but bunch spacing can vary arbitrarily
-            #
-            # Drawbacks:
-            #   -requires a lot of memory, which limits this solution to ~100 bunches (for 100 slices per bunch)
-
-            return  self._accumulate_loop_minimized(all_slice_sets, local_slice_sets,
-                                                 bunch_list, local_bunch_indexes,
-                                                 optimization_method, moments)
-            pass
-        elif optimization_method == 'memory_optimized':
+        if optimization_method == 'memory_optimized':
             # Similar to the loop_minimized version, but wake functions for each source bunch are not
             # keep in memory, but they are reconstructed during accumulation from precalculated
             # wake functions by assuming constant bunch spacing over the ring. By using this,
@@ -821,10 +674,7 @@ class WakeKick(Printing):
                               optimization_method, moments='zero',
                               turns_on_this_proc=None):
 
-        if optimization_method == 'loop_minimized':
-            pass
-        
-        elif optimization_method == 'memory_optimized':
+        if optimization_method == 'memory_optimized':
             pass
 
         elif optimization_method == 'mpi_full_ring_fft':
