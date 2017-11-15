@@ -419,6 +419,10 @@ class MpiGatherer(object):
         self.slice_set_list = None
 
         self._n_slices = None
+        
+        # accelerator parameters
+        self._circumference = None
+        self._h_bunch = None
 
         # the names of the variables in the slice set, which are shared between
         # processors
@@ -534,6 +538,9 @@ class MpiGatherer(object):
 
         self._n_local_bunches = len(slice_set_list)
         self._n_slices = slice_set_list[0].n_slices
+        
+        self._circumference = slice_set_list[0].circumference
+        self._h_bunch = slice_set_list[0].h_bunch
 
         # determines how many bunches per processor are simulated
         self._bunch_distribution = share_numbers(self._n_local_bunches)
@@ -582,7 +589,9 @@ class MpiGatherer(object):
                                           self._required_variables,
                                           self._n_slices,
                                           self._n_bunches,
-                                          self._id_list)
+                                          self._id_list,
+                                          self._circumference,
+                                          self._h_bunch)
 
         for idx in xrange(self._n_bunches):
             self.bunch_by_bunch_data.append(
@@ -590,7 +599,9 @@ class MpiGatherer(object):
                                 self._raw_data,
                                 self._raw_bin_data,
                                 self._required_variables,
-                                self._n_slices))
+                                self._n_slices,
+                                self._circumference,
+                                self._h_bunch))
 
     def _fill_output_buffer(self, superbunch, slice_set_list):
 
@@ -618,7 +629,7 @@ class BunchDataAccess(object):
     bunchdataaccess.mean_x or bunchdataaccess.n_macroparticles_per_slice)
     """
     def __init__(self, bunch_idx, bucket_id, raw_data, raw_bin_data,
-                 variables, n_slices):
+                 variables, n_slices, circumference, h_bunch):
         """
         Parameters
         ----------
@@ -645,6 +656,9 @@ class BunchDataAccess(object):
         self._n_slices = n_slices
         self.bucket_id = bucket_id
 
+        self.circumference = circumference
+        self.h_bunch = h_bunch
+
         idx_from = self._bunch_idx * (self._n_slices + 1)
         idx_to = (self._bunch_idx+1) * (self._n_slices + 1)
 
@@ -668,7 +682,8 @@ class TotalDataAccess(object):
     """
 
     def __init__(self, local_bunches, raw_data, raw_bin_data,
-                 variables, n_slices, n_bunches, id_list):
+                 variables, n_slices, n_bunches, id_list, circumference,
+                 h_bunch):
         """
         Parameters
         ----------
@@ -691,6 +706,9 @@ class TotalDataAccess(object):
         id_list : list
             A list of bucket indexes for all the bunches
         """
+
+        self.circumference = circumference
+        self.h_bunch = h_bunch
 
         self._local_bunches = local_bunches
         self.local_data_locations = []
