@@ -34,8 +34,7 @@ class WakeField(Element):
 
     """
 
-    def __init__(self, slicer, wake_sources_list, circumference=0, mpi=None,
-                 h_bunch=None):
+    def __init__(self, slicer, wake_sources_list, mpi=None):
         """Stores slicer and wake sources list and manages wake history.
 
         Obtains a slicer and a wake sources list. Owns a slice set deque of
@@ -78,12 +77,13 @@ class WakeField(Element):
                                 for source in wake_sources_list])
         self.slice_set_deque = deque([], maxlen=n_turns_wake_max)
 
-        if n_turns_wake_max > 1 and circumference == 0:
-            raise ValueError(
-                "Circumference must be provided for multi turn wakes!")
-        self.circumference = circumference
-        self.h_bunch = h_bunch
+        self.circumference = self.slicer.circumference
+        self.h_bunch = self.slicer.h_bunch
         
+        if ((n_turns_wake_max > 1) or (mpi is not None)) and ((self.circumference is None) or (self.h_bunch is None)):
+            raise ValueError(
+                """ The circumference and h_bunch must be given to the slicer
+                as an input parameter if multi turn ort multi bunch wakes are used!""")
         
 
         self._mpi = mpi
