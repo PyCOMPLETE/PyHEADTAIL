@@ -343,16 +343,14 @@ class WakeField(Element):
         
         for kick, turns in zip(self.wake_kicks, self._turns_on_this_proc):
             kick.calculate_field(bunch_list, all_slice_sets,local_slice_sets,
-                                 local_bunch_indexes, optimization_method,
-                                 self.circumference, self.h_bunch,turns)
+                                 local_bunch_indexes, optimization_method,turns)
             
         # ensures that everything is calculated, i.e. synchronizes threads
         mpi_data.share_numbers(1)
         
         for kick in self.wake_kicks:
             kick.apply(bunch_list, all_slice_sets,local_slice_sets,
-                                 local_bunch_indexes, optimization_method,
-                                 self.circumference, self.h_bunch)
+                                 local_bunch_indexes, optimization_method)
 
     def track_classic(self, beam):
         """Update macroparticle momenta according to wake kick.
