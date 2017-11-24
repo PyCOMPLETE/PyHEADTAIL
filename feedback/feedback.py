@@ -104,6 +104,13 @@ def generate_parameters(signal_slice_sets, location=0., beta=1.,
     bin_edges = None
     segment_ref_points = []
 
+    if len(signal_slice_sets) > 1:
+        circumference = signal_slice_sets[0].circumference
+        h_bunch = signal_slice_sets[0].h_bunch
+    else:
+        circumference=None
+        h_bunch=None
+        
     for slice_set in signal_slice_sets:
             z_bins = np.copy(slice_set.z_bins)
             if circumference is not None:
@@ -179,11 +186,22 @@ def read_signal(signal_x, signal_y, signal_slice_sets, axis, mpi,
                                   beta_y*np.sin(phase_y)*slice_set.mean_yp))
         else:
             raise ValueError('Unknown axis')
-
+    
+    if signal_x is not None:
+        np.copyto(signal_x, signal_x[::-1])
+    
+    if signal_y is not None:
+        np.copyto(signal_y, signal_y[::-1])
 
 def kick_bunches(local_slice_sets, bunch_list, local_bunch_indexes,
                  signal_x, signal_y, axis):
 
+    if signal_x is not None:
+        np.copyto(signal_x, signal_x[::-1])
+    
+    if signal_y is not None:
+        np.copyto(signal_y, signal_y[::-1])
+    
     n_slices_per_bunch = local_slice_sets[0].n_slices
 
     for slice_set, bunch_idx, bunch in zip(local_slice_sets,
@@ -228,8 +246,7 @@ class OneboxFeedback(object):
 
     def __init__(self, gain, slicer, processors_x, processors_y,
                  pickup_axis='divergence', kicker_axis=None, mpi=False,
-                 phase_x=None, phase_y=None, beta_x=1., beta_y=1.,
-                 circumference=None, h_bunch=None):
+                 phase_x=None, phase_y=None, beta_x=1., beta_y=1.):
         """
         Parameters
         ----------
@@ -280,15 +297,6 @@ class OneboxFeedback(object):
 
         self._beta_x = beta_x
         self._beta_y = beta_y
-        
-        if mpi:
-            if (circumference is None) or (h_bunch is None):
-                raise ValueError("""Both circumference and h_bunch must be
-                                 given if the feedback module is used in the
-                                 mpi mode""")
-        self._circumference = circumference
-        self._h_bunch = h_bunch
-
 
         self._pickup_axis = pickup_axis
         if kicker_axis is None:
@@ -347,17 +355,13 @@ class OneboxFeedback(object):
                 self._local_bunch_indexes = [0]
 
         if (self._parameters_x is None) or (self._signal_x is None):
-            self._parameters_x = generate_parameters(signal_slice_sets,
-                                                     circumference=self._circumference,
-                                                     h_bunch=self._h_bunch)
+            self._parameters_x = generate_parameters(signal_slice_sets)
             n_segments = self._parameters_x['n_segments']
             n_bins_per_segment = self._parameters_x['n_bins_per_segment']
             self._signal_x = np.zeros(n_segments * n_bins_per_segment)
 
         if (self._parameters_y is None) or (self._signal_y is None):
-            self._parameters_y = generate_parameters(signal_slice_sets,
-                                                     circumference=self._circumference,
-                                                     h_bunch=self._h_bunch)
+            self._parameters_y = generate_parameters(signal_slice_sets)
             n_segments = self._parameters_y['n_segments']
             n_bins_per_segment = self._parameters_y['n_bins_per_segment']
             self._signal_y = np.zeros(n_segments * n_bins_per_segment)
@@ -413,8 +417,7 @@ class PickUp(object):
     """
 
     def __init__(self, slicer, processors_x, processors_y, location_x, beta_x,
-                 location_y, beta_y, mpi=False, phase_x=None, phase_y=None,
-                 circumference=None, h_bunch=None):
+                 location_y, beta_y, mpi=False, phase_x=None, phase_y=None):
         """
         Parameters
         ----------
@@ -468,14 +471,6 @@ class PickUp(object):
         self._beta_x = beta_x
         self._location_y = location_y
         self._beta_y = beta_y
-        
-        if mpi:
-            if (circumference is None) or (h_bunch is None):
-                raise ValueError("""Both circumference and h_bunch must be
-                                 given if the feedback module is used in the
-                                 mpi mode""")
-        self._circumference = circumference
-        self._h_bunch = h_bunch
 
         self._parameters_x = None
         self._parameters_y = None
@@ -506,9 +501,7 @@ class PickUp(object):
         if (self._parameters_x is None) or (self._signal_x is None):
             self._parameters_x = generate_parameters(signal_slice_sets,
                                                      self._location_x,
-                                                     self._beta_x,
-                                                     self._circumference,
-                                                     self._h_bunch)
+                                                     self._beta_x)
             n_segments = self._parameters_x['n_segments']
             n_bins_per_segment = self._parameters_x['n_bins_per_segment']
             self._signal_x = np.zeros(n_segments * n_bins_per_segment)
@@ -516,9 +509,7 @@ class PickUp(object):
         if (self._parameters_y is None) or (self._signal_y is None):
             self._parameters_y = generate_parameters(signal_slice_sets,
                                                      self._location_y,
-                                                     self._beta_y,
-                                                     self._circumference,
-                                                     self._h_bunch)
+                                                     self._beta_y)
             n_segments = self._parameters_y['n_segments']
             n_bins_per_segment = self._parameters_y['n_bins_per_segment']
             self._signal_y = np.zeros(n_segments * n_bins_per_segment)

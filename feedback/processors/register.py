@@ -562,7 +562,7 @@ class FIRCombiner(Combiner):
             A list of FIR coefficients
         """
         self._coefficients = coefficients
-        super(self.__class__, self).__init__(*args, **kwargs)
+        super(FIRCombiner, self).__init__(*args, **kwargs)
         self.label = 'FIR combiner'
 
     def combine(self, registers, target_location, target_beta,
@@ -574,10 +574,50 @@ class FIRCombiner(Combiner):
                 for i, (parameters, signal, delay) in enumerate(register):
                     if combined_signal is None:
                         combined_signal = np.zeros(len(signal))
-                    combined_signal += self._coefficients[i] * signal
+                    if i < len(self._coefficients):
+                        combined_signal += self._coefficients[i] * signal
 
         return combined_signal
 
+
+
+class DCRemovedVectorSumCombiner(FIRCombiner):
+    """ A 'notch filttered', i.e. DC-level removed, version of the vector sum
+        combiner. It is a three tap FIR filter, which has been derived by using
+        asumptions that a beam is a rotating vector in (x, xp)-plane and 
+        x-values can be measured in different turns, but they contains an
+        unknown constant DC-offset.
+         
+        This version gives mathematically exact correction when tune
+        is well known. When tune error exists the version induces only low 
+        noise in comparison to other types of combiners.
+        
+        Developed by J. Komppula @ 2017.
+    """
+    def __init__(self, tune, delay=0, *args, **kwargs):
+        def calculate_coefficients(tune, delay):
+            ppt = -tune * 2.* np.pi
+            c12 = np.cos(1.*ppt)
+            s12 = np.sin(1.*ppt)
+            c13 = np.cos(2.*ppt)
+            s13 = np.sin(2.*ppt)
+            c14 = np.cos((2+delay)*ppt)
+            s14 = np.sin((2+delay)*ppt)
+            
+            divider = -1.*(-c12*s13+c13*s12-s12+s13)
+        
+            cx1 = c14*(1-(c12*s13-c13*s12)/divider)+s14*(-c12+c13)/divider
+            cx2 = (c14*(-(-s13))+s14*(-c13+1))/divider
+            cx3 = (c14*(-(s12))+s14*(c12-1))/divider
+
+            return [cx3, cx2, cx1]
+        
+        coefficients = calculate_coefficients(tune, delay)
+        
+        super(DCRemovedVectorSumCombiner, self).__init__(coefficients,*args, **kwargs)
+        self.label = 'FIR combiner'
+    
+    
 
 class TurnFIRFilter(object):
     """A signal processor, which can be used as a FIR filer in turn domain.
@@ -699,6 +739,13 @@ class TurnDelay(object):
             elif self._combiner_type == 'hilbert':
                 self._combiner = HilbertCombiner(registers, target_location,
                                                  target_beta, extra_phase)
+            elif self._combiner_type == 'DCrem_vector_sum':
+                self._combiner = DCRemovedVectorSumCombiner(self._tune,
+                                                            self._delay,
+                                                            registers,
+                                                            target_location,
+                                                            target_beta,
+                                                            extra_phase)
             else:
                 raise ValueError('Unknown combiner type')
         else:

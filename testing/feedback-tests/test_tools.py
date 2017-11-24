@@ -80,7 +80,9 @@ def generate_objects(machine,n_macroparticles, n_slices, n_sigma_z,
     n_macroparticles, intensity, epsn_x, epsn_y, sigma_z=sigma_z,
     filling_scheme=filling_scheme, matched=matched)
 
-    slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=n_sigma_z)
+    slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=n_sigma_z,
+                              circumference=machine.circumference,
+                              h_bunch=machine.h_bunch)
 
     return bunch, slicer, machine.transverse_map, machine.longitudinal_map
 
@@ -410,6 +412,27 @@ def trace_difference(ref_tracker, tracker):
     plt.show()
     
 
+def plot_FIR_coefficients(coefficients):    
+    x_data = []
+    y_data = []
+    
+    for i, coeff in enumerate(coefficients):
+         x_data.append(i-0.5)
+         x_data.append(i-0.5)
+         x_data.append(i+0.5)
+         x_data.append(i+0.5)
+         y_data.append(0.)
+         y_data.append(coeff)
+         y_data.append(coeff)
+         y_data.append(0.)
+    
+    
+    fig, ax = plt.subplots(1,figsize=(12, 4))
+    ax.plot(x_data,y_data)
+    ax.set_xlabel('Tap')
+    ax.set_ylabel('Value')
+    plt.show()
+    
 
 
 def plot_debug_data(processors, source = 'input'):
@@ -575,6 +598,10 @@ def plot3Dtraces(tracker, labels, show_holes=True, bunches=None,
         plot_x = np.append(plot_x,[0])
         plot_z = np.append(plot_z,[data_z[-1]])
         
+        
+        plot_x = np.append([0],plot_x)
+        plot_z = np.append([data_z[0]],plot_z)
+        
         return plot_z, plot_x
                     
     def pick_max_values(turns, data, first_turn):
@@ -639,9 +666,11 @@ def plot3Dtraces(tracker, labels, show_holes=True, bunches=None,
     ax.set_zlim3d(0, 10e-3)
     
     if bunches is not None:
-        colormap = mpl.cm.Set1.colors
         if type(bunches) is int:
             bunches = [bunches]
+
+        n_lines = len(bunches)
+        colormap = plt.cm.jet(np.linspace(0,1,n_lines))
             
         for j,i in enumerate(bunches):
             t, d, t_d, rt, rd = pick_max_values(turns, data_x[:,i], first_turn)
