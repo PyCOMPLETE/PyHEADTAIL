@@ -13,6 +13,8 @@ Installation for Users
 For using PyHEADTAIL without modifying the source code,
 we recommend to install the latest version via PyPI:
 
+.. code-block:: bash
+
     $ pip install PyHEADTAIL
 
 Installation for Developers
