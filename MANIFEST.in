@@ -1,0 +1,3 @@
+recursive-include PyHEADTAIL *.pxd *.pyx *.c *.f90 *.cu
+recursive-include PyHEADTAIL/testing *.py *.dat
+include README.rst

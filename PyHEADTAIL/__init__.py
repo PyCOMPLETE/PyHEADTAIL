@@ -1,7 +1,34 @@
-from ._version import __version__
-from general.element import Element, Printing
-from particles.slicing import clean_slices
-import general.utils as utils
+try:
+    DYNAMIC_VERSIONING = True
+    import os, subprocess
+    worktree = os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__)))
+    gitdir = worktree + '/.git/'
+    with open(os.devnull, 'w') as devnull:
+        __version__ = subprocess.check_output(
+            'git --git-dir=' + gitdir + ' --work-tree=' +
+            worktree + ' describe --long --dirty --abbrev=10 --tags',
+            shell=True, stderr=devnull)
+    __version__ = __version__.decode('utf-8').rstrip() # remove trailing \n
+    __version__ = __version__[1:] # remove leading v
+    # remove commit hash to conform to PEP440:
+    split_ = __version__.split('-')
+    __version__ = split_[0]
+    if split_[1] != '0':
+        __version__ += '.' + split_[1]
+    dirty = 'dirty' in split_[-1]
+except:
+    DYNAMIC_VERSIONING = False
+    from ._version import __version__
+    dirty = False
+
+print ('PyHEADTAIL v' + __version__)
+if dirty:
+    print ('(dirty git work tree)')
+print ('\n')
+
+from .general.element import Element, Printing
+from .general import utils
 # print '                                                                                                                             '
 # print '                                                                ;Cfttttt11111111tttt1f0f.                                    '
 # print '                                                                ,GttttfG0GGG00000GGG0G0G0G0G0G0Ct1t1fG:                      '
@@ -48,4 +75,3 @@ import general.utils as utils
 # print '                                            :.:;::::::;i ,                   Ct11G               LC1i                        '
 # print '                                              1:::::::1001         C              .               tf                         '
 # print '                                                                                                                             '
-print ('PyHEADTAIL v' + __version__ + '\n\n')
