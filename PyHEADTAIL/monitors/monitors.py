@@ -402,7 +402,7 @@ class ParticleMonitor(Monitor):
 
           Optionally pass a list called quantities_to_store which
           specifies which members of the bunch will be called/stored.
-                           """
+        """
         quantities_to_store = [ 'x', 'xp', 'y', 'yp', 'z', 'dp', 'id' ]
         self.quantities_to_store = kwargs.pop('quantities_to_store',
                                               quantities_to_store)
@@ -501,11 +501,12 @@ class CellMonitor(Monitor):
           write_buffer_every: Number of steps after which buffer
                               contents are actually written to file.
           buffer_size:        Number of steps to be buffered. """
-        self.stats_to_store = [
+        stats_to_store = [
             'mean_x', 'mean_xp',
             'mean_y', 'mean_yp',
             'mean_z', 'mean_dp',
             'macroparticlenumber']
+        self.stats_to_store = kwargs.pop('stats_to_store', stats_to_store)
 
         self.filename = filename
         self.n_steps = n_steps
