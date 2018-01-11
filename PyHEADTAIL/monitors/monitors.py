@@ -124,9 +124,9 @@ class BunchMonitor(Monitor):
                 h5group.create_dataset(stats, shape=(self.n_steps,),
                                        compression='gzip', compression_opts=9)
             h5file.close()
-        except:
-            self.prints('Creation of bunch monitor file ' + self.filename +
-                   'failed. \n')
+        except Exception as err:
+            self.warns('Problem occurred during Bunch monitor creation.')
+            self.warns(err.message)
             raise
 
     @decorators.synchronize_gpu_streams_after
@@ -298,9 +298,9 @@ class SliceMonitor(Monitor):
                 h5group_slice.create_dataset(stats, shape=(self.slicer.n_slices,
                     self.n_steps), compression='gzip', compression_opts=9)
             h5file.close()
-        except:
-            self.prints('Creation of slice monitor file ' + self.filename +
-                        'failed. \n')
+        except Exception as err:
+            self.warns('Problem occurred during Slice monitor creation.')
+            self.warns(err.message)
             raise
 
     def _write_data_to_buffer(self, bunch):
@@ -426,9 +426,9 @@ class ParticleMonitor(Monitor):
                 for key in parameters_dict:
                     h5file.attrs[key] = parameters_dict[key]
             h5file.close()
-        except:
-            self.prints('Creation of particle monitor file ' +
-                        self.filename + 'failed. \n')
+        except Exception as err:
+            self.warns('Problem occurred during Particle monitor creation.')
+            self.warns(err.message)
             raise
 
     def _write_data_to_file(self, bunch, arrays_dict):
@@ -556,9 +556,9 @@ class CellMonitor(Monitor):
                     shape=(self.n_azimuthal_slices, self.n_radial_slices,
                            self.n_steps))
             h5file.close()
-        except:
-            self.prints('Creation of cell monitor file ' + self.filename +
-                        'failed. \n')
+        except Exception as err:
+            self.warns('Problem occurred during Cell monitor creation.')
+            self.warns(err.message)
             raise
 
     def _write_data_to_buffer(self, bunch):
@@ -597,9 +597,9 @@ class CellMonitor(Monitor):
             h5file = hp.File(self.filename + '.h5', 'a')
             h5group_cells = h5file['Cells']
 
-            for stats in self.slice_stats_to_store:
+            for stats in self.stats_to_store:
                 h5group_cells[stats][:,:,low_pos_in_file:up_pos_in_file] = \
-                    self.buffer_slice[stats][:,:,low_pos_in_buffer:]
+                    self.buffer_cell[stats][:,:,low_pos_in_buffer:]
             h5file.close()
-        except:
-            self.warns('Cell monitor file is temporarily unavailable. \n')
+        except Exception as err:
+            self.warns(err.message)
