@@ -17,6 +17,10 @@ from ..general import pmath as pm
 from ..gpu import gpu_utils as gpu_utils
 from ..general import decorators as decorators
 
+from ..cobra_functions import stats as cp
+
+# from .. import cobra_functions.stats.calc_cell_stats as calc_cell_stats
+
 
 class Monitor(Printing):
     """ Abstract base class for monitors. A monitor can request
@@ -122,9 +126,9 @@ class BunchMonitor(Monitor):
                 h5group.create_dataset(stats, shape=(self.n_steps,),
                                        compression='gzip', compression_opts=9)
             h5file.close()
-        except:
-            self.prints('Creation of bunch monitor file ' + self.filename +
-                   'failed. \n')
+        except Exception as err:
+            self.warns('Problem occurred during Bunch monitor creation.')
+            self.warns(err.message)
             raise
 
     @decorators.synchronize_gpu_streams_after
@@ -296,9 +300,9 @@ class SliceMonitor(Monitor):
                 h5group_slice.create_dataset(stats, shape=(self.slicer.n_slices,
                     self.n_steps), compression='gzip', compression_opts=9)
             h5file.close()
-        except:
-            self.prints('Creation of slice monitor file ' + self.filename +
-                        'failed. \n')
+        except Exception as err:
+            self.warns('Problem occurred during Slice monitor creation.')
+            self.warns(err.message)
             raise
 
     def _write_data_to_buffer(self, bunch):
@@ -398,7 +402,7 @@ class ParticleMonitor(Monitor):
 
           Optionally pass a list called quantities_to_store which
           specifies which members of the bunch will be called/stored.
-                           """
+        """
         quantities_to_store = [ 'x', 'xp', 'y', 'yp', 'z', 'dp', 'id' ]
         self.quantities_to_store = kwargs.pop('quantities_to_store',
                                               quantities_to_store)
@@ -424,9 +428,9 @@ class ParticleMonitor(Monitor):
                 for key in parameters_dict:
                     h5file.attrs[key] = parameters_dict[key]
             h5file.close()
-        except:
-            self.prints('Creation of particle monitor file ' +
-                        self.filename + 'failed. \n')
+        except Exception as err:
+            self.warns('Problem occurred during Particle monitor creation.')
+            self.warns(err.message)
             raise
 
     def _write_data_to_file(self, bunch, arrays_dict):
@@ -465,3 +469,145 @@ class ParticleMonitor(Monitor):
             h5group[quant][:] = quant_values[::self.stride]
 
         h5file.close()
+
+
+class CellMonitor(Monitor):
+    """ Class to store cell (z, dp) specific data (for the moment only
+    mean_x, mean_y, mean_z, mean_dp and n_particles_in_cell) to a HDF5
+    file. This monitor uses a buffer (shift register) to reduce the
+    number of writing operations to file. This also helps to avoid IO
+    errors and loss of data when writing to a file that may become
+    temporarily unavailable (e.g. if file is located on network) during
+    the simulation. """
+
+    def __init__(self, filename, n_steps, n_azimuthal_slices, n_radial_slices,
+                 radial_cut, beta_z, parameters_dict=None,
+                 write_buffer_every=512, buffer_size=4096, *args, **kwargs):
+        """ Create an instance of a CellMonitor class. Apart from
+        initializing the HDF5 file, a buffer self.buffer_cell is
+        prepared to buffer the cell-specific data before writing them
+        to file.
+
+          filename:           Path and name of HDF5 file. Without file
+                              extension.
+          n_steps:            Number of entries to be reserved for each
+                              of the quantities in self.stats_to_store.
+          n_azimuthal_slices: Number of pizza slices (azimuthal slicing).
+          n_radial_slices:    Number of rings (radial slicing).
+          radial_cut:         'Radius' of the outermost ring in
+                              longitudinal phase space (using beta_z*dp)
+          parameters_dict:    Metadata for HDF5 file containing main
+                              simulation parameters.
+          write_buffer_every: Number of steps after which buffer
+                              contents are actually written to file.
+          buffer_size:        Number of steps to be buffered. """
+        stats_to_store = [
+            'mean_x', 'mean_xp',
+            'mean_y', 'mean_yp',
+            'mean_z', 'mean_dp',
+            'macroparticlenumber']
+        self.stats_to_store = kwargs.pop('stats_to_store', stats_to_store)
+
+        self.filename = filename
+        self.n_steps = n_steps
+        self.i_steps = 0
+        self.n_azimuthal_slices = n_azimuthal_slices
+        self.n_radial_slices = n_radial_slices
+        self.radial_cut = radial_cut
+        self.beta_z = beta_z
+
+        # Prepare buffer.
+        self.buffer_size = buffer_size
+        self.write_buffer_every = write_buffer_every
+        self.buffer_cell = {}
+
+        for stats in self.stats_to_store:
+            self.buffer_cell[stats] = (
+                np.zeros((self.n_azimuthal_slices, self.n_radial_slices, self.buffer_size)))
+        self._create_file_structure(parameters_dict)
+
+    def dump(self, bunch):
+        """ Evaluate the statistics for the given cells and write the
+        data to the buffer and/or to the HDF5 file. The buffer is used
+        to reduce the number of writing operations to file. This helps
+        to avoid IO errors and loss of data when writing data to a file
+        that may become temporarily unavailable (e.g. if file is on
+        network) during the simulation. Buffer contents are written to
+        file only every self.write_buffer_every steps. """
+        self._write_data_to_buffer(bunch)
+        if ((self.i_steps + 1) % self.write_buffer_every == 0 or
+                (self.i_steps + 1) == self.n_steps):
+            self._write_buffer_to_file()
+        self.i_steps += 1
+
+    def _create_file_structure(self, parameters_dict):
+        """ Initialize HDF5 file and create its basic structure (groups
+        and datasets). One dataset for each of the quantities defined
+        in self.stats_to_store is generated. If specified by
+        the user, write the contents of the parameters_dict as metadata
+        (attributes) to the file. Maximum file compression is
+        activated. """
+        try:
+            h5file = hp.File(self.filename + '.h5', 'w')
+            if parameters_dict:
+                for key in parameters_dict:
+                    h5file.attrs[key] = parameters_dict[key]
+
+            h5file.create_group('Cells')
+            h5group_cells = h5file['Cells']
+            for stats in self.stats_to_store:
+                h5group_cells.create_dataset(
+                    stats, compression='gzip', compression_opts=9,
+                    shape=(self.n_azimuthal_slices, self.n_radial_slices,
+                           self.n_steps))
+            h5file.close()
+        except Exception as err:
+            self.warns('Problem occurred during Cell monitor creation.')
+            self.warns(err.message)
+            raise
+
+    def _write_data_to_buffer(self, bunch):
+        """ Store the data in the self.buffer dictionary before writing
+        them to file. The buffer is implemented as a shift register. The
+        cell-specific data are computed by a cython function. """
+
+        from PyHEADTAIL.cobra_functions.stats import calc_cell_stats
+        n_cl, x_cl, xp_cl, y_cl, yp_cl, z_cl, dp_cl = calc_cell_stats(
+            bunch, self.beta_z, self.radial_cut, self.n_radial_slices, self.n_azimuthal_slices)
+
+        self.buffer_cell['mean_x'][:,:,0] = x_cl[:,:]
+        self.buffer_cell['mean_xp'][:,:,0] = xp_cl[:,:]
+        self.buffer_cell['mean_y'][:,:,0] = y_cl[:,:]
+        self.buffer_cell['mean_yp'][:,:,0] = yp_cl[:,:]
+        self.buffer_cell['mean_z'][:,:,0] = z_cl[:,:]
+        self.buffer_cell['mean_dp'][:,:,0] = dp_cl[:,:]
+        self.buffer_cell['macroparticlenumber'][:,:,0] = n_cl[:,:]
+
+        for stats in self.stats_to_store:
+            self.buffer_cell[stats] = np.roll(
+                self.buffer_cell[stats], shift=-1, axis=2)
+
+    def _write_buffer_to_file(self):
+        """ Write buffer contents to the HDF5 file. The file is opened
+        and closed each time the buffer is written to file to prevent
+        from loss of data in case of a crash. """
+        # Keep track of where to read from buffers and where to store
+        # data in file.
+        n_entries_in_buffer = min(self.i_steps+1, self.buffer_size)
+        low_pos_in_buffer = self.buffer_size - n_entries_in_buffer
+        low_pos_in_file = self.i_steps + 1 - n_entries_in_buffer
+        up_pos_in_file = self.i_steps + 1
+
+        # Try to write data to file. If file is not available, skip this
+        # step and repeat it again after self.write_buffer_every. As
+        # long as self.buffer_size is not exceeded, no data are lost.
+        try:
+            h5file = hp.File(self.filename + '.h5', 'a')
+            h5group_cells = h5file['Cells']
+
+            for stats in self.stats_to_store:
+                h5group_cells[stats][:,:,low_pos_in_file:up_pos_in_file] = \
+                    self.buffer_cell[stats][:,:,low_pos_in_buffer:]
+            h5file.close()
+        except Exception as err:
+            self.warns(err.message)

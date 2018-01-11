@@ -18,7 +18,9 @@ import numpy as np
 from scipy.constants import c, e, m_p
 import h5py as hp
 
-from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor
+from PyHEADTAIL.particles.particles import Particles
+from PyHEADTAIL.monitors.monitors import (
+    BunchMonitor, SliceMonitor, CellMonitor)
 
 class TestMonitor(unittest.TestCase):
     ''' Test the BunchMonitor/SliceMonitor'''
@@ -57,7 +59,7 @@ class TestMonitor(unittest.TestCase):
 
     def test_slicemonitor(self):
         '''
-        Test whether the slicemonitor works as excpected, use the mock slicer
+        Test whether the slicemonitor works as expected, use the mock slicer
         '''
         nslices = 3
         mock_slicer = self.generate_mock_slicer(nslices)
@@ -78,6 +80,25 @@ class TestMonitor(unittest.TestCase):
             for j in xrange(self.n_turns):
                 self.assertTrue(np.allclose(sd['propertyA'][k,j],
                     k + (j+1)*1000), 'Slices part of SliceMonitor wrong')
+
+    def test_cellmonitor(self):
+        '''
+        Test whether the cellmonitor works as expected.
+        '''
+        bunch = self.generate_real_bunch()
+        cell_monitor = CellMonitor(
+            filename=self.s_fn, n_steps=self.n_turns,
+            n_azimuthal_slices=4, n_radial_slices=3,
+            radial_cut=bunch.sigma_dp() * 3,
+            beta_z=np.abs(0.003 * bunch.circumference / (2*np.pi*0.004)),
+            write_buffer_every=9,
+        )
+        for i in xrange(self.n_turns):
+            cell_monitor.dump(bunch)
+        s = hp.File(self.s_fn + '.h5')
+        sc = s['Cells']
+
+        # to be extended
 
 
     def generate_mock_bunch(self):
@@ -102,6 +123,33 @@ class TestMonitor(unittest.TestCase):
                 return slicer
 
         return Mock()
+
+
+    def generate_real_bunch(self):
+
+        #beam parameters
+        intensity = 1.234e9
+        circumference = 111.
+        gamma = 20.1
+
+        #simulation parameters
+        macroparticlenumber = 2048
+        particlenumber_per_mp = intensity / macroparticlenumber
+
+        x = np.random.uniform(-1, 1, macroparticlenumber)
+        y = np.random.uniform(-1, 1, macroparticlenumber)
+        z = np.random.uniform(-1, 1, macroparticlenumber)
+        xp = np.random.uniform(-0.5, 0.5, macroparticlenumber)
+        yp = np.random.uniform(-0.5, 0.5, macroparticlenumber)
+        dp = np.random.uniform(-0.5, 0.5, macroparticlenumber)
+        coords_n_momenta_dict = {
+            'x': x, 'y': y, 'z': z,
+            'xp': xp, 'yp': yp, 'dp': dp
+        }
+        return Particles(
+            macroparticlenumber, particlenumber_per_mp, e, m_p,
+            circumference, gamma, coords_n_momenta_dict
+        )
 
     def generate_mock_slicer(self, nslices):
         ''' Create a mock slicer to test behaviour'''
