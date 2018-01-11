@@ -577,7 +577,7 @@ class CellMonitor(Monitor):
 
         for stats in self.stats_to_store:
             self.buffer_cell[stats] = np.roll(
-                self.buffer_cell[stats], shift=-1, axis=1)
+                self.buffer_cell[stats], shift=-1, axis=2)
 
     def _write_buffer_to_file(self):
         """ Write buffer contents to the HDF5 file. The file is opened
