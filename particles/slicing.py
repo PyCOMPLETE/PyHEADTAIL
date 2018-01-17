@@ -138,16 +138,17 @@ class SliceSet(Printing):
 
     @property
     def z_centers(self):
-        return self.z_bins[:-1] + 0.5 * (self.z_bins[1:] - self.z_bins[:-1])
-
-    @property
-    def t_centers(self):
         if (self.circumference is not None) and (self.h_bunch is not None):
             offset = -self.bucket_id*self.circumference/float(self.h_bunch)
         else:
             offset = 0.
+            
+        return self.z_bins[:-1] + 0.5 * (self.z_bins[1:] - self.z_bins[:-1])+offset
+
+    @property
+    def t_centers(self):
         
-        return self.convert_to_time(self.z_centers+offset)
+        return self.convert_to_time(self.z_centers)
 
     @property
     def n_slices(self):

@@ -395,12 +395,11 @@ class WakeKick(Printing):
 
     def _accumulate_memory_optimized(self, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
-                                                 optimization_method, circumference, moments, h_bunch):
+                                                 optimization_method, moments):
 
         if not hasattr(self,'_wake_database'):
             self. _init_memory_optimized(all_slice_sets, local_slice_sets,
-                                         bunch_list, local_bunch_indexes,
-                                         circumference, h_bunch)
+                                         bunch_list, local_bunch_indexes)
 
         # Copies the perivous turn data forward
         np.copyto(self._accumulated_kick[:-1*self._n_bins_per_turn], self._accumulated_kick[self._n_bins_per_turn:])
