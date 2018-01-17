@@ -205,16 +205,16 @@ def run(argv):
         outputpath+'/bunchmonitor_{:04d}_chroma={:g}'.format(job_id, chroma), n_turns,
         simulation_parameters_dict, write_buffer_to_file_every=n_turns, buffer_size=n_turns, mpi=True, filling_scheme=filling_scheme)
     
-    if rank == 0:
-        slicemonitor1 = SliceMonitor(
-            outputpath + '/slicemonitor_bunch_0_{:04d}_chroma={:g}'.format(job_id, chroma),
-            n_turns, slicer1_for_slicemonitor,
-            simulation_parameters_dict, write_buffer_to_file_every=n_turns, buffer_size=n_turns)
-        
-        slicemonitor2 = SliceMonitor(
-            outputpath + '/slicemonitor_bunch_255_{:04d}_chroma={:g}'.format(job_id, chroma),
-            n_turns, slicer2_for_slicemonitor,
-            simulation_parameters_dict, write_buffer_to_file_every=n_turns, buffer_size=n_turns)
+#    if rank == 0:
+#        slicemonitor1 = SliceMonitor(
+#            outputpath + '/slicemonitor_bunch_0_{:04d}_chroma={:g}'.format(job_id, chroma),
+#            n_turns, slicer1_for_slicemonitor,
+#            simulation_parameters_dict, write_buffer_to_file_every=n_turns, buffer_size=n_turns)
+#        
+#        slicemonitor2 = SliceMonitor(
+#            outputpath + '/slicemonitor_bunch_255_{:04d}_chroma={:g}'.format(job_id, chroma),
+#            n_turns, slicer2_for_slicemonitor,
+#            simulation_parameters_dict, write_buffer_to_file_every=n_turns, buffer_size=n_turns)
 
 
     # TRACKING LOOP
@@ -234,8 +234,8 @@ def run(argv):
 
         if rank == 0:
 #            print 'I am dumping'
-            slicemonitor1.dump(bunch)
-            slicemonitor2.dump(bunch_list[-1])
+#            slicemonitor1.dump(bunch)
+#            slicemonitor2.dump(bunch_list[-1])
 
             if i%1 is not 0:
                 continue
