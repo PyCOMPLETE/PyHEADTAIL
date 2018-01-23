@@ -374,7 +374,7 @@ class WakeKick(Printing):
 
 
 
-        for k in xrange(self.n_turns_wake):
+        for k in range(self.n_turns_wake):
             self._wake_database.append([None]*h_bunch)
 #            print 'len(self._wake_database[k]): ' + str(len(self._wake_database[k]))
             for i in np.unique(np.concatenate(self._idx_data)):
@@ -417,7 +417,7 @@ class WakeKick(Printing):
             else:
                 raise ValueError("Please specify moments as either " +
                                  "'zero', 'mean_x' or 'mean_y'!")
-            for k in xrange(self.n_turns_wake):
+            for k in range(self.n_turns_wake):
                 i_from = k * self._n_bins_per_kick*self._n_target_bunches
                 i_to = (k + 1) * self._n_bins_per_kick*self._n_target_bunches
                 np.copyto(self._wake[i_from:i_to], np.concatenate(self._wake_database[k][self._idx_data[i]]))
@@ -514,18 +514,21 @@ class WakeKick(Printing):
 
             # determines z-bins for the entire ring
             z_values = np.zeros(self._n_bins_per_turn)
-            for i in xrange(h_bunch):
+            for i in range(h_bunch):
                 idx_from = i * self._n_bins_per_kick
                 idx_to = (i + 1) * self._n_bins_per_kick
                 offset = (i*bunch_spacing)
                 temp_mids = z_bin_mids+offset
                 np.copyto(z_values[idx_from:idx_to],temp_mids)
 
-            # for FFT convolution time of the array must start from zero.
-            # Thus, rolls z-bins in order put negative z-bins to the end of the array
-            n_roll = sum((z_bin_mids<0.))
+            # FFT convolution requires that the values of z-bins start from
+            # zero. Thus, rolls negative z-bins to the end of the array.
+            roll_threshold = -1. * bin_width/2.
+            n_roll = sum((z_bin_mids < roll_threshold))
             z_values = np.roll(z_values,-n_roll)
-
+            
+            # sets z values to start from zero also with even number of slices
+            z_values = z_values-z_values[0]
             # calculates wake function values for convolution for different turns
             self._dashed_wake_functions = []
             for k in my_wake_turns:
@@ -556,7 +559,7 @@ class WakeKick(Printing):
         self._moment.fill(0.)
 #        print 'all_slice_sets[0].mean_x[:20]: '
 #        print all_slice_sets[0].mean_x[:20]
-        for i  in xrange(len(all_slice_sets)):
+        for i  in range(len(all_slice_sets)):
             i_from = self._idx_data[i][0]
             i_to = self._idx_data[i][1]
 
@@ -660,7 +663,7 @@ class WakeKick(Printing):
             if not hasattr(self,'_dummy_values'):
                 self._dummy_values = []
                 n_slices = len(local_slice_sets[0].mean_x)
-                for i in xrange(len(local_slice_sets)):
+                for i in range(len(local_slice_sets)):
                     self._dummy_values.append(np.zeros(n_slices))
 
             return  self._dummy_values
