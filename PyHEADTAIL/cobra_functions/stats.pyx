@@ -11,6 +11,7 @@ cimport libc.math as cmath
 
 cimport cython.boundscheck
 cimport cython.cdivision
+cimport cython.wraparound
 
 
 
@@ -196,6 +197,7 @@ cpdef count_macroparticles_per_slice(int[::1] slice_index_of_particle,
         s_idx = slice_index_of_particle[particles_within_cuts[i]]
         n_macroparticles[s_idx] += 1
 
+
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef sort_particle_indices_by_slice(int[::1] slice_index_of_particle,
@@ -223,6 +225,7 @@ cpdef sort_particle_indices_by_slice(int[::1] slice_index_of_particle,
         particle_indices_by_slice[pos] = p_idx
         pos_ctr[s_idx] += 1
 
+
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef mean_per_slice(int[::1] slice_index_of_particle,
@@ -244,6 +247,7 @@ cpdef mean_per_slice(int[::1] slice_index_of_particle,
     for i in xrange(n_slices):
         if n_macroparticles[i]:
             mean_u[i] /= n_macroparticles[i]
+
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -360,6 +364,7 @@ cpdef emittance_per_slice_old(int[::1] slice_index_of_particle,
 
         epsn_u[i] = cmath.sqrt(u2[i]*up2[i] - uup[i]*uup[i])
 
+
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cpdef emittance_per_slice(int[::1] slice_index_of_particle,
@@ -375,7 +380,7 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
     for each slice.
     """
     cdef unsigned int n_slices = emittance.shape[0]
-    # allocate arrays for covariances 
+    # allocate arrays for covariances
     cdef double[::1] cov_u2 = np.zeros(n_slices, dtype=np.double)
     cdef double[::1] cov_up2 = np.zeros(n_slices, dtype=np.double)
     cdef double[::1] cov_u_up = np.zeros(n_slices, dtype=np.double)
@@ -409,3 +414,84 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
             emittance[i] = cmath.sqrt(_det_beam_matrix(sigma11, sigma12, sigma22))
         else:
             emittance[i] = 0.
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+@cython.wraparound(False)
+cpdef calc_cell_stats(bunch, double beta_z, double radial_cut,
+                      int n_rings, int n_azim_slices):
+
+    # Prepare arrays to store cell statistics.
+    cdef int[:,::1] n_particles_cell = np.zeros((n_azim_slices, n_rings),
+                                                dtype=np.int32)
+    cdef double[:,::1] mean_x_cell = np.zeros((n_azim_slices, n_rings),
+                                              dtype=np.double)
+    cdef double[:,::1] mean_xp_cell = np.zeros((n_azim_slices, n_rings),
+                                               dtype=np.double)
+    cdef double[:,::1] mean_y_cell = np.zeros((n_azim_slices, n_rings),
+                                              dtype=np.double)
+    cdef double[:,::1] mean_yp_cell = np.zeros((n_azim_slices, n_rings),
+                                               dtype=np.double)
+    cdef double[:,::1] mean_z_cell = np.zeros((n_azim_slices, n_rings),
+                                              dtype=np.double)
+    cdef double[:,::1] mean_dp_cell = np.zeros((n_azim_slices, n_rings),
+                                               dtype=np.double)
+
+    # Declare datatypes of bunch coords.
+    cdef double[::1] x = bunch.x
+    cdef double[::1] xp = bunch.xp
+    cdef double[::1] y = bunch.y
+    cdef double[::1] yp = bunch.yp
+    cdef double[::1] z = bunch.z
+    cdef double[::1] dp = bunch.dp
+    cdef unsigned int n_particles = x.shape[0]
+
+    cdef double ring_width = radial_cut / <double>n_rings
+    cdef double azim_width = 2.*cmath.M_PI / <double>n_azim_slices
+    cdef double beta_z_square = beta_z*beta_z
+
+    cdef double z_i, dp_i, long_action
+    cdef unsigned int p_idx
+    cdef int ring_idx, azim_idx
+    for p_idx in xrange(n_particles):
+        z_i = z[p_idx]
+        dp_i = dp[p_idx]
+
+        # Slice radially.
+        long_action = cmath.sqrt(z_i*z_i + beta_z_square*dp_i*dp_i)
+        ring_idx = <int>cmath.floor(long_action / ring_width)
+        if ring_idx >= n_rings:
+            continue
+
+        # Slice azimuthally: atan 2 returns values in the interval [-pi, pi];
+        # hence, in order to avoid negative indices, we need to add an offset of
+        # +pi before performing the floor division (this consequently just adds
+        # an offset to the slices indices). The one-to-one mapping between
+        # angles and slice indices is retained as desired. In this
+        # interpretation, slice index 0 corresponds to -pi (i.e. starting in 3rd
+        # quadrant) and slice n-1 correspoinds to +pi (i.e. ending in 2nd
+        # quadrant). This needs to be taken into account when interpreting and
+        # plotting cell monitor data - for this, use
+        # theta = np.linspace(-np.pi, np.pi, n_azim_slices)
+        azim_idx = <int>cmath.floor(
+            (cmath.M_PI + cmath.atan2(beta_z*dp_i, z_i)) / azim_width)
+
+        n_particles_cell[azim_idx, ring_idx] += 1
+        mean_x_cell[azim_idx, ring_idx] += x[p_idx]
+        mean_xp_cell[azim_idx, ring_idx] += xp[p_idx]
+        mean_y_cell[azim_idx, ring_idx] += y[p_idx]
+        mean_yp_cell[azim_idx, ring_idx] += yp[p_idx]
+        mean_z_cell[azim_idx, ring_idx] += z_i
+        mean_dp_cell[azim_idx, ring_idx] += dp_i
+
+    for azim_idx in xrange(n_azim_slices):
+        for ring_idx in xrange(n_rings):
+            if n_particles_cell[azim_idx, ring_idx] > 0:
+                mean_x_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
+                mean_xp_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
+                mean_y_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
+                mean_yp_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
+                mean_z_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
+                mean_dp_cell[azim_idx, ring_idx] /= n_particles_cell[azim_idx, ring_idx]
+
+    return n_particles_cell, mean_x_cell, mean_xp_cell, mean_y_cell, mean_yp_cell, mean_z_cell, mean_dp_cell
