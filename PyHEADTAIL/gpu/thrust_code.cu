@@ -1,3 +1,4 @@
+#include <thrust/gather.h>
 #include <thrust/sort.h>
 #include <thrust/binary_search.h>
 #include <thrust/device_vector.h>
