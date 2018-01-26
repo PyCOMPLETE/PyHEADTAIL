@@ -331,6 +331,7 @@ def init_release(part):
     print ('\n*** Please check that the PyHEADTAIL tests run successfully.')
     print ('\n*** Initiated the release process. When you are ready to publish '
            'the release, run this command again.')
+    print ('\n\n*** Do not forget to review the pull request on github.com!')
 
 def finalise_release():
     '''Finalise release process.'''
