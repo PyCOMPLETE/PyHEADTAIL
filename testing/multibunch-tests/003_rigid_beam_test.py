@@ -164,7 +164,7 @@ class RigidBeam(object):
         # the PyHEADTAIL wakes ('mpi_full_ring_fft' and 'memory_optimized').
         z_values = np.roll(self.z,-n_roll)
         z_values = z_values - z_values[0]
-        
+        z_angle = -2.*np.pi*(self.Q_x%1.)*z_values/self.circumference
         self.n_turn_wakes = n_turn_wakes
         wf = wakes.function_transverse(1)
         
@@ -176,9 +176,9 @@ class RigidBeam(object):
         
         self._acculumated_kicks = deque(maxlen=self.n_turn_wakes)
         for i in range(self.n_turn_wakes):
-            self._acculumated_kicks.append(np.zeros(len(self.z)))
+            self._acculumated_kicks.append(np.zeros(len(self.z),dtype=complex))
             t_values = z_values/c + float(i)*turn_length
-            self._turn_by_turn_wake_functions.append(np.array(wf(-t_values, beta=self.beta_beam)))
+            self._turn_by_turn_wake_functions.append(np.array(wf(-t_values, beta=self.beta_beam))*np.exp(1j*z_angle))
             
             
             if i == 0:
@@ -204,7 +204,7 @@ class RigidBeam(object):
 
         # calculates turn by turn circular convolutions for wake kicks
         for i, wake in enumerate(self._turn_by_turn_wake_functions):
-            kick = np.real(np.fft.ifft(np.fft.fft(source) * np.fft.fft(wake)))
+            kick = np.fft.ifft(np.fft.fft(source) * np.fft.fft(wake))
             # the total wake kick is accumulated by adding the calculated values to
             # the values from previous tracking turns. The index i+1 comes from the property
             # of a deque object, i.e. the last kick is added to the end of the deque
@@ -214,7 +214,8 @@ class RigidBeam(object):
             else:
                 self._acculumated_kicks.append(kick)
         
-        self.xp[self.filled_slices] = self.xp[self.filled_slices] + self.wake_factor*self._acculumated_kicks[0][::-1][self.filled_slices]
+        self.xp[self.filled_slices] = self.xp[self.filled_slices] + self.wake_factor*self._acculumated_kicks[0][::-1][self.filled_slices].real
+        self.x[self.filled_slices] = self.x[self.filled_slices] + self.beta_x*self.wake_factor*self._acculumated_kicks[0][::-1][self.filled_slices].imag
 
 
 
@@ -315,7 +316,8 @@ sigma = 1./(7.88e-10)
 wakes = CircularResistiveWall(b,L,sigma,b/c,beta_beam=machine.beta, n_turns_wake=n_turns_wake)
 #wakes = CircularResonator(135e6, 1.97e5, 31000, n_turns_wake=n_turns_wake)
 
-wake_field = WakeField(slicer, wakes, mpi=mpi_settings)
+wake_field = WakeField(slicer, wakes, mpi=mpi_settings, Q_x=accQ_x, Q_y=accQ_y,
+                       beta_x=beta_x, beta_y=beta_y)
 machine.one_turn_map.append(wake_field)
 
 # TRACKING AND PLOTTING

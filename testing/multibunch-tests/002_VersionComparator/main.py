@@ -152,7 +152,8 @@ def run(argv):
     n_turns_wake = 2
     wakes = CircularResonator(135e6, 1.97e9, 31000, n_turns_wake=n_turns_wake)
 
-    wake_field = WakeField(slicer_for_wakefields, wakes, mpi=mpi_settings)
+    wake_field = WakeField(slicer_for_wakefields, wakes, mpi=mpi_settings,
+                           Q_x=accQ_x, Q_y=accQ_y, beta_x=beta_x, beta_y=beta_y)
 
 
 #    if case == 1:

@@ -34,7 +34,8 @@ class WakeField(Element):
 
     """
 
-    def __init__(self, slicer, wake_sources_list, mpi=None):
+    def __init__(self, slicer, wake_sources_list, mpi=None, Q_x=None, Q_y=None,
+                 beta_x=None, beta_y=None):
         """Stores slicer and wake sources list and manages wake history.
 
         Obtains a slicer and a wake sources list. Owns a slice set deque of
@@ -80,11 +81,22 @@ class WakeField(Element):
         self.circumference = self.slicer.circumference
         self.h_bunch = self.slicer.h_bunch
         
+        
+        
         if ((n_turns_wake_max > 1) or (mpi is not None)) and ((self.circumference is None) or (self.h_bunch is None)):
             raise ValueError(
                 """ The circumference and h_bunch must be given to the slicer
                 as an input parameter if multi turn ort multi bunch wakes are used!""")
         
+        self.Q_x = Q_x
+        self.Q_y = Q_y
+        if (mpi == 'mpi_full_ring_fft') and ((Q_x is None) or (Q_y is None)):
+            raise ValueError('mpi_full_ring_fft requires tune values')
+        
+        self.beta_x = beta_x
+        self.beta_y = beta_y
+        if (mpi == 'mpi_full_ring_fft') and ((beta_x is None) or (beta_y is None)):
+            raise ValueError('mpi_full_ring_fft requires beta values')
 
         self._mpi = mpi
         self._mpi_gatherer = None
@@ -343,7 +355,8 @@ class WakeField(Element):
         
         for kick, turns in zip(self.wake_kicks, self._turns_on_this_proc):
             kick.calculate_field(bunch_list, all_slice_sets,local_slice_sets,
-                                 local_bunch_indexes, optimization_method,turns)
+                                 local_bunch_indexes, optimization_method,turns,
+                                 self.Q_x, self.Q_y, self.beta_x, self.beta_y)
             
         # ensures that everything is calculated, i.e. synchronizes threads
         mpi_data.share_numbers(1)

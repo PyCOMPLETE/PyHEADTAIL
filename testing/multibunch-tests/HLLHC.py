@@ -41,6 +41,8 @@ class HLLHC(Synchrotron):
             alpha_y = None
             beta_x = circumference / (2.*np.pi*accQ_x)
             beta_y = circumference / (2.*np.pi*accQ_y)
+            self.beta_x = beta_x
+            self.beta_y = beta_y
             D_x = 0
             D_y = 0
 

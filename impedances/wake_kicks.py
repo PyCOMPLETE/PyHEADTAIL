@@ -432,7 +432,7 @@ class WakeKick(Printing):
 
     def _init_mpi_full_ring_fft(self, all_slice_sets, local_slice_sets,
                                 bunch_list, local_bunch_indexes,
-                                turns_on_this_proc):
+                                turns_on_this_proc, Q):
         
         circumference = local_slice_sets[0].circumference
         h_bunch = local_slice_sets[0].h_bunch
@@ -458,10 +458,11 @@ class WakeKick(Printing):
         self._moment = np.zeros(self._n_bins_per_turn)
 
         # a buffer for wake data, which are gathered from all processors
-        self._new_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
+        self._new_real_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
+        self._new_imag_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
 
         # Raw accumulated data from turn by turn convolutions
-        self._accumulated_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
+        self._accumulated_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake,dtype=complex)
 
         # Splitted accumulated data for local bunches
         self._accumulated_signal_list = []
@@ -498,7 +499,7 @@ class WakeKick(Printing):
             # wake functions are initiliazed
 
             # a buffer for the data calculated in this processor
-            self._my_data = np.zeros(self._n_bins_per_turn*len(my_wake_turns))
+            self._my_data = np.zeros(self._n_bins_per_turn*len(my_wake_turns),dtype=complex)
 
             # calculates normalized mid points z-bins, i.e. z-bins for a bunch
             # are bucket_id * bunch_spacing * z_bin_mids
@@ -526,6 +527,7 @@ class WakeKick(Printing):
             roll_threshold = -1. * bin_width/2.
             n_roll = sum((z_bin_mids < roll_threshold))
             z_values = np.roll(z_values,-n_roll)
+            rotation_angle = -2.*np.pi*(Q%1.)*z_values/circumference
             
             # sets z values to start from zero also with even number of slices
             z_values = z_values-z_values[0]
@@ -537,7 +539,7 @@ class WakeKick(Printing):
                 if k==0:
                     np.copyto(temp_z[-n_roll:],np.zeros(n_roll))
 
-                self._dashed_wake_functions.append(self.wake_function(-(temp_z+turn_offset)/c, beta=local_slice_sets[0].beta))
+                self._dashed_wake_functions.append(np.exp(1j*rotation_angle)*self.wake_function(-(temp_z+turn_offset)/c, beta=local_slice_sets[0].beta))
 
         else:
             # if convolutions are not calculated in this procecessors,
@@ -548,12 +550,11 @@ class WakeKick(Printing):
     def _calculate_field_mpi_full_ring_fft(self, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, moments,
-                                                 turns_on_this_proc):
-
+                                                 turns_on_this_proc, Q, beta):
         if not hasattr(self,'_dashed_wake_functions'):
             self. _init_mpi_full_ring_fft(all_slice_sets, local_slice_sets,
                                          bunch_list, local_bunch_indexes,
-                                         turns_on_this_proc)
+                                         turns_on_this_proc, Q)
 
         # processes moment data for the convolutions
         self._moment.fill(0.)
@@ -581,14 +582,18 @@ class WakeKick(Printing):
         for i, wake in enumerate(self._dashed_wake_functions):
             i_from = i*self._n_bins_per_turn
             i_to = (i+1) * self._n_bins_per_turn
-            np.copyto(self._my_data[i_from:i_to], np.real(np.fft.ifft(np.fft.fft(wake) * np.fft.fft(self._moment))))
-
+            np.copyto(self._my_data[i_from:i_to], np.fft.ifft(np.fft.fft(wake) * np.fft.fft(self._moment+ 0*1j)))
+        
+        if len(self._dashed_wake_functions) > 0:
+            self._my_data.imag = beta*self._my_data.imag
+            
     def _accumulate_mpi_full_ring_fft(self, all_slice_sets,local_slice_sets,
                                       bunch_list, local_bunch_indexes, 
                                       optimization_method, moments):
 
         # gathers total wake data from all processors
-        self._mpi_array_share.share(self._my_data, self._new_wake_data)
+        self._mpi_array_share.share(np.copy(self._my_data.real), self._new_real_wake_data)  
+        self._mpi_array_share.share(np.copy(self._my_data.imag), self._new_imag_wake_data)
 
         # copies the old wake data
         old_data_from = self._n_bins_per_turn
@@ -598,7 +603,7 @@ class WakeKick(Printing):
 
         # accumulates new wake data from the old and new data
         np.copyto(self._accumulated_data,
-                  self._new_wake_data+old_data)
+                  self._new_real_wake_data + 1j*self._new_imag_wake_data+old_data)
 
 
         # flips the accumulated kicks back to original order and
@@ -616,28 +621,28 @@ class WakeKick(Printing):
                               bunch_list, local_bunch_indexes, 
                               optimization_method, moments='zero'):
 
-        if optimization_method == 'memory_optimized':
-            # Similar to the loop_minimized version, but wake functions for each source bunch are not
-            # keep in memory, but they are reconstructed during accumulation from precalculated
-            # wake functions by assuming constant bunch spacing over the ring. By using this,
-            # the memory limitations of the previous solution can be avoided
-            #
-            # Assumptions:
-            #   - slicing identical for each bunch
-            #   - bunch spacing is a multiple of the minimum bunch spacing
-            #   (determined by the harmonic number of bunches, h_bunch)
-            #
-            # Drawbacks:
-            #   - more assumtpions
-            #   - a maximum number of simulated bunces is limited by the computing power
-            #   (practical limit probably between 100-1000 bunches for 100 slices per bunch,
-            #    depending on the number of processors available)
+#        if optimization_method == 'memory_optimized':
+#            # Similar to the loop_minimized version, but wake functions for each source bunch are not
+#            # keep in memory, but they are reconstructed during accumulation from precalculated
+#            # wake functions by assuming constant bunch spacing over the ring. By using this,
+#            # the memory limitations of the previous solution can be avoided
+#            #
+#            # Assumptions:
+#            #   - slicing identical for each bunch
+#            #   - bunch spacing is a multiple of the minimum bunch spacing
+#            #   (determined by the harmonic number of bunches, h_bunch)
+#            #
+#            # Drawbacks:
+#            #   - more assumtpions
+#            #   - a maximum number of simulated bunces is limited by the computing power
+#            #   (practical limit probably between 100-1000 bunches for 100 slices per bunch,
+#            #    depending on the number of processors available)
+#
+#            return  self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
+#                                                 bunch_list, local_bunch_indexes,
+#                                                 optimization_method, moments)
 
-            return  self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
-                                                 bunch_list, local_bunch_indexes,
-                                                 optimization_method, moments)
-
-        elif optimization_method == 'mpi_full_ring_fft':
+        if optimization_method == 'mpi_full_ring_fft':
             # Follows the idea from the previous solutions, but the convolution is calculated over
             # each (bunch) bucket in the accelerator (even if they are not filled). This allow
             # the use of the circular fft convolution (ifft(fft(moment)*fft(wake))), which is
@@ -674,19 +679,20 @@ class WakeKick(Printing):
     def _calculate_wake_field(self, all_slice_sets, local_slice_sets,
                               bunch_list, local_bunch_indexes,
                               optimization_method, moments='zero',
-                              turns_on_this_proc=None):
+                              turns_on_this_proc=None, Q=None, beta=None):
 
-        if optimization_method == 'memory_optimized':
-            pass
+#        if optimization_method == 'memory_optimized':
+#            pass
 
-        elif optimization_method == 'mpi_full_ring_fft':
+        if optimization_method == 'mpi_full_ring_fft':
             return  self._calculate_field_mpi_full_ring_fft(all_slice_sets,
                                                             local_slice_sets,
                                                             bunch_list,
                                                             local_bunch_indexes,
                                                             optimization_method,
                                                             moments,
-                                                            turns_on_this_proc)
+                                                            turns_on_this_proc,
+                                                            Q, beta)
         elif optimization_method == 'dummy':
             pass
         else:
@@ -703,13 +709,15 @@ class ConstantWakeKickX(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_x, beta=beta_x)
     
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -735,20 +743,23 @@ class ConstantWakeKickX(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.xp[p_idx] += constant_kick[i].take(s_idx)
+            b.xp[p_idx] += constant_kick[i].real.take(s_idx)
+            b.x[p_idx] += constant_kick[i].imag.take(s_idx)
 
 
 class ConstantWakeKickY(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_y, beta=beta_y)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -774,20 +785,23 @@ class ConstantWakeKickY(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.yp[p_idx] += constant_kick[i].take(s_idx)
+            b.yp[p_idx] += constant_kick[i].real.take(s_idx)
+            b.y[p_idx] += constant_kick[i].imag.take(s_idx)
 
 
 class ConstantWakeKickZ(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=0., beta=1.)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -819,13 +833,15 @@ class DipoleWakeKickX(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method, moments='mean_x',
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_x, beta=beta_x)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -852,20 +868,23 @@ class DipoleWakeKickX(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.xp[p_idx] += dipole_kick[i].take(s_idx)
+            b.xp[p_idx] += dipole_kick[i].real.take(s_idx)
+            b.x[p_idx] += dipole_kick[i].imag.take(s_idx)
 
 
 class DipoleWakeKickXY(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method, moments='mean_y', 
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_x, beta=beta_x)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -893,20 +912,23 @@ class DipoleWakeKickXY(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.xp[p_idx] += dipole_kick[i].take(s_idx)
+            b.xp[p_idx] += dipole_kick[i].real.take(s_idx)
+            b.x[p_idx] += dipole_kick[i].imag.take(s_idx)
 
 
 class DipoleWakeKickY(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method, moments='mean_y',
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_y, beta=beta_y)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -933,20 +955,23 @@ class DipoleWakeKickY(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.yp[p_idx] += dipole_kick[i].take(s_idx)
+            b.yp[p_idx] += dipole_kick[i].real.take(s_idx)
+            b.y[p_idx] += dipole_kick[i].imag.take(s_idx)
 
 
 class DipoleWakeKickYX(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method, moments='mean_x', 
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_y, beta=beta_y)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -974,20 +999,23 @@ class DipoleWakeKickYX(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.yp[p_idx] += dipole_kick[i].take(s_idx)
+            b.yp[p_idx] += dipole_kick[i].real.take(s_idx)
+            b.y[p_idx] += dipole_kick[i].imag.take(s_idx)
 
 
 class QuadrupoleWakeKickX(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_x, beta=beta_x)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1013,20 +1041,23 @@ class QuadrupoleWakeKickX(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.xp[p_idx] += (quadrupole_kick[i].take(s_idx) * b.x.take(p_idx))
+            b.xp[p_idx] += (quadrupole_kick[i].real.take(s_idx) * b.x.take(p_idx))
+            b.x[p_idx] += (quadrupole_kick[i].imag.take(s_idx) * b.x.take(p_idx))
 
 
 class QuadrupoleWakeKickXY(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_x, beta=beta_x)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1053,20 +1084,23 @@ class QuadrupoleWakeKickXY(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.xp[p_idx] += (quadrupole_kick[i].take(s_idx) * b.y.take(p_idx))
+            b.xp[p_idx] += (quadrupole_kick[i].real.take(s_idx) * b.y.take(p_idx))
+            b.x[p_idx] += (quadrupole_kick[i].imag.take(s_idx) * b.y.take(p_idx))
 
 
 class QuadrupoleWakeKickY(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_y, beta=beta_y)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1092,20 +1126,23 @@ class QuadrupoleWakeKickY(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.yp[p_idx] += (quadrupole_kick[i].take(s_idx) * b.y.take(p_idx))
+            b.yp[p_idx] += (quadrupole_kick[i].real.take(s_idx) * b.y.take(p_idx))
+            b.y[p_idx] += (quadrupole_kick[i].imag.take(s_idx) * b.y.take(p_idx))
 
 
 class QuadrupoleWakeKickYX(WakeKick):
 
     def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
-              turns_on_this_proc=None):
+              turns_on_this_proc=None, Q_x=None, Q_y=None,
+              beta_x=None,beta_y=None):
         
         if optimization_method is not None:
             self._calculate_wake_field(all_slice_sets, local_slice_sets,
                                        bunch_list, local_bunch_indexes,
                                        optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc)
+                                       turns_on_this_proc=turns_on_this_proc,
+                                       Q=Q_y, beta=beta_y)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
                local_bunch_indexes=None, optimization_method=None,
@@ -1132,4 +1169,5 @@ class QuadrupoleWakeKickYX(WakeKick):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts
             s_idx = s.slice_index_of_particle.take(p_idx)
-            b.yp[p_idx] += (quadrupole_kick[i].take(s_idx) * b.x.take(p_idx))
+            b.yp[p_idx] += (quadrupole_kick[i].real.take(s_idx) * b.x.take(p_idx))
+            b.y[p_idx] += (quadrupole_kick[i].imag.take(s_idx) * b.x.take(p_idx))
