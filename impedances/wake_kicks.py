@@ -430,7 +430,7 @@ class WakeKick(Printing):
 
         return kick_list
 
-    def _init_mpi_full_ring_fft(self, all_slice_sets, local_slice_sets,
+    def _init_mpi_full_ring_fft(self, convolution, all_slice_sets, local_slice_sets,
                                 bunch_list, local_bunch_indexes,
                                 turns_on_this_proc, Q):
         
@@ -454,15 +454,24 @@ class WakeKick(Printing):
         # total number of bins per turn
         self._n_bins_per_turn = h_bunch * self._n_bins_per_kick
 
+
         # a buffer array for moment data
         self._moment = np.zeros(self._n_bins_per_turn)
 
-        # a buffer for wake data, which are gathered from all processors
-        self._new_real_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
-        self._new_imag_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
-
         # Raw accumulated data from turn by turn convolutions
-        self._accumulated_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake,dtype=complex)
+        if convolution == 'linear':
+            self._accumulated_data = np.zeros(self._n_bins_per_turn*(self.n_turns_wake+1))
+            # a buffer for wake data, which are gathered from all processors
+            self._new_real_wake_data = np.zeros(2*self._n_bins_per_turn*(self.n_turns_wake))
+            self._new_imag_wake_data = np.zeros(2*self._n_bins_per_turn*(self.n_turns_wake))
+        elif convolution == 'circular':
+        
+            self._accumulated_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake,dtype=complex)
+            # a buffer for wake data, which are gathered from all processors
+            self._new_real_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
+            self._new_imag_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
+        else:
+            raise ValueError('Unknown convolution')
 
         # Splitted accumulated data for local bunches
         self._accumulated_signal_list = []
@@ -499,7 +508,12 @@ class WakeKick(Printing):
             # wake functions are initiliazed
 
             # a buffer for the data calculated in this processor
-            self._my_data = np.zeros(self._n_bins_per_turn*len(my_wake_turns),dtype=complex)
+            if convolution == 'linear':
+                self._my_data = np.zeros(2*self._n_bins_per_turn*len(my_wake_turns))
+            elif convolution == 'circular':
+                self._my_data = np.zeros(self._n_bins_per_turn*len(my_wake_turns),dtype=complex)
+            else:
+                raise ValueError('Unknown convolution')
 
             # calculates normalized mid points z-bins, i.e. z-bins for a bunch
             # are bucket_id * bunch_spacing * z_bin_mids
@@ -539,7 +553,13 @@ class WakeKick(Printing):
                 if k==0:
                     np.copyto(temp_z[-n_roll:],np.zeros(n_roll))
 
-                self._dashed_wake_functions.append(np.exp(1j*rotation_angle)*self.wake_function(-(temp_z+turn_offset)/c, beta=local_slice_sets[0].beta))
+                if convolution == 'linear':
+                    self._dashed_wake_functions.append(self.wake_function(-(temp_z+turn_offset)/c, beta=local_slice_sets[0].beta))
+                elif convolution == 'circular':
+                    self._dashed_wake_functions.append(np.exp(1j*rotation_angle)*self.wake_function(-(temp_z+turn_offset)/c, beta=local_slice_sets[0].beta))
+                else:
+                    raise ValueError('Unknown convolution')
+                
 
         else:
             # if convolutions are not calculated in this procecessors,
@@ -547,12 +567,12 @@ class WakeKick(Printing):
             self._dashed_wake_functions = []
             self._my_data = np.array([])
 
-    def _calculate_field_mpi_full_ring_fft(self, all_slice_sets, local_slice_sets,
+    def _calculate_field_mpi_full_ring_fft(self, convolution, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, moments,
                                                  turns_on_this_proc, Q, beta):
         if not hasattr(self,'_dashed_wake_functions'):
-            self. _init_mpi_full_ring_fft(all_slice_sets, local_slice_sets,
+            self. _init_mpi_full_ring_fft(convolution, all_slice_sets, local_slice_sets,
                                          bunch_list, local_bunch_indexes,
                                          turns_on_this_proc, Q)
 
@@ -578,32 +598,68 @@ class WakeKick(Printing):
             np.copyto(self._moment[i_from:i_to],moment[::-1])
 #            np.copyto(self._moment[i_from:i_to],moment)
 
-        # convolution calculations are distributed to different processors
-        for i, wake in enumerate(self._dashed_wake_functions):
-            i_from = i*self._n_bins_per_turn
-            i_to = (i+1) * self._n_bins_per_turn
-            np.copyto(self._my_data[i_from:i_to], np.fft.ifft(np.fft.fft(wake) * np.fft.fft(self._moment+ 0*1j)))
-        
-        if len(self._dashed_wake_functions) > 0:
-            self._my_data.imag = beta*self._my_data.imag
+            # convolution calculations are distributed to different processors        
+        if convolution == 'linear':
+
+            for i, wake in enumerate(self._dashed_wake_functions):
+                i_from = 2*i*self._n_bins_per_turn
+                i_to = 2*(i+1) * self._n_bins_per_turn-1
+                np.copyto(self._my_data[i_from:i_to], fftconvolve(wake,self._moment,'full'))
             
-    def _accumulate_mpi_full_ring_fft(self, all_slice_sets,local_slice_sets,
+        elif convolution == 'circular':
+
+            for i, wake in enumerate(self._dashed_wake_functions):
+                i_from = i*self._n_bins_per_turn
+                i_to = (i+1) * self._n_bins_per_turn
+                np.copyto(self._my_data[i_from:i_to], np.fft.ifft(np.fft.fft(wake) * np.fft.fft(self._moment+ 0*1j)))
+            
+            if len(self._dashed_wake_functions) > 0:
+                self._my_data.imag = beta*self._my_data.imag
+        else:
+            raise ValueError('Unknown convolution')
+
+            
+    def _accumulate_mpi_full_ring_fft(self, convolution, all_slice_sets,local_slice_sets,
                                       bunch_list, local_bunch_indexes, 
                                       optimization_method, moments):
+       
+        if convolution == 'linear':
 
-        # gathers total wake data from all processors
-        self._mpi_array_share.share(np.copy(self._my_data.real), self._new_real_wake_data)  
-        self._mpi_array_share.share(np.copy(self._my_data.imag), self._new_imag_wake_data)
+            old_data_from = self._n_bins_per_turn
+            old_data_to = (self.n_turns_wake+1)*self._n_bins_per_turn
+            self._mpi_array_share.share(np.copy(self._my_data), self._new_real_wake_data)
+            
+        elif convolution == 'circular':
+            old_data_from = self._n_bins_per_turn
+            old_data_to = self.n_turns_wake*self._n_bins_per_turn
+
+            self._mpi_array_share.share(np.copy(self._my_data.real), self._new_real_wake_data)  
+            self._mpi_array_share.share(np.copy(self._my_data.imag), self._new_imag_wake_data)
+        else:
+            raise ValueError('Unknown convolution')
 
         # copies the old wake data
-        old_data_from = self._n_bins_per_turn
-        old_data_to = self.n_turns_wake*self._n_bins_per_turn
         old_data = np.append(self._accumulated_data[old_data_from:old_data_to],
                              np.zeros(self._n_bins_per_turn))
 
+       
+            
         # accumulates new wake data from the old and new data
-        np.copyto(self._accumulated_data,
-                  self._new_real_wake_data + 1j*self._new_imag_wake_data+old_data)
+        if convolution == 'linear':
+            np.copyto(self._accumulated_data,old_data)
+            for i in range(self.n_turns_wake):
+                j_from = i*self._n_bins_per_turn
+                j_to = (i+2)*self._n_bins_per_turn
+                k_from = 2*i*self._n_bins_per_turn
+                k_to = 2*(i+1)*self._n_bins_per_turn
+                self._accumulated_data[j_from:j_to] = self._accumulated_data[j_from:j_to] + self._new_real_wake_data[k_from:k_to]
+            
+        elif convolution == 'circular':
+            np.copyto(self._accumulated_data,
+                      self._new_real_wake_data + 1j*self._new_imag_wake_data+old_data)
+        else:
+            raise ValueError('Unknown convolution')
+
 
 
         # flips the accumulated kicks back to original order and
@@ -642,7 +698,7 @@ class WakeKick(Printing):
 #                                                 bunch_list, local_bunch_indexes,
 #                                                 optimization_method, moments)
 
-        if optimization_method == 'mpi_full_ring_fft':
+        if optimization_method == 'circular_mpi_full_ring_fft':
             # Follows the idea from the previous solutions, but the convolution is calculated over
             # each (bunch) bucket in the accelerator (even if they are not filled). This allow
             # the use of the circular fft convolution (ifft(fft(moment)*fft(wake))), which is
@@ -661,7 +717,13 @@ class WakeKick(Printing):
             #   - calculation time does not depend on the number of bunches, which prefers
             #   use of the memory_optimized version for a small number of bunches in large accelerators
 
-            return  self._accumulate_mpi_full_ring_fft(all_slice_sets, local_slice_sets,
+            return  self._accumulate_mpi_full_ring_fft('circular', all_slice_sets, local_slice_sets,
+                                                 bunch_list, local_bunch_indexes,
+                                                 optimization_method, moments)
+
+        elif optimization_method == 'linear_mpi_full_ring_fft':
+
+            return  self._accumulate_mpi_full_ring_fft('linear',all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, moments)
         elif optimization_method == 'dummy':
@@ -684,8 +746,17 @@ class WakeKick(Printing):
 #        if optimization_method == 'memory_optimized':
 #            pass
 
-        if optimization_method == 'mpi_full_ring_fft':
-            return  self._calculate_field_mpi_full_ring_fft(all_slice_sets,
+        if optimization_method == 'circular_mpi_full_ring_fft':
+            return  self._calculate_field_mpi_full_ring_fft('circular', all_slice_sets,
+                                                            local_slice_sets,
+                                                            bunch_list,
+                                                            local_bunch_indexes,
+                                                            optimization_method,
+                                                            moments,
+                                                            turns_on_this_proc,
+                                                            Q, beta)
+        elif optimization_method == 'linear_mpi_full_ring_fft':
+            return  self._calculate_field_mpi_full_ring_fft('linear', all_slice_sets,
                                                             local_slice_sets,
                                                             bunch_list,
                                                             local_bunch_indexes,
