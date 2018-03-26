@@ -61,7 +61,7 @@ def run(argv):
     # ============================
 
     n_macroparticles = 1500
-    intensity = 2.3e11
+    intensity = 1e12
 
     charge = e
     mass = m_p
@@ -97,7 +97,8 @@ def run(argv):
 
 # Number of bunches simulated
 #    h_RF = 2748
-    h_RF = 274
+#    h_RF = 274
+    h_RF = 156
 
 
     wrap_z = False
@@ -146,18 +147,23 @@ def run(argv):
     # WAKE PARAMETERS
     # ============================
     if case == 0:
-        mpi_settings = 'mpi_full_ring_fft'    
+        mpi_settings = 'linear_mpi_full_ring_fft'     
     elif case == 1:
-        mpi_settings = 'memory_optimized'
-    n_turns_wake = 2
-    wakes = CircularResonator(135e6, 1.97e9, 31000, n_turns_wake=n_turns_wake)
+        mpi_settings = True
+        
+    n_turns_wake = 8  
+    f_rs = np.logspace(np.log10(3e4),np.log10(1e6),20)
+    R_shunt = 1e10
+    frequency = f_rs[12]
+    Q=0.65
+    wakes = CircularResonator(R_shunt, frequency, Q, n_turns_wake=n_turns_wake)
 
     wake_field = WakeField(slicer_for_wakefields, wakes, mpi=mpi_settings,
                            Q_x=accQ_x, Q_y=accQ_y, beta_x=beta_x, beta_y=beta_y)
 
 
 #    if case == 1:
-#    machine.one_turn_map.append(wake_field)
+    machine.one_turn_map.append(wake_field)
 
     # FEEDBACK
     # ========
@@ -184,7 +190,7 @@ def run(argv):
 
     # SIMULATION PARAMETERS
     # ============================
-    n_turns = 50
+    n_turns = 300
 
 
     # CREATE MONITORS

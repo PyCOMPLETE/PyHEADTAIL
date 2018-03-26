@@ -532,7 +532,7 @@ class WakeKick(Printing):
             for i in range(h_bunch):
                 idx_from = i * self._n_bins_per_kick
                 idx_to = (i + 1) * self._n_bins_per_kick
-                offset = (i*bunch_spacing)
+                offset = (i*bunch_spacing) 
                 temp_mids = z_bin_mids+offset
                 np.copyto(z_values[idx_from:idx_to],temp_mids)
 
@@ -540,6 +540,7 @@ class WakeKick(Printing):
             # zero. Thus, rolls negative z-bins to the end of the array.
             roll_threshold = -1. * bin_width/2.
             n_roll = sum((z_bin_mids < roll_threshold))
+            z_values[:n_roll] = z_values[:n_roll]+circumference
             z_values = np.roll(z_values,-n_roll)
             rotation_angle = -2.*np.pi*(Q%1.)*z_values/circumference
             
@@ -550,8 +551,9 @@ class WakeKick(Printing):
             for k in my_wake_turns:
                 turn_offset = (float(k) * circumference)
                 temp_z = np.copy(z_values)
-                if k==0:
-                    np.copyto(temp_z[-n_roll:],np.zeros(n_roll))
+#                if k==0:
+#                    np.copyto(temp_z[-n_roll:],np.zeros(n_roll))
+#                np.copyto(temp_z[:n_roll],np.zeros(n_roll))
 
                 if convolution == 'linear':
                     self._dashed_wake_functions.append(self.wake_function(-(temp_z+turn_offset)/c, beta=local_slice_sets[0].beta))

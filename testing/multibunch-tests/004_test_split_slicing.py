@@ -26,7 +26,7 @@ sns.set(context='talk', style='darkgrid', palette='deep',
             'font.sans-serif': 'Helvetica',
         })
 
-
+np.random.seed(0)
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
@@ -88,13 +88,19 @@ slicer_for_wakefields = UniformBinSlicer(20, z_cuts=(-0.4, 0.4),
 
 # CREATE WAKES
 # ============
-wakes = CircularResonator(1e6, 43e6, 10, n_turns_wake=n_turns)
+wakes = CircularResonator(1.1e6, 50.6e6, 18, n_turns_wake=n_turns)
 
 #wake_field = WakeField(slicer_for_wakefields, wakes, mpi='mpi_full_ring_fft')
 #wake_field = WakeField(slicer_for_wakefields, wakes, mpi='memory_optimized')
 wake_field = WakeField(slicer_for_wakefields, wakes, mpi='linear_mpi_full_ring_fft',
                        Q_x=machine.Q_x, Q_y=machine.Q_y,
                        beta_x=machine.beta_x, beta_y=machine.beta_y)
+#wake_field = WakeField(slicer_for_wakefields, wakes, mpi='circular_mpi_full_ring_fft',
+#                       Q_x=machine.Q_x, Q_y=machine.Q_y,
+#                       beta_x=machine.beta_x, beta_y=machine.beta_y)
+#wake_field = WakeField(slicer_for_wakefields, wakes, mpi=True,
+#                       Q_x=machine.Q_x, Q_y=machine.Q_y,
+#                       beta_x=machine.beta_x, beta_y=machine.beta_y)
 
 w_function = wake_field.wake_kicks[0].wake_function
 w_factor = wake_field.wake_kicks[0]._wake_factor

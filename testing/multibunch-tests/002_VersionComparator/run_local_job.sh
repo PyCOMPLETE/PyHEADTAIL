@@ -8,7 +8,7 @@ copy_path=$3
 
 # Path to the installed environment
 # (same as ENVPATH in the file install_mpi_environment.sh)
-ENVIRONMENT=/home/jani/environments/mpi
+ENVIRONMENT=/home/jani/environments/mpi_dev
 
 source $ENVIRONMENT/virtualenvs/py2.7/bin/activate
 which python
