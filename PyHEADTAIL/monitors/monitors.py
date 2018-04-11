@@ -571,9 +571,9 @@ class CellMonitor(Monitor):
         them to file. The buffer is implemented as a shift register. The
         cell-specific data are computed by a cython function. """
 
-        from PyHEADTAIL.cobra_functions.stats import calc_cell_stats
-        n_cl, x_cl, xp_cl, y_cl, yp_cl, z_cl, dp_cl = calc_cell_stats(
-            bunch, self.beta_z, self.radial_cut, self.n_radial_slices, self.n_azimuthal_slices)
+        n_cl, x_cl, xp_cl, y_cl, yp_cl, z_cl, dp_cl = cp.calc_cell_stats(
+            bunch, self.beta_z, self.radial_cut, self.n_radial_slices,
+            self.n_azimuthal_slices)
 
         self.buffer_cell['mean_x'][:,:,0] = x_cl[:,:]
         self.buffer_cell['mean_xp'][:,:,0] = xp_cl[:,:]
