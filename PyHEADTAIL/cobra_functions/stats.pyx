@@ -418,8 +418,11 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
 @cython.boundscheck(False)
 @cython.cdivision(True)
 @cython.wraparound(False)
-cpdef calc_cell_stats(bunch, double beta_z, double radial_cut,
-                      int n_rings, int n_azim_slices):
+cpdef calc_cell_stats(
+        double[::1] x, double[::1] xp, double[::1] y,
+        double[::1] yp, double[::1] z, double[::1] dp,
+        double beta_z, double radial_cut,
+        int n_rings, int n_azim_slices):
 
     # Prepare arrays to store cell statistics.
     cdef int[:,::1] n_particles_cell = np.zeros((n_azim_slices, n_rings),
@@ -438,12 +441,12 @@ cpdef calc_cell_stats(bunch, double beta_z, double radial_cut,
                                                dtype=np.double)
 
     # Declare datatypes of bunch coords.
-    cdef double[::1] x = bunch.x
-    cdef double[::1] xp = bunch.xp
-    cdef double[::1] y = bunch.y
-    cdef double[::1] yp = bunch.yp
-    cdef double[::1] z = bunch.z
-    cdef double[::1] dp = bunch.dp
+    # cdef double[::1] x = bunch.x
+    # cdef double[::1] xp = bunch.xp
+    # cdef double[::1] y = bunch.y
+    # cdef double[::1] yp = bunch.yp
+    # cdef double[::1] z = bunch.z
+    # cdef double[::1] dp = bunch.dp
     cdef unsigned int n_particles = x.shape[0]
 
     cdef double ring_width = radial_cut / <double>n_rings

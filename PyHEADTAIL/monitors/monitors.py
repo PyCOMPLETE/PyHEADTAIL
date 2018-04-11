@@ -571,9 +571,23 @@ class CellMonitor(Monitor):
         them to file. The buffer is implemented as a shift register. The
         cell-specific data are computed by a cython function. """
 
-        from PyHEADTAIL.cobra_functions.stats import calc_cell_stats
-        n_cl, x_cl, xp_cl, y_cl, yp_cl, z_cl, dp_cl = calc_cell_stats(
-            bunch, self.beta_z, self.radial_cut, self.n_radial_slices, self.n_azimuthal_slices)
+        ps_coords = {'x': None, 'xp': None, 'y': None,
+                     'yp': None, 'z': None, 'dp': None}
+        for coord in ps_coords:
+            ps_coords[coord] = getattr(bunch, coord)
+            if pm.device is 'GPU':
+                stream = next(gpu_utils.stream_pool)
+                ps_coords[coord] = ps_coords[coord].get_async(stream=stream)
+        if pm.device is 'GPU':
+            for stream in gpu_utils.streams:
+                stream.synchronize()
+
+        # TODO: calculate these cell stats on the GPU instead of the CPU!!!
+        n_cl, x_cl, xp_cl, y_cl, yp_cl, z_cl, dp_cl = cp.calc_cell_stats(
+            ps_coords['x'], ps_coords['xp'], ps_coords['y'],
+            ps_coords['yp'], ps_coords['z'], ps_coords['dp'],
+            self.beta_z, self.radial_cut, self.n_radial_slices,
+            self.n_azimuthal_slices)
 
         self.buffer_cell['mean_x'][:,:,0] = x_cl[:,:]
         self.buffer_cell['mean_xp'][:,:,0] = xp_cl[:,:]
