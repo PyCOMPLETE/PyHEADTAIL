@@ -29,6 +29,7 @@ from abc import ABCMeta, abstractmethod
 
 from wake_kicks import *
 from . import Element, Printing
+from ..general.decorators import deprecated
 
 sin = np.sin
 cos = np.cos
@@ -502,8 +503,8 @@ class CircularResonator(Resonator):
             Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake, *args, **kwargs)
 
 
-class ParallelPlatesResonator(Resonator):
-    '''Parallel Plate Resonator.'''
+class ParallelHorizontalPlatesResonator(Resonator):
+    '''Broad-band resonator for horizontal parallel plates.'''
     def __init__(self, R_shunt, frequency, Q, n_turns_wake=1,
                  *args, **kwargs):
         """ Special case of parallel plate resonator. """
@@ -513,7 +514,30 @@ class ParallelPlatesResonator(Resonator):
         Yokoya_Y2 = np.pi**2 / 24.
         switch_Z  = False
 
-        super(ParallelPlatesResonator, self).__init__(
+        super(ParallelHorizontalPlatesResonator, self).__init__(
+            R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
+            Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake, *args, **kwargs)
+
+
+@deprecated('--> "ParallelPlatesResonator" will be removed '
+            'in the near future. '
+            'Use "ParallelHorizontalPlatesResonator" instead.\n')
+class ParallelPlatesResonator(ParallelHorizontalPlatesResonator):
+    pass
+
+
+class ParallelVerticalPlatesResonator(Resonator):
+    '''Broad-band resonator for vertical parallel plates.'''
+    def __init__(self, R_shunt, frequency, Q, n_turns_wake=1,
+                 *args, **kwargs):
+        """ Special case of parallel plate resonator. """
+        Yokoya_X1 = np.pi**2 / 12.
+        Yokoya_Y1 = np.pi**2 / 24.
+        Yokoya_X2 = np.pi**2 / 24.
+        Yokoya_Y2 = -np.pi**2 / 24.
+        switch_Z  = False
+
+        super(ParallelVerticalPlatesResonator, self).__init__(
             R_shunt, frequency, Q, Yokoya_X1, Yokoya_Y1,
             Yokoya_X2, Yokoya_Y2, switch_Z, n_turns_wake, *args, **kwargs)
 
@@ -608,8 +632,8 @@ class CircularResistiveWall(ResistiveWall):
             *args, **kwargs)
 
 
-class ParallelPlatesResistiveWall(ResistiveWall):
-    '''Parallel plates resistive wall.'''
+class ParallelHorizontalPlatesResistiveWall(ResistiveWall):
+    '''Resistive wall impedance for horizontal parallel plates.'''
     def __init__(self, pipe_radius, resistive_wall_length, conductivity,
                  dt_min, n_turns_wake=1, *args, **kwargs):
         """ Special case of a parallel plates resistive wall. """
@@ -618,7 +642,29 @@ class ParallelPlatesResistiveWall(ResistiveWall):
         Yokoya_X2 = -np.pi**2 / 24.
         Yokoya_Y2 = np.pi**2 / 24.
 
-        super(ParallelPlatesResistiveWall, self).__init__(
+        super(ParallelHorizontalPlatesResistiveWall, self).__init__(
+            pipe_radius, resistive_wall_length, conductivity, dt_min,
+            Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake,
+            *args, **kwargs)
+
+@deprecated('--> "ParallelPlatesResistiveWall" will be removed '
+            'in the near future. '
+            'Use "ParallelHorizontalPlatesResistiveWall" instead.\n')
+class ParallelPlatesResistiveWall(ParallelHorizontalPlatesResistiveWall):
+    pass
+
+
+class ParallelVerticalPlatesResistiveWall(Resonator):
+    '''Resistive wall impedance for vertical parallel plates.'''
+    def __init__(self, pipe_radius, resistive_wall_length, conductivity,
+                 dt_min, n_turns_wake=1, *args, **kwargs):
+        """ Special case of a parallel plates resistive wall. """
+        Yokoya_X1 = np.pi**2 / 12.
+        Yokoya_Y1 = np.pi**2 / 24.
+        Yokoya_X2 = np.pi**2 / 24.
+        Yokoya_Y2 = -np.pi**2 / 24.
+
+        super(ParallelVerticalPlatesResistiveWall, self).__init__(
             pipe_radius, resistive_wall_length, conductivity, dt_min,
             Yokoya_X1, Yokoya_Y1, Yokoya_X2, Yokoya_Y2, n_turns_wake,
             *args, **kwargs)
