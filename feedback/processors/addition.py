@@ -94,6 +94,7 @@ class Addition(object):
                     seed = getattr(slice_set,self._seed)
                     np.copyto(self._addend[start_idx:(start_idx+len(seed))],seed)
                     start_idx += len(seed)
+                np.copyto(self._addend, self._addend[::-1])
             else:
                 raise ValueError('Signal length does not correspond to the original signal length '
                                  'from the slice sets in the method Addition')

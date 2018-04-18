@@ -373,7 +373,12 @@ class ConvolutionFilter(Convolution):
 
             # calculates the impulse value for the bin by integrating the impulse
             # response over the normalized bin
-            impulse[i], _ = integrate.quad(self._impulse_response, integral_from, integral_to)
+            if (self._impulse_response(integral_from) == 0) and (self._impulse_response(integral_to) == 0) and (self._impulse_response((integral_from+integral_to)/2.) == 0):
+                # gives zero value if impulse response values are zero on the edges and middle of the bin
+                # (optimization for the FCC simulations)
+                impulse[i] = 0.
+            else:
+                impulse[i], _ = integrate.quad(self._impulse_response, integral_from, integral_to)
 
         # normalizes the impulse response
         norm_coeff = self. _normalization_coefficient(impulse_ref_edges, impulse, original_segment_length)
@@ -520,6 +525,7 @@ class Lowpass(ConvolutionFilter):
 
         super(self.__class__, self).__init__(scaling, normalization=normalization,**kwargs)
         self.label = 'Lowpass filter'
+        self.time_scale = max_impulse_length/scaling
 
 
 class Highpass(ConvolutionFilter):
@@ -537,6 +543,7 @@ class Highpass(ConvolutionFilter):
 
         super(self.__class__, self).__init__( scaling, zero_bin_value= 1., normalization=normalization, **kwargs)
         self.label = 'Highpass filter'
+        self.time_scale = max_impulse_length/scaling
 
 class PhaseLinearizedLowpass(ConvolutionFilter):
     """ A phase linearized 1st order lowpass filter. Note that the narrow and
@@ -556,6 +563,7 @@ class PhaseLinearizedLowpass(ConvolutionFilter):
 
         super(self.__class__, self).__init__( scaling, normalization=normalization, **kwargs)
         self.label = 'Phaselinearized lowpass filter'
+        self.time_scale = max_impulse_length/scaling
 
 
 class Gaussian(ConvolutionFilter):
@@ -571,6 +579,7 @@ class Gaussian(ConvolutionFilter):
 
         super(self.__class__, self).__init__( scaling, normalization=normalization, **kwargs)
         self.label = 'Gaussian lowpass filter'
+        self.time_scale = 1*max_impulse_length/scaling
 
 
 class Sinc(ConvolutionFilter):
@@ -603,6 +612,7 @@ class Sinc(ConvolutionFilter):
 
         super(self.__class__, self).__init__(scaling,normalization=normalization, **kwargs)
         self.label = 'Sinc filter'
+        self.time_scale = window_width/scaling
 
 
 class FIRFilter(Convolution):

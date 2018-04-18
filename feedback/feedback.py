@@ -81,160 +81,309 @@ class IdealSliceFeedback(object):
             bunch.yp[p_idx] -= self._gain_y * slice_set.mean_yp[s_idx]
 
 
-def get_local_slice_sets(bunch, slicer, required_variables):
-    signal_slice_sets = [bunch.get_slices(slicer, statistics=required_variables)]
-    bunch_slice_sets = signal_slice_sets
-    bunch_list = [bunch]
 
-    return signal_slice_sets, bunch_slice_sets, bunch_list
-
-
-def get_mpi_slice_sets(superbunch, mpi_gatherer):
-    mpi_gatherer.gather(superbunch)
-    signal_slice_sets = mpi_gatherer.bunch_by_bunch_data
-    bunch_slice_sets = mpi_gatherer.slice_set_list
-    bunch_list = mpi_gatherer.bunch_list
-
-    return signal_slice_sets, bunch_slice_sets, bunch_list
-
-
-def generate_parameters(signal_slice_sets, location=0., beta=1.,
-                        circumference=None, h_bunch=None):
-
-    bin_edges = None
-    segment_ref_points = []
-
-    if len(signal_slice_sets) > 1:
-        circumference = signal_slice_sets[0].circumference
-        h_bunch = signal_slice_sets[0].h_bunch
-    else:
-        circumference=None
-        h_bunch=None
+class GenericOneTurnMapObject(object):
+    def __init__(self, gain, slicer, processors_x, processors_y=None,
+                 pickup_axis='divergence', kicker_axis=None, mpi=False,
+                 phase_x=None, phase_y=None, location_x=0., location_y=0.,
+                 beta_x=1., beta_y=1., **kwargs):
         
-    for slice_set in signal_slice_sets:
-            z_bins = np.copy(slice_set.z_bins)
-            if circumference is not None:
-                z_bins -= slice_set.bucket_id*circumference/float(h_bunch)
+        if isinstance(gain, collections.Container):
+            self._gain_x = gain[0]
+            self._gain_y = gain[1]
+        else:
+            self._gain_x = gain
+            self._gain_y = gain
         
-            edges = -1.*z_bins_to_bin_edges(z_bins)/c
-            segment_ref_points.append(-1.*np.mean(z_bins)/c)
-            if bin_edges is None:
-                bin_edges = np.copy(edges)
-            else:
-                bin_edges = append_bin_edges(bin_edges, edges)
+        self._slicer = slicer
+        
+        self._processors_x = processors_x
+        self._processors_y = processors_y
+        
+        # beam parameters
+        self._pickup_axis = pickup_axis
+        self._kicker_axis = kicker_axis
+        self._phase_x = phase_x
+        self._phase_y = phase_y
+        self._location_x = location_x
+        self._location_y = location_y
+        self._beta_x = beta_x
+        self._beta_y = beta_y
+        
+        self._local_sets = None
+        self._signal_sets_x = None
+        self._signal_sets_y = None
+        self._loc_signal_sets_x = None
+        self._loc_signal_sets_y = None
+        self._required_variables = []
+        
+        if (self._pickup_axis == 'divergence') or (phase_x is not None):
+            self._required_variables.append('mean_xp')
+        if (self._pickup_axis == 'displacement') or (phase_x is not None):
+            self._required_variables.append('mean_x')
 
-    bin_edges = bin_edges[::-1]
-    bin_edges = np.fliplr(bin_edges)
-    segment_ref_points = segment_ref_points[::-1]
+        self._required_variables = get_processor_variables(self._processors_x,
+                                                     self._required_variables)
+        if self._processors_y is not None:
+            if (self._pickup_axis == 'divergence') or (phase_y is not None):
+                self._required_variables.append('mean_yp')
+            if (self._pickup_axis == 'displacement') or (phase_y is not None):
+                self._required_variables.append('mean_y')
+                
+            self._required_variables = get_processor_variables(self._processors_y,
+                                                         self._required_variables)
+#        # TODO: Normally n_macroparticles_per_slice is removed from
+#        #       the statistical variables. Check if it is not necessary.
 
-    n_bins_per_segment = len(bin_edges)/len(signal_slice_sets)
-    segment_ref_points = np.array(segment_ref_points)
+        self._mpi = mpi
+        if self._mpi:
+            self._mpi_gatherer = mpi_data.MpiGatherer(self._slicer,
+                                                      self._required_variables)
+        self._parameters_x = None
+        self._signal_x = None
+        
+        self._parameters_y = None
+        self._signal_y = None
+        
 
-    parameters = Parameters()
-    parameters['class'] = 0
-    parameters['bin_edges'] = bin_edges
-    parameters['n_segments'] = len(signal_slice_sets)
-    parameters['n_bins_per_segment'] = n_bins_per_segment
-    parameters['segment_ref_points'] = segment_ref_points
-    parameters['location'] = location
-    parameters['beta'] = beta
+    def _init_signals(self, bunch_list, signal_slice_sets_x, signal_slice_sets_y):
+        
+        self._parameters_x = self._generate_parameters(signal_slice_sets_x,
+                                                        self._location_x,
+                                                        self._beta_x)
+        
+        n_segments = self._parameters_x['n_segments']
+        n_bins_per_segment = self._parameters_x['n_bins_per_segment']
+        self._signal_x = np.zeros(n_segments * n_bins_per_segment)
+        
+        
+        if self._processors_y is not None:
+            self._parameters_y = self._generate_parameters(signal_slice_sets_y,
+                                                            self._location_y,
+                                                            self._beta_y)
+        
+            n_segments = self._parameters_y['n_segments']
+            n_bins_per_segment = self._parameters_y['n_bins_per_segment']
+            self._signal_y = np.zeros(n_segments * n_bins_per_segment)
 
-    return parameters
-
-def read_signal(signal_x, signal_y, signal_slice_sets, axis, mpi,
-                phase_x, phase_y, beta_x, beta_y):
-    # TODO: change the mpi code to support n_slices
-    if mpi:
-        n_slices_per_bunch = signal_slice_sets[0]._n_slices
-    else:
-        n_slices_per_bunch = signal_slice_sets[0].n_slices
-
-    total_length = len(signal_slice_sets) * n_slices_per_bunch
-
-    if (signal_x is None) or (len(signal_x) != total_length):
-        raise ValueError('Wrong signal length')
-
-    if (signal_y is None) or (len(signal_x) != total_length):
-        raise ValueError('Wrong signal length')
-
-    for idx, slice_set in enumerate(signal_slice_sets):
-        idx_from = idx * n_slices_per_bunch
-        idx_to = (idx + 1) * n_slices_per_bunch
-
-        if axis == 'divergence':
-            if phase_x is None:
-                np.copyto(signal_x[idx_from:idx_to], slice_set.mean_xp)
-            else:
-                np.copyto(signal_x[idx_from:idx_to], (-np.sin(phase_x)*slice_set.mean_x/beta_x +
-                                  np.cos(phase_x)*slice_set.mean_xp))
-            if phase_y is None:
-                np.copyto(signal_y[idx_from:idx_to], slice_set.mean_yp)
-            else:
-                np.copyto(signal_y[idx_from:idx_to], (-np.sin(phase_y)*slice_set.mean_y/beta_y +
-                                  np.cos(phase_y)*slice_set.mean_yp))
-
-        elif axis == 'displacement':
-            if phase_x is None:
-                np.copyto(signal_x[idx_from:idx_to], slice_set.mean_x)
-            else:
-                np.copyto(signal_x[idx_from:idx_to], (np.cos(phase_x)*slice_set.mean_x +
-                                  beta_x*np.sin(phase_x)*slice_set.mean_xp))
-            if phase_y is None:
-                np.copyto(signal_y[idx_from:idx_to], slice_set.mean_y)
-            else:
-                np.copyto(signal_y[idx_from:idx_to], (np.cos(phase_y)*slice_set.mean_y +
-                                  beta_y*np.sin(phase_y)*slice_set.mean_yp))
+    def _get_slice_sets(self, superbunch):
+        if self._mpi:
+            self._mpi_gatherer.gather(superbunch)
+            all_slice_sets = self._mpi_gatherer.bunch_by_bunch_data
+            local_slice_sets = self._mpi_gatherer.slice_set_list
+            bunch_list = self._mpi_gatherer.bunch_list
+            self._local_sets = self._mpi_gatherer.local_bunch_indexes
         else:
-            raise ValueError('Unknown axis')
-    
-    if signal_x is not None:
-        np.copyto(signal_x, signal_x[::-1])
-    
-    if signal_y is not None:
-        np.copyto(signal_y, signal_y[::-1])
-
-def kick_bunches(local_slice_sets, bunch_list, local_bunch_indexes,
-                 signal_x, signal_y, axis):
-
-    if signal_x is not None:
-        np.copyto(signal_x, signal_x[::-1])
-    
-    if signal_y is not None:
-        np.copyto(signal_y, signal_y[::-1])
-    
-    n_slices_per_bunch = local_slice_sets[0].n_slices
-
-    for slice_set, bunch_idx, bunch in zip(local_slice_sets,
-                                           local_bunch_indexes, bunch_list):
-
-        idx_from = bunch_idx * n_slices_per_bunch
-        idx_to = (bunch_idx + 1) * n_slices_per_bunch
-
-        p_idx = slice_set.particles_within_cuts
-        s_idx = slice_set.slice_index_of_particle.take(p_idx)
-
-        if axis == 'divergence':
-            if signal_x is not None:
-                correction_x = np.array(signal_x[idx_from:idx_to], copy=False)
-                bunch.xp[p_idx] -= correction_x[s_idx]
-            if signal_y is not None:
-                correction_y = np.array(signal_y[idx_from:idx_to], copy=False)
-                bunch.yp[p_idx] -= correction_y[s_idx]
-
-        elif axis == 'displacement':
-            if signal_x is not None:
-                correction_x = np.array(signal_x[idx_from:idx_to], copy=False)
-                bunch.x[p_idx] -= correction_x[s_idx]
-            if signal_y is not None:
-                correction_y = np.array(signal_y[idx_from:idx_to], copy=False)
-                bunch.y[p_idx] -= correction_y[s_idx]
+            all_slice_sets = [superbunch.get_slices(self._slicer,
+                                                    statistics=self._required_variables)]
+            local_slice_sets = all_slice_sets
+            bunch_list = [superbunch]
+            self._local_sets = [0]
+            
+        if self._signal_sets_x is None:
+            indexes = self._parse_relevant_bunches(local_slice_sets,
+                                                   all_slice_sets,
+                                                   self._processors_x)
+            self._signal_sets_x = indexes[0]
+            self._loc_signal_sets_x = indexes[1]
+            
+            if self._processors_y is not None:
+                indexes = self._parse_relevant_bunches(local_slice_sets,
+                                                       all_slice_sets,
+                                                       self._processors_y)
+                self._signal_sets_y = indexes[0]
+                self._loc_signal_sets_y = indexes[1]
+            
+        signal_slice_sets_x = []
+        for idx in self._signal_sets_x:
+            signal_slice_sets_x.append(all_slice_sets[idx])
+        
+        if self._processors_y is not None:
+            signal_slice_sets_y = []
+            for idx in self._signal_sets_y:
+                signal_slice_sets_y.append(all_slice_sets[idx])
         else:
-            raise ValueError('Unknown axis')
+            signal_slice_sets_y = None
+        
+        return bunch_list, local_slice_sets, signal_slice_sets_x, signal_slice_sets_y
+            
+    def _generate_parameters(self, signal_slice_sets, location=0., beta=1.):
+    
+        bin_edges = None
+        segment_ref_points = []
+    
+        if len(signal_slice_sets) > 1:
+            circumference = signal_slice_sets[0].circumference
+            h_bunch = signal_slice_sets[0].h_bunch
+        else:
+            circumference=None
+            h_bunch=None
+            
+        for slice_set in signal_slice_sets:
+                z_bins = np.copy(slice_set.z_bins)
+                if circumference is not None:
+                    z_bins -= slice_set.bucket_id*circumference/float(h_bunch)
+            
+                edges = -1.*z_bins_to_bin_edges(z_bins)/c
+                segment_ref_points.append(-1.*np.mean(z_bins)/c)
+                if bin_edges is None:
+                    bin_edges = np.copy(edges)
+                else:
+                    bin_edges = append_bin_edges(bin_edges, edges)
+    
+        bin_edges = bin_edges[::-1]
+        bin_edges = np.fliplr(bin_edges)
+        segment_ref_points = segment_ref_points[::-1]
+    
+        n_bins_per_segment = len(bin_edges)/len(signal_slice_sets)
+        segment_ref_points = np.array(segment_ref_points)
+    
+        parameters = Parameters()
+        parameters['class'] = 0
+        parameters['bin_edges'] = bin_edges
+        parameters['n_segments'] = len(signal_slice_sets)
+        parameters['n_bins_per_segment'] = n_bins_per_segment
+        parameters['segment_ref_points'] = segment_ref_points
+        parameters['location'] = location
+        parameters['beta'] = beta
+    
+        return parameters
+    
+    def _parse_relevant_bunches(self, local_slice_sets, all_slice_sets, processors):
+        circumference = all_slice_sets[0].circumference
+        h_bunch = all_slice_sets[0].h_bunch
+        
+        time_scale = 0.
+        
+        for processor in processors:
+            if processor.time_scale > time_scale:
+                time_scale = processor.time_scale
+        local_set_edges = np.zeros((len(local_slice_sets), 2))
+        
+        included_sets = []
+        set_is_included = np.zeros(len(all_slice_sets), dtype=int)
+        set_counter = np.zeros(len(all_slice_sets), dtype=int)
+        
+        for i, slice_set in enumerate(local_slice_sets):
+            local_set_edges[i,0] = np.min(slice_set.z_bins-slice_set.bucket_id*circumference/float(h_bunch))/c
+            local_set_edges[i,1] = np.max(slice_set.z_bins-slice_set.bucket_id*circumference/float(h_bunch))/c
+            
+        
+        local_min = np.min(local_set_edges)
+        local_max = np.max(local_set_edges)
+        
+        counter = 0
+        for i, slice_set in enumerate(all_slice_sets):
+            set_min = np.min(slice_set.z_bins-slice_set.bucket_id*circumference/float(h_bunch))/c
+            set_max = np.max(slice_set.z_bins-slice_set.bucket_id*circumference/float(h_bunch))/c
+    #        print 'set_min ' + str(set_min) + ' and (local_min - time_scale)' + str((local_min - time_scale))
+            if (set_max > (local_min - time_scale)) and (set_min < (local_max + time_scale)):
+                included_sets.append(i)
+                set_is_included[i] = 1
+                set_counter[i] = counter
+                counter += 1
+            else:
+                pass
+    #            print('skip!!!')
+                
+        local_sets = []
+        for idx in self._local_sets:
+            if set_is_included[idx] != 1:
+                raise ValueError('All local bunches are not included!')
+            else:
+                local_sets.append(set_counter[idx])
+                    
+        
+        return included_sets, local_sets
+    
+    
+    def _read_signal(self, signal, signal_slice_sets, plane, betatron_phase,
+                    beta_value):     
+        if self._mpi:
+            n_slices_per_bunch = signal_slice_sets[0]._n_slices
+        else:
+            n_slices_per_bunch = signal_slice_sets[0].n_slices
+    
+        total_length = len(signal_slice_sets) * n_slices_per_bunch
+    
+        if (signal is None) or (len(signal) != total_length):
+            raise ValueError('Wrong signal length')
+    
+        for idx, slice_set in enumerate(signal_slice_sets):
+            idx_from = idx * n_slices_per_bunch
+            idx_to = (idx + 1) * n_slices_per_bunch
+    
+            
+            if plane == 'x':
+                if self._pickup_axis == 'displacement' or (betatron_phase is not None):
+                    x_values = np.copy(slice_set.mean_x)
+                if (self._pickup_axis == 'divergence') or (betatron_phase is not None):
+                    xp_values = np.copy(slice_set.mean_xp)
+            elif plane == 'y':
+                if self._pickup_axis == 'displacement' or (betatron_phase is not None):
+                    x_values = np.copy(slice_set.mean_y)
+                if (self._pickup_axis == 'divergence') or (betatron_phase is not None):
+                    xp_values = np.copy(slice_set.mean_yp)
+            else:
+                raise ValueError('Unknown plane')
+    
+            if self._pickup_axis == 'divergence': 
+                if betatron_phase is None:
+                    np.copyto(signal[idx_from:idx_to], xp_values)
+                else:
+                    np.copyto(signal[idx_from:idx_to], (-np.sin(betatron_phase)*x_values/beta_value +
+                                      np.cos(betatron_phase)*xp_values))
+            elif self._pickup_axis == 'displacement':
+                if betatron_phase is None:
+                    np.copyto(signal[idx_from:idx_to], x_values)
+                else:
+                    np.copyto(signal[idx_from:idx_to], (np.cos(betatron_phase)*x_values +
+                                      beta_value*np.sin(betatron_phase)*xp_values))
+            else:
+                raise ValueError('Unknown axis')
+        
+        if signal is not None:
+            np.copyto(signal, signal[::-1])
 
-
-
-
-class OneboxFeedback(object):
+    
+    def _kick_bunches(self, signal, plane, local_slice_sets, bunch_list, local_sets):
+    
+        if signal is not None:
+            np.copyto(signal, signal[::-1])
+        
+            n_slices_per_bunch = local_slice_sets[0].n_slices
+        
+            for slice_set, bunch_idx, bunch in zip(local_slice_sets,
+                                                   local_sets, bunch_list):
+                idx_from = bunch_idx * n_slices_per_bunch
+                idx_to = (bunch_idx + 1) * n_slices_per_bunch
+        
+                p_idx = slice_set.particles_within_cuts
+                s_idx = slice_set.slice_index_of_particle.take(p_idx)
+        
+                if self._kicker_axis == 'divergence':
+                    if plane == 'x':
+                        correction_x = np.array(signal[idx_from:idx_to], copy=False)
+                        bunch.xp[p_idx] -= correction_x[s_idx]
+                    elif plane == 'y':
+                        correction_y = np.array(signal[idx_from:idx_to], copy=False)
+                        bunch.yp[p_idx] -= correction_y[s_idx]
+                    else:
+                        raise ValueError('Unknown plane')
+        
+                elif self._kicker_axis == 'displacement':
+                    if plane == 'x':
+                        correction_x = np.array(signal[idx_from:idx_to], copy=False)
+                        bunch.x[p_idx] -= correction_x[s_idx]
+                    elif plane == 'y':
+                        correction_y = np.array(signal[idx_from:idx_to], copy=False)
+                        bunch.y[p_idx] -= correction_y[s_idx]
+                    else:
+                        raise ValueError('Unknown plane')
+                else:
+                    raise ValueError('Unknown axis')
+    
+class OneboxFeedback(GenericOneTurnMapObject):
     """ An transverse feedback object for the one turn map in PyHEADTAIL.
 
     By using this object, the pickup and the kicker are in the same location
@@ -246,7 +395,7 @@ class OneboxFeedback(object):
 
     def __init__(self, gain, slicer, processors_x, processors_y,
                  pickup_axis='divergence', kicker_axis=None, mpi=False,
-                 phase_x=None, phase_y=None, beta_x=1., beta_y=1.):
+                 phase_x=None, phase_y=None, beta_x=1., beta_y=1., **kwargs):
         """
         Parameters
         ----------
@@ -279,103 +428,30 @@ class OneboxFeedback(object):
         beta_y : float
             A value of the y-plane beta function in the feedback location
         """
-
-        if isinstance(gain, collections.Container):
-            self._gain_x = gain[0]
-            self._gain_y = gain[1]
-        else:
-            self._gain_x = gain
-            self._gain_y = gain
-
-        self._slicer = slicer
-
-        self._processors_x = processors_x
-        self._processors_y = processors_y
-
-        self._phase_x = phase_x
-        self._phase_y = phase_y
-
-        self._beta_x = beta_x
-        self._beta_y = beta_y
-
-        self._pickup_axis = pickup_axis
+        
         if kicker_axis is None:
-            self._kicker_axis = pickup_axis
-        else:
-            self._kicker_axis = kicker_axis
-
-        self._required_variables = []
-        if (self._pickup_axis == 'divergence') or \
-            (self._kicker_axis == 'divergence') or \
-            (phase_x is not None) or \
-            (phase_y is not None):
-#            print 'I am adding divergence parameters!'
-
-            self._required_variables.append('mean_xp')
-            self._required_variables.append('mean_yp')
-
-        if (self._pickup_axis == 'displacement') or \
-            (self._kicker_axis == 'displacement') or \
-            (phase_x is not None) or \
-            (phase_y is not None):
-#            print 'I am adding displacement parameters!'
-
-            self._required_variables.append('mean_x')
-            self._required_variables.append('mean_y')
-
-        self._required_variables = get_processor_variables(self._processors_x,
-                                                     self._required_variables)
-        self._required_variables = get_processor_variables(self._processors_y,
-                                                     self._required_variables)
-        # TODO: Normally n_macroparticles_per_slice is removed from
-        #       the statistical variables. Check if it is not necessary.
-
-        self._parameters_x = None
-        self._parameters_y = None
-        self._signal_x = None
-        self._signal_y = None
-
-        self._mpi = mpi
-        if self._mpi:
-            self._mpi_gatherer = mpi_data.MpiGatherer(self._slicer,
-                                                      self._required_variables)
-        self._local_bunch_indexes = None
+            kicker_axis = pickup_axis
+        
+        super(self.__class__, self).__init__(gain, slicer, processors_x,
+             processors_y=processors_y, pickup_axis=pickup_axis,
+             kicker_axis=kicker_axis, mpi=mpi, phase_x=phase_x,
+             phase_y=phase_y, beta_x=beta_x, beta_y=beta_y, **kwargs)
 
     def track(self, bunch):
-        if self._mpi:
-            signal_slice_sets, bunch_slice_sets, bunch_list \
-            = get_mpi_slice_sets(bunch, self._mpi_gatherer)
-            if self._local_bunch_indexes is None:
-                self._local_bunch_indexes = self._mpi_gatherer.local_bunch_indexes
+        
+        bunch_list, local_slice_sets, signal_slice_sets_x, signal_slice_sets_y = self._get_slice_sets(bunch)
+        
+        if self._signal_x is None:
+            self._init_signals(bunch_list, signal_slice_sets_x, signal_slice_sets_y)
 
-        else:
-            signal_slice_sets, bunch_slice_sets, bunch_list \
-            = get_local_slice_sets(bunch, self._slicer, self._required_variables)
-            if self._local_bunch_indexes is None:
-                self._local_bunch_indexes = [0]
-
-        if (self._parameters_x is None) or (self._signal_x is None):
-            self._parameters_x = generate_parameters(signal_slice_sets)
-            n_segments = self._parameters_x['n_segments']
-            n_bins_per_segment = self._parameters_x['n_bins_per_segment']
-            self._signal_x = np.zeros(n_segments * n_bins_per_segment)
-
-        if (self._parameters_y is None) or (self._signal_y is None):
-            self._parameters_y = generate_parameters(signal_slice_sets)
-            n_segments = self._parameters_y['n_segments']
-            n_bins_per_segment = self._parameters_y['n_bins_per_segment']
-            self._signal_y = np.zeros(n_segments * n_bins_per_segment)
-
-
-        read_signal(self._signal_x, self._signal_y, signal_slice_sets,
-                    self._pickup_axis,self._mpi, self._phase_x, self._phase_y,
-                    self._beta_x, self._beta_y)
-
+        self._read_signal(self._signal_x, signal_slice_sets_x, 'x',
+                           self._phase_x, self._beta_x)   
+        
         kick_parameters_x, kick_signal_x = process(self._parameters_x,
                                                    self._signal_x,
                                                    self._processors_x,
-                                                   slice_sets=signal_slice_sets)
-
+                                                   slice_sets=signal_slice_sets_x)
+        
         if kick_signal_x is not None:
             kick_signal_x = kick_signal_x * self._gain_x
 
@@ -383,30 +459,33 @@ class OneboxFeedback(object):
                 kick_signal_x = kick_signal_x / self._beta_x
             elif self._pickup_axis == 'divergence' and self._kicker_axis == 'displacement':
                 kick_signal_x = kick_signal_x * self._beta_x
+                
+        self._kick_bunches(kick_signal_x, 'x', local_slice_sets, bunch_list,
+                            self._loc_signal_sets_x)
+        
+        if self._processors_y is not None:
 
-        kick_parameters_y, kick_signal_y = process(self._parameters_y,
-                                                   self._signal_y,
-                                                   self._processors_y,
-                                                   slice_sets=signal_slice_sets)
-        if kick_signal_x is not None:
-            kick_signal_y = kick_signal_y * self._gain_y
+            self._read_signal(self._signal_y, signal_slice_sets_y, 'y',
+                               self._phase_y, self._beta_y)   
+            
+            kick_parameters_y, kick_signal_y = process(self._parameters_y,
+                                                       self._signal_y,
+                                                       self._processors_y,
+                                                       slice_sets=signal_slice_sets_y)
+            
+            if kick_signal_y is not None:
+                kick_signal_y = kick_signal_y * self._gain_y
+    
+                if self._pickup_axis == 'displacement' and self._kicker_axis == 'divergence':
+                    kick_signal_y = kick_signal_y / self._beta_y
+                elif self._pickup_axis == 'divergence' and self._kicker_axis == 'displacement':
+                    kick_signal_y = kick_signal_y * self._beta_y
+                    
+            self._kick_bunches(kick_signal_y, 'y', local_slice_sets, bunch_list,
+                                self._loc_signal_sets_y)
+    
 
-            if self._pickup_axis == 'displacement' and self._kicker_axis == 'divergence':
-                kick_signal_y = kick_signal_y / self._beta_y
-            elif self._pickup_axis == 'divergence' and self._kicker_axis == 'displacement':
-                kick_signal_y = kick_signal_y * self._beta_y
-
-
-#        print 'signal_x: ' + str(kick_signal_x)
-#        print 'self._gain_x: ' + str(self._gain_x)
-
-        kick_bunches(bunch_slice_sets, bunch_list, self._local_bunch_indexes,
-                 kick_signal_x, kick_signal_y, self._kicker_axis)
-
-        if self._mpi:
-            self._mpi_gatherer.rebunch(bunch)
-
-class PickUp(object):
+class PickUp(GenericOneTurnMapObject):
     """ A pickup object for the one turn map in PyHEADTAIL.
 
     This object can be used as a pickup in the trasverse feedback systems
@@ -417,7 +496,8 @@ class PickUp(object):
     """
 
     def __init__(self, slicer, processors_x, processors_y, location_x, beta_x,
-                 location_y, beta_y, mpi=False, phase_x=None, phase_y=None):
+                 location_y, beta_y, mpi=False, phase_x=None, phase_y=None,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -446,92 +526,40 @@ class PickUp(object):
             Initial betatron phase rotation of the signal in y-plane in the
             units of radians
         """
-
-        self._slicer = slicer
-
-        self._processors_x = processors_x
-        self._processors_y = processors_y
-
-        self._phase_x = phase_x
-        self._phase_y = phase_y
-
-        self._required_variables = ['mean_x', 'mean_y']
-        if (phase_x is not None) or (phase_x is not None):
-            self._required_variables.append('mean_xp')
-            self._required_variables.append('mean_yp')
-
-        self._required_variables = get_processor_variables(self._processors_x,
-                                                     self._required_variables)
-        self._required_variables = get_processor_variables(self._processors_y,
-                                                     self._required_variables)
-        # TODO: Normally n_macroparticles_per_slice is removed from
-        #       the statistical variables. Check if it is not necessary.
-
-        self._location_x = location_x
-        self._beta_x = beta_x
-        self._location_y = location_y
-        self._beta_y = beta_y
-
-        self._parameters_x = None
-        self._parameters_y = None
-        self._signal_x = None
-        self._signal_y = None
-
-        self._mpi = mpi
-        if self._mpi:
-            self._mpi_gatherer = mpi_data.MpiGatherer(self._slicer,
-                                                      self._required_variables)
-
-        self._local_bunch_indexes = None
+        
+        super(self.__class__, self).__init__(0, slicer, processors_x,
+             processors_y=processors_y, pickup_axis='displacement',
+             kicker_axis=None, mpi=mpi, phase_x=phase_x, location_x=location_x,
+             location_y=location_y, phase_y=phase_y, beta_x=beta_x,
+             beta_y=beta_y, **kwargs)
 
     def track(self, bunch):
-        if self._mpi:
-            signal_slice_sets, bunch_slice_sets, bunch_list \
-            = get_mpi_slice_sets(bunch, self._mpi_gatherer)
-            if self._local_bunch_indexes is None:
-                self._local_bunch_indexes = self._mpi_gatherer.local_bunch_indexes
+        
+        bunch_list, local_slice_sets, signal_slice_sets_x, signal_slice_sets_y = self._get_slice_sets(bunch)
+        
+        if self._signal_x is None:
+            self._init_signals(bunch_list, signal_slice_sets_x, signal_slice_sets_y)
 
-        else:
-            signal_slice_sets, bunch_slice_sets, bunch_list \
-            = get_local_slice_sets(bunch, self._slicer, self._required_variables)
-            if self._local_bunch_indexes is None:
-                self._local_bunch_indexes = [0]
+        self._read_signal(self._signal_x, signal_slice_sets_x, 'x',
+                           self._phase_x, self._beta_x)   
+        
+        end_parameters_x, end_signal_x = process(self._parameters_x,
+                                                   self._signal_x,
+                                                   self._processors_x,
+                                                   slice_sets=signal_slice_sets_x)
+        
+        if self._processors_y is not None:
 
-
-        if (self._parameters_x is None) or (self._signal_x is None):
-            self._parameters_x = generate_parameters(signal_slice_sets,
-                                                     self._location_x,
-                                                     self._beta_x)
-            n_segments = self._parameters_x['n_segments']
-            n_bins_per_segment = self._parameters_x['n_bins_per_segment']
-            self._signal_x = np.zeros(n_segments * n_bins_per_segment)
-
-        if (self._parameters_y is None) or (self._signal_y is None):
-            self._parameters_y = generate_parameters(signal_slice_sets,
-                                                     self._location_y,
-                                                     self._beta_y)
-            n_segments = self._parameters_y['n_segments']
-            n_bins_per_segment = self._parameters_y['n_bins_per_segment']
-            self._signal_y = np.zeros(n_segments * n_bins_per_segment)
-
-        read_signal(self._signal_x, self._signal_y, signal_slice_sets,
-                    'displacement', self._mpi, self._phase_x, self._phase_y,
-                    self._beta_x, self._beta_y)
-
-        if self._signal_x is not None:
-            end_parameters_x, end_signal_x = process(self._parameters_x,
-                                                       self._signal_x,
-                                                       self._processors_x,
-                                                       slice_sets=signal_slice_sets)
-
-        if self._signal_y is not None:
+            self._read_signal(self._signal_y, signal_slice_sets_y, 'y',
+                               self._phase_y, self._beta_y)   
+            
             end_parameters_y, end_signal_y = process(self._parameters_y,
                                                        self._signal_y,
                                                        self._processors_y,
-                                                       slice_sets=signal_slice_sets)
+                                                       slice_sets=signal_slice_sets_y)
 
 
-class Kicker(object):
+class Kicker(GenericOneTurnMapObject):
     """ A Kicker object for the one turn map in PyHEADTAIL.
 
     This object can be used as a kicker in the trasverse feedback systems
@@ -542,7 +570,8 @@ class Kicker(object):
     """
     def __init__(self, gain, slicer, processors_x, processors_y,
                  registers_x, registers_y, location_x, beta_x,
-                 location_y, beta_y, combiner='vector_sum', mpi=False):
+                 location_y, beta_y, combiner='vector_sum', mpi=False,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -579,23 +608,6 @@ class Kicker(object):
         mpi : bool
             If True, data from multiple bunches are gathered by using MPI
         """
-
-        if isinstance(gain, collections.Container):
-            self._gain_x = gain[0]
-            self._gain_y = gain[1]
-        else:
-            self._gain_x = gain
-            self._gain_y = gain
-
-        self._slicer = slicer
-
-        self._processors_x = processors_x
-        self._processors_y = processors_y
-
-        self._parameters_x = None
-        self._parameters_y = None
-        self._signal_x = None
-        self._signal_y = None
 
         if isinstance(combiner, (str,unicode)):
             if combiner == 'vector_sum':
@@ -635,51 +647,37 @@ class Kicker(object):
                                         beta_conversion = '90_deg')
             self._combiner_y = combiner(registers_y, location_y, beta_y,
                                         beta_conversion = '90_deg')
-
-        self._required_variables = ['mean_x', 'mean_y', 'mean_xp', 'mean_yp']
-        self._required_variables = get_processor_variables(self._processors_x,
-                                                     self._required_variables)
-        self._required_variables = get_processor_variables(self._processors_y,
-                                                     self._required_variables)
-        # TODO: Normally n_macroparticles_per_slice is removed from
-        #       the statistical variables. Check if it is not necessary.
-
-        self._mpi = mpi
-        if self._mpi:
-            self._mpi_gatherer = mpi_data.MpiGatherer(self._slicer,
-                                                      self._required_variables)
-        self._local_bunch_indexes = None
+        
+        super(self.__class__, self).__init__(gain, slicer, processors_x,
+             processors_y=processors_y, pickup_axis='divergence',
+             kicker_axis='divergence', mpi=mpi, location_x=location_x,
+             location_y=location_y,beta_x=beta_x, beta_y=beta_y, **kwargs)
 
     def track(self, bunch):
-        if self._mpi:
-            signal_slice_sets, bunch_slice_sets, bunch_list \
-            = get_mpi_slice_sets(bunch, self._mpi_gatherer)
-            if self._local_bunch_indexes is None:
-                self._local_bunch_indexes = self._mpi_gatherer.local_bunch_indexes
+        
+        bunch_list, local_slice_sets, signal_slice_sets_x, signal_slice_sets_y = self._get_slice_sets(bunch)
+        
+        if self._signal_x is None:
+            self._init_signals(bunch_list, signal_slice_sets_x, signal_slice_sets_y)
 
-        else:
-            signal_slice_sets, bunch_slice_sets, bunch_list \
-            = get_local_slice_sets(bunch, self._slicer, self._required_variables)
-            if self._local_bunch_indexes is None:
-                self._local_bunch_indexes = [0]
-
-        parameters_x, signal_x = self._combiner_x.process()
-        parameters_y, signal_y = self._combiner_y.process()
-
+        parameters_x, signal_x = self._combiner_x.process()   
+        parameters_x, signal_x = process(parameters_x,
+                                                   signal_x,
+                                                   self._processors_x,
+                                                   slice_sets=signal_slice_sets_x)
         if signal_x is not None:
-            parameters_x, signal_x = process(parameters_x, signal_x,
-                                             self._processors_x,
-                                             slice_sets=signal_slice_sets)
+
             signal_x = signal_x * self._gain_x
-
-        if signal_y is not None:
-            parameters_y, signal_y = process(parameters_y, signal_y,
-                                             self._processors_y,
-                                             slice_sets=signal_slice_sets)
-            signal_y = signal_y * self._gain_y
-
-        kick_bunches(bunch_slice_sets, bunch_list, self._local_bunch_indexes,
-                     signal_x, signal_y, 'divergence')
-
-        if self._mpi:
-            self._mpi_gatherer.rebunch(bunch)
+            self._kick_bunches(signal_x, 'x', local_slice_sets,
+                                bunch_list, self._loc_signal_sets_x)
+        
+        if self._processors_y is not None:
+            self._parameters_y, self._signal_y = self._combiner_y.process() 
+            kick_parameters_y, kick_signal_y = process(self._parameters_y,
+                                                       self._signal_y,
+                                                       self._processors_y,
+                                                       slice_sets=signal_slice_sets_y)
+            if kick_signal_y is not None:
+                kick_signal_y = kick_signal_y * self._gain_y
+                self._kick_bunches(kick_signal_y, 'y', local_slice_sets,
+                                    bunch_list, self._loc_signal_sets_y)
