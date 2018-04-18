@@ -329,7 +329,8 @@ class WakeField(Element):
         # different tursn are gathered when the kicks are applied.
         
         for kick, turns in zip(self.wake_kicks, self._turns_on_this_proc):
-            kick.calculate_field(bunch_list, all_slice_sets,local_slice_sets,
+
+            kick.calculate_field(all_slice_sets,local_slice_sets,bunch_list, 
                                  local_bunch_indexes, optimization_method,turns,
                                  self._circular_convolution_parameters)
             

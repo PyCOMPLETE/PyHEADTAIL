@@ -42,6 +42,9 @@ class WakeKick(Printing):
 
         """
         self.wake_function = wake_function
+        
+        self._target_plane = kwargs['target_plane']
+        self._moments =  kwargs['moments'] 
 
         if (slicer.mode == 'uniform_bin' and
            (n_turns_wake == 1 or slicer.z_cuts)):
@@ -69,16 +72,6 @@ class WakeKick(Printing):
         a kick.
 
         """
-        
-    @abstractmethod
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method, circumference, moments,
-              h_bunch, turns_on_this_proc):
-        """Caculates the wake field before applying the wake kick. This method is
-        used for parallelizing wake field calculations on the upper level
-        (in WakeField class)
-        """
-        pass
 
     @staticmethod
     def _wake_factor(bunch):
@@ -740,24 +733,22 @@ class WakeKick(Printing):
             raise ValueError('Unknown optimization method')
 
 
-    def _calculate_wake_field(self, all_slice_sets, local_slice_sets,
+    def calculate_field(self, all_slice_sets, local_slice_sets,
                               bunch_list, local_bunch_indexes,
-                              optimization_method, moments='zero',
-                              turns_on_this_proc=None, circular_conv_params=None, plane=None):
+                              optimization_method, turns_on_this_proc,
+                              circular_conv_params):
                               
-                              
-
 #        if optimization_method == 'memory_optimized':
 #            pass
 
         if optimization_method == 'circular_mpi_full_ring_fft':
-            if plane == 'x':
+            if self._target_plane == 'x':
                 Q = circular_conv_params['Q_x']
                 beta = circular_conv_params['beta_x']
-            elif plane == 'y':
+            elif self._target_plane == 'y':
                 Q = circular_conv_params['Q_y']
                 beta = circular_conv_params['beta_y']
-            elif plane is None:
+            elif self._target_plane is None:
                 Q = 0.
                 beta = 1.
             else:
@@ -768,7 +759,7 @@ class WakeKick(Printing):
                                                             bunch_list,
                                                             local_bunch_indexes,
                                                             optimization_method,
-                                                            moments,
+                                                            self._moments,
                                                             turns_on_this_proc,
                                                             Q, beta)
         elif optimization_method == 'linear_mpi_full_ring_fft':
@@ -777,7 +768,7 @@ class WakeKick(Printing):
                                                             bunch_list,
                                                             local_bunch_indexes,
                                                             optimization_method,
-                                                            moments,
+                                                            self._moments,
                                                             turns_on_this_proc,
                                                             None, None)
         elif optimization_method == 'dummy':
@@ -793,18 +784,9 @@ class WakeKick(Printing):
 # Below we are to put the implemetation of any order wake kicks.
 # ==============================================================
 class ConstantWakeKickX(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='x')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='zero', 
+                                             target_plane='x',**kwargs)
     
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -835,18 +817,9 @@ class ConstantWakeKickX(WakeKick):
 
 
 class ConstantWakeKickY(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='y')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='zero', 
+                                             target_plane='y',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -877,18 +850,9 @@ class ConstantWakeKickY(WakeKick):
 
 
 class ConstantWakeKickZ(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane=None)
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='zero', 
+                                             target_plane=None,**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -917,18 +881,9 @@ class ConstantWakeKickZ(WakeKick):
 
 
 class DipoleWakeKickX(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method, moments='mean_x',
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='x')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='mean_x', 
+                                             target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -960,18 +915,9 @@ class DipoleWakeKickX(WakeKick):
 
 
 class DipoleWakeKickXY(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method, moments='mean_y', 
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='x')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='mean_y', 
+                                             target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1004,18 +950,9 @@ class DipoleWakeKickXY(WakeKick):
 
 
 class DipoleWakeKickY(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method, moments='mean_y',
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='y')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='mean_y', 
+                                             target_plane='y',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1047,18 +984,9 @@ class DipoleWakeKickY(WakeKick):
 
 
 class DipoleWakeKickYX(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method, moments='mean_x', 
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='y')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='mean_x', 
+                                             target_plane='y',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1091,18 +1019,9 @@ class DipoleWakeKickYX(WakeKick):
 
 
 class QuadrupoleWakeKickX(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='x')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='zero', 
+                                             target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1133,18 +1052,9 @@ class QuadrupoleWakeKickX(WakeKick):
 
 
 class QuadrupoleWakeKickXY(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='x')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='zero', 
+                                             target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1176,18 +1086,9 @@ class QuadrupoleWakeKickXY(WakeKick):
 
 
 class QuadrupoleWakeKickY(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='y')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='zero', 
+                                             target_plane='y',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
               local_bunch_indexes=None, optimization_method=None,
@@ -1218,18 +1119,10 @@ class QuadrupoleWakeKickY(WakeKick):
 
 
 class QuadrupoleWakeKickYX(WakeKick):
-
-    def calculate_field(self, bunch_list, all_slice_sets, local_slice_sets,
-              local_bunch_indexes, optimization_method,
-              turns_on_this_proc, circular_conv_params):
-        
-        if optimization_method is not None:
-            self._calculate_wake_field(all_slice_sets, local_slice_sets,
-                                       bunch_list, local_bunch_indexes,
-                                       optimization_method,
-                                       turns_on_this_proc=turns_on_this_proc,
-                                       circular_conv_params=circular_conv_params,
-                                       plane='y')
+    def __init__(self,*args, **kwargs):
+        super(self.__class__, self).__init__(*args, moments='zero', 
+                                             target_plane='y',**kwargs)
+    
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
                local_bunch_indexes=None, optimization_method=None,
