@@ -34,8 +34,8 @@ class WakeField(Element):
 
     """
 
-    def __init__(self, slicer, wake_sources_list, mpi=None, Q_x=None, Q_y=None,
-                 beta_x=None, beta_y=None):
+    def __init__(self, slicer, wake_sources_list, mpi=None, **kwargs):
+
         """Stores slicer and wake sources list and manages wake history.
 
         Obtains a slicer and a wake sources list. Owns a slice set deque of
@@ -88,15 +88,21 @@ class WakeField(Element):
                 """ The circumference and h_bunch must be given to the slicer
                 as an input parameter if multi turn ort multi bunch wakes are used!""")
         
-        self.Q_x = Q_x
-        self.Q_y = Q_y
-        if (mpi == 'mpi_full_ring_fft') and ((Q_x is None) or (Q_y is None)):
-            raise ValueError('mpi_full_ring_fft requires tune values')
-        
-        self.beta_x = beta_x
-        self.beta_y = beta_y
-        if (mpi == 'mpi_full_ring_fft') and ((beta_x is None) or (beta_y is None)):
-            raise ValueError('mpi_full_ring_fft requires beta values')
+        if mpi == 'circular_mpi_full_ring_fft':
+            if (not 'Q_x' in kwargs) or (not 'Q_y' in kwargs) or\
+            (not 'beta_x' in kwargs) or (not 'beta_y' in kwargs):
+                raise ValueError("""The mpi option circular_mpi_full_ring_fft
+                                 requires Q_x, Q_y, beta_x and beta_y to be 
+                                 given as input parameters""")
+            else:
+                self._circular_convolution_parameters = {
+                        'Q_x': kwargs['Q_x'],
+                        'Q_y': kwargs['Q_y'],
+                        'beta_x': kwargs['beta_x'],
+                        'beta_y': kwargs['beta_y'],
+                        }
+        else:
+            self._circular_convolution_parameters = None
 
         self._mpi = mpi
         self._mpi_gatherer = None
@@ -105,38 +111,7 @@ class WakeField(Element):
                                     'mean_x', 'mean_y']
 
 
-    # def _get_slice_data(self, bunches_list):
-    #     '''Helper function to obtain relevant slice data from a bunches list for the
-    #     wake kick computation. Slice set data is organised in a slice data
-    #     buffer containing age, beta, centers and moments (zero, first in x,
-    #     first in y).
 
-    #     '''
-
-
-    #     # Buffer with slice data
-    #     n_bunches = len(slice_set_list)
-    #     n_slices = self.slicer.n_slices
-    #     stride = 2 + 4*n_slices
-    #     slice_data_buffer = np.zeros(stride * n_bunches)
-
-    #     for i, b in enumerate(slice_set_list):
-    #         slice_data_buffer[i*stride] = b.age  # + self.comm.rank
-    #         slice_data_buffer[i*stride + 1] = b.beta
-    #         slice_data_buffer[
-    #             i*stride+2 + 0*n_slices:i*stride+2 + 1*n_slices] = (
-    #                 b.convert_to_time(b.z_centers))
-    #         slice_data_buffer[
-    #             i*stride+2 + 1*n_slices:i*stride+2 + 2*n_slices] = (
-    #                 b.n_macroparticles_per_slice)
-    #         slice_data_buffer[
-    #             i*stride+2 + 2*n_slices:i*stride+2 + 3*n_slices] = (
-    #                 b.n_macroparticles_per_slice*b.mean_x)
-    #         slice_data_buffer[
-    #             i*stride+2 + 3*n_slices:i*stride+2 + 4*n_slices] = (
-    #                 b.n_macroparticles_per_slice*b.mean_y)
-
-    #     return slice_data_buffer
 
     def _serial_track(self, beam):
 
@@ -356,7 +331,7 @@ class WakeField(Element):
         for kick, turns in zip(self.wake_kicks, self._turns_on_this_proc):
             kick.calculate_field(bunch_list, all_slice_sets,local_slice_sets,
                                  local_bunch_indexes, optimization_method,turns,
-                                 self.Q_x, self.Q_y, self.beta_x, self.beta_y)
+                                 self._circular_convolution_parameters)
             
         # ensures that everything is calculated, i.e. synchronizes threads
         mpi_data.share_numbers(1)
