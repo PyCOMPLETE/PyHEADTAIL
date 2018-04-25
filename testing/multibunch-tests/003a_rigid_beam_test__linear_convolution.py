@@ -18,6 +18,10 @@ from mpi4py import MPI
 import matplotlib.pyplot as plt
 from scipy.constants import c, e, m_p
 from collections import deque
+from scipy.signal import fftconvolve
+from scipy import signal
+
+import copy
 
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import CircularResistiveWall, CircularResonator, WakeField
@@ -152,9 +156,6 @@ class RigidBeam(object):
         # of protons per bunch and n_macroparticles is the total number of
         # macroparticles per bunch
         
-        n_slices_per_bucket = int(n_slices_per_bunch/slicing_fraction)
-        n_roll = int(n_slices_per_bucket/2)
-        
         # The memory optimized version can handle low beta-beam wakes
         # automatically but they are not active at the moment. In order to get
         # FFT convolution work correctly, the wake values for the negative
@@ -162,30 +163,29 @@ class RigidBeam(object):
         # negligible effects to the physics but it allows an order of 1e-12 
         # value comparison after 2000 turns between, this rigid beam code and
         # the PyHEADTAIL wakes ('mpi_full_ring_fft' and 'memory_optimized').
-        z_values = np.roll(self.z,-n_roll)
-        z_values = z_values - z_values[0]
-        z_angle = -2.*np.pi*(self.Q_x%1.)*z_values/self.circumference
+        normalized_z = self.z - self.z[0]
+        z_values = np.zeros(len(self.z)*(n_turn_wakes))
+        
+        z_values = np.array([])
+
+
+
+        for i in xrange(n_turn_wakes):
+            z_values = np.concatenate((z_values, normalized_z + float(i)*self.circumference))
+            
+            
+        
+        self._acculumated_kicks = np.zeros(len(self.z)*(n_turn_wakes+1))
+            
         self.n_turn_wakes = n_turn_wakes
         wf = wakes.function_transverse(1)
         
         # the classical PyHEADTAIL wake factor
         self.wake_factor = intensity/float(n_macroparticles)*(-(e)**2 / (m_p * self.gamma * (self.beta_beam * c)**2))
+    
+        t_values = z_values/c
+        self._wake_function_values = np.array(wf(-t_values, beta=self.beta_beam))
         
-        self._turn_by_turn_wake_functions = []
-        turn_length = self.circumference/c
-        
-        self._acculumated_kicks = deque(maxlen=self.n_turn_wakes)
-        for i in range(self.n_turn_wakes):
-            self._acculumated_kicks.append(np.zeros(len(self.z),dtype=complex))
-            t_values = z_values/c + float(i)*turn_length
-            self._turn_by_turn_wake_functions.append(np.array(wf(-t_values, beta=self.beta_beam))*np.exp(1j*z_angle))
-            
-            
-            if i == 0:
-                # Low beta beam wakes are not implemented at the moment
-                # thus values for the negative times are set to zero
-                negative_map = (t_values < 0.)
-                self._turn_by_turn_wake_functions[0][negative_map] = 0.
         
     def rotate(self):
         # linear transverse tracking
@@ -201,32 +201,28 @@ class RigidBeam(object):
     def apply_wakes(self):       
         source = np.copy(self.x*self.n_macroparticles_per_slice)
         source = source[::-1]
-
-        # calculates turn by turn circular convolutions for wake kicks
-        for i, wake in enumerate(self._turn_by_turn_wake_functions):
-            kick = np.fft.ifft(np.fft.fft(source) * np.fft.fft(wake))
-            # the total wake kick is accumulated by adding the calculated values to
-            # the values from previous tracking turns. The index i+1 comes from the property
-            # of a deque object, i.e. the last kick is added to the end of the deque
-            # which pops out the first value.
-            if i < (self.n_turn_wakes-1):
-                self._acculumated_kicks[i+1] += kick
-            else:
-                self._acculumated_kicks.append(kick)
         
-        self.xp[self.filled_slices] = self.xp[self.filled_slices] + self.wake_factor*self._acculumated_kicks[0][::-1][self.filled_slices].real
-        self.x[self.filled_slices] = self.x[self.filled_slices] + self.beta_x*self.wake_factor*self._acculumated_kicks[0][::-1][self.filled_slices].imag
+        np.copyto(self._acculumated_kicks[:-len(self.z)], self._acculumated_kicks[len(self.z):])
+        
+        self._acculumated_kicks[:-1] = self._acculumated_kicks[:-1] + signal.fftconvolve(self._wake_function_values,source,'full')
+        final_kick = self.wake_factor*self._acculumated_kicks[:len(self.z)]
+        final_kick = final_kick[::-1]
+ 
+# if you want to see that the script really see differences between the implementations,
+# please comment the line below in order to turn off the wakes in the reference code       
+        self.xp[self.filled_slices] = self.xp[self.filled_slices] + final_kick[self.filled_slices]
 
 
 
 # MACHINE AND SIMULATION SETTINGS
 #================================
 
-n_turns = 1500
+n_turns = 50
 
 n_macroparticles = 1000 # per bunch 
 intensity = 2.3e11
 intensity = 3e14
+intensity = 1e20
 
 alpha = 53.86**-2
 
@@ -237,7 +233,7 @@ accQ_y = 60.32
 Q_s = 2.1e-3
 chroma=0
 
-h_bunch = 53
+h_bunch = 27
 h_RF = h_bunch*10
 
 circumference = 25e-9*c*h_bunch
@@ -282,12 +278,12 @@ for i in range(h_bunch):
 bunch_scaping = circumference/float(h_bunch)
 
 # -- Option 1: Point like bunches
-slicing_fraction = 1./1. # a fraction of bunch spacing sliced
-n_slices_per_bunch = 1 # a number of PyHEADTAIL slices per bunch
+#slicing_fraction = 1./1. # a fraction of bunch spacing sliced
+#n_slices_per_bunch = 1 # a number of PyHEADTAIL slices per bunch
 
 # -- Option 2: Multiple slices per bunch
-#slicing_fraction = 1./10. # a fraction of bunch spacing sliced
-#n_slices_per_bunch = 8 # a number of PyHEADTAIL slices per bunch
+slicing_fraction = 1./10. # a fraction of bunch spacing sliced
+n_slices_per_bunch = 20 # a number of PyHEADTAIL slices per bunch
 
 
 allbunches = machine.generate_6D_Gaussian_bunch(n_macroparticles, intensity,
@@ -298,13 +294,18 @@ allbunches = machine.generate_6D_Gaussian_bunch(n_macroparticles, intensity,
 slicer = UniformBinSlicer(n_slices_per_bunch, z_cuts=(-0.5*bunch_scaping*slicing_fraction, 0.5*bunch_scaping*slicing_fraction),
                                circumference=machine.circumference, h_bunch=h_bunch)
 
+# Objects for the original PyHEADTAIL implementation
+#===================================================
+
+machine_org = copy.deepcopy(machine)
+allbunches_org = copy.deepcopy(allbunches)
 
 # PyHEADTAIL WAKES
 #=================
 
-mpi_settings = 'mpi_full_ring_fft'
+mpi_settings = 'linear_mpi_full_ring_fft'
 #mpi_settings = 'memory_optimized'
-n_turns_wake = 2
+n_turns_wake = 50
 
 # pipe radius [m]
 b = 13.2e-3
@@ -313,12 +314,17 @@ L=100000.
 # conductivity of the pipe 1/[Ohm m]
 sigma = 1./(7.88e-10)
 
-wakes = CircularResistiveWall(b,L,sigma,b/c,beta_beam=machine.beta, n_turns_wake=n_turns_wake)
-#wakes = CircularResonator(135e6, 1.97e5, 31000, n_turns_wake=n_turns_wake)
+# wakes = CircularResistiveWall(b,L,sigma,b/c,beta_beam=machine.beta, n_turns_wake=n_turns_wake)
+wakes = CircularResonator(135e6, 1.97e5, 31000, n_turns_wake=n_turns_wake)
 
 wake_field = WakeField(slicer, wakes, mpi=mpi_settings, Q_x=accQ_x, Q_y=accQ_y,
                        beta_x=beta_x, beta_y=beta_y)
+
+wake_field_org = WakeField(slicer, wakes, mpi=True, Q_x=accQ_x, Q_y=accQ_y,
+                       beta_x=beta_x, beta_y=beta_y)
+
 machine.one_turn_map.append(wake_field)
+machine_org.one_turn_map.append(wake_field_org)
 
 # TRACKING AND PLOTTING
 #======================
@@ -365,7 +371,8 @@ if rank == 0:
 
 
 for i in range(n_turns):
-
+    print 'Turn: ' + str(i)
+    
     if (i == 0) or (i == n_turns - 1):
         # Beam oscillations from the first and last turns are plotted
         
@@ -373,28 +380,41 @@ for i in range(n_turns):
         z, x, y = gather_beam_ref_data(allbunches, slicer, filling_scheme, circumference,
                                  h_bunch, n_slices_per_bunch, slicing_fraction)
         
+        z_org, x_org, y_org = gather_beam_ref_data(allbunches_org, slicer, filling_scheme, circumference,
+                                 h_bunch, n_slices_per_bunch, slicing_fraction)
+        
         if (rank == 0) and (i == 0):
             print('Plotting the first turn')
             ax1.plot(z,x, 'b-', label='PyHEADTAIL, turn 0')
             ax1.plot(beam_x.z, beam_x.x, 'r--', label='Rigid beam, turn 0')
+            ax1.plot(z_org,x_org, 'w:', label='PyHEADTAIL org, turn 0')
             ax2.plot(z,y, 'b-', label='PyHEADTAIL, turn 0')
             ax2.plot(beam_y.z, beam_y.x, 'r--', label='Rigid beam, turn 0')
+            ax2.plot(z_org,y_org, 'w:', label='PyHEADTAIL, turn 0')
             
-            ax3.plot(z, (beam_x.x-x)/np.max(x), label='Difference, turn 0')
-            ax4.plot(z, (beam_y.x-y)/np.max(y), label='Difference, turn 0')
+            ax3.plot(z, (beam_x.x-x)/np.max(x), label='To ref. code, turn 0')
+            ax4.plot(z, (beam_y.x-y)/np.max(y), label='To ref. code, turn 0')
+            ax3.plot(z, (x-x_org)/np.max(x_org), label='To org. PyHT wakes, turn 0')
+            ax4.plot(z, (y-y_org)/np.max(y_org), label='To org. PyHT wakes, turn 0')
         elif (rank == 0) and (i == n_turns-1):
             print('Plotting the last turn')
             ax1.plot(z,x, 'g-', label='PyHEADTAIL, turn ' + str(n_turns))
             ax1.plot(beam_x.z, beam_x.x, '--', color='orange', label='Rigid beam, turn ' + str(n_turns))
+            ax1.plot(z_org,x_org, 'w:', label='PyHEADTAIL_org, turn ' + str(n_turns))
+            
             ax2.plot(z,y, 'g-', label='PyHEADTAIL, turn ' + str(n_turns))
             ax2.plot(beam_y.z, beam_y.x, '--', color='orange', label='Rigid beam, turn ' + str(n_turns))
+            ax2.plot(z_org,y_org, 'w:', label='PyHEADTAIL_org, turn ' + str(n_turns))
             
-            ax3.plot(z, (beam_x.x-x)/np.max(x)*100., label='Difference, turn ' + str(n_turns))
-            ax4.plot(z, (beam_y.x-y)/np.max(y)*100., label='Difference, turn ' + str(n_turns))
+            ax3.plot(z, (beam_x.x-x)/np.max(x)*100., label='To ref. code, turn ' + str(n_turns))
+            ax4.plot(z, (beam_y.x-y)/np.max(y)*100., label='To ref. code, turn ' + str(n_turns))
+            ax3.plot(z, (x_org-x)/np.max(x_org)*100., label='To org. PyHT wakes, turn ' + str(n_turns))
+            ax4.plot(z, (y_org-y)/np.max(y_org)*100., label='To org. PyHT wakes, turn ' + str(n_turns))
     
     # Normal PyHEADTAIL tracking
     machine.track(allbunches)
-    
+    # Normal PyHEADTAIL tracking
+    machine_org.track(allbunches_org)
     if rank == 0:
         # Rigid beam tracking on the rank 0
         beam_x.rotate()
