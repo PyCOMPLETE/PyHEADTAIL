@@ -175,7 +175,7 @@ class RigidBeam(object):
             
             
         
-        self._acculumated_kicks = np.zeros(len(self.z)*(n_turn_wakes+1))
+        self._acculumated_kicks = np.zeros(len(self.z)*(n_turn_wakes))
             
         self.n_turn_wakes = n_turn_wakes
         wf = wakes.function_transverse(1)
@@ -204,7 +204,9 @@ class RigidBeam(object):
         
         np.copyto(self._acculumated_kicks[:-len(self.z)], self._acculumated_kicks[len(self.z):])
         
-        self._acculumated_kicks[:-1] = self._acculumated_kicks[:-1] + signal.fftconvolve(self._wake_function_values,source,'full')
+        conv = signal.fftconvolve(self._wake_function_values,source,'full')
+        
+        self._acculumated_kicks = self._acculumated_kicks + conv[0:len(self._acculumated_kicks)]
         final_kick = self.wake_factor*self._acculumated_kicks[:len(self.z)]
         final_kick = final_kick[::-1]
  
@@ -222,7 +224,6 @@ n_turns = 50
 n_macroparticles = 1000 # per bunch 
 intensity = 2.3e11
 intensity = 3e14
-intensity = 1e20
 
 alpha = 53.86**-2
 
@@ -236,7 +237,8 @@ chroma=0
 h_bunch = 27
 h_RF = h_bunch*10
 
-circumference = 25e-9*c*h_bunch
+#circumference = 25e-9*c*h_bunch
+circumference = 2665.8883
 
 beta_x = circumference / (2.*np.pi*accQ_x)
 beta_y = circumference / (2.*np.pi*accQ_y)
@@ -283,7 +285,7 @@ bunch_scaping = circumference/float(h_bunch)
 
 # -- Option 2: Multiple slices per bunch
 slicing_fraction = 1./10. # a fraction of bunch spacing sliced
-n_slices_per_bunch = 20 # a number of PyHEADTAIL slices per bunch
+n_slices_per_bunch = 21 # a number of PyHEADTAIL slices per bunch
 
 
 allbunches = machine.generate_6D_Gaussian_bunch(n_macroparticles, intensity,
@@ -304,8 +306,8 @@ allbunches_org = copy.deepcopy(allbunches)
 #=================
 
 mpi_settings = 'linear_mpi_full_ring_fft'
-#mpi_settings = 'memory_optimized'
-n_turns_wake = 50
+mpi_settings = 'memory_optimized'
+n_turns_wake = 21
 
 # pipe radius [m]
 b = 13.2e-3
@@ -314,8 +316,13 @@ L=100000.
 # conductivity of the pipe 1/[Ohm m]
 sigma = 1./(7.88e-10)
 
+
+f_rs = np.logspace(np.log10(0.3e5),np.log10(1e6),10)
+frequency = f_rs[-1]
+R_shunt = 0.5e10
+Q=0.65
 # wakes = CircularResistiveWall(b,L,sigma,b/c,beta_beam=machine.beta, n_turns_wake=n_turns_wake)
-wakes = CircularResonator(135e6, 1.97e5, 31000, n_turns_wake=n_turns_wake)
+wakes = CircularResonator(R_shunt, frequency, Q, n_turns_wake=n_turns_wake)
 
 wake_field = WakeField(slicer, wakes, mpi=mpi_settings, Q_x=accQ_x, Q_y=accQ_y,
                        beta_x=beta_x, beta_y=beta_y)
@@ -400,11 +407,11 @@ for i in range(n_turns):
             print('Plotting the last turn')
             ax1.plot(z,x, 'g-', label='PyHEADTAIL, turn ' + str(n_turns))
             ax1.plot(beam_x.z, beam_x.x, '--', color='orange', label='Rigid beam, turn ' + str(n_turns))
-            ax1.plot(z_org,x_org, 'w:', label='PyHEADTAIL_org, turn ' + str(n_turns))
+            ax1.plot(z_org,x_org, 'k:', label='PyHEADTAIL_org, turn ' + str(n_turns))
             
             ax2.plot(z,y, 'g-', label='PyHEADTAIL, turn ' + str(n_turns))
             ax2.plot(beam_y.z, beam_y.x, '--', color='orange', label='Rigid beam, turn ' + str(n_turns))
-            ax2.plot(z_org,y_org, 'w:', label='PyHEADTAIL_org, turn ' + str(n_turns))
+            ax2.plot(z_org,y_org, 'k:', label='PyHEADTAIL_org, turn ' + str(n_turns))
             
             ax3.plot(z, (beam_x.x-x)/np.max(x)*100., label='To ref. code, turn ' + str(n_turns))
             ax4.plot(z, (beam_y.x-y)/np.max(y)*100., label='To ref. code, turn ' + str(n_turns))

@@ -323,6 +323,15 @@ class WakeKick(Printing):
         # total number of bins per bunch
         self._n_bins_per_kick = (n_slices + 2*empty_space_per_side)
         # total number of bins per turn
+        empty_left = empty_space_per_side
+        if n_slices%2 == 0:
+            empty_right = empty_space_per_side + 1
+            self._n_bins_per_kick += 1
+        else:
+            empty_right = empty_space_per_side
+            
+            
+        
 
         self._n_bins_per_turn = self._n_target_bunches * self._n_bins_per_kick
 
@@ -331,65 +340,68 @@ class WakeKick(Printing):
         raw_z_bins = raw_z_bins - ((raw_z_bins[0]+raw_z_bins[-1])/2.)
         bin_width = np.mean(raw_z_bins[1:]-raw_z_bins[:-1])
         original_z_bin_mids = (raw_z_bins[1:]+raw_z_bins[:-1])/2.
-        z_bin_mids = original_z_bin_mids[0] - np.linspace(empty_space_per_side, 1,
-                                        empty_space_per_side)*bin_width
+        z_bin_mids = original_z_bin_mids[0] - np.linspace(empty_left, 1,
+                                        empty_left)*bin_width
         z_bin_mids = np.append(z_bin_mids, original_z_bin_mids)
         z_bin_mids = np.append(z_bin_mids, original_z_bin_mids[-1] + np.linspace(1,
-                               empty_space_per_side, empty_space_per_side)*bin_width)
-
+                               empty_right, empty_right)*bin_width)
+        if n_slices%2 == 0:
+            z_bin_mids = z_bin_mids + bin_width/2.
         self._wake = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
         self._accumulated_kick = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
         self._accumulated_signal_list = []
+        
+        # Creates a database which contains the distance differeneces for all
+        # the source and target bunch combinations
         self._idx_data = [] #
-
-        self._wake_database = [] # A database of wake function values for all bunches in all turns
-
-        for i, slice_set in enumerate(all_slice_sets):
-            # loop of target bunches
-            self._idx_data.append([])
-            for j,target_bucket_idx in enumerate(local_bunch_indexes):
-
-                source_id = slice_set.bucket_id
-                target_id = all_slice_sets[target_bucket_idx].bucket_id
-
-                # Calculates the distance difference between the source and the target bunches
-                delta_id = target_id - source_id
-                delta_id = delta_id
-                if delta_id < 0:
-                    # the target bunch must be after the source bunch
-                    delta_id = delta_id + h_bunch
-                self._idx_data[i].append(int(delta_id))
-
-                if i == 0:
-                    kick_from = empty_space_per_side + j * self._n_bins_per_kick
-                    kick_to = empty_space_per_side + j * self._n_bins_per_kick + n_slices
-                    self._accumulated_signal_list.append(np.array(self._accumulated_kick[kick_from:kick_to], copy=False))
-
-
-
         for k in range(self.n_turns_wake):
-            self._wake_database.append([None]*h_bunch)
-#            print 'len(self._wake_database[k]): ' + str(len(self._wake_database[k]))
-            for i in np.unique(np.concatenate(self._idx_data)):
-                i = int(i)
-                offset = (float(k) * circumference + i*bunch_spacing)
+            self._idx_data.append([])
+            for i, slice_set in enumerate(all_slice_sets):
+                # loop of target bunches
+                self._idx_data[-1].append([])
+                for j,target_bucket_idx in enumerate(local_bunch_indexes):
+    
+                    source_id = slice_set.bucket_id
+                    target_id = all_slice_sets[target_bucket_idx].bucket_id
+    
+                    # Calculates the distance between the source and the target
+                    # bunches in the units of harmonic bunch spacing
+                    delta_id = target_id - source_id
+                    delta_id = delta_id + k*(h_bunch)
+                    
+                    if delta_id >= 0:
+                        self._idx_data[k][i].append(int(delta_id))
+                    else:
+                        self._idx_data[k][i].append(-1)
+                        
+                    
+                    # Generates memory views for all the target bunch wake kicks
+                    if i == 0 and k == 0:
+                        kick_from = empty_space_per_side + j * self._n_bins_per_kick 
+                        kick_to = empty_space_per_side + j * self._n_bins_per_kick + n_slices 
+                        self._accumulated_signal_list.append(np.array(self._accumulated_kick[kick_from:kick_to], copy=False))
 
-#                if (i==0) and (k==0):
-#                    wake = np.zeros(len(z_bin_mids))
-#                    pos_values = (z_bin_mids>=0)
-#                    z_values = z_bin_mids[pos_values]+offset
-#                    wake[pos_values] = self.wake_function(-z_values/c, beta=local_slice_sets[0].beta)
-#                    self._wake_database[k][i] = wake
-#                else:
-                z_values = -z_bin_mids+offset
-                self._wake_database[k][i] = self.wake_function(-z_values/c, beta=local_slice_sets[0].beta)
+                        
+        # Generates a wakedabase, whick contains all the wake function values for the calculations
+        self._wake_database = [None]*(self.n_turns_wake*h_bunch+1)
+        for k in range(self.n_turns_wake):
+            
+            idxs = np.concatenate(self._idx_data[k])
+                
+            for i in idxs:
+                if i != -1:
+                    offset = i*bunch_spacing               
+                    z_values = z_bin_mids+offset
 
-            self._wake_database[k] = np.array(self._wake_database[k])
+                    self._wake_database[i] = self.wake_function(-z_values/c, beta=local_slice_sets[0].beta)
+                else:
+                        self._wake_database[-1] = np.zeros(len(z_values))
+                        
+        self._wake_database = np.array(self._wake_database)
 
     def _accumulate_memory_optimized(self, all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, moments):
-
         if not hasattr(self,'_wake_database'):
             self. _init_memory_optimized(all_slice_sets, local_slice_sets,
                                          bunch_list, local_bunch_indexes)
@@ -410,18 +422,23 @@ class WakeKick(Printing):
             else:
                 raise ValueError("Please specify moments as either " +
                                  "'zero', 'mean_x' or 'mean_y'!")
+                
+            moment = moment[::-1]
             for k in range(self.n_turns_wake):
                 i_from = k * self._n_bins_per_kick*self._n_target_bunches
                 i_to = (k + 1) * self._n_bins_per_kick*self._n_target_bunches
-                np.copyto(self._wake[i_from:i_to], np.concatenate(self._wake_database[k][self._idx_data[i]]))
+                np.copyto(self._wake[i_from:i_to], np.concatenate(self._wake_database[self._idx_data[k][i]]))
+                    
             np.copyto(self._accumulated_kick, self._accumulated_kick+np.convolve(self._wake, moment, 'same'))
-#            np.copyto(self._accumulated_kick, self._accumulated_kick+fftconvolve(self._wake, moment[::-1], 'same'))
 
+        # flips the accumulated kicks back to original order and
+        # multiplies by the wake factor
         kick_list = []
         for i, value in enumerate(self._accumulated_signal_list):
-            kick_list.append(value*self._wake_factor(bunch_list[i]))
+            kick_list.append(value[::-1]*self._wake_factor(bunch_list[i]))
 
         return kick_list
+
 
     def _init_mpi_full_ring_fft(self, convolution, all_slice_sets, local_slice_sets,
                                 bunch_list, local_bunch_indexes,
@@ -538,6 +555,7 @@ class WakeKick(Printing):
             
             # sets z values to start from zero also with even number of slices
             z_values = z_values-z_values[0]
+            
             # calculates wake function values for convolution for different turns
             self._dashed_wake_functions = []
             for k in my_wake_turns:
@@ -672,28 +690,27 @@ class WakeKick(Printing):
                               bunch_list, local_bunch_indexes, 
                               optimization_method, moments='zero'):
 
-#        if optimization_method == 'memory_optimized':
-#            # Similar to the loop_minimized version, but wake functions for each source bunch are not
-#            # keep in memory, but they are reconstructed during accumulation from precalculated
-#            # wake functions by assuming constant bunch spacing over the ring. By using this,
-#            # the memory limitations of the previous solution can be avoided
-#            #
-#            # Assumptions:
-#            #   - slicing identical for each bunch
-#            #   - bunch spacing is a multiple of the minimum bunch spacing
-#            #   (determined by the harmonic number of bunches, h_bunch)
-#            #
-#            # Drawbacks:
-#            #   - more assumtpions
-#            #   - a maximum number of simulated bunces is limited by the computing power
-#            #   (practical limit probably between 100-1000 bunches for 100 slices per bunch,
-#            #    depending on the number of processors available)
-#
-#            return  self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
-#                                                 bunch_list, local_bunch_indexes,
-#                                                 optimization_method, moments)
+        if optimization_method == 'memory_optimized':
+            # Similar to the loop_minimized version, but wake functions for each source bunch are not
+            # keep in memory, but they are reconstructed during accumulation from precalculated
+            # wake functions by assuming constant bunch spacing over the ring. By using this,
+            # the memory limitations of the previous solution can be avoided
+            #
+            # Assumptions:
+            #   - slicing identical for each bunch
+            #   - bunch spacing is a multiple of the minimum bunch spacing
+            #   (determined by the harmonic number of bunches, h_bunch)
+            #
+            # Drawbacks:
+            #   - a maximum number of simulated bunces is limited by the computing power
+            #   (practical limit probably between 100-1000 bunches for 100 slices per bunch,
+            #    depending on the number of processors available)
 
-        if optimization_method == 'circular_mpi_full_ring_fft':
+            return  self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
+                                                 bunch_list, local_bunch_indexes,
+                                                 optimization_method, moments)
+
+        elif optimization_method == 'circular_mpi_full_ring_fft':
             # Follows the idea from the previous solutions, but the convolution is calculated over
             # each (bunch) bucket in the accelerator (even if they are not filled). This allow
             # the use of the circular fft convolution (ifft(fft(moment)*fft(wake))), which is
@@ -708,7 +725,6 @@ class WakeKick(Printing):
             #   (determined by the harmonic number of bunches, h_bunch)
             #
             # Drawbacks:
-            #   - more assumtpions
             #   - calculation time does not depend on the number of bunches, which prefers
             #   use of the memory_optimized version for a small number of bunches in large accelerators
 
@@ -738,10 +754,10 @@ class WakeKick(Printing):
                               optimization_method, turns_on_this_proc,
                               circular_conv_params):
                               
-#        if optimization_method == 'memory_optimized':
-#            pass
+        if optimization_method == 'memory_optimized':
+            pass
 
-        if optimization_method == 'circular_mpi_full_ring_fft':
+        elif optimization_method == 'circular_mpi_full_ring_fft':
             if self._target_plane == 'x':
                 Q = circular_conv_params['Q_x']
                 beta = circular_conv_params['beta_x']

@@ -90,17 +90,12 @@ slicer_for_wakefields = UniformBinSlicer(20, z_cuts=(-0.4, 0.4),
 # ============
 wakes = CircularResonator(1.1e6, 50.6e6, 18, n_turns_wake=n_turns)
 
-#wake_field = WakeField(slicer_for_wakefields, wakes, mpi='mpi_full_ring_fft')
-#wake_field = WakeField(slicer_for_wakefields, wakes, mpi='memory_optimized')
-wake_field = WakeField(slicer_for_wakefields, wakes, mpi='linear_mpi_full_ring_fft',
-                       Q_x=machine.Q_x, Q_y=machine.Q_y,
-                       beta_x=machine.beta_x, beta_y=machine.beta_y)
+wake_field = WakeField(slicer_for_wakefields, wakes, mpi='memory_optimized')
+#wake_field = WakeField(slicer_for_wakefields, wakes, mpi='linear_mpi_full_ring_fft')
 #wake_field = WakeField(slicer_for_wakefields, wakes, mpi='circular_mpi_full_ring_fft',
 #                       Q_x=machine.Q_x, Q_y=machine.Q_y,
 #                       beta_x=machine.beta_x, beta_y=machine.beta_y)
-#wake_field = WakeField(slicer_for_wakefields, wakes, mpi=True,
-#                       Q_x=machine.Q_x, Q_y=machine.Q_y,
-#                       beta_x=machine.beta_x, beta_y=machine.beta_y)
+#wake_field = WakeField(slicer_for_wakefields, wakes, mpi=True)
 
 w_function = wake_field.wake_kicks[0].wake_function
 w_factor = wake_field.wake_kicks[0]._wake_factor
