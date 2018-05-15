@@ -606,12 +606,14 @@ class ResistiveWall(WakeSource):
         """ Define the wake function (transverse) of a resistive wall
         with the given parameters. """
         mu_r = 1
+        # The impedance of free space [Ohm]
+        Z_0 = 119.9169832 * np.pi
 
         def wake(dt, *args, **kwargs):
             y = (Yokoya_factor * (np.sign(dt + np.abs(self.dt_min)) - 1) / 2. *
                  np.sqrt(kwargs['beta']) * self.resistive_wall_length / np.pi /
                  self.pipe_radius**3 * np.sqrt(-mu_r / np.pi /
-                 self.conductivity / dt.clip(max=-abs(self.dt_min))))
+                 self.conductivity / dt.clip(max=-abs(self.dt_min))))*np.sqrt(Z_0*c)
             return y
         return wake
 
