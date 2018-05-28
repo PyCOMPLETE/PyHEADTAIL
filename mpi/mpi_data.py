@@ -307,6 +307,68 @@ class MpiArrayShare(object):
 
         self._segment_sizes = None
         self._segment_offsets = None
+        self._required_data_length = None
+        
+    @property
+    def segment_sizes(self):
+        return self._segment_sizes
+        
+    @property
+    def segment_offsets(self):
+        return self._segment_offsets
+
+    def _init_sharing(self, local_data, all_data):
+        self._numpy_type = local_data.dtype
+        self._mpi_type = numpy_type_to_mpi_type(self._numpy_type)
+
+        local_segment_size = len(local_data)
+        self._segment_sizes = share_numbers(local_segment_size)
+        self._segment_offsets = np.zeros(self._mpi_size)
+        self._segment_offsets[1:] = np.cumsum(self._segment_sizes)[:-1]
+
+        self._required_data_length = np.sum(self._segment_sizes)
+
+    def share(self, local_data, all_data):
+        """ A method which is called, when data is shared
+
+            Parameters
+            ----------
+            local_data : NumPy array
+                Data which are sent to the all processors
+            all_data : NumPy array
+                An array where the all data from all processors are stored
+        """
+        if self._segment_sizes is None:
+            self._init_sharing(local_data, all_data)
+
+        if len(all_data) < self._required_data_length:
+            all_data = np.zeros(self._required_data_length)
+
+        mpi_input = [all_data,
+                     self._segment_sizes,
+                     self._segment_offsets,
+                     self._mpi_type
+                     ]
+
+        self._mpi_comm.Allgatherv(local_data, mpi_input)
+        return all_data
+
+class MpiArrayGather(object):
+    """ Gathers a NumpyArray to one processor.
+    """
+    def __init__(self, root_rank=0):
+
+        self._root_rank = root_rank
+        
+        self._mpi_comm = MPI.COMM_WORLD
+        self._mpi_size = self._mpi_comm.Get_size()
+        self._my_rank = self._mpi_comm.Get_rank()
+
+        self._numpy_type = None
+        self._mpi_type = None
+
+        self._segment_sizes = None
+        self._segment_offsets = None
         
     @property
     def segment_sizes(self):
@@ -325,8 +387,10 @@ class MpiArrayShare(object):
         self._segment_offsets = np.zeros(self._mpi_size)
         self._segment_offsets[1:] = np.cumsum(self._segment_sizes)[:-1]
         
-        if all_data is None:
-            all_data = np.zeros(np.sum(self._segment_sizes))
+        if self._root_rank == self._my_rank:
+            self._required_data_length = np.sum(self._segment_sizes)
+        else:
+            self._required_data_length = 0
 
     def share(self, local_data, all_data):
         """ A method which is called, when data is shared
@@ -341,14 +405,18 @@ class MpiArrayShare(object):
         if self._segment_sizes is None:
             self._init_sharing(local_data, all_data)
 
+        if len(all_data) < self._required_data_length: 
+            all_data = np.zeros(self._required_data_length)
+
         mpi_input = [all_data,
                      self._segment_sizes,
                      self._segment_offsets,
                      self._mpi_type
                      ]
 
-        self._mpi_comm.Allgatherv(local_data, mpi_input)
-
+        self._mpi_comm.Gatherv(local_data, mpi_input, root = self._root_rank)
+        
+        return all_data
 
 class MpiSniffer(object):
     """ Sniffer object, which can be used for getting information about
