@@ -395,7 +395,7 @@ class WakeKick(Printing):
 
                     self._wake_database[i] = self.wake_function(-z_values/c, beta=local_slice_sets[0].beta)
                 else:
-                        self._wake_database[-1] = np.zeros(len(z_values))
+                        self._wake_database[-1] = np.zeros(len(z_bin_mids))
                         
         self._wake_database = np.array(self._wake_database)
 
@@ -443,6 +443,16 @@ class WakeKick(Printing):
     def _init_mpi_full_ring_fft(self, convolution, all_slice_sets, local_slice_sets,
                                 bunch_list, local_bunch_indexes,
                                 turns_on_this_proc, Q):
+        # initializes an object for data sharing through mpi and splits wake
+        # convolutions to processors
+        self._mpi_array_gather = mpi_data.MpiArrayGather()
+        self._mpi_array_share = mpi_data.MpiArrayShare()
+        self._my_rank = mpi_data.my_rank()
+        if turns_on_this_proc is None:
+            all_wake_turns = np.arange(self.n_turns_wake)
+            my_wake_turns = mpi_data.my_tasks(all_wake_turns)
+        else:
+            my_wake_turns = turns_on_this_proc
         
         circumference = local_slice_sets[0].circumference
         h_bunch = local_slice_sets[0].h_bunch
@@ -470,16 +480,26 @@ class WakeKick(Printing):
 
         # Raw accumulated data from turn by turn convolutions
         if convolution == 'linear':
-            self._accumulated_data = np.zeros(self._n_bins_per_turn*(self.n_turns_wake+1))
+            if self._my_rank == 0:
+                self._accumulated_data = np.zeros(self._n_bins_per_turn*(self.n_turns_wake+1))
+            else:
+                self._accumulated_data = np.zeros(0)
+            self._wake_kick_data = np.zeros(self._n_bins_per_turn)
             # a buffer for wake data, which are gathered from all processors
-            self._new_real_wake_data = np.zeros(2*self._n_bins_per_turn*(self.n_turns_wake))
-            self._new_imag_wake_data = np.zeros(2*self._n_bins_per_turn*(self.n_turns_wake))
+            self._new_real_wake_data = np.zeros(0)
+            
         elif convolution == 'circular':
-        
-            self._accumulated_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake,dtype=complex)
+            
+            if self._my_rank == 0:
+                self._accumulated_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake,dtype=complex)
+            else:
+                self._accumulated_data = np.zeros(0,dtype=complex)
+            self._wake_kick_data = np.zeros(self._n_bins_per_turn,dtype=complex)
+            self._wake_kick_data_real = np.zeros(self._n_bins_per_turn)
+            self._wake_kick_data_imag = np.zeros(self._n_bins_per_turn)
             # a buffer for wake data, which are gathered from all processors
-            self._new_real_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
-            self._new_imag_wake_data = np.zeros(self._n_bins_per_turn*self.n_turns_wake)
+            self._new_real_wake_data = np.zeros(0)
+            self._new_imag_wake_data = np.zeros(0)
         else:
             raise ValueError('Unknown convolution')
 
@@ -491,7 +511,7 @@ class WakeKick(Printing):
             kick_from = empty_space_per_side + idx * self._n_bins_per_kick
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
 
-            self._accumulated_signal_list.append(np.array(self._accumulated_data[kick_from:kick_to], copy=False))
+            self._accumulated_signal_list.append(np.array(self._wake_kick_data[kick_from:kick_to], copy=False))
 
 
         # A list of indexes, which indicate locations of the moment data from
@@ -503,15 +523,6 @@ class WakeKick(Printing):
             kick_to = empty_space_per_side + idx * self._n_bins_per_kick + n_slices
             temp_idx_data = (kick_from, kick_to)
             self._idx_data.append(temp_idx_data)
-
-        # initializes an object for data sharing through mpi and splits wake
-        # convolutions to processors
-        self._mpi_array_share = mpi_data.MpiArrayShare()
-        if turns_on_this_proc is None:
-            all_wake_turns = np.arange(self.n_turns_wake)
-            my_wake_turns = mpi_data.my_tasks(all_wake_turns)
-        else:
-            my_wake_turns = turns_on_this_proc
 
         if len(my_wake_turns) > 0:
             # if convulations are calculated in this processor
@@ -611,9 +622,9 @@ class WakeKick(Printing):
             np.copyto(self._moment[i_from:i_to],moment[::-1])
 #            np.copyto(self._moment[i_from:i_to],moment)
 
-            # convolution calculations are distributed to different processors        
-        if convolution == 'linear':
 
+        # calculates distributed convolutions on each processor
+        if convolution == 'linear':
             for i, wake in enumerate(self._dashed_wake_functions):
                 i_from = 2*i*self._n_bins_per_turn
                 i_to = 2*(i+1) * self._n_bins_per_turn-1
@@ -635,54 +646,78 @@ class WakeKick(Printing):
     def _accumulate_mpi_full_ring_fft(self, convolution, all_slice_sets,local_slice_sets,
                                       bunch_list, local_bunch_indexes, 
                                       optimization_method, moments):
-       
+        # Gathers all the calculated wake data in the method 
+        # _calculate_field_mpi_full_ring_fft() to the rank 0
         if convolution == 'linear':
-
             old_data_from = self._n_bins_per_turn
             old_data_to = (self.n_turns_wake+1)*self._n_bins_per_turn
-            self._mpi_array_share.share(np.copy(self._my_data), self._new_real_wake_data)
+            self._new_real_wake_data = self._mpi_array_gather.gather(np.copy(self._my_data), self._new_real_wake_data)
             
         elif convolution == 'circular':
             old_data_from = self._n_bins_per_turn
             old_data_to = self.n_turns_wake*self._n_bins_per_turn
-
-            self._mpi_array_share.share(np.copy(self._my_data.real), self._new_real_wake_data)  
-            self._mpi_array_share.share(np.copy(self._my_data.imag), self._new_imag_wake_data)
+            self._new_real_wake_data = self._mpi_array_gather.gather(np.copy(self._my_data.real), self._new_real_wake_data)  
+            self._new_imag_wake_data = self._mpi_array_gather.gather(np.copy(self._my_data.imag), self._new_imag_wake_data)
         else:
             raise ValueError('Unknown convolution')
 
-        # copies the old wake data
-        old_data = np.append(self._accumulated_data[old_data_from:old_data_to],
-                             np.zeros(self._n_bins_per_turn))
+        # combines the old wake data from previous turns with the new data on the rank 0
+        if self._my_rank == 0:
+            old_data = np.append(self._accumulated_data[old_data_from:old_data_to],
+                                 np.zeros(self._n_bins_per_turn))
+    
+           
+                
+            # accumulates new wake data from the old and new data
+            if convolution == 'linear':
+                np.copyto(self._accumulated_data,old_data)
+                for i in range(self.n_turns_wake):
+                    j_from = i*self._n_bins_per_turn
+                    j_to = (i+2)*self._n_bins_per_turn
+                    k_from = 2*i*self._n_bins_per_turn
+                    k_to = 2*(i+1)*self._n_bins_per_turn
+                    self._accumulated_data[j_from:j_to] = self._accumulated_data[j_from:j_to] + self._new_real_wake_data[k_from:k_to]
+                
+            elif convolution == 'circular':
+                np.copyto(self._accumulated_data,
+                          self._new_real_wake_data + 1j*self._new_imag_wake_data+old_data)
+            else:
+                raise ValueError('Unknown convolution')
 
-       
-            
-        # accumulates new wake data from the old and new data
+
+
+        # shares only the relevan wake kick data with all the processors
         if convolution == 'linear':
-            np.copyto(self._accumulated_data,old_data)
-            for i in range(self.n_turns_wake):
-                j_from = i*self._n_bins_per_turn
-                j_to = (i+2)*self._n_bins_per_turn
-                k_from = 2*i*self._n_bins_per_turn
-                k_to = 2*(i+1)*self._n_bins_per_turn
-                self._accumulated_data[j_from:j_to] = self._accumulated_data[j_from:j_to] + self._new_real_wake_data[k_from:k_to]
-            
+            if self._my_rank == 0:
+                i_from = 0
+                i_to = self._n_bins_per_turn
+                my_data = self._accumulated_data[i_from:i_to]
+            else:
+                my_data = np.zeros(0)
+            self._wake_kick_data = self._mpi_array_share.share(np.copy(my_data),self._wake_kick_data)
+
         elif convolution == 'circular':
-            np.copyto(self._accumulated_data,
-                      self._new_real_wake_data + 1j*self._new_imag_wake_data+old_data)
+            if self._my_rank == 0:
+                i_from = 0
+                i_to = self._n_bins_per_turn
+                my_data = self._accumulated_data[i_from:i_to]
+            else:
+                my_data = np.zeros(0,dtype=complex)
+            
+            self._wake_kick_data_real = self._mpi_array_share.share(np.copy(my_data.real), self._wake_kick_data_real)
+            self._wake_kick_data_imag = self._mpi_array_share.share(np.copy(my_data.imag), self._wake_kick_data_imag)
+            
+            np.copyto(self._wake_kick_data, self._wake_kick_data_real + 1j*self._wake_kick_data_imag)
+            
         else:
             raise ValueError('Unknown convolution')
-
-
-
+            
         # flips the accumulated kicks back to original order and
         # multiplies by the wake factor
         kick_list = []
         for i, value in enumerate(self._accumulated_signal_list):
             kick_list.append(value[::-1]*self._wake_factor(bunch_list[i]))
 #            real_values.append(value)*self._wake_factor(bunch_list[i]))
-#        print 'kick_list[0][:20]: '
-#        print kick_list[0][:20]
         return kick_list
 
 

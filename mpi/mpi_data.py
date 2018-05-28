@@ -392,7 +392,7 @@ class MpiArrayGather(object):
         else:
             self._required_data_length = 0
 
-    def share(self, local_data, all_data):
+    def gather(self, local_data, all_data):
         """ A method which is called, when data is shared
 
             Parameters
@@ -405,7 +405,7 @@ class MpiArrayGather(object):
         if self._segment_sizes is None:
             self._init_sharing(local_data, all_data)
 
-        if len(all_data) < self._required_data_length: 
+        if len(all_data) != self._required_data_length: 
             all_data = np.zeros(self._required_data_length)
 
         mpi_input = [all_data,

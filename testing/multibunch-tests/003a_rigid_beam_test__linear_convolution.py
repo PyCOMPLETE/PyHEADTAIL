@@ -219,7 +219,7 @@ class RigidBeam(object):
 # MACHINE AND SIMULATION SETTINGS
 #================================
 
-n_turns = 50
+n_turns = 150
 
 n_macroparticles = 1000 # per bunch 
 intensity = 2.3e11
@@ -306,7 +306,7 @@ allbunches_org = copy.deepcopy(allbunches)
 #=================
 
 mpi_settings = 'linear_mpi_full_ring_fft'
-mpi_settings = 'memory_optimized'
+#mpi_settings = 'memory_optimized'
 n_turns_wake = 21
 
 # pipe radius [m]
@@ -319,6 +319,7 @@ sigma = 1./(7.88e-10)
 
 f_rs = np.logspace(np.log10(0.3e5),np.log10(1e6),10)
 frequency = f_rs[-1]
+#frequency = f_rs[0]
 R_shunt = 0.5e10
 Q=0.65
 # wakes = CircularResistiveWall(b,L,sigma,b/c,beta_beam=machine.beta, n_turns_wake=n_turns_wake)
@@ -329,6 +330,8 @@ wake_field = WakeField(slicer, wakes, mpi=mpi_settings, Q_x=accQ_x, Q_y=accQ_y,
 
 wake_field_org = WakeField(slicer, wakes, mpi=True, Q_x=accQ_x, Q_y=accQ_y,
                        beta_x=beta_x, beta_y=beta_y)
+#wake_field_org = WakeField(slicer, wakes, mpi='memory_optimized', Q_x=accQ_x, Q_y=accQ_y,
+#                       beta_x=beta_x, beta_y=beta_y)
 
 machine.one_turn_map.append(wake_field)
 machine_org.one_turn_map.append(wake_field_org)
