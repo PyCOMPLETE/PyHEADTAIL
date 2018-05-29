@@ -418,6 +418,66 @@ class MpiArrayGather(object):
         
         return all_data
 
+class MpiArrayBroadcast(object):
+    """ Gathers a NumpyArray to one processor.
+    """
+    def __init__(self, root_rank=0):
+
+        self._root_rank = root_rank
+        
+        self._mpi_comm = MPI.COMM_WORLD
+        self._mpi_size = self._mpi_comm.Get_size()
+        self._my_rank = self._mpi_comm.Get_rank()
+
+        self._numpy_type = None
+        self._mpi_type = None
+
+        self._segment_sizes = None
+        self._segment_offsets = None
+        
+    @property
+    def segment_sizes(self):
+        return self._segment_sizes
+        
+    @property
+    def segment_offsets(self):
+        return self._segment_offsets
+
+    def _init_sharing(self, local_data, all_data):
+        self._numpy_type = local_data.dtype
+        self._mpi_type = numpy_type_to_mpi_type(self._numpy_type)
+
+        if self._root_rank == self._my_rank:
+            local_segment_size = len(local_data)
+        else:
+            local_segment_size = 0
+        self._segment_sizes = share_numbers(local_segment_size)
+        self._segment_offsets = np.zeros(self._mpi_size)
+        self._segment_offsets[1:] = np.cumsum(self._segment_sizes)[:-1]
+
+        self._required_data_length = np.sum(self._segment_sizes)
+
+
+    def broadcast(self, all_data):
+        """ A method which is called, when data is shared
+
+            Parameters
+            ----------
+            local_data : NumPy array
+                Data which are sent to the all processors
+            all_data : NumPy array
+                An array where the all data from all processors are stored
+        """
+        if self._segment_sizes is None:
+            self._init_sharing(all_data, all_data)
+
+        if len(all_data) != self._required_data_length: 
+            all_data = np.zeros(self._required_data_length)
+
+        self._mpi_comm.Bcast(all_data, root = self._root_rank)
+        
+        return all_data
+
 class MpiSniffer(object):
     """ Sniffer object, which can be used for getting information about
         the number of processors and the rank of the processors. The

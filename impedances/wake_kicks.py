@@ -446,7 +446,7 @@ class WakeKick(Printing):
         # initializes an object for data sharing through mpi and splits wake
         # convolutions to processors
         self._mpi_array_gather = mpi_data.MpiArrayGather()
-        self._mpi_array_share = mpi_data.MpiArrayShare()
+        self._mpi_array_broadcast = mpi_data.MpiArrayBroadcast()
         self._my_rank = mpi_data.my_rank()
         if turns_on_this_proc is None:
             all_wake_turns = np.arange(self.n_turns_wake)
@@ -691,21 +691,20 @@ class WakeKick(Printing):
             if self._my_rank == 0:
                 i_from = 0
                 i_to = self._n_bins_per_turn
-                my_data = self._accumulated_data[i_from:i_to]
-            else:
-                my_data = np.zeros(0)
-            self._wake_kick_data = self._mpi_array_share.share(np.copy(my_data),self._wake_kick_data)
+                np.copyto(self._wake_kick_data, self._accumulated_data[i_from:i_to])
+            
+            self._wake_kick_data = self._mpi_array_broadcast.broadcast(self._wake_kick_data)
 
         elif convolution == 'circular':
             if self._my_rank == 0:
                 i_from = 0
                 i_to = self._n_bins_per_turn
-                my_data = self._accumulated_data[i_from:i_to]
-            else:
-                my_data = np.zeros(0,dtype=complex)
+                np.copyto(self._wake_kick_data_real, self._accumulated_data[i_from:i_to].real)
+                np.copyto(self._wake_kick_data_imag, self._accumulated_data[i_from:i_to].imag)
+
             
-            self._wake_kick_data_real = self._mpi_array_share.share(np.copy(my_data.real), self._wake_kick_data_real)
-            self._wake_kick_data_imag = self._mpi_array_share.share(np.copy(my_data.imag), self._wake_kick_data_imag)
+            self._wake_kick_data_real = self._mpi_array_broadcast.broadcast(self._wake_kick_data_real)
+            self._wake_kick_data_imag = self._mpi_array_broadcast.broadcast(self._wake_kick_data_imag)
             
             np.copyto(self._wake_kick_data, self._wake_kick_data_real + 1j*self._wake_kick_data_imag)
             
