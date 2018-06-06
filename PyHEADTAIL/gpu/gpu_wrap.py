@@ -11,13 +11,17 @@ import os
 import gpu_utils
 import math
 from functools import wraps
+from collections import OrderedDict
 try:
     import skcuda.misc
     import pycuda.gpuarray
     import pycuda.compiler
+    import pycuda.curandom
     import pycuda.driver as drv
     import thrust_interface
     import pycuda.elementwise
+
+    import scikits.cuda.fft
 
     # if pycuda is there, try to compile things. If no context available,
     # throw error to tell the user that he should import pycuda.autoinit
@@ -850,22 +854,85 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
         _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
     return out
 
-
-def convolve(a, v, mode='full'):
+_convolve_cache = OrderedDict()
+_convolve_cache_maxsize = 16
+def convolve(a, v, mode='full', caching=False):
     '''
     Compute the convolution of the two arrays a,v. See np.convolve
     '''
-    #HACK: use np.convolve for now, make sure both arguments are np.arrays!
-    try:
-        a = a.get()
-    except:
-        pass
-    try:
-        v = v.get()
-    except:
-        pass
-    c = np.convolve(a, v, mode)
-    return pycuda.gpuarray.to_gpu(c)
+
+    global _convolve_cache
+    do_ffta = False
+    do_fftv = False
+    if caching == True:
+        ids = _convolve_cache.keys()
+        if id(a) not in ids:
+            do_ffta = True
+        if id(v) not in ids:
+            do_fftv = True
+
+    print id(a), id(v)
+    
+    # If caching try to recover both arguments from the cache, otherwise do the fft 
+    # and recover them
+    if do_ffta or not caching:
+        try:
+            a2 = (pycuda.gpuarray.to_gpu(a)).astype(np.complex64)
+        except:
+            print "err"
+            pass
+        
+        plan_a = scikits.cuda.fft.Plan(shape=a2.shape, in_dtype=np.complex64, out_dtype=np.complex64)
+        fa = pycuda.gpuarray.empty(a2.shape[0], np.complex64)
+        scikits.cuda.fft.fft(a2,fa,plan_a,scale=True)
+        
+        if caching:
+            _convolve_cache[id(a)] = fa
+            print "a saved in cache"
+    else:
+        print "a recovered from cache"
+        fa = _convolve_cache[id(a)]
+
+
+    if do_fftv or not caching:
+        try:
+            v2 = (pycuda.gpuarray.to_gpu(v)).astype(np.complex64)
+        except:
+            print "err"
+            pass
+        
+        plan_v = scikits.cuda.fft.Plan(shape=v2.shape, in_dtype=np.complex64, out_dtype=np.complex64)
+        fv = pycuda.gpuarray.empty(v2.shape[0], np.complex64)
+        scikits.cuda.fft.fft(v2,fv,plan_v,scale=True)
+        
+        if caching:
+            _convolve_cache[id(v)] = fv
+            print "v saved in cache"
+    else:
+        print "v recovered from cache"
+        fv = _convolve_cache[id(v)]
+
+    
+    
+    
+    #print "fa ", fa
+    
+    # Multiply and do the ifft
+    faxfv = fa*fv
+    
+    #print "faxfv2",faxfv
+    
+    plan_ifft = scikits.cuda.fft.Plan(shape=faxfv.shape, in_dtype=np.complex64, out_dtype=np.complex64)
+    c = pycuda.gpuarray.empty(faxfv.shape[0], np.complex64)
+    scikits.cuda.fft.ifft(faxfv,c,plan_ifft)
+
+    #print "c ", c.real
+    
+    # Clear cache if too big
+    if len(_convolve_cache) > _convolve_cache_maxsize:
+        _convolve_cache.clear()
+        
+    return c
 
 def init_bunch_buffer(bunch, bunch_stats, buffer_size):
     '''Call bunch.[stats], match the buffer type with the returned type'''
