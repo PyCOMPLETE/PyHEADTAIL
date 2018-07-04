@@ -192,6 +192,7 @@ _CPU_numpy_func_dict = {
     'min': np.min,
     'max': np.max,
     'diff': np.diff,
+    'subtract': np.subtract,
     'floor': np.floor,
     'argsort': np.argsort,
     'apply_permutation': lambda array, permutation: array[permutation], #auto copy
@@ -239,6 +240,10 @@ _CPU_numpy_func_dict = {
     'atleast_1d': np.atleast_1d,
     'almost_zero': lambda array, *args, **kwargs: np.allclose(array, 0, *args, **kwargs),
     'sincos': sincos,
+    'concatenate': np.concatenate,
+    'take' : np.take,
+    'clip' : lambda array, *args, **kwargs: array.clip(max=0),
+    'pop'  : lambda array, *args, **kwargs: np.delete(array, *args, **kwargs),
     '_cpu': None # dummy to have at least one distinction between cpu/gpu
 }
 
@@ -255,6 +260,7 @@ if has_pycuda:
         'min': lambda *args, **kwargs: pycuda.gpuarray.min(*args, **kwargs).get(),
         'max': lambda *args, **kwargs: pycuda.gpuarray.max(*args, **kwargs).get(),
         'diff': lambda *args, **kwargs: skcuda.misc.diff(*args, **kwargs),
+        'subtract': skcuda.misc.subtract,
         'floor': lambda *args, **kwargs: pycuda.cumath.floor(*args, **kwargs),
         'argsort': gpu_wrap.argsort,
         'apply_permutation': gpu_wrap.apply_permutation,
@@ -303,6 +309,10 @@ if has_pycuda:
                 allocator=gpu_utils.memory_pool.allocate),
             *args, **kwargs),
         'sincos': gpu_wrap.sincos,
+        'concatenate': gpu_wrap.concatenate,
+        'take' : pycuda.gpuarray.take,
+        'clip': gpu_wrap.clip_max,
+        'pop': gpu_wrap.pop,
         '_gpu': None # dummy to have at least one distinction between cpu/gpu
     }
 ################################################################################

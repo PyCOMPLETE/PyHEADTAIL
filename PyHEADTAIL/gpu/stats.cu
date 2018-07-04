@@ -132,3 +132,34 @@ __global__ void sorted_cov_per_slice(unsigned int* lower_bounds,
         }
     }
 }
+__global__ void concat(int n1,
+                       int n2,
+                                     double* u,                     // array of particle quantity sorted by slice
+                                     double* v,     
+				     double* out) 
+{
+	int i = blockIdx.x*blockDim.x + threadIdx.x;
+	if (i <= n1)
+		out[i] = u[i];
+	else
+		out[i] = v[i];
+}
+
+__global__ void conv_Kernel(double* __restrict__ A, double* __restrict__ B, double* C, const int N, const int P){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    int radius = (P-1)/2;
+    if ((idx < (N-radius)) && (idx >= radius)){
+      int my_sum = 0;
+      for (int j = -radius; j <= radius; j++)
+        my_sum += A[idx+j]*B[j+radius];
+      C[idx] = my_sum;
+    }
+}
+
+__global__ void pop_cuda(int index, double* in, double* out, const int N){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx < index)
+	out[idx] = in[idx];
+    else
+    	out[idx] = in[idx+1];
+}

@@ -31,12 +31,13 @@ class WakeKick(Printing):
     __metaclass__ = ABCMeta
 
     def __init__(self, wake_function, slicer, n_turns_wake,
-                 *args, **kwargs):
+                 store_impedence=True, *args, **kwargs):
         """Universal constructor for WakeKick objects. The slicer_mode
         is passed only to decide about which of the two implementations
         of the convolution the self._convolution method is bound to.
         """
         self.wake_function = wake_function
+        self.impedance = None
 
         if (slicer.mode == 'uniform_bin' and
                 (n_turns_wake == 1 or slicer.z_cuts)):
@@ -52,6 +53,10 @@ class WakeKick(Printing):
                     'becomes invalid when gamma changes much over '
                     'n_turns_wake.')
 
+        #if store_impedence:
+        #    self.impedence = self._compute_impedence(slicer)
+        #else:
+        #    self.impedence = None
         self.n_turns_wake = n_turns_wake
 
     @abstractmethod
@@ -71,6 +76,14 @@ class WakeKick(Printing):
         wake_factor = (-(bunch.charge)**2 / (bunch.mass * bunch.gamma *
                        (bunch.beta * c)**2) * bunch.particlenumber_per_mp)
         return wake_factor
+
+    def _compute_impedence(self, slicer):
+        beta = self.beta
+        z_centers = slicer.z_cuts[:-1] + 0.5 * (slicer.z_cuts[1:] - slicer.z_cuts[:-1])
+        target_times = z_centers/(c*beta)
+        dt_to_target_slice = target_times
+        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
+
 
     def _convolution_dot_product(self, target_times, source_times,
                                  source_moments, source_beta):
@@ -94,26 +107,17 @@ class WakeKick(Printing):
         higher performance. Question: how about interpolation to avoid
         expensive dot product in most cases?
         """
-        # Currently target_times/source_times are on the GPU --> np.concatenate
-        # doesnt work. Temporary fix before checking if rewrite of
-        # np.concatenate is required on GPU (if this is bottleneck), is to
-        # get the arrays to the cpu via .get()
-        try:
-            target_times = target_times.get()
-        except AttributeError:
-            pass # is already on CPU
-        try:
-            source_times = source_times.get()
-        except AttributeError:
-            pass #is already on GPU
-        dt_to_target_slice = np.concatenate(
-            (target_times - source_times[-1],
-            (target_times - source_times[0])[1:]))
-        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
-        #print 'len convolution', len(source_moments), len(wake)
-        #print 'type moments', type(source_moments[0])
-        #print 'type wake', type(wake[0]), wake
-        return pm.convolve(source_moments, wake, 'valid')
+
+        if self.impedance is None:
+            arr1 = target_times - source_times[-1]
+            arr2 = pm.pop(target_times - source_times[0], 0)
+            dt_to_target_slice = pm.concatenate((arr1, arr2))
+            
+            wake = self.wake_function(dt_to_target_slice, beta=source_beta)
+            self.impedance = wake
+        ret = pm.convolve(source_moments, self.impedance)
+
+        return ret
 
     def _accumulate_source_signal(self, bunch, times_list, ages_list,
                                   moments_list, betas_list):
