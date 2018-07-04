@@ -447,19 +447,20 @@ class Resonator(WakeSource):
         (Eq. 2.82) and definitions of the resonator in HEADTAIL. """
         omega = 2 * np.pi * self.frequency
         alpha = omega / (2 * self.Q)
-        omegabar = np.sqrt(np.abs(omega**2 - alpha**2))
+        omegabar = pm.sqrt(pm.abs(omega**2 - alpha**2))
 
         def wake(dt, *args, **kwargs):
-            dt = dt.clip(max=0)
+            pm.clip(dt, 0)
+            #dt = dt.clip(max=0)
             if self.Q > 0.5:
                 y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
-                     omegabar) * np.exp(alpha*dt) * sin(omegabar*dt))
+                     omegabar) * pm.exp(alpha*dt) * pm.sin(omegabar*dt))
             elif self.Q == 0.5:
                 y = (Yokoya_factor * self.R_shunt * omega**2 / self.Q *
-                      np.exp(alpha*dt) * dt)
+                      pm.exp(alpha*dt) * dt)
             else:
                 y = (Yokoya_factor * self.R_shunt * omega**2 / (self.Q *
-                     omegabar) * np.exp(alpha*dt) * np.sinh(omegabar*dt))
+                     omegabar) * pm.exp(alpha*dt) * pm.sinh(omegabar*dt))
             return y
         return wake
 

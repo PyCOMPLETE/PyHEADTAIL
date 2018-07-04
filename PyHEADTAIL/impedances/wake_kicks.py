@@ -31,12 +31,30 @@ class WakeKick(Printing):
     __metaclass__ = ABCMeta
 
     def __init__(self, wake_function, slicer, n_turns_wake,
+                 const_wake_times=False, wake_to_be_stored=None,
                  *args, **kwargs):
         """Universal constructor for WakeKick objects. The slicer_mode
         is passed only to decide about which of the two implementations
         of the convolution the self._convolution method is bound to.
+
+        Arguments:
+            - wake_function: smooth function
+            - slicer: PyHEADTAIL.particles.slicing.Slicer instance
+            - n_turns_wake: 1 for single-turn or n for multi-turn
+                            evaluation
+            - const_wake_times: whether to evaluate wake function at
+                                timings given by slicer initially and
+                                store for further use, assuming the
+                                slicing bin timings remain constant
+            - wake_to_be_stored: predefined array of length
+                                 slicer.n_slices with the values of the
+                                 wake function evaluated at slicer bin
+                                 timings. To be used in conjunction with
+                                 with const_wake_times.
         """
         self.wake_function = wake_function
+        self._stored_wake = None
+        self.const_wake_times = const_wake_times
 
         if (slicer.mode == 'uniform_bin' and
                 (n_turns_wake == 1 or slicer.z_cuts)):
@@ -72,6 +90,14 @@ class WakeKick(Printing):
                        (bunch.beta * c)**2) * bunch.particlenumber_per_mp)
         return wake_factor
 
+    def _compute_impedance(self, slicer):
+        beta = self.beta
+        z_centers = slicer.z_cuts[:-1] + 0.5 * (slicer.z_cuts[1:] - slicer.z_cuts[:-1])
+        target_times = z_centers/(c*beta)
+        dt_to_target_slice = target_times
+        return self.wake_function(dt_to_target_slice, beta=source_beta)
+
+
     def _convolution_dot_product(self, target_times, source_times,
                                  source_moments, source_beta):
         """Implementation of the convolution of wake and source_moments
@@ -94,26 +120,19 @@ class WakeKick(Printing):
         higher performance. Question: how about interpolation to avoid
         expensive dot product in most cases?
         """
-        # Currently target_times/source_times are on the GPU --> np.concatenate
-        # doesnt work. Temporary fix before checking if rewrite of
-        # np.concatenate is required on GPU (if this is bottleneck), is to
-        # get the arrays to the cpu via .get()
-        try:
-            target_times = target_times.get()
-        except AttributeError:
-            pass # is already on CPU
-        try:
-            source_times = source_times.get()
-        except AttributeError:
-            pass #is already on GPU
-        dt_to_target_slice = np.concatenate(
-            (target_times - source_times[-1],
-            (target_times - source_times[0])[1:]))
-        wake = self.wake_function(dt_to_target_slice, beta=source_beta)
-        #print 'len convolution', len(source_moments), len(wake)
-        #print 'type moments', type(source_moments[0])
-        #print 'type wake', type(wake[0]), wake
-        return pm.convolve(source_moments, wake, 'valid')
+
+        if self._stored_wake is None:
+            diff_times_end = target_times - source_times[-1]
+            diff_times_beg = pm.pop(target_times - source_times[0], 0)
+            dt_to_target_slice = pm.concatenate((diff_times_end, diff_times_beg))
+
+            wake = self.wake_function(dt_to_target_slice, beta=source_beta)
+
+            if self.const_wake_times:
+                self._stored_wake = wake
+        else:
+            wake = self._stored_wake
+        return pm.convolve(source_moments, self._stored_wake)
 
     def _accumulate_source_signal(self, bunch, times_list, ages_list,
                                   moments_list, betas_list):

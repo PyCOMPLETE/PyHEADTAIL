@@ -11,10 +11,14 @@ import os
 import gpu_utils
 import math
 from functools import wraps
+import collections
+from collections import OrderedDict
 try:
     import skcuda.misc
+    import pycuda.autoinit
     import pycuda.gpuarray
     import pycuda.compiler
+    import pycuda.curandom
     import pycuda.driver as drv
     import thrust_interface
     import pycuda.elementwise
@@ -34,6 +38,9 @@ try:
         sorted_mean_per_slice_kernel = stats_kernels.get_function('sorted_mean_per_slice')
         sorted_std_per_slice_kernel = stats_kernels.get_function('sorted_std_per_slice')
         sorted_cov_per_slice_kernel = stats_kernels.get_function('sorted_cov_per_slice')
+        concat = stats_kernels.get_function('concat')
+        conv = stats_kernels.get_function('conv_Kernel')
+        pop_cuda = stats_kernels.get_function('pop_cuda')
         has_pycuda = True
     except pycuda._driver.LogicError: #the error pycuda throws if no context initialized
         print ('Warning: GPU is in principle available but no context has been '
@@ -180,6 +187,16 @@ if has_pycuda:
         _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n),
                       stream=stream)
         return out
+
+    _clip_max = pycuda.elementwise.ElementwiseKernel(
+        'double* out, double* in, const double c',
+        'out[i] = in[i] > c ? 0 : in[i]',
+        '_clip_max'
+    )
+    def clip_max(gpuarr, c=0, out=None, stream=None):
+        if out is None:
+            out = pycuda.gpuarray.empty_like(gpuarr)
+        _clip_max(out, gpuarr, c, stream=stream)
 
     _wofz = pycuda.elementwise.ElementwiseKernel(
         arguments='double* in_real, double* in_imag, double* out_real, '
@@ -750,6 +767,32 @@ def sorted_mean_per_slice(sliceset, u, stream=None):
     #gpu_utils.context.synchronize()
     return mean_u
 
+def concatenate(tup, out=None, stream=None):
+    a = tup[0]
+    b = tup[1]
+    block = (256, 1, 1)
+    grid = (1, 1, 1)
+    if out == None:
+        out = pycuda.gpuarray.empty((a.size + b.size), dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
+    concat(np.int32(a.size), np.int32(b.size), a.gpudata, b.gpudata, out.gpudata, block=block, grid=grid, stream=stream)
+    return out
+  
+def convolve(a, b, out=None, stream=None):
+    block = (256, 1, 1)
+    grid = (1, 1, 1)
+    if out == None:
+        out = pycuda.gpuarray.empty((a.size+b.size), dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
+    conv(a.gpudata, b.gpudata, out.gpudata, np.int32(a.size), np.int32(a.size), block=block, grid=grid, stream=stream)
+    return out
+
+def pop(a, index=0, out=None, stream=None):
+    block = (256, 1, 1)
+    grid = (1, 1, 1)
+    if out == None:
+        out = pycuda.gpuarray.empty((a.size-1), dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
+    pop_cuda(np.int32(index), a.gpudata, out, block=block, grid=grid, stream=stream)
+    return a
+
 def sorted_std_per_slice(sliceset, u, stream=None):
     '''
     Computes the cov per slice of the array u
@@ -850,22 +893,6 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
         _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
     return out
 
-
-def convolve(a, v, mode='full'):
-    '''
-    Compute the convolution of the two arrays a,v. See np.convolve
-    '''
-    #HACK: use np.convolve for now, make sure both arguments are np.arrays!
-    try:
-        a = a.get()
-    except:
-        pass
-    try:
-        v = v.get()
-    except:
-        pass
-    c = np.convolve(a, v, mode)
-    return pycuda.gpuarray.to_gpu(c)
 
 def init_bunch_buffer(bunch, bunch_stats, buffer_size):
     '''Call bunch.[stats], match the buffer type with the returned type'''
