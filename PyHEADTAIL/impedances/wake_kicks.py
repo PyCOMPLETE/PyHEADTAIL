@@ -31,14 +31,14 @@ class WakeKick(Printing):
     __metaclass__ = ABCMeta
 
     def __init__(self, wake_function, slicer, n_turns_wake,
-                 store_impedence=True, *args, **kwargs):
+                 fixed_slicing=True, impedance=None, *args, **kwargs):
         """Universal constructor for WakeKick objects. The slicer_mode
         is passed only to decide about which of the two implementations
         of the convolution the self._convolution method is bound to.
         """
         self.wake_function = wake_function
-        self.impedance = None
-
+        self.impedance = impedance 
+        self.fixed_slicing = fixed_slicing
         if (slicer.mode == 'uniform_bin' and
                 (n_turns_wake == 1 or slicer.z_cuts)):
             self._convolution = self._convolution_numpy
@@ -53,10 +53,6 @@ class WakeKick(Printing):
                     'becomes invalid when gamma changes much over '
                     'n_turns_wake.')
 
-        #if store_impedence:
-        #    self.impedence = self._compute_impedence(slicer)
-        #else:
-        #    self.impedence = None
         self.n_turns_wake = n_turns_wake
 
     @abstractmethod
@@ -108,14 +104,17 @@ class WakeKick(Printing):
         expensive dot product in most cases?
         """
 
-        if self.impedance is None:
-            arr1 = target_times - source_times[-1]
-            arr2 = pm.pop(target_times - source_times[0], 0)
-            dt_to_target_slice = pm.concatenate((arr1, arr2))
+        if self.impedance is None or self.fixed_slicing is False:
+            diff_times_end = target_times - source_times[-1]
+            diff_times_beg = pm.pop(target_times - source_times[0], 0)
+            dt_to_target_slice = pm.concatenate((diff_times_end, diff_times_beg))
             
             wake = self.wake_function(dt_to_target_slice, beta=source_beta)
-            self.impedance = wake
-        ret = pm.convolve(source_moments, self.impedance)
+            ret = pm.convolve(source_moments, wake)
+            if self.fixed_slicing:
+                self.impedance = wake
+        else:
+            ret = pm.convolve(source_moments, self.impedance)
 
         return ret
 
