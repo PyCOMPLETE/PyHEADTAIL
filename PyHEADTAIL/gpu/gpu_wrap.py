@@ -22,6 +22,9 @@ try:
     import pycuda.driver as drv
     import thrust_interface
     import pycuda.elementwise
+    import scikits.cuda.fft
+    from scipy import fftpack
+    from scipy.fftpack import fft, ifft, helper
 
     # if pycuda is there, try to compile things. If no context available,
     # throw error to tell the user that he should import pycuda.autoinit
@@ -921,3 +924,130 @@ def init_slice_buffer(slice_set, slice_stats, buffer_size):
         else: #already on CPU
             buf[stats] = np.zeros((n_slices, buffer_size), dtype=type(res))
     return buf
+
+
+def _inputs_swap_needed(mode, shape1, shape2):
+    """
+    If in 'valid' mode, returns whether or not the input arrays need to be
+    swapped depending on whether `shape1` is at least as large as `shape2` in
+    every dimension.
+    This is important for some of the correlation and convolution
+    implementations in this module, where the larger array input needs to come
+    before the smaller array input when operating in this mode.
+    Note that if the mode provided is not 'valid', False is immediately
+    returned.
+    """
+    if mode == 'valid':
+        ok1, ok2 = True, True
+        for d1, d2 in zip(shape1, shape2):
+            if not d1 >= d2:
+                ok1 = False
+            if not d2 >= d1:
+                ok2 = False
+        if not (ok1 or ok2):
+            raise ValueError("For 'valid' mode, one must be at least "
+                             "as large as the other in every dimension")
+        return not ok1
+    return False
+
+
+## Copied from scipy.signal, as a private function it cannot be imported
+def _centered(arr, newshape):
+    # Return the center newshape portion of the array.
+    newshape = np.asarray(newshape)
+    currshape = np.array(arr.shape)
+    startind = (currshape - newshape) // 2
+    endind = startind + newshape
+    myslice = [slice(startind[k], endind[k]) for k in range(len(endind))]
+    return arr[tuple(myslice)]
+
+_convolve_cache = OrderedDict()
+_plan_cache = OrderedDict()
+_convolve_cache_maxsize = 16
+def convolve_fft(a, v, mode='full', caching=True):
+    '''
+    Compute the convolution of the two arrays a,v on the GPU
+
+    Adapted from scipy.signal.fftconvolve
+    '''
+
+    # Special cases
+    if a.ndim == v.ndim == 0:  # scalar inputs
+        c = pycuda.gpuarray.empty((1,), np.complex64)
+        c[0] = a * v
+        return c
+    elif not a.ndim == v.ndim:
+        raise ValueError("a and v should have the same dimensionality")
+    elif a.size == 0 or v.size == 0:  # empty arrays
+        return pycuda.gpuarray.empty((0,), np.complex64)
+
+    sa = np.array(a.shape)
+    sv = np.array(v.shape)
+
+    shape = sa + sv - 1
+
+    # Check that input sizes are compatible with 'valid' mode
+    if _inputs_swap_needed(mode, sa, sv):
+        # Convolution is commutative; order doesn't have any effect on output
+        a, sa, v, sv = v, sv, a, sa
+
+    fshape = [fftpack.helper.next_fast_len(int(d)) for d in shape]
+    global _convolve_cache
+    global _plan_cache
+    do_ffta = False
+    do_fftv = False
+    if caching == True:
+        ids = _convolve_cache.keys()
+        if id(a) not in ids:
+            do_ffta = True
+        if id(v) not in ids:
+            do_fftv = True
+
+    if id(v) not in ids:
+        plan_v = scikits.cuda.fft.Plan(shape=fshape, in_dtype=np.complex64, out_dtype=np.complex64)
+        _plan_cache[id(v)] = plan_v
+    else:
+        plan_v = _plan_cache[id(v)]
+
+    fv = pycuda.gpuarray.empty(shape, np.complex64)
+    scikits.cuda.fft.fft(v,fv,plan_v,scale=False)
+
+    # If caching try to recover both arguments from the cache, otherwise do the fft
+    ids = _plan_cache.keys()
+    if id(a) not in ids:
+            plan_a = scikits.cuda.fft.Plan(shape=fshape, in_dtype=np.complex64, out_dtype=np.complex64)
+            _plan_cache[id(a)] = plan_a
+    else:
+            plan_a = _plan_cache[id(a)]
+
+    fa = pycuda.gpuarray.empty(shape, np.complex64)
+    scikits.cuda.fft.fft(a,fa,plan_a,scale=False)
+
+    # Multiply and do the ifft
+    faxfv = pycuda.gpuarray.dot(fa, fv)
+
+
+    if id(faxfv) not in ids:
+            plan_ifft = scikits.cuda.fft.Plan(shape=fshape, in_dtype=np.complex64, out_dtype=np.complex64)
+            _plan_cache[id(faxfv)] = plan_ifft
+    else:
+            plan_ifft = _plan_cache[id(faxfv)]
+    c = pycuda.gpuarray.empty(shape, np.complex64)
+    scikits.cuda.fft.ifft(faxfv,c,plan_ifft,scale=True)
+    plan_ifft = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
+    c = pycuda.gpuarray.empty(shape, np.complex64)
+    scikits.cuda.fft.ifft(faxfv,c,plan_ifft,scale=True)
+
+    # Clear cache if too big
+    if len(_convolve_cache) > _convolve_cache_maxsize:
+        _convolve_cache.clear()
+
+    if mode == "full":
+        return c.real
+    elif mode == "same":
+        return _centered(c, sa).real
+    elif mode == "valid":
+        return _centered(c, sa - sv + 1).real
+    else:
+        raise ValueError("Acceptable mode flags are 'valid',"
+                    " 'same', or 'full'.")

@@ -31,7 +31,7 @@ class WakeKick(Printing):
     __metaclass__ = ABCMeta
 
     def __init__(self, wake_function, slicer, n_turns_wake,
-                 fixed_slicing=True, impedance=None, *args, **kwargs):
+                 fixed_slicing=False, impedance=None, fft_conv=False, *args, **kwargs):
         """Universal constructor for WakeKick objects. The slicer_mode
         is passed only to decide about which of the two implementations
         of the convolution the self._convolution method is bound to.
@@ -39,6 +39,7 @@ class WakeKick(Printing):
         self.wake_function = wake_function
         self.impedance = impedance 
         self.fixed_slicing = fixed_slicing
+        self.fft_conv = fft_conv
         if (slicer.mode == 'uniform_bin' and
                 (n_turns_wake == 1 or slicer.z_cuts)):
             self._convolution = self._convolution_numpy
@@ -110,11 +111,18 @@ class WakeKick(Printing):
             dt_to_target_slice = pm.concatenate((diff_times_end, diff_times_beg))
             
             wake = self.wake_function(dt_to_target_slice, beta=source_beta)
-            ret = pm.convolve(source_moments, wake)
+            if self.fft_conv:
+                ret = pm.convolve_fft(source_moments, wake)
+            else:
+                ret = pm.convolve(source_moments, wake)
+
             if self.fixed_slicing:
                 self.impedance = wake
         else:
-            ret = pm.convolve(source_moments, self.impedance)
+            if self.fft_conv:
+                ret = pm.convolve_fft(source_moments, self.impedance)
+            else:
+                ret = pm.convolve(source_moments, self.impedance)
 
         return ret
 
