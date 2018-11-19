@@ -47,6 +47,11 @@ except ImportError as e:
     #        'No GPU capabilities available')
     has_pycuda = False
 
+def _empty_like(gpuarray):
+    return pycuda.gpuarray.empty(
+        shape=gpuarray.shape, dtype=gpuarray.dtype,
+        allocator=gpu_utils.memory_pool.allocate)
+
 
 if has_pycuda:
     # define all compilation depending functions (e.g. ElementwiseKernel)
@@ -57,7 +62,7 @@ if has_pycuda:
     )
     def sub_scalar(gpuarr, scalar, out=None, stream=None):
         if out is None:
-            out = pycuda.gpuarray.empty_like(gpuarr)
+            out = _empty_like(gpuarr)
         _sub_1dgpuarr(out, gpuarr, scalar, stream=stream)
         return out
 
@@ -71,14 +76,14 @@ if has_pycuda:
         to specify a stream
         '''
         if out is None:
-            out = pycuda.gpuarray.empty_like(gpuarr)
+            out = _empty_like(gpuarr)
         _mul_with_factor(out, gpuarr, scalar, stream=stream)
 
     def _multiply(a, b, out=None, stream=None):
         '''Elementwise multiply of two gpuarray specifying a stream
         Required because gpuarray.__mul__ has no stream argument'''
         if out is None:
-            out = pycuda.gpuarray.empty_like(a)
+            out = _empty_like(a)
         func = pycuda.elementwise.get_binary_op_kernel(a.dtype, b.dtype,
             out.dtype, "*")
         func.prepared_async_call(a._grid, a._block, stream, a.gpudata,
@@ -136,7 +141,7 @@ if has_pycuda:
         '''Computes elementwise a - b*c/d as required in compute sigma for
         the emittance '''
         if out is None:
-            out = pycuda.gpuarray.empty_like(a)
+            out = _empty_like(a)
         _comp_sigma(out, a, b, c, d, stream=stream)
         return out
 
@@ -160,7 +165,7 @@ if has_pycuda:
             n, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp,
             cov_dp2, out=None, stream=None):
         if out is None:
-            out = pycuda.gpuarray.empty_like(cov_u2)
+            out = _empty_like(cov_u2)
         _emitt_disp(out, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp,
                     cov_dp2, np.float64(n), stream=stream)
         return out
@@ -176,7 +181,7 @@ if has_pycuda:
     def _emittance_no_dispersion(
             n, cov_u2, cov_u_up, cov_up2, out=None, stream=None):
         if out is None:
-            out = pycuda.gpuarray.empty_like(cov_u2)
+            out = _empty_like(cov_u2)
         _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n),
                       stream=stream)
         return out
@@ -194,9 +199,9 @@ if has_pycuda:
         part of z.
         '''
         if out_real is None:
-            out_real = pycuda.gpuarray.empty_like(in_real)
+            out_real = _empty_like(in_real)
         if out_imag is None:
-            out_imag = pycuda.gpuarray.empty_like(in_imag)
+            out_imag = _empty_like(in_imag)
         _wofz(in_real, in_imag, out_real, out_imag, stream=stream)
         return out_real, out_imag
 
@@ -207,7 +212,7 @@ if has_pycuda:
     )
     def sign(array, out=None, stream=None):
         if out is None:
-            out = pycuda.gpuarray.empty_like(array)
+            out = _empty_like(array)
         _sign(array, out, stream=stream)
         return out
 
@@ -260,13 +265,9 @@ if has_pycuda:
         p_sids = sliceset.slice_index_of_particle
         # slice_index_of_particle may have slice indices outside of slicing area,
         # the following arrays therefore can comprise non valid slice entries
-        slice_ids_noncontained = pycuda.gpuarray.empty(
-            p_sids.shape, dtype=p_sids.dtype,
-            allocator=gpu_utils.memory_pool.allocate)
-        slice_means_noncontained = pycuda.gpuarray.empty(
-            u.shape, dtype=u.dtype, allocator=gpu_utils.memory_pool.allocate)
-        slice_stds_noncontained = pycuda.gpuarray.empty(
-            u.shape, dtype=u.dtype, allocator=gpu_utils.memory_pool.allocate)
+        slice_ids_noncontained = _empty_like(p_sids)
+        slice_means_noncontained = _empty_like(u)
+        slice_stds_noncontained = _empty_like(u)
 
         (_, _, _, new_end) = thrust.thrust_stats_per_slice(
             p_sids, u, slice_ids_noncontained, slice_means_noncontained,
@@ -368,8 +369,8 @@ def covariance(a,b, stream=None):
         b: pycuda.GPUArray
     '''
     n = len(a)
-    x = pycuda.gpuarray.empty_like(a)
-    y = pycuda.gpuarray.empty_like(b)
+    x = _empty_like(a)
+    y = _empty_like(b)
     mean_a = skcuda.misc.mean(a)
     #x -= mean_a
     _sub_1dgpuarr(x, a, mean_a, stream=stream)
@@ -397,7 +398,7 @@ def std(a, stream=None):
     #return skcuda.misc.std(a, ddof=1)
     n = len(a)
     #mean_a = skcuda.misc.mean(a)
-    x = pycuda.gpuarray.empty_like(a)
+    x = _empty_like(a)
     mean_a = mean(a, stream=stream)
     _sub_1dgpuarr(x, a, mean_a, stream=stream)
     _inplace_pow(x, 2, stream=stream)
@@ -523,7 +524,7 @@ def emittance(u, up, dp, stream=None):
     n = len(u)
     mean_u = mean(u, stream=stream)
     mean_up = mean(up, stream=stream)
-    out = pycuda.gpuarray.empty_like(mean_u)
+    out = _empty_like(mean_u)
     tmp_u = sub_scalar(u, mean_u, stream=stream)
     tmp_up = sub_scalar(up, mean_up, stream=stream)
     tmp_space = _multiply(tmp_u, tmp_u, stream=stream)
@@ -568,7 +569,7 @@ def emittance_multistream(u, up, dp, stream=None):
     tmp_u = sub_scalar(u, mean_u, stream=streams[0])
     tmp_space = _multiply(tmp_u, tmp_u, stream=streams[0])
     cov_u2 = pycuda.gpuarray.sum(tmp_space, stream=streams[0])
-    out = pycuda.gpuarray.empty_like(mean_u)
+    out = _empty_like(mean_u)
     tmp_up = sub_scalar(up, mean_up, stream=streams[1])
     streams[0].synchronize()
     streams[1].synchronize()
@@ -601,11 +602,11 @@ def cumsum(array, dest=None):
     '''
     if array.dtype == np.int32:
         if dest is None:
-            dest = pycuda.gpuarray.empty_like(array)
+            dest = _empty_like(array)
         thrust_interface.thrust_cumsum_int(array, dest)
     elif array.dtype == np.float64:
         if dest is None:
-            dest = pycuda.gpuarray.empty_like(array)
+            dest = _empty_like(array)
         thrust_interface.thrust_cumsum_double(array, dest)
     else:
         dest = array.copy()
@@ -660,7 +661,7 @@ def apply_permutation(array, permutation):
         permutation permutation array: must be np.int32 (or int32), is asserted
     '''
     assert(permutation.dtype.itemsize == 4 and permutation.dtype.kind is 'i')
-    tmp = pycuda.gpuarray.empty_like(array)
+    tmp = _empty_like(array)
     dtype = array.dtype
     if dtype.itemsize == 8 and dtype.kind is 'f':
         thrust.apply_sort_perm_double(array, tmp, permutation)
@@ -832,7 +833,7 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
     cov_u2 = sorted_cov_per_slice(sliceset, u, u, stream=streams[0])
     cov_up2= sorted_cov_per_slice(sliceset, up, up, stream=streams[1])
     cov_u_up = sorted_cov_per_slice(sliceset, u, up, stream=streams[2])
-    out = pycuda.gpuarray.empty_like(cov_u2)
+    out = _empty_like(cov_u2)
     # use this factor in emitt_disp: the code has a 1/(n*n+n) factor which is not
     # required here since the scaling is done in the cov_per_slice
     # --> 1/(n*n + n) must be 1. ==> n = sqrt(5)/2 -0.5
