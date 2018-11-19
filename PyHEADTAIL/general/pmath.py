@@ -212,6 +212,7 @@ _CPU_numpy_func_dict = {
     'slice_to_particles': _slice_to_particles,
     'take': np.take,
     'convolve': np.convolve,
+    'convolve_fft': np.convolve,
     'seq': lambda stop: np.arange(stop, dtype=np.int32),
     'arange': wraps(np.arange)(
         lambda start, stop, step, nslices=None, dtype=np.float64:
@@ -273,6 +274,7 @@ if has_pycuda:
         'slice_to_particles': gpu_wrap.slice_to_particles,
         'take': pycuda.gpuarray.take,
         'convolve': gpu_wrap.convolve,
+        'convolve_fft': gpu_wrap.convolve_fft,
         'seq': lambda stop: pycuda.gpuarray.arange(stop, dtype=np.int32),
         'arange': gpu_wrap.arange,
         'zeros': lambda *args, **kwargs: pycuda.gpuarray.zeros(*args,

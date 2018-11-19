@@ -32,7 +32,7 @@ class WakeKick(Printing):
 
     def __init__(self, wake_function, slicer, n_turns_wake,
                  const_wake_times=False, wake_to_be_stored=None,
-                 *args, **kwargs):
+                 fft_conv=False, *args, **kwargs):
         """Universal constructor for WakeKick objects. The slicer_mode
         is passed only to decide about which of the two implementations
         of the convolution the self._convolution method is bound to.
@@ -51,6 +51,8 @@ class WakeKick(Printing):
                                  wake function evaluated at slicer bin
                                  timings. To be used in conjunction with
                                  with const_wake_times.
+            - fft_conv: whether to use frequency domain convolution
+                        (if True, only used with a UniformBinSlicer)
         """
         self.wake_function = wake_function
         self._stored_wake = None
@@ -58,7 +60,10 @@ class WakeKick(Printing):
 
         if (slicer.mode == 'uniform_bin' and
                 (n_turns_wake == 1 or slicer.z_cuts)):
-            self._convolution = self._convolution_numpy
+            if fft_conv:
+                self._convolution = self._convolution_fft
+            else:
+                self._convolution = self._convolution_direct
         else:
             self._convolution = self._convolution_dot_product
             if n_turns_wake > 1:
@@ -110,8 +115,8 @@ class WakeKick(Printing):
 
         return np.dot(source_moments, wake)
 
-    def _convolution_numpy(self, target_times, source_times,
-                           source_moments, source_beta):
+    def _convolution_direct(self, target_times, source_times,
+                            source_moments, source_beta):
         """Implementation of the convolution of wake and source_moments
         (longitudinal beam profile) using the numpy built-in
         numpy.convolve method. Recommended use with the 'uniform_bin'
@@ -120,7 +125,6 @@ class WakeKick(Printing):
         higher performance. Question: how about interpolation to avoid
         expensive dot product in most cases?
         """
-
         if self._stored_wake is None:
             diff_times_end = target_times - source_times[-1]
             diff_times_beg = pm.pop(target_times - source_times[0], 0)
@@ -133,6 +137,25 @@ class WakeKick(Printing):
         else:
             wake = self._stored_wake
         return pm.convolve(source_moments, self._stored_wake)
+
+    def _convolution_fft(self, target_times, source_times,
+                            source_moments, source_beta):
+        """Implementation of the convolution of wake and source_moments
+        (longitudinal beam profile) via the frequency domain, using
+        convolution := IFFT(FFT(source_moments) * FFT(wake)) .
+        """
+        if self._stored_wake is None:
+            diff_times_end = target_times - source_times[-1]
+            diff_times_beg = pm.pop(target_times - source_times[0], 0)
+            dt_to_target_slice = pm.concatenate((diff_times_end, diff_times_beg))
+
+            wake = self.wake_function(dt_to_target_slice, beta=source_beta)
+
+            if self.const_wake_times:
+                self._stored_wake = wake
+        else:
+            wake = self._stored_wake
+        return pm.convolve_fft(source_moments, wake)
 
     def _accumulate_source_signal(self, bunch, times_list, ages_list,
                                   moments_list, betas_list):

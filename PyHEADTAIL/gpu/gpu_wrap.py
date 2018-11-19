@@ -19,7 +19,7 @@ try:
     import pycuda.driver as drv
     import thrust_interface
     import pycuda.elementwise
-
+    from scipy import fftpack
     import scikits.cuda.fft
 
     # if pycuda is there, try to compile things. If no context available,
@@ -968,8 +968,9 @@ def _centered(arr, newshape):
 
 
 _convolve_cache = OrderedDict()
+_plan_cache = OrderedDict()
 _convolve_cache_maxsize = 16
-def convolve_fft(a, v, mode='full', caching=False):
+def convolve_fft(a, v, mode='full', caching=True):
     '''
     Compute the convolution of the two arrays a,v on the GPU
 
@@ -991,15 +992,15 @@ def convolve_fft(a, v, mode='full', caching=False):
     sv = np.array(v.shape)
 
     shape = sa + sv - 1
-    #print "shape: ", shape
 
     # Check that input sizes are compatible with 'valid' mode
     if _inputs_swap_needed(mode, sa, sv):
         # Convolution is commutative; order doesn't have any effect on output
         a, sa, v, sv = v, sv, a, sa
 
-
+    fshape = [fftpack.helper.next_fast_len(int(d)) for d in shape]
     global _convolve_cache
+    global _plan_cache
     do_ffta = False
     do_fftv = False
     if caching == True:
@@ -1009,69 +1010,40 @@ def convolve_fft(a, v, mode='full', caching=False):
         if id(v) not in ids:
             do_fftv = True
 
-    #print id(a), id(v)
-    #print a, a.shape
+    if id(v) not in ids:
+        plan_v = scikits.cuda.fft.Plan(shape=fshape, in_dtype=np.complex64, out_dtype=np.complex64)
+        _plan_cache[id(v)] = plan_v
+    else:
+        plan_v = _plan_cache[id(v)]
+
+    fv = pycuda.gpuarray.empty(shape, np.complex64)
+    scikits.cuda.fft.fft(v,fv,plan_v,scale=False)
 
     # If caching try to recover both arguments from the cache, otherwise do the fft
-    if do_ffta or not caching:
-
-        apad = np.pad(a,[[0,x] for x in shape-sa],'constant')
-        try:
-            a2 = (pycuda.gpuarray.to_gpu(apad)).astype(np.complex64)
-        except:
-            print "GPUarray error"
-            pass
-    #    print apad
-
-        plan_a = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
-        fa = pycuda.gpuarray.empty(shape, np.complex64)
-        scikits.cuda.fft.fft(a2,fa,plan_a,scale=False)
-
-        if caching:
-            _convolve_cache[id(a)] = fa
-            #print "a saved in cache"
+    ids = _plan_cache.keys()
+    if id(a) not in ids:
+            plan_a = scikits.cuda.fft.Plan(shape=fshape, in_dtype=np.complex64, out_dtype=np.complex64)
+            _plan_cache[id(a)] = plan_a
     else:
-        #print "a recovered from cache"
-        fa = _convolve_cache[id(a)]
+            plan_a = _plan_cache[id(a)]
 
-
-    if do_fftv or not caching:
-
-        vpad = np.pad(v,[[0,x] for x in shape-sv],'constant')
-        try:
-            v2 = (pycuda.gpuarray.to_gpu(vpad)).astype(np.complex64)
-        except:
-            print "GPUarray error"
-            pass
-
-        plan_v = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
-        fv = pycuda.gpuarray.empty(shape, np.complex64)
-        scikits.cuda.fft.fft(v2,fv,plan_v,scale=False)
-        # print "fv ",fv
-
-
-        if caching:
-            _convolve_cache[id(v)] = fv
-            #print "v saved in cache"
-    else:
-        #print "v recovered from cache"
-        fv = _convolve_cache[id(v)]
-
-
-
-    #print "fa ", fa
+    fa = pycuda.gpuarray.empty(shape, np.complex64)
+    scikits.cuda.fft.fft(a,fa,plan_a,scale=False)
 
     # Multiply and do the ifft
-    faxfv = fa*fv
+    faxfv = pycuda.gpuarray.dot(fa, fv)
 
-    #print "faxfv2",faxfv
 
+    if id(faxfv) not in ids:
+            plan_ifft = scikits.cuda.fft.Plan(shape=fshape, in_dtype=np.complex64, out_dtype=np.complex64)
+            _plan_cache[id(faxfv)] = plan_ifft
+    else:
+            plan_ifft = _plan_cache[id(faxfv)]
+    c = pycuda.gpuarray.empty(shape, np.complex64)
+    scikits.cuda.fft.ifft(faxfv,c,plan_ifft,scale=True)
     plan_ifft = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
     c = pycuda.gpuarray.empty(shape, np.complex64)
     scikits.cuda.fft.ifft(faxfv,c,plan_ifft,scale=True)
-
-    #print "c ", c.real
-    #c = c.real
 
     # Clear cache if too big
     if len(_convolve_cache) > _convolve_cache_maxsize:
@@ -1085,4 +1057,4 @@ def convolve_fft(a, v, mode='full', caching=False):
         return _centered(c, sa - sv + 1).real
     else:
         raise ValueError("Acceptable mode flags are 'valid',"
-                         " 'same', or 'full'.")
+                    " 'same', or 'full'.")
