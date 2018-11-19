@@ -780,7 +780,7 @@ def concatenate(tup, out=None, stream=None):
         out = pycuda.gpuarray.empty((a.size + b.size), dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
     concat(np.int32(a.size), np.int32(b.size), a.gpudata, b.gpudata, out.gpudata, block=block, grid=grid, stream=stream)
     return out
-  
+
 def convolve(a, b, out=None, stream=None):
     block = (256, 1, 1)
     grid = (1, 1, 1)
@@ -898,6 +898,33 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
     return out
 
 
+def init_bunch_buffer(bunch, bunch_stats, buffer_size):
+    '''Call bunch.[stats], match the buffer type with the returned type'''
+    buf = {}
+    for stats in bunch_stats:
+        try:
+            res = getattr(bunch, stats)()
+        except TypeError:
+            res = getattr(bunch, stats)
+        if isinstance(res, pycuda.gpuarray.GPUArray):
+            buf[stats] = pycuda.gpuarray.zeros(buffer_size,
+                dtype=res.dtype, allocator=gpu_utils.memory_pool.allocate)
+        else: # is already on CPU, e.g. macroparticlenumber
+            buf[stats] = np.zeros(buffer_size, dtype=type(res))
+    return buf
+
+def init_slice_buffer(slice_set, slice_stats, buffer_size):
+    '''Call sliceset.['stats'], match the buffer type with the returned type'''
+    n_slices = slice_set.n_slices
+    buf = {}
+    for stats in slice_stats:
+        res = getattr(slice_set, stats)
+        if isinstance(res, pycuda.gpuarray.GPUArray):
+            buf[stats] = pycuda.gpuarray.zeros(shape=(n_slices, buffer_size),
+                dtype=res.dtype, allocator=gpu_utils.memory_pool.allocate)
+        else: #already on CPU
+            buf[stats] = np.zeros((n_slices, buffer_size), dtype=type(res))
+    return buf
 
 
 ## Copied from scipy.signal, as a private function it cannot be imported
@@ -945,7 +972,7 @@ _convolve_cache_maxsize = 16
 def convolve_fft(a, v, mode='full', caching=False):
     '''
     Compute the convolution of the two arrays a,v on the GPU
-    
+
     Adapted from scipy.signal.fftconvolve
     '''
 
@@ -965,7 +992,7 @@ def convolve_fft(a, v, mode='full', caching=False):
 
     shape = sa + sv - 1
     #print "shape: ", shape
-    
+
     # Check that input sizes are compatible with 'valid' mode
     if _inputs_swap_needed(mode, sa, sv):
         # Convolution is commutative; order doesn't have any effect on output
@@ -984,22 +1011,22 @@ def convolve_fft(a, v, mode='full', caching=False):
 
     #print id(a), id(v)
     #print a, a.shape
-    
+
     # If caching try to recover both arguments from the cache, otherwise do the fft
     if do_ffta or not caching:
-        
+
         apad = np.pad(a,[[0,x] for x in shape-sa],'constant')
         try:
             a2 = (pycuda.gpuarray.to_gpu(apad)).astype(np.complex64)
         except:
             print "GPUarray error"
             pass
-    #    print apad        
-        
+    #    print apad
+
         plan_a = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
         fa = pycuda.gpuarray.empty(shape, np.complex64)
         scikits.cuda.fft.fft(a2,fa,plan_a,scale=False)
-        
+
         if caching:
             _convolve_cache[id(a)] = fa
             #print "a saved in cache"
@@ -1009,20 +1036,20 @@ def convolve_fft(a, v, mode='full', caching=False):
 
 
     if do_fftv or not caching:
-        
+
         vpad = np.pad(v,[[0,x] for x in shape-sv],'constant')
         try:
             v2 = (pycuda.gpuarray.to_gpu(vpad)).astype(np.complex64)
         except:
             print "GPUarray error"
             pass
-        
+
         plan_v = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
         fv = pycuda.gpuarray.empty(shape, np.complex64)
         scikits.cuda.fft.fft(v2,fv,plan_v,scale=False)
         # print "fv ",fv
-        
-        
+
+
         if caching:
             _convolve_cache[id(v)] = fv
             #print "v saved in cache"
@@ -1030,26 +1057,26 @@ def convolve_fft(a, v, mode='full', caching=False):
         #print "v recovered from cache"
         fv = _convolve_cache[id(v)]
 
-    
-    
+
+
     #print "fa ", fa
-    
+
     # Multiply and do the ifft
     faxfv = fa*fv
-    
+
     #print "faxfv2",faxfv
-    
+
     plan_ifft = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
     c = pycuda.gpuarray.empty(shape, np.complex64)
     scikits.cuda.fft.ifft(faxfv,c,plan_ifft,scale=True)
 
     #print "c ", c.real
     #c = c.real
-    
+
     # Clear cache if too big
     if len(_convolve_cache) > _convolve_cache_maxsize:
         _convolve_cache.clear()
-    
+
     if mode == "full":
         return c.real
     elif mode == "same":
@@ -1059,33 +1086,3 @@ def convolve_fft(a, v, mode='full', caching=False):
     else:
         raise ValueError("Acceptable mode flags are 'valid',"
                          " 'same', or 'full'.")
-
-
-
-def init_bunch_buffer(bunch, bunch_stats, buffer_size):
-    '''Call bunch.[stats], match the buffer type with the returned type'''
-    buf = {}
-    for stats in bunch_stats:
-        try:
-            res = getattr(bunch, stats)()
-        except TypeError:
-            res = getattr(bunch, stats)
-        if isinstance(res, pycuda.gpuarray.GPUArray):
-            buf[stats] = pycuda.gpuarray.zeros(buffer_size,
-                dtype=res.dtype, allocator=gpu_utils.memory_pool.allocate)
-        else: # is already on CPU, e.g. macroparticlenumber
-            buf[stats] = np.zeros(buffer_size, dtype=type(res))
-    return buf
-
-def init_slice_buffer(slice_set, slice_stats, buffer_size):
-    '''Call sliceset.['stats'], match the buffer type with the returned type'''
-    n_slices = slice_set.n_slices
-    buf = {}
-    for stats in slice_stats:
-        res = getattr(slice_set, stats)
-        if isinstance(res, pycuda.gpuarray.GPUArray):
-            buf[stats] = pycuda.gpuarray.zeros(shape=(n_slices, buffer_size),
-                dtype=res.dtype, allocator=gpu_utils.memory_pool.allocate)
-        else: #already on CPU
-            buf[stats] = np.zeros((n_slices, buffer_size), dtype=type(res))
-    return buf
