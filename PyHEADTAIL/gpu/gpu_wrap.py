@@ -194,9 +194,13 @@ if has_pycuda:
         part of z.
         '''
         if out_real is None:
-            out_real = pycuda.gpuarray.empty_like(in_real)
+            out_real = pycuda.gpuarray.empty(
+                shape=in_real.shape, dtype=in_real.dtype,
+                allocator=gpu_utils.memory_pool.allocate)
         if out_imag is None:
-            out_imag = pycuda.gpuarray.empty_like(in_imag)
+            out_imag = pycuda.gpuarray.empty(
+                shape=in_imag.shape, dtype=in_imag.dtype,
+                allocator=gpu_utils.memory_pool.allocate)
         _wofz(in_real, in_imag, out_real, out_imag, stream=stream)
         return out_real, out_imag
 
@@ -207,7 +211,9 @@ if has_pycuda:
     )
     def sign(array, out=None, stream=None):
         if out is None:
-            out = pycuda.gpuarray.empty_like(array)
+            out = pycuda.gpuarray.empty(
+                shape=array.shape, dtype=array.dtype,
+                allocator=gpu_utils.memory_pool.allocate)
         _sign(array, out, stream=stream)
         return out
 
