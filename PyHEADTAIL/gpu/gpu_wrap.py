@@ -11,13 +11,17 @@ import os
 import gpu_utils
 import math
 from functools import wraps
+from collections import OrderedDict
 try:
     import skcuda.misc
     import pycuda.gpuarray
     import pycuda.compiler
+    import pycuda.curandom
     import pycuda.driver as drv
     import thrust_interface
     import pycuda.elementwise
+
+    import scikits.cuda.fft
 
     # if pycuda is there, try to compile things. If no context available,
     # throw error to tell the user that he should import pycuda.autoinit
@@ -851,21 +855,169 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
     return out
 
 
-def convolve(a, v, mode='full'):
+
+
+## Copied from scipy.signal, as a private function it cannot be imported
+def _inputs_swap_needed(mode, shape1, shape2):
+    """
+    If in 'valid' mode, returns whether or not the input arrays need to be
+    swapped depending on whether `shape1` is at least as large as `shape2` in
+    every dimension.
+    This is important for some of the correlation and convolution
+    implementations in this module, where the larger array input needs to come
+    before the smaller array input when operating in this mode.
+    Note that if the mode provided is not 'valid', False is immediately
+    returned.
+    """
+    if mode == 'valid':
+        ok1, ok2 = True, True
+
+        for d1, d2 in zip(shape1, shape2):
+            if not d1 >= d2:
+                ok1 = False
+            if not d2 >= d1:
+                ok2 = False
+
+        if not (ok1 or ok2):
+            raise ValueError("For 'valid' mode, one must be at least "
+                             "as large as the other in every dimension")
+
+        return not ok1
+
+    return False
+
+## Copied from scipy.signal, as a private function it cannot be imported
+def _centered(arr, newshape):
+    # Return the center newshape portion of the array.
+    newshape = np.asarray(newshape)
+    currshape = np.array(arr.shape)
+    startind = (currshape - newshape) // 2
+    endind = startind + newshape
+    myslice = [slice(startind[k], endind[k]) for k in range(len(endind))]
+    return arr[tuple(myslice)]
+
+
+_convolve_cache = OrderedDict()
+_convolve_cache_maxsize = 16
+def convolve(a, v, mode='full', caching=False):
     '''
-    Compute the convolution of the two arrays a,v. See np.convolve
+    Compute the convolution of the two arrays a,v on the GPU
+    
+    Adapted from scipy.signal.fftconvolve
     '''
-    #HACK: use np.convolve for now, make sure both arguments are np.arrays!
-    try:
-        a = a.get()
-    except:
-        pass
-    try:
-        v = v.get()
-    except:
-        pass
-    c = np.convolve(a, v, mode)
-    return pycuda.gpuarray.to_gpu(c)
+
+
+    # Special cases
+    if a.ndim == v.ndim == 0:  # scalar inputs
+        c = pycuda.gpuarray.empty((1,), np.complex64)
+        c[0] = a * v
+        return c
+    elif not a.ndim == v.ndim:
+        raise ValueError("a and v should have the same dimensionality")
+    elif a.size == 0 or v.size == 0:  # empty arrays
+        return pycuda.gpuarray.empty((0,), np.complex64)
+
+    sa = np.array(a.shape)
+    sv = np.array(v.shape)
+
+    shape = sa + sv - 1
+    #print "shape: ", shape
+    
+    # Check that input sizes are compatible with 'valid' mode
+    if _inputs_swap_needed(mode, sa, sv):
+        # Convolution is commutative; order doesn't have any effect on output
+        a, sa, v, sv = v, sv, a, sa
+
+
+    global _convolve_cache
+    do_ffta = False
+    do_fftv = False
+    if caching == True:
+        ids = _convolve_cache.keys()
+        if id(a) not in ids:
+            do_ffta = True
+        if id(v) not in ids:
+            do_fftv = True
+
+    #print id(a), id(v)
+    #print a, a.shape
+    
+    # If caching try to recover both arguments from the cache, otherwise do the fft
+    if do_ffta or not caching:
+        
+        apad = np.pad(a,[[0,x] for x in shape-sa],'constant')
+        try:
+            a2 = (pycuda.gpuarray.to_gpu(apad)).astype(np.complex64)
+        except:
+            print "GPUarray error"
+            pass
+    #    print apad        
+        
+        plan_a = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
+        fa = pycuda.gpuarray.empty(shape, np.complex64)
+        scikits.cuda.fft.fft(a2,fa,plan_a,scale=False)
+        
+        if caching:
+            _convolve_cache[id(a)] = fa
+            #print "a saved in cache"
+    else:
+        #print "a recovered from cache"
+        fa = _convolve_cache[id(a)]
+
+
+    if do_fftv or not caching:
+        
+        vpad = np.pad(v,[[0,x] for x in shape-sv],'constant')
+        try:
+            v2 = (pycuda.gpuarray.to_gpu(vpad)).astype(np.complex64)
+        except:
+            print "GPUarray error"
+            pass
+        
+        plan_v = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
+        fv = pycuda.gpuarray.empty(shape, np.complex64)
+        scikits.cuda.fft.fft(v2,fv,plan_v,scale=False)
+        # print "fv ",fv
+        
+        
+        if caching:
+            _convolve_cache[id(v)] = fv
+            #print "v saved in cache"
+    else:
+        #print "v recovered from cache"
+        fv = _convolve_cache[id(v)]
+
+    
+    
+    #print "fa ", fa
+    
+    # Multiply and do the ifft
+    faxfv = fa*fv
+    
+    #print "faxfv2",faxfv
+    
+    plan_ifft = scikits.cuda.fft.Plan(shape=shape, in_dtype=np.complex64, out_dtype=np.complex64)
+    c = pycuda.gpuarray.empty(shape, np.complex64)
+    scikits.cuda.fft.ifft(faxfv,c,plan_ifft,scale=True)
+
+    #print "c ", c.real
+    #c = c.real
+    
+    # Clear cache if too big
+    if len(_convolve_cache) > _convolve_cache_maxsize:
+        _convolve_cache.clear()
+    
+    if mode == "full":
+        return c.real
+    elif mode == "same":
+        return _centered(c, sa).real
+    elif mode == "valid":
+        return _centered(c, sa - sv + 1).real
+    else:
+        raise ValueError("Acceptable mode flags are 'valid',"
+                         " 'same', or 'full'.")
+
+
 
 def init_bunch_buffer(bunch, bunch_stats, buffer_size):
     '''Call bunch.[stats], match the buffer type with the returned type'''
