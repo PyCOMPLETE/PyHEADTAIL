@@ -36,7 +36,9 @@ import PyHEADTAIL.trackers.longitudinal_tracking as lt
 from PyHEADTAIL.trackers.detuners import AmplitudeDetuning, Chromaticity
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import WakeField, WakeTable
-from PyHEADTAIL.impedances.wakes import CircularResonator, ParallelPlatesResonator
+from PyHEADTAIL.impedances.wakes import CircularResonator
+from PyHEADTAIL.impedances.wakes import (
+    ParallelHorizontalPlatesResonator as ParallelPlatesResonator)
 from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.feedback.widebandfeedback import Pickup, Kicker
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
