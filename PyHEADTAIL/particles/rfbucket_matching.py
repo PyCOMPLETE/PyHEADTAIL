@@ -110,7 +110,7 @@ class RFBucketMatcher(Printing):
         emittance = self._compute_emittance(self.rfbucket, self.psi)
         self.prints('--> Emittance: ' + str(emittance))
         sigma = self._compute_sigma(self.rfbucket, self.psi)
-        self.prints('--> Bunch length:' + str(sigma))
+        self.prints('--> Bunch length: ' + str(sigma))
 
     def psi_for_bunchlength_newton_method(self, sigma):
         # Maximum bunch length
