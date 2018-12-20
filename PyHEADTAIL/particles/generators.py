@@ -165,21 +165,29 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
 
 
 def cut_distribution(distribution, is_accepted):
-    """ Generate coordinates according to some distribution inside the region
-    specified by is_accepted. (Wrapper for distributions, based on RF_cut..)
+    """Generate coordinates according to some distribution inside the
+    region specified by where the function is_accepted returns 1.
+    (Wrapper for distributions, based on RF_cut..)
     Args:
-        is_accepted: function taking two parameters (z,dp) and returns an
-                     array [0,1] specifying whether the coordinate lies
-                     inside the desired phase space volume. Possible sources
-                     are the rfbucket.make_is_accepted(...)
-        sigma_z: std of the normally distributed z coordinates
-        sigma_dp: std of the normally distributed dp coordinates
+        distribution: a function which takes the n_particles as a
+                      parameter and returns a list-like object
+                      containing a 2D phase space. result[0] should
+                      stand for the spatial, result[1] for the momentum
+                      coordinate
+        is_accepted: function taking two parameters (z, dp)
+                     [vectorised as arrays] and returning a boolean
+                     specifying whether the coordinate lies
+                     inside the desired phase space volume. A possible
+                     source to provide such an is_accepted function
+                     is the RFBucket.make_is_accepted
     Returns:
         A matcher with the specified bucket properties (closure)
     """
     def _cut_distribution(n_particles):
-        '''Removes all particles for which is_accepted(x,x') is false
-        and redistributes them until all lie inside the bucket
+        '''Regenerates all particles which fall outside a previously
+        specified phase space region (via the function is_accepted
+        in generators.cut_distribution) until all generated particles
+        have valid coordinates and momenta.
         '''
         z = np.zeros(n_particles)
         dp = np.zeros(n_particles)
