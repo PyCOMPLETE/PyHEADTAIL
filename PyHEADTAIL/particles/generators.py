@@ -179,7 +179,8 @@ def cut_distribution(distribution, is_accepted):
                      specifying whether the coordinate lies
                      inside the desired phase space volume. A possible
                      source to provide such an is_accepted function
-                     is the RFBucket.make_is_accepted
+                     is the RFBucket.make_is_accepted or
+                     generators.make_is_accepted_within_n_sigma .
     Returns:
         A matcher with the specified bucket properties (closure)
     """
@@ -203,6 +204,32 @@ def cut_distribution(distribution, is_accepted):
             mask_out = ~is_accepted(z, dp)
         return [z, dp]
     return _cut_distribution
+
+def make_is_accepted_within_n_sigma(epsn_rms, limit_n_rms, twiss_beta=1):
+    '''Closure creating an is_accepted function (e.g. for
+    cut_distribution). The is_accepted function will return whether
+    the canonical coordinate and momentum pair lies within the phase
+    space region limited by the action value limit_n_rms * epsn_rms.
+
+    Coordinate u and momentum up are assumed to be connected to the
+    action J via the twiss_beta value,
+    J = sqrt(u^2 + twiss_beta^2 up^2) .
+    The action is required to be below the limit value to be accepted,
+    J < limit_n_rms * epsn_rms.
+    The usual use case will be generating u and up in normalised Floquet
+    space (i.e. before the normalised phase space coordinates
+    get matched to the optics or longitudinal eta and Qs).
+    In this case, twiss_beta takes the default value 1 in normalised
+    Floquet space. Correspondingly, the 1 sigma RMS reference value
+    epsn_rms corresponds to the normalised 1 sigma RMS emittance
+    (i.e. amounting to beam.epsn_x() and beam.epsn_y() in the transverse
+    plane, and beam.epsn_z()/4 in the longitudinal plane).
+    '''
+    threshold_action_squared = (limit_n_rms * epsn_rms)**2
+    def is_accepted(u, up):
+        Jsq = u**2 + (twiss_beta * up)**2
+        return Jsq < threshold_action_squared
+    return is_accepted
 
 
 class ParticleGenerator(Printing):
