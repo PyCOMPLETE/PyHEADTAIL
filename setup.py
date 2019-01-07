@@ -54,7 +54,7 @@ with open('README.rst', 'rb') as f:
 
 # Set up extension and build
 cy_ext_options = {
-    "compiler_directives": {"profile": True, # SLOW!!!
+    "compiler_directives": {"profile": False, # SLOW!!!
                             "embedsignature": True},
     "annotate": True,
 }
