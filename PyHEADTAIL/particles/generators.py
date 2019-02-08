@@ -212,23 +212,23 @@ def make_is_accepted_within_n_sigma(epsn_rms, limit_n_rms, twiss_beta=1):
     space region limited by the action value limit_n_rms * epsn_rms.
 
     Coordinate u and momentum up are assumed to be connected to the
-    action J via the twiss_beta value,
+    amplitude J via the twiss_beta value,
     J = sqrt(u^2 + twiss_beta^2 up^2) .
-    The action is required to be below the limit value to be accepted,
+    The amplitude is required to be below the limit to be accepted,
     J < limit_n_rms * epsn_rms.
     The usual use case will be generating u and up in normalised Floquet
     space (i.e. before the normalised phase space coordinates
     get matched to the optics or longitudinal eta and Qs).
     In this case, twiss_beta takes the default value 1 in normalised
-    Floquet space. Correspondingly, the 1 sigma RMS reference value
+    Floquet space. Consequently, the 1 sigma RMS reference value
     epsn_rms corresponds to the normalised 1 sigma RMS emittance
     (i.e. amounting to beam.epsn_x() and beam.epsn_y() in the transverse
     plane, and beam.epsn_z()/4 in the longitudinal plane).
     '''
-    threshold_action_squared = (limit_n_rms * epsn_rms)**2
+    threshold_amplitude_squared = (limit_n_rms * epsn_rms)**2
     def is_accepted(u, up):
         Jsq = u**2 + (twiss_beta * up)**2
-        return Jsq < threshold_action_squared
+        return Jsq < threshold_amplitude_squared
     return is_accepted
 
 
