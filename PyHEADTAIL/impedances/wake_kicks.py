@@ -105,7 +105,7 @@ class WakeKick(Printing):
         try:
             source_times = source_times.get()
         except AttributeError:
-            pass #is already on GPU
+            pass #is already on CPU
         dt_to_target_slice = np.concatenate(
             (target_times - source_times[-1],
             (target_times - source_times[0])[1:]))
