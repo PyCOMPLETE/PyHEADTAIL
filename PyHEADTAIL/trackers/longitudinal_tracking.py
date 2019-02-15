@@ -682,7 +682,8 @@ class LinearMap(LongitudinalOneTurnMap):
     \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
-    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0,*args, **kwargs):
+    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0,
+                 *args, **kwargs):
         '''Q_s is the synchrotron tune.
         D_x, D_y are the dispersions in horizontal and vertical direction.
 
@@ -759,3 +760,35 @@ class LinearMap(LongitudinalOneTurnMap):
 
         beam.z = z0 * cosdQ_s - longfac * dp0 * sindQ_s
         beam.dp = dp0 * cosdQ_s + z0 / longfac * sindQ_s
+
+class RFBox(Drift):
+    '''Represents longitudinal square well potential.
+
+    Particles drift freely along z within the interval (z_left, z_right)
+    according to their momentum. When they hit the box boundary they are
+    reflected with their momentum inverted.
+
+    NB: dispersion subtraction not implemented yet!
+    '''
+    def __init__(self, z_left, z_right, alpha_array, length, shrinkage_p_increment=0):
+        self.z_left = z_left
+        self.z_right = z_right
+        super(RFBox, self).__init__(alpha_array, length, shrinkage_p_increment)
+
+    def track(self, beam):
+        super(RFBox, self).track(beam)
+        self.reflect(beam)
+
+    def reflect(self, beam):
+        while pm.any((beam.z < self.z_left) + (beam.z > self.z_right)):
+            left_distance = beam.z - self.z_left
+            # reflect
+            beam.z[:] = self.z_left + pm.abs(left_distance)
+            # invert momentum
+            beam.dp += -2 * beam.dp * (left_distance < 0)
+
+            right_distance = beam.z - self.z_right
+            # reflect
+            beam.z[:] = self.z_right - pm.abs(right_distance)
+            # invert momentum
+            beam.dp += -2 * beam.dp * (right_distance > 0)
