@@ -70,8 +70,8 @@ class WakeField(Element):
         """
         self.slicer = slicer
         wake_sources_list = np.atleast_1d(wake_sources_list)
-        self.wake_kicks = [source.get_wake_kicks(self.slicer)
-                           for source in wake_sources_list][0]
+        self.wake_kicks = reduce(lambda x,y: x+y, [source.get_wake_kicks(self.slicer)
+                           for source in wake_sources_list])
 
         # Prepare the slice sets register ([turns, bunches])
         n_turns_wake_max = max([source.n_turns_wake
