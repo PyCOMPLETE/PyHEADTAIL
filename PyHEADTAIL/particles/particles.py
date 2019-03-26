@@ -16,9 +16,8 @@ std = cp.std
 
 
 class Particles(Printing):
-    '''Contains the basic properties of a particle ensemble with
-    their coordinate and conjugate momentum arrays, energy and the like.
-    Designed to describe beams, electron clouds, ... '''
+    '''Contains the basic properties of a particle ensemble with their generalized
+    coordinate and canonically conjugate momentum arrays, energy and the like.
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp,
                  charge, mass, circumference, gamma, coords_n_momenta_dict={},
@@ -31,11 +30,17 @@ class Particles(Printing):
         self.macroparticlenumber = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
 
-        self.charge = charge
         self.mass = mass
-
-        self.circumference = circumference
         self.gamma = gamma
+        self.charge = charge
+
+        '''TODO: Make intensity the explicit variable, also as argument in the
+        constructor, and have particlenumber_per_macroparticle as implicit
+        variable used to compute the intensity also during losses.
+
+        '''
+        self.circumference = circumference
+        # self.charge_per_mp = particlenumber_per_mp * charge
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded
@@ -51,12 +56,39 @@ class Particles(Printing):
         '''
         self.coords_n_momenta = set()
 
-        '''ID of particles in order to keep track of single entries
-        in the coordinate and momentum arrays.
+        '''ID of particles in order to keep track of single entries in the coordinate
+        and momentum arrays.
+
+        In the same manner we have here the bunch id to identify bunches as
+        they have been initialized. This is used by the split function and
+        considerably speed up bunching as opposed to using a slicer. It is used
+        by the multi-bunch wake fields where beams are split up into bunches
+        making the wake computation across the full beam numerically efficient
+        and feasible.
+
         '''
         self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
+        
+        '''The bucket_id refers into the harmonic number of bunches, i.e
+            bunch_location = -bucket_id * circumference / h_bunch
+            bunch_spacing = circumference / h_bunch / c [s]
+            h_bunch = circumference / bunch_spacing / c
+                    = h_RF / every_n_cycle_filled
+        '''
+        self.bucket_id = np.ones(
+            self.macroparticlenumber, dtype=np.int32) * bucket_id
+
+        # '''Enables to specify a reference z position for every bunch - this is used
+        # e.g. by the linear RF bucket to specify around which point in z to
+        # rotate. To date not used otherwise and set to zero by default.
+        #
+        # '''
+        # self.z_reference_position = z_reference_position
 
         self.update(coords_n_momenta_dict)
+#        if hasattr(self, '_z'):
+#            self._z += -self.mean_z()
+#        self._bunch_views = None
 
 
     @property
