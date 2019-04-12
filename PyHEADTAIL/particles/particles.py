@@ -17,7 +17,7 @@ std = cp.std
 
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with their generalized
-    coordinate and canonically conjugate momentum arrays, energy and the like.
+    coordinate and canonically conjugate momentum arrays, energy and the like.'''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp,
                  charge, mass, circumference, gamma, coords_n_momenta_dict={},
@@ -97,13 +97,6 @@ class Particles(Printing):
     @intensity.setter
     def intensity(self, value):
         self.particlenumber_per_mp = value / float(self.macroparticlenumber)
-
-    @property
-    def charge_per_mp(self):
-        return self.particlenumber_per_mp * self.charge
-    @charge_per_mp.setter
-    def charge_per_mp(self, value):
-        self.particlenumber_per_mp = value / self.charge
 
     @property
     def gamma(self):
@@ -198,8 +191,9 @@ class Particles(Printing):
         '''
 
         if include_non_sliced not in ['if_any', 'always', 'never']:
-        	raise ValueError("include_non_sliced=%s is not valid!\n" % include_non_sliced +
-        					 "Possible values are {'always', 'never', 'if_any'}" )
+            raise ValueError("include_non_sliced={:s} is not valid!\n".format(
+                include_non_sliced) +
+                "Possible values are {'always', 'never', 'if_any'}")
 
         slices = self.get_slices(slicer, *args, **kwargs)
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
@@ -218,11 +212,10 @@ class Particles(Printing):
                 slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
 
             slice_object.id[:] = self.id[ix]
-
-            slice_object.slice_info = {\
-                    'z_bin_center': slices.z_centers[i_sl],\
-                    'z_bin_right':slices.z_bins[i_sl+1],\
-                    'z_bin_left':slices.z_bins[i_sl]}
+            slice_object.slice_info = {
+                'z_bin_center': slices.z_centers[i_sl],
+                'z_bin_right': slices.z_bins[i_sl+1],
+                'z_bin_left': slices.z_bins[i_sl]}
 
             slice_object_list.append(slice_object)
 
@@ -275,6 +268,32 @@ class Particles(Printing):
                              " Use self.update(...) for this purpose.")
         self.update(coords_n_momenta_dict)
 
+    def split(self):
+        '''We're starting to comment this function...;): Caution - we assume here all
+        subbunches have the same number of macroparticles
+
+        '''
+        ids = set(self.bucket_id)
+        if len(ids) == 1:
+            return list([self])
+
+        ix = [self.bucket_id == id for id in ids]
+        bunches_list = [Particles(
+            macroparticlenumber=self.macroparticlenumber/len(ids),
+            particlenumber_per_mp=self.particlenumber_per_mp,
+            charge=self.charge, gamma=self.gamma, mass=self.mass,
+            circumference=self.circumference,
+            coords_n_momenta_dict={
+                coord: array[ix[i]] for coord, array in self.get_coords_n_momenta_dict().items()},
+            bucket_id=id) for i, id in enumerate(ids)]
+
+        bunches_list = sorted(bunches_list,
+                              key=lambda x: x.bucket_id[0], reverse=True) # , reverse=False)
+
+        return bunches_list
+    
+    
+
     def sort_for(self, attr):
         '''Sort the named particle attribute (coordinate / momentum)
         array and reorder all particles accordingly.
@@ -297,41 +316,57 @@ class Particles(Printing):
 
     def __add__(self, other):
         '''Merges two beams.
-		'''
-        #print 'Checks still to be added!!!!!!'
+
+        '''
+        # print 'Checks still to be added!!!!!!'
 
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
 
-        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
-                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-
+        result = Particles(
+            macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
+            particlenumber_per_mp=self.particlenumber_per_mp,
+            charge=self.charge, gamma=self.gamma, mass=self.mass,
+            circumference=self.circumference,
+            coords_n_momenta_dict={})
 
         for coord in self_coords_n_momenta_dict.keys():
-            #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
-            result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
+            # setattr(result, coord, np.concatenate(
+            #     (self_coords_n_momenta_dict[coord].copy(),
+            #      other_coords_n_momenta_dict[coord].copy())))
+            result.update({coord: np.concatenate(
+                (self_coords_n_momenta_dict[coord].copy(),
+                 other_coords_n_momenta_dict[coord].copy()))})
 
-        result.id = np.concatenate((self.id.copy(), other.id.copy()))
+        result.id = np.concatenate(
+            (self.id.copy(), other.id.copy()))
+        result.bucket_id = np.concatenate(
+            (self.bucket_id.copy(), other.bucket_id.copy()))
 
         return result
 
     def __radd__(self, other):
-        if other==0:
+
+        if other == 0:
             self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
-            result = Particles(macroparticlenumber=self.macroparticlenumber,
-                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-                    mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+            result = Particles(
+                macroparticlenumber=self.macroparticlenumber,
+                particlenumber_per_mp=self.particlenumber_per_mp,
+                charge=self.charge, mass=self.mass, gamma=self.gamma,
+                circumference=self.circumference,
+                coords_n_momenta_dict={})
 
             for coord in self_coords_n_momenta_dict.keys():
-                #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
+                # setattr(result, coord, np.concatenate(
+                #     (self_coords_n_momenta_dict[coord].copy(),
+                #      other_coords_n_momenta_dict[coord].copy())))
                 result.update({coord: self_coords_n_momenta_dict[coord].copy()})
             result.id = self.id.copy()
+            result.bucket_id = self.bucket_id.copy()
         else:
             result = self.__add__(other)
 
         return result
-
 
     # Statistics methods
     # kwargs are for passing stream=... in the gpu case

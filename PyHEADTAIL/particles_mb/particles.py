@@ -17,7 +17,7 @@ std = cp.std
 
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with their generalized
-    coordinate and canonically conjugate momentum arrays, energy and the like.
+    coordinate and canonically conjugate momentum arrays, energy and the like.'''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp,
                  charge, mass, circumference, gamma, coords_n_momenta_dict={},
@@ -90,47 +90,6 @@ class Particles(Printing):
 #            self._z += -self.mean_z()
 #        self._bunch_views = None
 
-    @property
-    def x(self):
-        return self._x
-    @x.setter
-    def x(self, value):
-        np.copyto(self._x,value)
-
-    @property
-    def xp(self):
-        return self._xp
-    @xp.setter
-    def xp(self, value):
-        np.copyto(self._xp,value)
-
-    @property
-    def y(self):
-        return self._y
-    @y.setter
-    def y(self, value):
-        np.copyto(self._y,value)
-
-    @property
-    def yp(self):
-        return self._yp
-    @yp.setter
-    def yp(self, value):
-        np.copyto(self._yp,value)
-
-    @property
-    def z(self):
-        return self._z
-    @z.setter
-    def z(self, value):
-        np.copyto(self._z,value)
-
-    @property
-    def dp(self):
-        return self._dp
-    @dp.setter
-    def dp(self, value):
-        np.copyto(self._dp,value)
 
     @property
     def intensity(self):
@@ -177,27 +136,11 @@ class Particles(Printing):
     def z_beamframe(self, value):
         self.z = value / self.gamma
 
-    # @property
-    # def t_delay(self):
-    #     return self.mean_z()/self.beta/c
-    # @t_delay.setter
-    # def t_delay(self, value):
-    #     self.z += -self.mean_z()
-    #     self.z += value * self.beta * c
-
-    # @property
-    # def z_delay(self):
-    #     return self.mean_z()
-    # @z_delay.setter
-    # def z_delay(self, value):
-    #     self.z += -self.mean_z()
-    #     self.z += value
-
     def get_coords_n_momenta_dict(self):
         '''Return a dictionary containing the coordinate and conjugate
         momentum arrays.
         '''
-        return {coord: getattr(self, '_'+coord) for coord in self.coords_n_momenta}
+        return {coord: getattr(self, coord) for coord in self.coords_n_momenta}
 
     def get_slices(self, slicer, *args, **kwargs):
         '''For the given Slicer, the last SliceSet is returned.
@@ -230,10 +173,10 @@ class Particles(Printing):
         #                               kwargs['statistics'])
         return self._slice_sets[slicer]
 
-    def extract_slices(self, slicer, include_non_sliced='if_any',
-                       reference=False, *args, **kwargs):
-        '''Return a list Particles object with the different slices.  The last element
-        of the list contains particles not assigned to any slice.
+
+    def extract_slices(self, slicer, include_non_sliced='if_any', *args, **kwargs):
+        '''Return a list Particles object with the different slices.
+        The last element of the list contains particles not assigned to any slice.
 
         include_non_sliced : {'always', 'never', 'if_any'}, optional
         'always':
@@ -261,16 +204,12 @@ class Particles(Printing):
             ix = slices.particle_indices_of_slice(i_sl)
             macroparticlenumber = len(ix)
 
-            slice_object = Particles(
-                macroparticlenumber=macroparticlenumber,
-                particlenumber_per_mp=self.particlenumber_per_mp,
-                charge=self.charge, mass=self.mass, gamma=self.gamma,
-                circumference=self.circumference, coords_n_momenta_dict={})
-            for coord, array in self_coords_n_momenta_dict.items():
-                if not reference:
-                    slice_object.update({coord: array[ix]})
-                else:
-                    slice_object.reference({coord: array[ix]})
+            slice_object = Particles(macroparticlenumber=macroparticlenumber,
+                particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+
+            for coord in self_coords_n_momenta_dict.keys():
+                slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
 
             slice_object.id[:] = self.id[ix]
             slice_object.slice_info = {
@@ -283,18 +222,12 @@ class Particles(Printing):
         # handle unsliced
         if include_non_sliced is not 'never':
             ix = slices.particles_outside_cuts
-            if len(ix) > 0 or include_non_sliced is 'always':
-                slice_object = Particles(
-                    macroparticlenumber=len(ix),
-                    particlenumber_per_mp=self.particlenumber_per_mp,
-                    charge=self.charge, mass=self.mass, gamma=self.gamma,
-                    circumference=self.circumference, coords_n_momenta_dict={})
-                for coord, array in self_coords_n_momenta_dict.items():
-                    if not reference:
-                        slice_object.update({coord: array[ix]})
-                    else:
-                        slice_object.reference({coord: array[ix]})
-
+            if len(ix)>0 or include_non_sliced is 'always':
+                slice_object = Particles(macroparticlenumber=len(ix),
+                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                    mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+                for coord in self_coords_n_momenta_dict.keys():
+                    slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
                 slice_object.id[:] = self.id[ix]
                 slice_object.slice_info = 'unsliced'
                 slice_object_list.append(slice_object)
@@ -319,22 +252,7 @@ class Particles(Printing):
             raise ValueError("lengths of given phase space coordinate arrays" +
                              " do not coincide with self.macroparticlenumber.")
         for coord, array in coords_n_momenta_dict.items():
-            setattr(self, '_'+ coord, array.copy())
-        self.coords_n_momenta.update(coords_n_momenta_dict.keys())
-
-    def reference(self, coords_n_momenta_dict):
-        '''Assigns the keys of the dictionary coords_n_momenta_dict as attributes to
-        this Particles instance and puts references to the corresponding
-        values. Attention: overwrites existing coordinate / momentum
-        attributes.
-
-        '''
-        if any(len(v) != self.macroparticlenumber for v in
-               coords_n_momenta_dict.values()):
-            raise ValueError("lengths of given phase space coordinate arrays" +
-                             " do not coincide with self.macroparticlenumber.")
-        for coord, array in coords_n_momenta_dict.items():
-            setattr(self, '_'+ coord, array)
+            setattr(self, coord, array.copy())
         self.coords_n_momenta.update(coords_n_momenta_dict.keys())
 
     def add(self, coords_n_momenta_dict):
@@ -417,7 +335,7 @@ class Particles(Printing):
         '''Sort the named particle attribute (coordinate / momentum)
         array and reorder all particles accordingly.
         '''
-        permutation = np.argsort(getattr(self, '_'+ attr))
+        permutation = pm.argsort(getattr(self, attr))
         self.reorder(permutation)
 
     def reorder(self, permutation, except_for_attrs=[]):
@@ -429,8 +347,9 @@ class Particles(Printing):
         for attr in to_be_reordered:
             if attr in except_for_attrs:
                 continue
-            reordered = getattr(self, '_'+ attr)[permutation]
-            setattr(self, '_'+ attr, reordered)
+            reordered = pm.apply_permutation(getattr(self, attr), permutation)
+            setattr(self, attr, reordered)
+        self.clean_slices()
 
     def __add__(self, other):
         '''Merges two beams.
@@ -487,63 +406,75 @@ class Particles(Printing):
         return result
 
     # Statistics methods
+    # kwargs are for passing stream=... in the gpu case
 
-    def mean_x(self):
-        return mean(self.x)
+    def mean_x(self, **kwargs):
+        #return np.float(pm.mean(self.x))
+        return pm.mean(self.x, **kwargs)
 
-    def mean_xp(self):
-        return mean(self.xp)
+    def mean_xp(self, **kwargs):
+        #return np.float(pm.mean(self.xp))
+        return pm.mean(self.xp, **kwargs)
 
-    def mean_y(self):
-        return mean(self.y)
+    def mean_y(self, **kwargs):
+        #return np.float(pm.mean(self.y))
+        return pm.mean(self.y, **kwargs)
 
-    def mean_yp(self):
-        return mean(self.yp)
+    def mean_yp(self, **kwargs):
+        #return np.float(pm.mean(self.yp))
+        return pm.mean(self.yp, **kwargs)
 
-    def mean_z(self):
-        return mean(self.z)
+    def mean_z(self, **kwargs):
+        #return np.float(pm.mean(self.z))
+        return pm.mean(self.z, **kwargs)
 
-    def mean_dp(self):
-        return mean(self.dp)
+    def mean_dp(self, **kwargs):
+        #return np.float(pm.mean(self.dp))
+        return pm.mean(self.dp, **kwargs)
 
-    def sigma_x(self):
-        return std(self.x)
+    def sigma_x(self, **kwargs):
+        return pm.std(self.x, **kwargs)
 
-    def sigma_y(self):
-        return std(self.y)
+    def sigma_y(self, **kwargs):
+        #return np.float(pm.std(self.y))
+        return pm.std(self.y, **kwargs)
 
-    def sigma_z(self):
-        return std(self.z)
+    def sigma_z(self, **kwargs):
+        #return np.float(pm.std(self.z))
+        return pm.std(self.z, **kwargs)
 
-    def sigma_xp(self):
-        return std(self.xp)
+    def sigma_xp(self, **kwargs):
+        #return np.float(pm.std(self.xp))
+        return pm.std(self.xp, **kwargs)
 
-    def sigma_yp(self):
-        return std(self.yp)
+    def sigma_yp(self, **kwargs):
+        #return np.float(pm.std(self.yp))
+        return pm.std(self.yp, **kwargs)
 
-    def sigma_dp(self):
-        return std(self.dp)
+    def sigma_dp(self, **kwargs):
+        #return np.float(pm.std(self.dp))
+        return pm.std(self.dp, **kwargs)
 
-    def effective_normalized_emittance_x(self):
-        return cp.emittance(self.x, self.xp, None) * self.betagamma
+    def effective_normalized_emittance_x(self, **kwargs):
+        return pm.emittance(self.x, self.xp, None, **kwargs) * self.betagamma
 
-    def effective_normalized_emittance_y(self):
-        return cp.emittance(self.y, self.yp, None) * self.betagamma
+    def effective_normalized_emittance_y(self, **kwargs):
+        return pm.emittance(self.y, self.yp, None, **kwargs) * self.betagamma
 
-    def effective_normalized_emittance_z(self):
-        return(4*np.pi * cp.emittance(self.z, self.dp, None) * self.p0/e)
+    def effective_normalized_emittance_z(self, **kwargs):
+        return(4*np.pi * pm.emittance(self.z, self.dp, None, **kwargs) * self.p0/e)
 
-    def epsn_x(self):
-        return (cp.emittance(self.x, self.xp, getattr(self, 'dp', None))
+    def epsn_x(self, **kwargs):
+        return (pm.emittance(self.x, self.xp, getattr(self, 'dp', None), **kwargs)
                * self.betagamma)
 
-    def epsn_y(self):
-        return (cp.emittance(self.y, self.yp, getattr(self, 'dp', None))
+    def epsn_y(self, **kwargs):
+        return (pm.emittance(self.y, self.yp, getattr(self, 'dp', None), **kwargs)
                * self.betagamma)
 
-    def epsn_z(self):
+    def epsn_z(self, **kwargs):
         # always use the effective emittance
-        return self.effective_normalized_emittance_z()
+        return self.effective_normalized_emittance_z(**kwargs)
 
     def dispersion_x(self):
         return cp.dispersion(self.x, self.dp)
