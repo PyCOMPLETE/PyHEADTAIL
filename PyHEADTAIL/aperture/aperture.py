@@ -19,7 +19,6 @@ from ..general import pmath as pm
 import numpy as np
 
 def make_int32(array):
-    # return np.array(array, dtype=np.int32)
     return array.astype(np.int32)
 
 
@@ -89,8 +88,9 @@ class Aperture(Element):
 
         beam.reorder(perm)
 
-        n_alive = make_int32(pm.sum(alive))
-        return n_alive
+        # on CPU: (even if pm.device == 'GPU', as pm.sum returns np.ndarray)
+        n_alive = pm.sum(alive)
+        return np.int32(n_alive)
 
 
 class RectangularApertureX(Aperture):
