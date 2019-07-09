@@ -6,8 +6,7 @@
 import numpy as np
 from PyHEADTAIL._version import __version__
 
-import re, os, sys, subprocess
-import numpy as np
+import os, sys, subprocess
 
 from setuptools import setup, Extension, find_packages
 
@@ -55,7 +54,10 @@ with open('README.rst', 'rb') as f:
 # Set up extension and build
 cy_ext_options = {
     "compiler_directives": {"profile": False, # SLOW!!!
-                            "embedsignature": True},
+                            "embedsignature": True,
+                            "linetrace": False,
+                            "language_level": sys.version_info[0],
+                            },
     "annotate": True,
 }
 cy_ext = [
