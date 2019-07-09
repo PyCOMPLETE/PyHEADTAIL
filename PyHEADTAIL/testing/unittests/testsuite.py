@@ -44,6 +44,7 @@ test_list = [TestSlicing,
              TestDispatch,
              TestMonitor]
 
+test_list = sorted(test_list, key=str)
 
 if __name__ == '__main__':
     test_load = unittest.TestLoader()
