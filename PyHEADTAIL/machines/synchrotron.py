@@ -121,14 +121,29 @@ class Synchrotron(Element):
                 one_turn_map_new.append(element_to_add)
         self.one_turn_map = one_turn_map_new
 
-    def generate_6D_Gaussian_bunch(self, n_macroparticles, intensity,
-                                   epsn_x, epsn_y, sigma_z):
+    def generate_6D_Gaussian_bunch(
+            self, n_macroparticles, intensity, epsn_x, epsn_y, sigma_z,
+            limit_n_rms_x=None, limit_n_rms_y=None, limit_n_rms_z=None,
+            margin=0.05):
         '''Generate a 6D Gaussian distribution of particles which is
         transversely matched to the Synchrotron. Longitudinally, the
         distribution is matched only in terms of linear focusing.
         For a non-linear bucket, the Gaussian distribution is cut along
         the separatrix (with some margin). It will gradually filament
         into the bucket. This will change the specified bunch length.
+
+        Optional args:
+            limit_n_rms_[x,y]: number of RMS amplitudes to cut distribution
+            limit_n_rms_z: longitudinal number of RMS amplitudes to cut
+                distribution (remember that epsn_z is already 4x the RMS
+                phase space area value, i.e. 2 amplitudes) in case of
+                linear synchrotron motion
+            margin: value between [0, 1) to avoid particles being
+                spawned in longitudinal phase space close to the
+                RF bucket separatrix (0 corresponds to the separatrix
+                and 1 to the stable fix point, cf.
+                trackers.rf_bucket.is_in_separatrix) in case of
+                non-linear synchrotron motion. Default value is 0.05 .
         '''
         if self.longitudinal_mode == 'linear':
             check_inside_bucket = lambda z, dp: np.array(len(z)*[True])
@@ -136,17 +151,40 @@ class Synchrotron(Element):
         elif self.longitudinal_mode == 'non-linear':
             bucket = self.longitudinal_map.get_bucket(
                 gamma=self.gamma, mass=self.mass, charge=self.charge)
-            check_inside_bucket = bucket.make_is_accepted(margin=0.05)
+            check_inside_bucket = bucket.make_is_accepted(margin=margin)
             Q_s = bucket.Q_s
         else:
             raise NotImplementedError(
                 'Something wrong with self.longitudinal_mode')
 
         eta = self.longitudinal_map.alpha_array[0] - self.gamma**-2
-        beta_z = np.abs(eta)*self.circumference/2./np.pi/Q_s
-        sigma_dp = sigma_z/beta_z
-        epsx_geo = epsn_x/self.betagamma
-        epsy_geo = epsn_y/self.betagamma
+        beta_z = np.abs(eta) * self.circumference / (2. * np.pi * Q_s)
+        sigma_dp = sigma_z / beta_z
+        eps_geo_x = epsn_x / self.betagamma
+        eps_geo_y = epsn_y / self.betagamma
+
+        distribution_x = generators.gaussian2D(eps_geo_x)
+        distribution_y = generators.gaussian2D(eps_geo_y)
+        distribution_z = generators.gaussian2D(eps_geo_z)
+        # cutting distributions:
+        if limit_n_rms_x:
+            distribution_x = generators.cut_distribution(
+                distribution=distribution_x,
+                is_accepted=make_is_accepted_within_n_sigma(
+                    eps_geo_x, limit_n_rms_x)
+            )
+        if limit_n_rms_y:
+            distribution_y = generators.cut_distribution(
+                distribution=distribution_y,
+                is_accepted=make_is_accepted_within_n_sigma(
+                    eps_geo_y, limit_n_rms_y)
+            )
+        if limit_n_rms_z:
+            distribution_z = generators.cut_distribution(
+                distribution=distribution_z,
+                is_accepted=make_is_accepted_within_n_sigma(
+                    eps_geo_z, limit_n_rms_z)
+            )
 
         injection_optics = self.transverse_map.get_injection_optics()
 
@@ -154,11 +192,11 @@ class Synchrotron(Element):
             macroparticlenumber=n_macroparticles,
             intensity=intensity, charge=self.charge, mass=self.mass,
             circumference=self.circumference, gamma=self.gamma,
-            distribution_x=generators.gaussian2D(epsx_geo),
+            distribution_x=distribution_x,
             alpha_x=injection_optics['alpha_x'],
             beta_x=injection_optics['beta_x'],
             D_x=injection_optics['D_x'],
-            distribution_y=generators.gaussian2D(epsy_geo),
+            distribution_y=distribution_y,
             alpha_y=injection_optics['alpha_y'],
             beta_y=injection_optics['beta_y'],
             D_y=injection_optics['D_y'],
