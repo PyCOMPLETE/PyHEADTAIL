@@ -19,34 +19,87 @@ from . import Printing
 from scipy.constants import e, c
 
 
-def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
-                             circumference, gamma,
-                             alpha_x, alpha_y, beta_x, beta_y, beta_z,
-                             epsn_x, epsn_y, epsn_z,
-                             dispersion_x=None, dispersion_y=None):
-    """ Convenience wrapper which generates a 6D gaussian phase space
-    with the specified parameters
+def generate_Gaussian6DTwiss(
+        macroparticlenumber, intensity, charge, mass,
+        circumference, gamma,
+        alpha_x, alpha_y, beta_x, beta_y, beta_z,
+        epsn_x, epsn_y, epsn_z,
+        dispersion_x=None, dispersion_y=None,
+        limit_n_rms_x=None, limit_n_rms_y=None, limit_n_rms_z=None,
+        ):
+    """ Convenience wrapper generating a 6D Gaussian phase space
+    distribution of macro-particles with the specified parameters:
+
     Args:
-        the usual suspects
-    Returns: A particle instance with the phase space matched to the arguments
+        macroparticlenumber: number of macro-particles in the beam
+        intensity: number of represented beam particles
+        charge: charge per particle [SI unit Coul]
+        mass: mass per particle [SI unit kg]
+        circumference: ring circumference (needed for effective models)
+        gamma: relativistic Lorentz factor
+        alpha_[x,y]: Twiss parameter. The corresponding transverse phase
+            space gets matched to (alpha_[], beta_[])
+        beta_[x,y]: Twiss parameter. The corresponding transverse phase
+            space gets matched to (alpha_[], beta_[])
+        beta_z: corresponding longitudinal Twiss parameter
+            amounting to |eta| * circumference / (2 * pi * Qs)
+        epsn_x: horizontal normalised RMS emittance [m.rad]
+        epsn_y: vertical normalised RMS emittance [m.rad]
+        epsn_z: longitudinal 90% emittance (4x the RMS emittance) [eV.s]
+
+    Optional args:
+        dispersion_x: horizontal optics dispersion value for matching
+        dispersion_y: vertical optics dispersion value for matching
+        limit_n_rms_[x,y]: number of RMS amplitudes to cut distribution
+        limit_n_rms_z: longitudinal number of RMS amplitudes to cut
+            distribution (remember that epsn_z is already 4x the RMS
+            value, i.e. 2 amplitudes)
+
+    Return a Particles instance with the phase space matched to the
+    arguments.
     """
-    beta = np.sqrt(1.-gamma**(-2))
+
+    beta = np.sqrt(1. - gamma**-2)
     p0 = np.sqrt(gamma**2 - 1) * mass * c
-    eps_geo_x = epsn_x/(beta*gamma)
-    eps_geo_y = epsn_y/(beta*gamma)
+    eps_geo_x = epsn_x / (beta * gamma)
+    eps_geo_y = epsn_y / (beta * gamma)
     eps_geo_z = epsn_z * e / (4. * np.pi * p0)
+
     # a bit of a hack: epsn_z is a parameter even though the ParticleGenerator
     # does not have such a parameter. This is kept for backwards compatiblity.
     # Therefore, some fake eta, Qs parameters are invented s.t.
     # beta_z = |eta| * circumference / (2 * pi * Qs)
     # holds (circumference is fixed). Does not have any side effects.
-    Qs = 1./(2 * np.pi)
+    Qs = 1. / (2 * np.pi)
     eta = beta_z / circumference
+
+    distribution_x = gaussian2D(eps_geo_x)
+    distribution_y = gaussian2D(eps_geo_y)
+    distribution_z = gaussian2D(eps_geo_z)
+    # cutting distributions:
+    if limit_n_rms_x:
+        distribution_x = cut_distribution(
+            distribution=distribution_x,
+            is_accepted=make_is_accepted_within_n_sigma(
+                eps_geo_x, limit_n_rms_x)
+        )
+    if limit_n_rms_y:
+        distribution_y = cut_distribution(
+            distribution=distribution_y,
+            is_accepted=make_is_accepted_within_n_sigma(
+                eps_geo_y, limit_n_rms_y)
+        )
+    if limit_n_rms_z:
+        distribution_z = cut_distribution(
+            distribution=distribution_z,
+            is_accepted=make_is_accepted_within_n_sigma(
+                eps_geo_z, limit_n_rms_z)
+        )
     return ParticleGenerator(
         macroparticlenumber, intensity, charge, mass, circumference, gamma,
-        gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
-        gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
-        gaussian2D(eps_geo_z), Qs, eta
+        distribution_x, alpha_x, beta_x, dispersion_x,
+        distribution_y, alpha_y, beta_y, dispersion_y,
+        distribution_z, Qs, eta
         ).generate()
 
 
@@ -205,30 +258,41 @@ def cut_distribution(distribution, is_accepted):
         return [z, dp]
     return _cut_distribution
 
-def make_is_accepted_within_n_sigma(epsn_rms, limit_n_rms, twiss_beta=1):
+def make_is_accepted_within_n_sigma(rms_amplitude=None, limit_n_rms=None,
+                                    epsn_rms=None):
     '''Closure creating an is_accepted function (e.g. for
     cut_distribution). The is_accepted function will return whether
     the canonical coordinate and momentum pair lies within the phase
-    space region limited by the action value limit_n_rms * epsn_rms.
+    space region limited by the action value
+    limit_n_rms * rms_amplitude.
+    The closure acts on normalised Floquet space, i.e. do apply this
+    function to the particles before matching to the optics values.
 
-    Coordinate u and momentum up are assumed to be connected to the
-    amplitude J via the twiss_beta value,
-    J = sqrt(u^2 + twiss_beta^2 up^2) .
+    Coordinate u and momentum up are squared to give the action
+    amplitude
+    J = u^2 + up^2 .
     The amplitude is required to be below the limit to be accepted,
-    J < limit_n_rms * epsn_rms.
+    J < limit_n_rms * rms_amplitude.
     The usual use case will be generating u and up in normalised Floquet
     space (i.e. before the normalised phase space coordinates
     get matched to the optics or longitudinal eta and Qs).
-    In this case, twiss_beta takes the default value 1 in normalised
-    Floquet space. Consequently, the 1 sigma RMS reference value
+    Consequently, the 1 sigma RMS reference value
     epsn_rms corresponds to the normalised 1 sigma RMS emittance
     (i.e. amounting to beam.epsn_x() and beam.epsn_y() in the transverse
     plane, and beam.epsn_z()/4 in the longitudinal plane).
     '''
-    threshold_amplitude_squared = (limit_n_rms * epsn_rms)**2
+    if epsn_rms:
+        # backwards compatibility (it was bad naming):
+        limit_n_rms *= limit_n_rms
+        assert rms_amplitude == None, \
+            ("epsn_rms is for backwards compatibility, it has been "
+             "replaced by its sqrt-value rms_amplitude. Please do not "
+             "use both at the same time!")
+        rms_amplitude = epsn_rms**2
+    threshold_amplitude = limit_n_rms * rms_amplitude
     def is_accepted(u, up):
-        Jsq = u**2 + (twiss_beta * up)**2
-        return Jsq < threshold_amplitude_squared
+        Jsq = u**2 + up**2
+        return Jsq < threshold_amplitude
     return is_accepted
 
 
