@@ -90,7 +90,7 @@ cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
     To calculate the emittance, one needs the mean values of quantities u and
     up.
     Args:
-       	u spatial coordinate array
+        u spatial coordinate array
         up momentum coordinate array
         dp momentum deviation array: (p-p_0)/p_0. If None, the effective
            emittance is computed instead (dispersion is set to 0)
@@ -99,7 +99,7 @@ cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
     cdef double sigma11 = 0.
     cdef double sigma12 = 0.
     cdef double sigma22 = 0.
-    cdef double cov_u2 = covariance(u,u)
+    cdef double cov_u2 = covariance(u, u)
     cdef double cov_up2 = covariance(up, up)
     cdef double cov_u_up = covariance(up, u)
 
