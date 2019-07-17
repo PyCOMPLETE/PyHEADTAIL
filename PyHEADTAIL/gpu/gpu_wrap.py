@@ -416,63 +416,31 @@ def emittance_reference(u, up, dp):
         up conjugate momentum array
         dp longitudinal momentum variation
     '''
-    sigma11 = 0.
-    sigma12 = 0.
-    sigma22 = 0.
-    cov_u2 = covariance(u,u)
+    cov_u2 = covariance(u, u)
     cov_up2 = covariance(up, up)
     cov_u_up = covariance(up, u)
-    cov_u_dp = 0.
-    cov_up_dp = 0.
-    cov_dp2 = 1.
+
+    term_u2_dp = 0.
+    term_u_up_dp = 0.
+    term_up2_dp = 0.
+
     if dp is not None: #if not None, assign values to variables involving dp
-        cov_u_dp = covariance(u, dp)
-        cov_up_dp = covariance(up,dp)
-        cov_dp2 = covariance(dp,dp)
-    sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
-    sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
-    sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
+        cov_dp2 = covariance(dp, dp)
+
+        if cov_dp2.get() != 0:
+            cov_u_dp = covariance(u, dp)
+            cov_up_dp = covariance(up, dp)
+
+            term_u2_dp = cov_u_dp * cov_u_dp / cov_dp2
+            term_u_up_dp = cov_u_dp * cov_up_dp / cov_dp2
+            term_up2_dp = cov_up_dp * cov_up_dp / cov_dp2
+
+    sigma11 = cov_u2 - term_u2_dp
+    sigma12 = cov_u_up - term_u_up_dp
+    sigma22 = cov_up2 - term_up2_dp
+
     sigma12 = sigma12.get()
     return np.sqrt(sigma11.get() * sigma22.get() - sigma12 * sigma12)
-
-def emittance_getasync(u, up, dp):
-    '''
-    Compute the emittance of GPU arrays. Test with streams. Not faster than
-    version below.
-    Args:
-        u coordinate array
-        up conjugate momentum array
-        dp longitudinal momentum variation
-    '''
-
-    n = len(u)
-    sigma11 = 0.
-    sigma12 = 0.
-    sigma22 = 0.
-    cov_u_dp = 0.
-    cov_up_dp = 0.
-    cov_dp2 = 1.
-    mean_u = skcuda.misc.mean(u)
-    mean_up = skcuda.misc.mean(up)
-
-    tmp_u = sub_scalar(u, mean_u)
-    tmp_up = sub_scalar(up, mean_up)
-    cov_u2 = skcuda.misc.mean(tmp_u*tmp_u).get_async(stream=gpu_utils.streams[0]) * (n / (n + 1.))
-    cov_u_up = skcuda.misc.mean(tmp_u*tmp_up).get_async(stream=gpu_utils.streams[1]) * (n / (n + 1.))
-    cov_up2 = skcuda.misc.mean(tmp_up*tmp_up).get_async(stream=gpu_utils.streams[2]) * (n / (n + 1.))
-
-    if dp is not None: #if not None, assign values to variables involving dp
-        mean_dp = skcuda.misc.mean(dp)
-        tmp_dp = sub_scalar(dp, mean_dp)
-        cov_u_dp = skcuda.misc.mean(tmp_u*tmp_dp).get_async(stream=gpu_utils.streams[0]) * (n / (n + 1.))
-        cov_up_dp = skcuda.misc.mean(tmp_up*tmp_dp).get_async(stream=gpu_utils.streams[1]) * (n / (n + 1.))
-        cov_dp2 = skcuda.misc.mean(tmp_dp*tmp_dp).get_async(stream=gpu_utils.streams[2]) * (n / (n + 1.))
-    for i in xrange(3):
-        gpu_utils.streams[i].synchronize()
-    sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
-    sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
-    sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
-    return np.sqrt(sigma11 * sigma22 - sigma12*sigma12)
 
 
 def emittance_(u, up, dp):
@@ -493,20 +461,23 @@ def emittance_(u, up, dp):
     cov_u2 = pycuda.gpuarray.sum(tmp_u * tmp_u)
     cov_u_up = pycuda.gpuarray.sum(tmp_u * tmp_up)
     cov_up2 = pycuda.gpuarray.sum(tmp_up * tmp_up)
+
+    sigma11 = cov_u2
+    sigma12 = cov_u_up
+    sigma22 = cov_up2
+
     if dp is not None: #if not None, assign values to variables involving dp
         mean_dp = skcuda.misc.mean(dp)
         tmp_dp = sub_scalar(dp, mean_dp)
-        cov_u_dp = pycuda.gpuarray.sum(tmp_u * tmp_dp)
-        cov_up_dp = pycuda.gpuarray.sum(tmp_up * tmp_dp)
         cov_dp2 = pycuda.gpuarray.sum(tmp_dp * tmp_dp)
 
-        sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
-        sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
-        sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
-    else:
-        sigma11 = cov_u2
-        sigma12 = cov_u_up
-        sigma22 = cov_up2
+        if cov_dp2.get() != 0:
+            cov_u_dp = pycuda.gpuarray.sum(tmp_u * tmp_dp)
+            cov_up_dp = pycuda.gpuarray.sum(tmp_up * tmp_dp)
+
+            sigma11 -= cov_u_dp * cov_u_dp / cov_dp2
+            sigma12 -= cov_u_dp * cov_up_dp / cov_dp2
+            sigma22 -= cov_up_dp * cov_up_dp / cov_dp2
     return pycuda.cumath.sqrt((1./(n*n+n))*(sigma11 * sigma22 - sigma12*sigma12))
 
 
@@ -518,7 +489,7 @@ def emittance(u, up, dp, stream=None):
     Args:
         u coordinate array
         up conjugate momentum array
-        dp longitudinal momentum variation
+        dp longitudinal momentum variation (can be None)
         stream: In which cuda stream to perform the computations
     '''
     n = len(u)
@@ -533,67 +504,31 @@ def emittance(u, up, dp, stream=None):
     cov_u_up = pycuda.gpuarray.sum(tmp_space, stream=stream)
     tmp_space = _multiply(tmp_up, tmp_up, out=tmp_space, stream=stream)
     cov_up2 = pycuda.gpuarray.sum(tmp_space, stream=stream)
-    if dp is not None: #if not None, assign values to variables involving dp
+
+    include_dp = dp is not None
+    if include_dp: #if not None, assign values to variables involving dp
         mean_dp = mean(dp, stream=stream)
         tmp_dp = sub_scalar(dp, mean_dp, stream=stream)
-        tmp_space = _multiply(tmp_u, tmp_dp, out=tmp_space, stream=stream)
-        cov_u_dp = pycuda.gpuarray.sum(tmp_space, stream=stream)
-        tmp_space = _multiply(tmp_up, tmp_dp, out=tmp_space, stream=stream)
-        cov_up_dp = pycuda.gpuarray.sum(tmp_space, stream=stream)
+
         tmp_space = _multiply(tmp_dp, tmp_dp, out=tmp_space, stream=stream)
         cov_dp2 = pycuda.gpuarray.sum(tmp_space, stream=stream)
+
+        if cov_dp2.get() == 0:
+            include_dp = False
+        else:
+            tmp_space = _multiply(tmp_u, tmp_dp, out=tmp_space, stream=stream)
+            cov_u_dp = pycuda.gpuarray.sum(tmp_space, stream=stream)
+            tmp_space = _multiply(tmp_up, tmp_dp, out=tmp_space, stream=stream)
+            cov_up_dp = pycuda.gpuarray.sum(tmp_space, stream=stream)
+    if include_dp:
         #em = _emittance_dispersion(n, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp, cov_dp2, out=out, stream=stream)
-        _emitt_disp(out, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp, cov_dp2,np.float64(n), stream=stream)
+        _emitt_disp(out, cov_u2, cov_u_up, cov_up2,
+                    cov_u_dp, cov_up_dp, cov_dp2, np.float64(n), stream=stream)
     else:
         #em = _emittance_no_dispersion(n, cov_u2, cov_u_up, cov_up2, out=out,stream=stream)
         _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
     return out
 
-# spawn multiple streams for each direction/mean/...
-# is not faster than above, since the mean() functions use up all the kernels!
-def emittance_multistream(u, up, dp, stream=None):
-    '''
-    Compute the emittance of GPU arrays. Check the algorithm above for
-    a more readable version, this one has been 'optimized', e.g. mean->sum
-    and multiplication at the end to minimize kernel calls/inits of gpuarrs
-    Args:
-        u coordinate array
-        up conjugate momentum array
-        dp longitudinal momentum variation
-        stream: In which cuda stream to perform the computations
-    '''
-    n = len(u)
-    streams = gpu_utils.stream_emittance
-    mean_u = mean(u, stream=streams[0])
-    mean_up = mean(up, stream=streams[1])
-    tmp_u = sub_scalar(u, mean_u, stream=streams[0])
-    tmp_space = _multiply(tmp_u, tmp_u, stream=streams[0])
-    cov_u2 = pycuda.gpuarray.sum(tmp_space, stream=streams[0])
-    out = _empty_like(mean_u)
-    tmp_up = sub_scalar(up, mean_up, stream=streams[1])
-    streams[0].synchronize()
-    streams[1].synchronize()
-    tmp_space = _multiply(tmp_u, tmp_up, out=tmp_space, stream=stream) #specify out to reuse memory, the stream implicitly serializes everything s.t. nothing bad happens...
-    cov_u_up = pycuda.gpuarray.sum(tmp_space, stream=stream)
-    tmp_space = _multiply(tmp_up, tmp_up, out=tmp_space, stream=stream)
-    cov_up2 = pycuda.gpuarray.sum(tmp_space, stream=stream)
-    if dp is not None: #if not None, assign values to variables involving dp
-        mean_dp = mean(dp, stream=streams[2])
-        tmp_dp = sub_scalar(dp, mean_dp, stream=streams[2])
-        streams[2].synchronize()
-        tmp_space = _multiply(tmp_u, tmp_dp, out=tmp_space, stream=stream)
-        cov_u_dp = pycuda.gpuarray.sum(tmp_space, stream=stream)
-        tmp_space = _multiply(tmp_up, tmp_dp, out=tmp_space, stream=stream)
-        cov_up_dp = pycuda.gpuarray.sum(tmp_space, stream=stream)
-        tmp_space = _multiply(tmp_dp, tmp_dp, out=tmp_space, stream=stream)
-        cov_dp2 = pycuda.gpuarray.sum(tmp_space, stream=stream)
-        #em = _emittance_dispersion(n, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp, cov_dp2, out=out, stream=stream)
-        _emitt_disp(out, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp, cov_dp2,np.float64(n), stream=stream)
-        gpu_utils.dummy_1(mean_u, stream=stream)
-    else:
-        #em = _emittance_no_dispersion(n, cov_u2, cov_u_up, cov_up2, out=out,stream=stream)
-        _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
-    return out
 
 def cumsum(array, dest=None):
     '''Return cumulative sum of 1-dimensional GPUArray data.
@@ -613,7 +548,7 @@ def cumsum(array, dest=None):
         skcuda.misc.cumsum(dest)
     return dest
 
-#@profile
+
 def argsort(to_sort):
     '''
     Return the permutation required to sort the array.
@@ -723,8 +658,6 @@ def _add_bounds_to_sliceset(sliceset):
     sliceset.lower_bounds = lower_bounds
     sliceset._pidx_begin = lower_bounds[0].get() # set those properties now!
     sliceset._pidx_end = upper_bounds[-1].get()  # this way .get() gets called only once
-    #print 'upper bounds ',sliceset.upper_bounds
-    #print 'lower bounds ',sliceset.lower_bounds
 
 def sorted_mean_per_slice(sliceset, u, stream=None):
     '''
@@ -747,8 +680,6 @@ def sorted_mean_per_slice(sliceset, u, stream=None):
                                  u.gpudata, np.int32(sliceset.n_slices),
                                  mean_u.gpudata,
                                  block=block, grid=grid, stream=stream)
-    #pycuda.autoinit.context.synchronize()
-    #gpu_utils.context.synchronize()
     return mean_u
 
 def sorted_std_per_slice(sliceset, u, stream=None):
@@ -799,23 +730,25 @@ def sorted_emittance_per_slice_slow(sliceset, u, up, dp=None, stream=None):
         sliceset specifying slices
         u, up the quantities of which to compute the emittance, e.g. x,xp
     '''
-    ### computes the covariance on different streams
-    #n_streams = 3 #HARDCODED FOR NOW
     cov_u2 = sorted_cov_per_slice(sliceset, u, u, stream=stream)
-    cov_up2= sorted_cov_per_slice(sliceset, up, up, stream=stream)
+    cov_up2 = sorted_cov_per_slice(sliceset, up, up, stream=stream)
     cov_u_up = sorted_cov_per_slice(sliceset, u, up, stream=stream)
-    if dp is not None:
-        cov_u_dp = sorted_cov_per_slice(sliceset, u, dp, stream=stream)
-        cov_up_dp= sorted_cov_per_slice(sliceset, up, dp, stream=stream)
-        cov_dp2 = sorted_cov_per_slice(sliceset, dp, dp, stream=stream)
-    else:
-        cov_dp2 = pycuda.gpuarray.zeros_like(cov_u2) + 1.
-        cov_u_dp = pycuda.gpuarray.zeros_like(cov_u2)
-        cov_up_dp = pycuda.gpuarray.zeros_like(cov_u2)
 
-    sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
-    sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
-    sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
+    sigma11 = cov_u2
+    sigma12 = cov_u_up
+    sigma22 = cov_up2
+
+    if dp is not None:
+        cov_dp2 = sorted_cov_per_slice(sliceset, dp, dp, stream=stream)
+
+        if cov_dp2.get().any():
+            cov_u_dp = sorted_cov_per_slice(sliceset, u, dp, stream=stream)
+            cov_up_dp= sorted_cov_per_slice(sliceset, up, dp, stream=stream)
+
+            sigma11 -= cov_u_dp * cov_u_dp / cov_dp2
+            sigma12 -= cov_u_dp * cov_up_dp / cov_dp2
+            sigma22 -= cov_up_dp * cov_up_dp / cov_dp2
+
     emittance = pycuda.cumath.sqrt(sigma11*sigma22 - sigma12*sigma12)
     return emittance
 
@@ -838,16 +771,24 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
     # required here since the scaling is done in the cov_per_slice
     # --> 1/(n*n + n) must be 1. ==> n = sqrt(5)/2 -0.5
     n = np.sqrt(5.)/2. - 0.5
-    if dp is not None:
+
+    include_dp = dp is not None
+    if include_dp:
         cov_u_dp = sorted_cov_per_slice(sliceset, u, dp, stream=streams[3])
         cov_up_dp= sorted_cov_per_slice(sliceset, up, dp, stream=streams[4])
         cov_dp2 = sorted_cov_per_slice(sliceset, dp, dp, stream=streams[5])
         for s in streams:
             s.synchronize()
-        _emitt_disp(out, cov_u2, cov_u_up, cov_up2, cov_u_dp, cov_up_dp, cov_dp2,np.float64(n), stream=stream)
+        if not cov_dp2.get().any():
+            include_dp = False
     else:
-        for s in [streams[0], streams[1], streams[2]]:
+        for s in streams[:3]:
             s.synchronize()
+
+    if include_dp:
+        _emitt_disp(out, cov_u2, cov_u_up, cov_up2,
+                    cov_u_dp, cov_up_dp, cov_dp2, np.float64(n), stream=stream)
+    else:
         _emitt_nodisp(out, cov_u2, cov_u_up, cov_up2, np.float64(n), stream=stream)
     return out
 
