@@ -90,7 +90,7 @@ cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
     To calculate the emittance, one needs the mean values of quantities u and
     up.
     Args:
-        u spatial coordinate array
+       	u spatial coordinate array
         up momentum coordinate array
         dp momentum deviation array: (p-p_0)/p_0. If None, the effective
            emittance is computed instead (dispersion is set to 0)
@@ -102,18 +102,25 @@ cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
     cdef double cov_u2 = covariance(u,u)
     cdef double cov_up2 = covariance(up, up)
     cdef double cov_u_up = covariance(up, u)
-    cdef double cov_u_dp = 0.
-    cdef double cov_up_dp = 0.
-    cdef double cov_dp2 = 1.
+
+    cdef double term_u2_dp = 0.
+    cdef double term_u_up_dp = 0.
+    cdef double term_up2_dp = 0.
 
     if dp != None: #if not None, assign values to variables involving dp
-        cov_u_dp = covariance(u, dp)
-        cov_up_dp = covariance(up,dp)
-        cov_dp2 = covariance(dp,dp)
+        cov_dp2 = covariance(dp, dp)
 
-    sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
-    sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
-    sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
+        if cov_dp2 != 0:
+            cov_u_dp = covariance(u, dp)
+            cov_up_dp = covariance(up, dp)
+
+            term_u2_dp = cov_u_dp * cov_u_dp / cov_dp2
+            term_u_up_dp = cov_u_dp * cov_up_dp / cov_dp2
+            term_up2_dp = cov_up_dp * cov_up_dp / cov_dp2
+
+    sigma11 = cov_u2 - term_u2_dp
+    sigma12 = cov_u_up - term_u_up_dp
+    sigma22 = cov_up2 - term_up2_dp
 
     return cmath.sqrt(_det_beam_matrix(sigma11, sigma12, sigma22))
 
