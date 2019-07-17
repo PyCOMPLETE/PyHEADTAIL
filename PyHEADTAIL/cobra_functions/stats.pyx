@@ -393,7 +393,7 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
     cdef double[::1] cov_u_up = np.zeros(n_slices, dtype=np.double)
     cdef double[::1] cov_u_dp = np.zeros(n_slices, dtype=np.double)
     cdef double[::1] cov_up_dp = np.zeros(n_slices, dtype=np.double)
-    cdef double[::1] cov_dp2 = np.ones(n_slices, dtype=np.double)
+    cdef double[::1] cov_dp2 = np.zeros(n_slices, dtype=np.double)
 
     # compute the covariances
     cov_per_slice(slice_index_of_particle, particles_within_cuts,
@@ -402,6 +402,7 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
                   n_macroparticles, u, up, cov_u_up)
     cov_per_slice(slice_index_of_particle, particles_within_cuts,
                   n_macroparticles, up, up, cov_up2)
+
     if dp != None:
         cov_per_slice(slice_index_of_particle, particles_within_cuts,
                       n_macroparticles, u, dp, cov_u_dp)
@@ -415,9 +416,13 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
     cdef unsigned int i
     for i in xrange(n_slices):
         if n_macroparticles[i] > 1:
-            sigma11 = cov_u2[i] - cov_u_dp[i]*cov_u_dp[i]/cov_dp2[i]
-            sigma12 = cov_u_up[i] - cov_u_dp[i]*cov_up_dp[i]/cov_dp2[i]
-            sigma22 = cov_up2[i] - cov_up_dp[i]*cov_up_dp[i]/cov_dp2[i]
+            sigma11 = cov_u2[i]
+            sigma12 = cov_u_up[i]
+            sigma22 = cov_up2[i]
+            if dp != None and cov_dp2[i] != 0.:
+                sigma11 -= cov_u_dp[i] * cov_u_dp[i] / cov_dp2[i]
+                sigma12 -= cov_u_dp[i] * cov_up_dp[i] / cov_dp2[i]
+                sigma22 -= cov_up_dp[i] * cov_up_dp[i] / cov_dp2[i]
             emittance[i] = cmath.sqrt(_det_beam_matrix(sigma11, sigma12, sigma22))
         else:
             emittance[i] = 0.
