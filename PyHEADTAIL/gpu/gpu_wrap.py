@@ -779,7 +779,7 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
         cov_dp2 = sorted_cov_per_slice(sliceset, dp, dp, stream=streams[5])
         for s in streams:
             s.synchronize()
-        if cov_dp2.get() == 0:
+        if not cov_dp2.get().any():
             include_dp = False
     else:
         for s in streams[:3]:
