@@ -94,42 +94,60 @@ class ParticlesView(Printing):
         return self._x
     @x.setter
     def x(self, value):
-        np.copyto(self._x,value)
+        if len(self._x) != len(value):
+            self._x = np.array(value)
+        else:
+            np.copyto(self._x,value)
 
     @property
     def xp(self):
         return self._xp
     @xp.setter
     def xp(self, value):
-        np.copyto(self._xp,value)
+        if len(self._xp) != len(value):
+            self._xp = np.array(value)
+        else:
+            np.copyto(self._xp,value)
 
     @property
     def y(self):
         return self._y
     @y.setter
     def y(self, value):
-        np.copyto(self._y,value)
+        if len(self._y) != len(value):
+            self._y = np.array(value)
+        else:
+            np.copyto(self._y,value)
 
     @property
     def yp(self):
         return self._yp
     @yp.setter
     def yp(self, value):
-        np.copyto(self._yp,value)
+        if len(self._yp) != len(value):
+            self._yp = np.array(value)
+        else:
+            np.copyto(self._yp,value)
 
     @property
     def z(self):
         return self._z
     @z.setter
     def z(self, value):
-        np.copyto(self._z,value)
+        if len(self._z) != len(value):
+            self._z = np.array(value)
+        else:
+            np.copyto(self._z,value)
 
     @property
     def dp(self):
         return self._dp
     @dp.setter
     def dp(self, value):
-        np.copyto(self._dp,value)
+        if len(self._dp) != len(value):
+            self._dp = np.array(value)
+        else:
+            np.copyto(self._dp,value)
 
     @property
     def intensity(self):
@@ -482,42 +500,60 @@ class Particles(Printing):
         return self._x
     @x.setter
     def x(self, value):
-        np.copyto(self._x,value)
+        if len(self._x) != len(value):
+            self._x = np.array(value)
+        else:
+            np.copyto(self._x,value)
 
     @property
     def xp(self):
         return self._xp
     @xp.setter
     def xp(self, value):
-        np.copyto(self._xp,value)
+        if len(self._xp) != len(value):
+            self._xp = np.array(value)
+        else:
+            np.copyto(self._xp,value)
 
     @property
     def y(self):
         return self._y
     @y.setter
     def y(self, value):
-        np.copyto(self._y,value)
+        if len(self._y) != len(value):
+            self._y = np.array(value)
+        else:
+            np.copyto(self._y,value)
 
     @property
     def yp(self):
         return self._yp
     @yp.setter
     def yp(self, value):
-        np.copyto(self._yp,value)
+        if len(self._yp) != len(value):
+            self._yp = np.array(value)
+        else:
+            np.copyto(self._yp,value)
 
     @property
     def z(self):
         return self._z
     @z.setter
     def z(self, value):
-        np.copyto(self._z,value)
+        if len(self._z) != len(value):
+            self._z = np.array(value)
+        else:
+            np.copyto(self._z,value)
 
     @property
     def dp(self):
         return self._dp
     @dp.setter
     def dp(self, value):
-        np.copyto(self._dp,value)
+        if len(self._dp) != len(value):
+            self._dp = np.array(value)
+        else:
+            np.copyto(self._dp,value)
 
     @property
     def intensity(self):
