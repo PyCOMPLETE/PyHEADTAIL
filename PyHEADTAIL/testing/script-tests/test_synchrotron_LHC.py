@@ -1,8 +1,3 @@
-import sys, os
-BIN=os.path.expanduser('../../../')
-sys.path.append(BIN)
-
-
 from scipy.constants import e,c
 
 macroparticlenumber_track = 50000

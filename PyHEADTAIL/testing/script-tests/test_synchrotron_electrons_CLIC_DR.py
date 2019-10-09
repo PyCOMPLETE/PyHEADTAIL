@@ -1,8 +1,3 @@
-import sys, os
-BIN=os.path.expanduser('../../../')
-sys.path.append(BIN)
-
-
 from scipy.constants import e,c
 
 macroparticlenumber_track = 2000
@@ -72,7 +67,7 @@ axes[1].grid('on')
 axes[1].set_ylabel('alpha_x, alpha_y')
 axes[1].set_xlabel('# point')
 
-if mode == 'non-smooth':
+if machine.optics_mode == 'non-smooth':
     axes[0].plot(np.array(optics['beta_x']), 'xk')
     axes[0].plot(np.array(optics['beta_y']), 'xk')
     axes[1].plot(np.array(optics['alpha_x']), 'xk')
