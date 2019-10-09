@@ -1,8 +1,8 @@
-from PyHEADTAIL.machines.synchrotron import BasicSynchrotron
+from PyHEADTAIL.machines.synchrotron import Synchrotron
 import numpy as np
 from scipy.constants import c, e, m_p
 
-class LHC(BasicSynchrotron):
+class LHC(Synchrotron):
 
 	def __init__(self, machine_configuration=None, optics_mode='smooth', **kwargs):
 		

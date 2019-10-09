@@ -1,9 +1,5 @@
 from __future__ import division
 
-import sys, os
-BIN=os.path.expanduser('../../../')
-sys.path.append(BIN)
-
 from scipy.constants import e,c
 from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse, SynchrotronRadiationLongitudinal
 import numpy as np
