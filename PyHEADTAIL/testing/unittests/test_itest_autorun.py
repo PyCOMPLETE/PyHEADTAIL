@@ -5,15 +5,6 @@
 
 from __future__ import division
 
-import sys, os
-BIN = os.path.dirname(__file__) # ./PyHEADTAIL/testing/unittests/
-BIN = os.path.abspath( BIN ) # absolute path to unittests
-sys.path.append(BIN)
-BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/testing/
-BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/
-BIN = os.path.dirname( BIN ) # ../ -->  ./
-sys.path.append(BIN)
-sys.path.append('autoruntests/')
 import unittest
 
 import autoruntests.ApertureNLossesTest as at

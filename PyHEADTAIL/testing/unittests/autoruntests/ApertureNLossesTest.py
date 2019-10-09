@@ -1,8 +1,3 @@
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
-
 import numpy as np
 from scipy.constants import m_p, c, e
 

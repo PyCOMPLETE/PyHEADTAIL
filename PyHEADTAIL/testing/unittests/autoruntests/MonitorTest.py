@@ -3,10 +3,7 @@
 
 # In[1]:
 
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
+import os
 
 # In[2]:
 
