@@ -3,13 +3,7 @@
 
 # In[1]:
 
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
-
-
-# In[2]:
+import os
 
 import numpy as np
 from scipy.constants import m_p, c, e

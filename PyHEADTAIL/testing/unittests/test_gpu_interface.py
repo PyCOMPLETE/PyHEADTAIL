@@ -4,15 +4,7 @@
 '''
 from __future__ import division
 
-import sys, os
-import os.path
-BIN = os.path.dirname(__file__) # ./PyHEADTAIL/testing/unittests/
-BIN = os.path.abspath( BIN ) # absolute path to unittests
-BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/testing/
-BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/
-BIN = os.path.dirname( BIN ) # ../ -->  ./
-sys.path.append(BIN)
-
+import os
 import unittest
 import h5py as hp
 import numpy as np

@@ -1,13 +1,6 @@
 
 # coding: utf-8
 
-# In[1]:
-
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
-
 # In[2]:
 
 import numpy as np
