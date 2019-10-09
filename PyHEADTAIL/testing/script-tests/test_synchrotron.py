@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.constants import c, e, m_p
-
 from PyHEADTAIL.machines.synchrotron import Synchrotron
 
 circumference = 26658.8832
