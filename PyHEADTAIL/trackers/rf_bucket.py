@@ -1,16 +1,17 @@
 """.. copyright:: CERN"""
+
 from __future__ import division
 
 import numpy as np
-
 from scipy.constants import c
 from scipy.optimize import newton
 from scipy.integrate import dblquad
 from functools import partial, wraps
 
-from ..cobra_functions.curve_tools import zero_crossings as cvt_zero_crossings
-from ..general.decorators import deprecated
-from . import Printing
+from PyHEADTAIL.cobra_functions.curve_tools import (
+    zero_crossings as cvt_zero_crossings)
+from PyHEADTAIL.general.decorators import deprecated
+from PyHEADTAIL.general.element import Printing
 
 
 def attach_clean_buckets(rf_parameter_changing_method, rfsystems_instance):

@@ -3,19 +3,20 @@
 @date 03.10.2014
 @copyright CERN
 '''
+
 from __future__ import division
 
 import numpy as np
 from types import MethodType
 from scipy.constants import c
-
-from ..general.decorators import deprecated
-from . import Element, clean_slices, utils
-from rf_bucket import RFBucket, attach_clean_buckets
-
 from abc import ABCMeta, abstractmethod
 
-from ..general import pmath as pm
+from PyHEADTAIL.general.decorators import deprecated
+from PyHEADTAIL.general.element import Element
+from PyHEADTAIL.general import utils
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.particles.slicing import clean_slices
+from PyHEADTAIL.tracking.rf_bucket import RFBucket, attach_clean_buckets
 
 
 # @TODO

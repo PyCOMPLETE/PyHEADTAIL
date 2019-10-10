@@ -7,6 +7,7 @@ from __future__ import division
 
 import unittest
 
+from PyHEADTAIL.general.utils import ListProxy
 import autoruntests.ApertureNLossesTest as at
 import autoruntests.DetunersTest as dt
 import autoruntests.MonitorTest as mt
@@ -14,8 +15,6 @@ import autoruntests.RFQTest as rt
 import autoruntests.SlicingTest as st
 import autoruntests.TransverseTrackingTest as ttt
 import autoruntests.WakeTest as wt
-
-from PyHEADTAIL.general.utils import ListProxy
 
 
 class TestAutoRun(unittest.TestCase):

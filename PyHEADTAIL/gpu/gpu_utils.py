@@ -5,6 +5,10 @@ This could also be the place to store the context, device, streams, etc...
 The module is automatically a singleton
 @author Stefan Hegglin
 '''
+
+import atexit
+from itertools import cycle
+
 try:
     import pycuda.tools
     import pycuda.driver as drv
@@ -18,8 +22,7 @@ try:
         has_pycuda = False
 except ImportError:
     has_pycuda = False
-import atexit
-from itertools import cycle
+
 ################################################################################
 
 if has_pycuda:

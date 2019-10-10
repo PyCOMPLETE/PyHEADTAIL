@@ -1,9 +1,10 @@
 from __future__ import division
 
-from . import Element
-
 import numpy as np
 from scipy.constants import c
+
+from PyHEADTAIL.general.element import Element
+
 
 class TransverseSpaceCharge(Element):
     def __init__(self, L_interaction, slicer, pyPICsolver,

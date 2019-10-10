@@ -8,16 +8,15 @@
 @date:    01/10/2014
 @copyright CERN
 '''
+
 from __future__ import division
 
 from abc import ABCMeta, abstractmethod
-
 import numpy as np
 
 from scipy import ndimage
 from scipy import interpolate
 from scipy.constants import c, e
-
 from random import sample
 from functools import partial, wraps
 

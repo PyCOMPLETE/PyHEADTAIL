@@ -7,7 +7,8 @@ Provide useful decorators for PyHEADTAIL.
 
 import warnings
 from functools import wraps
-from ..gpu import gpu_utils
+
+from PyHEADTAIL.gpu import gpu_utils
 
 
 def deprecated(message):

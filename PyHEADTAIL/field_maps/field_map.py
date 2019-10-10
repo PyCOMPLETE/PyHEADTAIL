@@ -19,10 +19,9 @@ from __future__ import division, print_function
 
 from scipy.constants import c
 
-from . import Element
-
-from ..general import pmath as pm
-from ..gpu.pypic import make_PyPIC
+from PyHEADTAIL.general.element import Element
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.gpu.pypic import make_PyPIC
 
 class FieldMap(Element):
     '''This static field in the lab frame applies kicks to the beam

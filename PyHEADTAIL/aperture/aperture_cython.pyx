@@ -17,7 +17,7 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
-import aperture
+import PyHEADTAIL.aperture.aperture as aperture
 
 class Aperture(aperture.Aperture):
     '''Pendant to aperture.Aperture with the relocate algorithm

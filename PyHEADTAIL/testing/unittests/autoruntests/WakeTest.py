@@ -1,20 +1,14 @@
-
-# coding: utf-8
-
-# In[1]:
-
 import os
-
 import numpy as np
 from scipy.constants import m_p, c, e
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-from PyHEADTAIL.impedances.wakes import (
-    WakeField, WakeTable, Resonator, CircularResonator)
+from PyHEADTAIL.impedances.wakes import WakeField, WakeTable
+from PyHEADTAIL.impedances.wakes import Resonator, CircularResonator
 from PyHEADTAIL.impedances.wakes import (
     ParallelHorizontalPlatesResonator as ParallelPlatesResonator)
-from PyHEADTAIL.impedances.wakes import (
-    ResistiveWall, CircularResistiveWall, ParallelPlatesResistiveWall)
+from PyHEADTAIL.impedances.wakes import ResistiveWall, CircularResistiveWall
+from PyHEADTAIL.impedances.wakes import ParallelPlatesResistiveWall
 from PyHEADTAIL.impedances.wakes import (
     ParallelHorizontalPlatesResistiveWall as ParallelPlatesResistiveWall)
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
@@ -23,8 +17,6 @@ import PyHEADTAIL.particles.generators as generators
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 from PyHEADTAIL.general.printers import SilentPrinter
 
-
-# In[3]:
 
 # HELPERS
 def run():

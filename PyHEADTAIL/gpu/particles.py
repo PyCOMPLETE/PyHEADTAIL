@@ -1,11 +1,10 @@
 # default classes imports from modules as assigned in gpu/__init__.py
-from .oldinit import def_particles
-
 import numpy as np
-
+import thrust_interface as thrust
 from pycuda import gpuarray
 
-import thrust_interface as thrust
+from PyHEADTAIL.gpu.oldinit import def_particles
+
 
 class ParticlesGPU(def_particles.Particles):
     '''Implementation of the Particles with data stored on the GPU.

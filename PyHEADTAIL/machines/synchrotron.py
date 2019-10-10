@@ -3,7 +3,7 @@ from __future__ import division
 import numpy as np
 from scipy.constants import c
 
-from ..general.decorators import deprecated
+from PyHEADTAIL.general.decorators import deprecated
 from PyHEADTAIL.particles import generators
 from PyHEADTAIL.mpi import mpi_data
 from PyHEADTAIL.general.element import Element

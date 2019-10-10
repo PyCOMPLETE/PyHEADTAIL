@@ -3,12 +3,13 @@ Created on 17.10.2014
 @author: Kevin Li, Michael Schenk, Adrian Oeftiger
 @copyright CERN
 '''
+
 import numpy as np
 from scipy.constants import c, e  # unit e needed for long. emittance
 
-from ..cobra_functions import stats as cp
-from ..general import pmath as pm
-from . import Printing
+from PyHEADTAIL.cobra_functions import stats as cp
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.general.element import Printing
 
 arange = np.arange
 mean = np.mean

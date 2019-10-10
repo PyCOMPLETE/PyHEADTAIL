@@ -19,6 +19,7 @@ once they have been created).
        originating from different WakeSources.
 @copyright CERN
 """
+
 from __future__ import division
 
 import numpy as np
@@ -27,10 +28,14 @@ from scipy.constants import c, physical_constants
 from scipy.interpolate import interp1d
 from abc import ABCMeta, abstractmethod
 
-from wake_kicks import *
-from . import Element, Printing
-from ..general.decorators import deprecated
+
+
+=======
+from PyHEADTAIL.impedances.wake_kicks import *
+from PyHEADTAIL.general.element import Element, Printing
+from PyHEADTAIL.general.decorators import deprecated
 from PyHEADTAIL.mpi import mpi_data
+
 
 sin = np.sin
 cos = np.cos

@@ -39,8 +39,6 @@ from PyHEADTAIL.rfq.rfq import RFQLongitudinalKick, RFQTransverseKick
 from PyHEADTAIL.rfq.rfq import RFQTransverseDetuner
 import PyHEADTAIL.general.decorators as decorators
 
-
-
 try:
     import PyCERNmachines.CERNmachines as m
     # for replacing the cython versions in machines

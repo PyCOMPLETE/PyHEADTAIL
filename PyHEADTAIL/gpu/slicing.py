@@ -10,8 +10,6 @@ where = os.path.dirname(os.path.abspath(__file__)) + '/'
 import numpy as np
 
 # default classes imports from modules as assigned in gpu/__init__.py
-from .oldinit import def_slicing
-
 from pycuda import gpuarray
 from pycuda.compiler import SourceModule
 from pycuda.elementwise import ElementwiseKernel
@@ -20,7 +18,8 @@ from pycuda import cumath
 
 from skcuda.misc import diff
 
-import thrust_interface as thrust
+from PyHEADTAIL.gpu.oldinit import def_slicing
+import PyHEADTAIL.gpu.thrust_interface as thrust
 
 get_sort_perm_int = thrust.get_sort_perm_int
 lower_bound_int = thrust.lower_bound_int

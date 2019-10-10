@@ -6,23 +6,19 @@
 from __future__ import division
 
 import unittest
-
 import numpy as np
 from scipy.constants import c, e, m_p
-
-from PyPIC.GPU.meshing import UniformMesh1D
-
 from pycuda.autoinit import context
 from pycuda import gpuarray
 from pycuda import cumath
 
 import PyHEADTAIL.gpu
-
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.gpu.slicing import MeshSlicer
 from PyHEADTAIL.general.printers import AccumulatorPrinter
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
+from PyPIC.GPU.meshing import UniformMesh1D
 
 def check_elements_equal(np_array1d):
     value = np_array1d[0]

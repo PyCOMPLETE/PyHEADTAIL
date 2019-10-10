@@ -5,6 +5,7 @@
        of bunch and slice_set data.
 @copyright CERN
 """
+
 import numpy as np
 cimport numpy as np
 cimport libc.math as cmath

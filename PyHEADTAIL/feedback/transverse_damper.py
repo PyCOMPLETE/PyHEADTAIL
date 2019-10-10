@@ -3,14 +3,14 @@
 @date 20/06/2014
 @copyright CERN
 '''
-from __future__ import division
 
+from __future__ import division
 
 import numpy as np
 from scipy.special import k0
 from scipy.constants import c, e
 
-from . import Element
+from PyHEADTAIL.general.element import Element
 
 class TransverseDamper(Element):
 

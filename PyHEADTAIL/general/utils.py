@@ -5,7 +5,7 @@
 Provide useful conceptual classes and logics for PyHEADTAIL.
 '''
 
-from .element import Printing
+from PyHEADTAIL.general.element import Printing
 
 
 class ListProxy(Printing):

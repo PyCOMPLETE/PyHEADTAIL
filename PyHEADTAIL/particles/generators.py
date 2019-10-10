@@ -7,16 +7,16 @@
 from __future__ import division
 
 import numpy as np
+from scipy.constants import e, c
 
-from particles import Particles
-from rfbucket_matching import RFBucketMatcher, ThermalDistribution
+from PyHEADTAIL.general.element import Printing
+from PyHEADTAIL.particles.particles import Particles
+from PyHEADTAIL.particles.rfbucket_matching import RFBucketMatcher
+from PyHEADTAIL.particles.rfbucket_matching import ThermalDistribution
+
 
 # backwards compatibility:
 StationaryExponential = ThermalDistribution
-
-from . import Printing
-
-from scipy.constants import e, c
 
 
 def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,

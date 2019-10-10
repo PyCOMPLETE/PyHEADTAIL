@@ -6,6 +6,7 @@ This script runs all the unit tests specified in test_list
 
 import sys
 import unittest
+from pprint import pprint
 
 try:
     import pycuda.autoinit
@@ -13,7 +14,6 @@ except ImportError:
     has_pycuda = False
     print 'No PyCUDA installation found.'
 
-from pprint import pprint
 
 from test_slicing import TestSlicing
 from test_particles import TestParticles

@@ -1,22 +1,16 @@
-
-# coding: utf-8
-
-# In[2]:
-
 import numpy as np
-from scipy.constants import m_p, c, e
 import matplotlib.pyplot as plt
+from scipy.constants import m_p, c, e
 
-np.random.seed(0)
-
+from PyHEADTAIL.general.printers import SilentPrinter
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
-from PyHEADTAIL.general.printers import SilentPrinter
 
-# In[3]:
+
+np.random.seed(0)
 
 # HELPERS
 def run():
