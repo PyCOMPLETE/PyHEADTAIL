@@ -4,7 +4,7 @@ import numpy as np
 from scipy.constants import c, e, m_p
 
 from machines import Synchrotron
-import SPS.SPSOctupoles as SPSOctupoles
+from SPS import SPSOctupoles
 
 
 class PSB(Synchrotron):
