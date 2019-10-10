@@ -10,10 +10,12 @@ https://github.com/PyCOMPLETE/PyPIC .
 '''
 
 from __future__ import division
+
 import numpy as np
 
 from PyPIC.GPU import pypic, meshing
 from PyPIC.GPU.poisson_solver import FFT_solver
+from PyHEADTAIL.general import pmath as pm
 
 try:
     pypic_algorithm_class = pypic.PyPIC_GPU
@@ -35,13 +37,13 @@ except ImportError:
             ext_boundary=False,
         )
 
-from ..general import pmath as pm
 
 def ensure_cpu(array):
     try:
         return array.get()
     except:
         return array
+
 
 def create_pypic(slices, context=None, **mesh_args):
     '''Factory method for PyPIC.pypic.PyPIC(_GPU) instances.

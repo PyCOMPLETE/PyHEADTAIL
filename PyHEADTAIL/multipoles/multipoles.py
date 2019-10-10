@@ -16,9 +16,9 @@ April 5, 1995
 @date:    23/03/2016
 '''
 
-from . import Element
-
 from math import factorial
+
+from PyHEADTAIL.general.element import Element
 
 
 class ThinQuadrupole(Element):

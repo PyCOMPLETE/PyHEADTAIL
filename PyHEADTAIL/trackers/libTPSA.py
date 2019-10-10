@@ -13,6 +13,7 @@ Functions such as sin, cos, exp, log etc are envisaged
 to be implemented in a later version.
 '''
 from __future__ import division
+
 import numpy as np
 
 class TPS(object):

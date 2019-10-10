@@ -6,13 +6,15 @@
        describing the effects of a wake field.
 @copyright CERN
 """
+
 from __future__ import division
 
 import numpy as np
 from scipy.constants import c
 from abc import ABCMeta, abstractmethod
-from ..general import pmath as pm
-from . import Printing
+
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.element import Printing
 
 class WakeKick(Printing):
     """Abstract base class for wake kick classes, like e.g. the

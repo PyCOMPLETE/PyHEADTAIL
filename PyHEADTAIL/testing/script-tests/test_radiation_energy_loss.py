@@ -1,16 +1,17 @@
-from scipy.constants import e,c
-from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse, SynchrotronRadiationLongitudinal
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.constants import e,c
+
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationLongitudinal
+from CLIC_DR import CLIC_DR
 
 macroparticlenumber = 50000
 n_turns = 512*8
 
-import pickle
-
 # MACHINE
 # =======
-from CLIC_DR import CLIC_DR
 machine = CLIC_DR(machine_configuration='3TeV_linear', n_segments=1)
 
 # BEAM

@@ -10,6 +10,7 @@ of a given integration method -- it may be used generically
 for any integration method with the described signature.
 '''
 from __future__ import division
+
 import numpy as np
 import libTPSA
 

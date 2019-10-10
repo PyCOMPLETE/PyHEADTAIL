@@ -1,4 +1,10 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
 from scipy.constants import e,c
+
+from CLIC_DR import CLIC_DR
+
 
 macroparticlenumber_track = 2000
 macroparticlenumber_optics = 2000
@@ -10,14 +16,8 @@ sigma_z = 1.8e-3
 
 intensity = 4.1e9
 
-
-import pickle
-from CLIC_DR import CLIC_DR
-
-
 machine = CLIC_DR(machine_configuration='3TeV', n_segments=29,
                   charge=-e)
-
 
 print 'Create bunch for optics...'
 bunch   = machine.generate_6D_Gaussian_bunch_matched(
@@ -43,10 +43,8 @@ for i_ele, m in enumerate(machine.one_turn_map):
     beam_beta_y.append(bunch.beta_Twiss_y())
     m.track(bunch)
 
-import numpy as np
-import matplotlib.pyplot as plt
-plt.close('all')
 
+plt.close('all')
 
 fig, axes = plt.subplots(2, sharex=True)
 

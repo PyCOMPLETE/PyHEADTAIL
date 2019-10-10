@@ -5,19 +5,19 @@
        specific data to a HDF5 file.
 @copyright CERN
 """
+
 from __future__ import division
 
 import h5py as hp
 import numpy as np
 import sys
-
 from abc import ABCMeta, abstractmethod
-from . import Printing
-from ..general import pmath as pm
-from ..gpu import gpu_utils as gpu_utils
-from ..general import decorators as decorators
 
-from ..cobra_functions import stats as cp
+from PyHEADTAIL.general.element import Printing
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.gpu import gpu_utils as gpu_utils
+from PyHEADTAIL.general import decorators as decorators
+from PyHEADTAIL.cobra_functions import stats as cp
 
 # from .. import cobra_functions.stats.calc_cell_stats as calc_cell_stats
 

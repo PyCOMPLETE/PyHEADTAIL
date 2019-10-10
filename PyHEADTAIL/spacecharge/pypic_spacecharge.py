@@ -11,17 +11,16 @@ NB: the (feature/redesign) branch is required for this!
 
 from __future__ import division, print_function
 
+import numpy as np
 from scipy.constants import c
 
-from . import Element
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.general.element import Element
+from PyHEADTAIL.field_maps.field_map import FieldMapSliceWise
+from PyHEADTAIL.gpu.pypic import make_PyPIC
+from PyHEADTAIL.spacecharge.pypic_factory import create_mesh
+from PyHEADTAIL.spacecharge.spacecharge import TransverseGaussianSpaceCharge
 
-from ..general import pmath as pm
-from ..field_maps.field_map import FieldMapSliceWise
-from ..gpu.pypic import make_PyPIC
-from pypic_factory import create_mesh
-from spacecharge import TransverseGaussianSpaceCharge
-
-import numpy as np
 
 def align_particles(beam, mesh_3d):
     '''Sort all particles by their mesh node IDs.'''

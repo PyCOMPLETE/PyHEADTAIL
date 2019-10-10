@@ -6,9 +6,9 @@ Tests for generator
 from __future__ import division
 
 import unittest
-
 import numpy as np
 import scipy.constants as constants
+
 from PyHEADTAIL.trackers.longitudinal_tracking import RFSystems
 import PyHEADTAIL.particles.generators as gf
 from PyHEADTAIL.general.printers import SilentPrinter

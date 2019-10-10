@@ -1,4 +1,3 @@
-from __future__ import division
 '''
 Aperture module to manage particle losses. An aperture is
 defined as a condition on the phase space coordinates. Particles
@@ -11,12 +10,14 @@ under aperture_cython.pyx for better performance.
          Michael Schenk
 '''
 
-from . import Element, clean_slices
+from __future__ import division
 
+import numpy as np
 from abc import ABCMeta, abstractmethod
 
-from ..general import pmath as pm
-import numpy as np
+from PyHEADTAIL.general.element import Element, Printing
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.particles.slicing import clean_slices
 
 def make_int32(array):
     return array.astype(np.int32)

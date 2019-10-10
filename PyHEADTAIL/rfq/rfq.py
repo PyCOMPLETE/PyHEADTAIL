@@ -31,13 +31,15 @@ a consequence of the change in momenta xp and yp.
        Landau damping.
 @copyright CERN
 """
+
 from __future__ import division
 
 from abc import ABCMeta, abstractmethod
 from scipy.constants import c, e
 import numpy as np
-from ..trackers.detuners import DetunerCollection
+
 import PyHEADTAIL.general.pmath as pm
+from PyHEADTAIL.trackers.detuners import DetunerCollection
 
 
 class RFQTransverseDetuner(DetunerCollection):

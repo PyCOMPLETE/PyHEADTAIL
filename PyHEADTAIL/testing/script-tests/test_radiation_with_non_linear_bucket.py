@@ -1,18 +1,19 @@
 from __future__ import division
 
-from scipy.constants import e,c
-from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse, SynchrotronRadiationLongitudinal
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pickle
+import time
+from scipy.constants import e,c
+
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationLongitudinal
+from CLIC_DR import CLIC_DR
 
 macroparticlenumber = 50000
 n_turns = 512*8
 tt = np.arange(n_turns)
 
-import pickle
-import time
-
-from CLIC_DR import CLIC_DR
 machine = CLIC_DR(machine_configuration='3TeV', n_segments=1)
 n_turns_vec = np.arange(0, n_turns, 1)*(machine.circumference/c)*1e3
 

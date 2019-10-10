@@ -1,4 +1,9 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
 from scipy.constants import e,c
+
+from LHC import LHC
 
 macroparticlenumber_track = 50000
 macroparticlenumber_optics = 2000000
@@ -12,9 +17,6 @@ intensity = 1e11
 
 mode = 'smooth'
 #mode = 'non-smooth'
-
-import pickle
-from LHC import LHC
 
 if mode == 'smooth':
     machine = LHC(machine_configuration='Injection', n_segments=29, D_x=10)
@@ -49,10 +51,8 @@ for i_ele, m in enumerate(machine.one_turn_map):
     beam_beta_y.append(bunch.beta_Twiss_y())
     m.track(bunch)
 
-import numpy as np
-import matplotlib.pyplot as plt
-plt.close('all')
 
+plt.close('all')
 
 fig, axes = plt.subplots(2, sharex=True)
 

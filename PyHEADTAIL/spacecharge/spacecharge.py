@@ -2,17 +2,17 @@
 @authors: Adrian Oeftiger
 @date:    17/04/2015
 '''
-from __future__ import division
 
-from . import Element, clean_slices
+from __future__ import division
 
 import numpy as np
 from scipy.constants import c, epsilon_0, pi
-
 from scipy.interpolate import splrep, splev
 from functools import wraps
 
-from ..general import pmath as pm
+from PyHEADTAIL.general.element import Element
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.particles.slicing import clean_slices
 
 
 class LongSpaceCharge(Element):

@@ -4,14 +4,14 @@
 @brief Description of the transport of transverse phase spaces.
 @copyright CERN
 """
+
 from __future__ import division
 
 import numpy as np
 
-from .. general import pmath as pm
-
-from ..general.decorators import deprecated
-from . import Element, Printing
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.general.decorators import deprecated
+from PyHEADTAIL.general.element import Element, Printing
 
 
 class TransverseSegmentMap(Element):

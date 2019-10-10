@@ -1,18 +1,13 @@
-
-# coding: utf-8
-
-# In[2]:
-
 import numpy as np
 from scipy.constants import m_p, c, e
 from scipy.constants import e as ee
 
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
-from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer, ModeIsUniformCharge
+from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
+from PyHEADTAIL.particles.slicing import ModeIsUniformCharge
 
 
-# In[3]:
 def run():
     #HELPERS
     def test_particle_indices_of_slice(bunch, slice_set):

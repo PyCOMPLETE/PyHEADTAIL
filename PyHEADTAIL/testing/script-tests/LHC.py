@@ -1,6 +1,7 @@
-from PyHEADTAIL.machines.synchrotron import Synchrotron
 import numpy as np
 from scipy.constants import c, e, m_p
+
+from PyHEADTAIL.machines.synchrotron import Synchrotron
 
 class LHC(Synchrotron):
 

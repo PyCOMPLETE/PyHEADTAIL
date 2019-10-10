@@ -1,8 +1,8 @@
 import numpy as np
-from PyHEADTAIL.general.utils import ListProxy
 from scipy.constants import c
-
 from abc import ABCMeta, abstractmethod
+
+from PyHEADTAIL.general.utils import ListProxy
 
 
 class KineticElement(object):

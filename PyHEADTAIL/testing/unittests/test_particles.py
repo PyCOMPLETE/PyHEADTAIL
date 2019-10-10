@@ -6,7 +6,6 @@
 from __future__ import division
 
 import unittest
-
 import numpy as np
 from scipy.constants import c, e, m_p
 

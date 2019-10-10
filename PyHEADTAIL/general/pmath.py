@@ -4,39 +4,53 @@ Dispatches for CPU/GPU versions
 @author Stefan Hegglin
 @date 05.10.2015
 '''
+
 import numpy as np
-from ..cobra_functions import stats as cp
+from functools import wraps
+from scipy.special import erfc as _erfc
+from scipy.special import wofz as _scipy_wofz
+
+from PyHEADTAIL.cobra_functions import stats as cp
+
 try:
     import pycuda.cumath
     import pycuda.gpuarray
     import pycuda.tools
-    from ..gpu import gpu_utils
-    from ..gpu import gpu_wrap
+
+    from PyHEADTAIL.gpu import gpu_utils
+    from PyHEADTAIL.gpu import gpu_wrap
     has_pycuda = gpu_wrap.has_pycuda
 except (ImportError, OSError):
     # print ('No Pycuda in pmath.py import statement found')
     has_pycuda = False
+
 try:
     import skcuda.misc
 except ImportError:
     # print ('Skcuda not found. (Scikit-cuda)')
     pass
 
-from functools import wraps
-
-from contextmanager import UnknownContextManagerError
-
 # FADDEEVA error function (wofz) business (used a.o. in spacecharge module)
 try:
-    from errfff import errf as _errf_f
+    from PyHEADTAIL.general.errfff import errf as _errf_f
     _errf = np.vectorize(_errf_f)
 except ImportError:
     _errf = None
-from scipy.special import erfc as _erfc
-from scipy.special import wofz as _scipy_wofz
+
+
+class UnknownContextManagerError(Exception):
+    '''Raise if context manager is not found, e.g. cannot determine
+    whether on CPU or on GPU.
+    '''
+    def __init__(self, message='Failed to determine current context, e.g. '
+                               'whether pmath.device is "CPU" or "GPU".'):
+        self.message = message
+
+
 def _wofz(x, y):
     res = _scipy_wofz(x + 1j*y)
     return res.real, res.imag
+
 def _errfadd(z):
     return np.exp(-z**2) * _erfc(z * -1j)
 

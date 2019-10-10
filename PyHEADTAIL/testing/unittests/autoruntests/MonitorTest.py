@@ -1,25 +1,15 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import os
-
-# In[2]:
-
-import numpy as np
-from scipy.constants import m_p, c, e
-import matplotlib.pyplot as plt
 import h5py as hp
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from scipy.constants import m_p, c, e
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor, ParticleMonitor
-from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
+from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 
-
-# In[3]:
 
 def run():
 # HELPERS

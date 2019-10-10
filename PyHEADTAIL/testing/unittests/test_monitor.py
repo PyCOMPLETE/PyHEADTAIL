@@ -4,12 +4,11 @@
 '''
 from __future__ import division
 
+import h5py as hp
 import os
 import unittest
-
 import numpy as np
 from scipy.constants import c, e, m_p
-import h5py as hp
 
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.monitors.monitors import (

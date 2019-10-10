@@ -8,24 +8,22 @@
 @date:    01/10/2014
 @copyright CERN
 '''
+
 from __future__ import division
 
 from abc import ABCMeta, abstractmethod
-
 import numpy as np
-
 from scipy import ndimage, interpolate
 from scipy.constants import c, e
-
 from random import sample
 from functools import partial, wraps
 
 # from ..general.decorators import memoize
-from ..cobra_functions import stats as cp
-from ..general import pmath as pm
-from ..general import decorators as decorators
-from ..gpu import gpu_utils as gpu_utils
-from . import Printing
+from PyHEADTAIL.cobra_functions import stats as cp
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.general import decorators as decorators
+from PyHEADTAIL.gpu import gpu_utils as gpu_utils
+from PyHEADTAIL.general.element import Printing
 
 
 def make_int32(array):
