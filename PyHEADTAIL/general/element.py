@@ -26,6 +26,9 @@ class Printing(object):
     in order to obtain full flexibility over output channels.
     '''
 
+    def __init__(self, *args, **kwargs):
+        pass
+
     def __new__(cls, *args, **kwargs):
         '''
         Factory method makes sure that inheriting elements always
