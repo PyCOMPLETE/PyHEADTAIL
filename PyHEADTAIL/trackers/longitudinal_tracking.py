@@ -16,7 +16,7 @@ from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.general import utils
 from PyHEADTAIL.general import pmath as pm
 from PyHEADTAIL.particles.slicing import clean_slices
-from PyHEADTAIL.tracking.rf_bucket import RFBucket, attach_clean_buckets
+from PyHEADTAIL.trackers.rf_bucket import RFBucket, attach_clean_buckets
 
 
 # @TODO
