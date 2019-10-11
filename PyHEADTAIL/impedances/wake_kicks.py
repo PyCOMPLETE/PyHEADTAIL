@@ -14,7 +14,7 @@ from scipy.constants import c
 from abc import ABCMeta, abstractmethod
 
 from PyHEADTAIL.general import pmath as pm
-from PyHEADTAIL.element import Printing
+from PyHEADTAIL.general.element import Printing
 
 class WakeKick(Printing):
     """Abstract base class for wake kick classes, like e.g. the
