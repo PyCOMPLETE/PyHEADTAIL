@@ -85,8 +85,8 @@ xx_y = beam_y
 xx_x_env_damping = []
 xx_y_env_damping = []
 for j in range(N_interval_damping): #for loop to evaluate the envelope of centroid position in x and y
-    xx_x_env_damping.append(np.max(xx_x[((n_turns_damping/n_intervals_damping)*j):((n_turns_damping/n_intervals_damping)*(j+1))])) # take the maximum in each interval
-    xx_y_env_damping.append(np.max(xx_y[((n_turns_damping/n_intervals_damping)*j):((n_turns_damping/n_intervals_damping)*(j+1))]))
+    xx_x_env_damping.append(np.max(xx_x[((n_turns_damping//n_intervals_damping)*j):((n_turns_damping//n_intervals_damping)*(j+1))])) # take the maximum in each interval
+    xx_y_env_damping.append(np.max(xx_y[((n_turns_damping//n_intervals_damping)*j):((n_turns_damping//n_intervals_damping)*(j+1))]))
 xx_x_env_log_damping = np.log(np.abs(xx_x_env_damping) + sys.float_info.epsilon) #exponential fit using linear fit (exp->log)
 p0_x, p1_x = np.polyfit(interval_vector_damping, xx_x_env_log_damping, 1)
 xx_y_env_log_damping = np.log(np.abs(xx_y_env_damping) + sys.float_info.epsilon)
