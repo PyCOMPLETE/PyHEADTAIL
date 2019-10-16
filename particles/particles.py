@@ -413,24 +413,16 @@ class ParticlesView(Printing):
 
 class Particles(Printing):
     '''Contains the basic properties of a particle ensemble with their generalized
-    coordinate and canonically conjugate momentum arrays, energy and the like.
-
-    '''
+    coordinate and canonically conjugate momentum arrays, energy and the like.'''
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma, coords_n_momenta_dict={},
-                 bucket_id=0, **kwargs):
-        '''Fundamental parameters:
-        - macroparticlenumber
-        - charge
-        - gamma
-        - mass
-
-        The dictionary coords_n_momenta_dict contains the coordinate and
+                 bucket_id=0, *args, **kwargs):
+        '''The dictionary coords_n_momenta_dict contains the coordinate and
         conjugate momenta names and assigns to each the corresponding array.
         e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
-
         '''
+
         self.macroparticlenumber = macroparticlenumber
         # self.intensity = intensity
 
@@ -466,7 +458,7 @@ class Particles(Printing):
 
         In the same manner we have here the bunch id to identify bunches as
         they have been initialized. This is used by the split function and
-        considerbaly speed up bunching as oposed to using a slicer. It is used
+        considerably speed up bunching as opposed to using a slicer. It is used
         by the multi-bunch wake fields where beams are split up into bunches
         making the wake computation across the full beam numerically efficient
         and feasible.
@@ -854,6 +846,7 @@ class Particles(Printing):
                 continue
             reordered = getattr(self, '_'+ attr)[permutation]
             setattr(self, '_'+ attr, reordered)
+        self.clean_slices()
 
     def __add__(self, other):
         '''Merges two beams.
