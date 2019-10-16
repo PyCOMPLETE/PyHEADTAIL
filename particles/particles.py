@@ -21,7 +21,7 @@ class ParticlesView(Printing):
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp, charge,
                  mass, circumference, gamma, coords_n_momenta_dict={},
-                 bucket_id=None,p_id=None, **kwargs):
+                 bucket_id=None, p_id=None, **kwargs):
         '''Fundamental parameters:
         - macroparticlenumber
         - charge
@@ -77,7 +77,7 @@ class ParticlesView(Printing):
 #        self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
         self.id = np.array(p_id, copy=False)
 #        print 'My unique ids: ' + str(np.unique(bucket_id))
-        
+
         self.bucket_id = np.array(bucket_id,copy=False)
 
         # '''Enables to specify a reference z position for every bunch - this is used
@@ -315,11 +315,11 @@ class ParticlesView(Printing):
         values. Pretty much the same as dict.update({...}) .
         Attention: overwrites existing coordinate / momentum attributes.
         '''
-        
+
 #        for v in coords_n_momenta_dict.values():
 #            print 'len(v): ' + str(len(v))
 #            print 'self.macroparticlenumber: ' + str(self.macroparticlenumber)
-        
+
         if any(len(v) != self.macroparticlenumber for v in
                coords_n_momenta_dict.values()):
             raise ValueError("lengths of given phase space coordinate arrays" +
@@ -794,7 +794,7 @@ class Particles(Printing):
         if self._bunch_views is None:
             print "I'm generating new views!"
             self._bunch_views = self.generate_views()
-            
+
         return self._bunch_views
 
     def generate_views(self):
@@ -807,13 +807,13 @@ class Particles(Printing):
             return list([self])
 
 #        ix = [self.bucket_id == id for id in ids]
-        
+
         bunches_list = []
-        
+
         for t_id in ids:
             i_from = np.min(np.where(self.bucket_id == t_id))
             i_to = np.max(np.where(self.bucket_id == t_id))+1
-            
+
             bunches_list.append(ParticlesView(
             macroparticlenumber=self.macroparticlenumber/len(ids),
             particlenumber_per_mp=self.particlenumber_per_mp,
