@@ -105,6 +105,7 @@ p0_z, p1_z = np.polyfit(tt, xx_z, 1)
 # ====
 
 plt.figure(1, figsize=(16, 8), tight_layout=True)
+
 plt.subplot(2,3,1)
 plt.plot(beam_x)
 plt.plot(np.max(beam_x)*np.exp(-tt/damping_time_x_turns), label= 'Damping time\nExpected :%.2e [s]'%(damping_time_x_turns*(machine.circumference/c)), lw=2, color = 'black')
@@ -112,6 +113,7 @@ plt.plot(np.exp(p1_x + tt * p0_x), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-
 plt.legend (loc=0, fontsize = 10)
 plt.ylabel('x [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+
 plt.subplot(2,3,2)
 plt.plot(beam_y)
 plt.plot(np.max(beam_y)*np.exp(-tt/damping_time_y_turns), label= 'Damping time\nExpected :%.2e [s]'%(damping_time_y_turns*(machine.circumference/c)), lw=2, color = 'black')
@@ -119,6 +121,7 @@ plt.plot(np.exp(p1_y + tt * p0_y), label= 'Evaluated :%.2e [s]\nERROR :%.2f'%((-
 plt.legend (loc=0, fontsize = 10)
 plt.ylabel('y [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+
 plt.subplot(2,3,3)
 plt.plot(beam_z)
 plt.plot((np.max(beam_z)-beam_z[-1])*np.exp(-tt/damping_time_z_turns)+beam_z[-1], label= 'Damping time\nExpected :%.2e [s]'%(damping_time_z_turns*(machine.circumference/c)), lw=2, color = 'black')
@@ -126,6 +129,7 @@ plt.plot(2*np.exp(p1_z + tt * p0_z)+ beam_z[-1], label= 'Evaluated :%.2e [s]\nER
 plt.legend (loc=0, fontsize = 10)
 plt.ylabel('z [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+
 plt.subplot(2,3,4)
 plt.plot(epsx)
 plt.axhline(eq_emit_x, label= 'Equilibrium emittance\nExpected :%.2e [s]'%(eq_emit_x), lw=2, color = 'black')
@@ -133,6 +137,7 @@ plt.axhline(epsx[-1], label= 'Evaluated :%.2e [s]\nERROR :%.2f'%(epsx[-1],np.abs
 plt.legend (loc=0, fontsize = 10)
 plt.ticklabel_format(useOffset=False, style='sci', scilimits=(0,0),axis='y')
 plt.ylabel('$\epsilon_x$ [m.rad]');plt.xlabel('Turn')
+
 plt.subplot(2,3,5)
 plt.plot(epsy)
 plt.axhline(eq_emit_y, label= 'Equilibrium emittance\nExpected :%.2e [s]'%(eq_emit_y), lw=2, color = 'black')
@@ -140,6 +145,7 @@ plt.axhline(epsy[-1], label= 'Evaluated :%.2e [s]\nERROR :%.2f'%(epsy[-1],np.abs
 plt.legend (loc=0, fontsize = 10)
 plt.ticklabel_format(useOffset=False, style='sci', scilimits=(0,0),axis='y')
 plt.ylabel('$\epsilon_y$ [m.rad]');plt.xlabel('Turn')
+
 plt.subplot(2,3,6)
 plt.plot(sdp)
 plt.axhline(eq_sig_dp, label= 'Equilibrium momentum spread\nExpected :%.2e'%(eq_sig_dp), lw=2, color = 'black')
