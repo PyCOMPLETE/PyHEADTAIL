@@ -752,14 +752,20 @@ class LinearMap(LongitudinalOneTurnMap):
         cosdQ_s = np.cos(dQ_s)  # use np because dQ_s is always a scalar
         sindQ_s = np.sin(dQ_s)  # use np because dQ_s is always a scalar
 
-        z0 = beam.z
-        dp0 = beam.dp
-
         # self.eta(0, beam.gamma) is identical to using first order eta!
         longfac = self.eta(0, beam.gamma) * beam.beta * c / omega_s
 
+        # TODO: Hack in order to cope with modified behaviour of particle coordinate
+        # assignment via properties. The new behaviour is not pythonic - should remove
+        # particle views soon!
+        # z0 = beam.z
+        # dp0 = beam.dp
+        z0 = np.copy(beam.z)
+        dp0 = np.copy(beam.dp)
+
         beam.z = z0 * cosdQ_s - longfac * dp0 * sindQ_s
         beam.dp = dp0 * cosdQ_s + z0 / longfac * sindQ_s
+
 
 class RFBox(Drift):
     '''Represents longitudinal square well potential.
