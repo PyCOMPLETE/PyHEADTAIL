@@ -682,7 +682,7 @@ class LinearMap(LongitudinalOneTurnMap):
     \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
-    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0,
+    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0, harmonics=1,
                  *args, **kwargs):
         '''Q_s is the synchrotron tune.
         D_x, D_y are the dispersions in horizontal and vertical direction.
@@ -711,6 +711,7 @@ class LinearMap(LongitudinalOneTurnMap):
         self.Q_s = Q_s
         self.D_x = D_x
         self.D_y = D_y
+        self.harmonics = harmonics
         if len(alpha_array) > 1:
             self.warns('The higher orders in the given alpha_array are ' +
                        'manifestly neglected.')
