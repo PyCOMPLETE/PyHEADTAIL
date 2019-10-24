@@ -234,8 +234,8 @@ class Synchrotron(Element):
 
         return bunch
 
-    def _create_6D_Gaussian_bunch(self, macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z,
-                                  sigma_z, bucket, matched=False):
+    def _create_6D_Gaussian_bunch(self, macroparticlenumber, intensity, epsn_x, epsn_y,
+                                  sigma_z, epsn_z, bucket, matched=False):
 
         epsx_geo = epsn_x / self.betagamma
         epsy_geo = epsn_y / self.betagamma
