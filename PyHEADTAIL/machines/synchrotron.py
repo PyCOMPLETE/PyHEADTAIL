@@ -5,6 +5,7 @@ from scipy.constants import c
 
 from ..general.decorators import deprecated
 from PyHEADTAIL.particles import generators
+from PyHEADTAIL.mpi import mpi_data
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.trackers.rf_bucket import RFBucket
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
@@ -32,6 +33,7 @@ class Synchrotron(Element):
         self.charge = charge
         self.mass = mass
         self.p0 = p0
+
         self.optics_mode = optics_mode
         self.longitudinal_mode = longitudinal_mode
 
@@ -121,58 +123,100 @@ class Synchrotron(Element):
                 one_turn_map_new.append(element_to_add)
         self.one_turn_map = one_turn_map_new
 
-    def generate_6D_Gaussian_bunch(self, n_macroparticles, intensity,
-                                   epsn_x, epsn_y, sigma_z):
-        '''Generate a 6D Gaussian distribution of particles which is
-        transversely matched to the Synchrotron. Longitudinally, the
-        distribution is matched only in terms of linear focusing.
-        For a non-linear bucket, the Gaussian distribution is cut along
-        the separatrix (with some margin). It will gradually filament
-        into the bucket. This will change the specified bunch length.
-        '''
-        if self.longitudinal_mode == 'linear':
-            check_inside_bucket = lambda z, dp: np.array(len(z)*[True])
-            Q_s = self.longitudinal_map.Q_s
-        elif self.longitudinal_mode == 'non-linear':
-            bucket = self.longitudinal_map.get_bucket(
-                gamma=self.gamma, mass=self.mass, charge=self.charge)
-            check_inside_bucket = bucket.make_is_accepted(margin=0.05)
-            Q_s = bucket.Q_s
+
+    ########################################################################
+    ### SINGLE AND MULTI BUNCH GENERATORS OF SYNCHROTRON CLASS
+    ########################################################################
+    def generate_6D_Gaussian_bunch(
+            self, n_macroparticles, intensity, epsn_x, epsn_y,
+            sigma_z=None, epsn_z=None, matched=False, filling_scheme=None):
+        """
+        :param macroparticlenumber:
+        :param intensity:
+        :param epsn_x:
+        :param epsn_y:
+        :param sigma_z:
+        :param epsn_z:
+        :param filling_scheme:
+            A list of bucket indices, which are filled. The index refers to the
+            harmonic bunch number, h_bunch.
+                h_bunch = circumference/bunch_spacing/c
+                        = h_rf/every_n_cycle_filled
+        :return: Beam/merged bunch, which includes all the particles simulated
+            on this processor.
+        """
+
+        macroparticlenumber = n_macroparticles
+
+        if filling_scheme is not None:
+            sorted_filling_scheme = list(reversed(sorted(filling_scheme)))
+
+            if mpi_data.num_procs() > len(filling_scheme):
+                raise Exception('\n*** The number of bunches should be larger ' +
+                                'or equal to the number of processors')
+
+            buckets_for_this_processor = mpi_data.my_tasks(sorted_filling_scheme)
+
+            print("*** I am rank {:d} - my buckets are {:s}".format(mpi_data.my_rank(), buckets_for_this_processor))
+
+            # uses a binary tree for merging the generated bunches
+
+            # a number of levels in the tree
+            n_levels = int(np.ceil(np.log(len(buckets_for_this_processor))/np.log(2)))+1
+            tree = []
+            for i in range(n_levels):
+                tree.append([])
+
+            # generates the bunches
+            for bucket in buckets_for_this_processor:
+                tree[0].append(self._create_6D_Gaussian_bunch(macroparticlenumber,
+                                                           intensity, epsn_x,
+                                                           epsn_y, epsn_z,
+                                                           sigma_z, bucket,
+                                                           matched))
+
+                # checks if there are two bunches on the level. In that case
+                # merges the bunches and moves the bunch into the upper level
+                for j in range(n_levels):
+                    if len(tree[j]) > 1:
+                        tree[j+1].append(tree[j][0]+tree[j][1])
+                        tree[j] = []
+                    else:
+                        break
+
+            bunch = None
+            gathering_level = None
+
+            # gathers the merged bunches from all the levels and returns
+            # the beam
+            for i in range(n_levels):
+                j = n_levels - 1 - i
+                if len(tree[j]) > 0:
+                    if gathering_level is None:
+                        gathering_level = j
+                    else:
+                        tree[gathering_level][0] = tree[gathering_level][0] + tree[j][0]
+                        tree[j][0] = []
+            return tree[gathering_level][0]
+
+# The original solution, which is orders of magnitude slower than the binary
+# tree approach
+#
+#            bunches = [self._create_6D_Gaussian_bunch(
+#                macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z, sigma_z, bucket, matched)
+#                for bucket in buckets_for_this_processor]
+#
+#            bunch = sum(bunches)  # superbunch
+
         else:
-            raise NotImplementedError(
-                'Something wrong with self.longitudinal_mode')
+            bunch = self._create_6D_Gaussian_bunch(
+                macroparticlenumber, intensity, epsn_x, epsn_y, sigma_z, epsn_z, bucket=0, matched=matched)
 
-        eta = self.longitudinal_map.alpha_array[0] - self.gamma**-2
-        beta_z = np.abs(eta)*self.circumference/2./np.pi/Q_s
-        sigma_dp = sigma_z/beta_z
-        epsx_geo = epsn_x/self.betagamma
-        epsy_geo = epsn_y/self.betagamma
-
-        injection_optics = self.transverse_map.get_injection_optics()
-
-        bunch = generators.ParticleGenerator(
-            macroparticlenumber=n_macroparticles,
-            intensity=intensity, charge=self.charge, mass=self.mass,
-            circumference=self.circumference, gamma=self.gamma,
-            distribution_x=generators.gaussian2D(epsx_geo),
-            alpha_x=injection_optics['alpha_x'],
-            beta_x=injection_optics['beta_x'],
-            D_x=injection_optics['D_x'],
-            distribution_y=generators.gaussian2D(epsy_geo),
-            alpha_y=injection_optics['alpha_y'],
-            beta_y=injection_optics['beta_y'],
-            D_y=injection_optics['D_y'],
-            distribution_z=generators.cut_distribution(
-                generators.gaussian2D_asymmetrical(
-                    sigma_u=sigma_z, sigma_up=sigma_dp),
-                is_accepted=check_inside_bucket),
-        ).generate()
-
-        return bunch
+            return bunch
 
     def generate_6D_Gaussian_bunch_matched(
             self, n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z=None, epsn_z=None):
+            sigma_z=None, epsn_z=None, filling_scheme=None):
         '''Generate a 6D Gaussian distribution of particles which is
         transversely as well as longitudinally matched.
         The distribution is found iteratively to exactly yield the
@@ -184,16 +228,53 @@ class Synchrotron(Element):
         Requires self.longitudinal_mode == 'non-linear'
         for the bucket.
         '''
-        assert self.longitudinal_mode == 'non-linear'
-        epsx_geo = epsn_x/self.betagamma
-        epsy_geo = epsn_y/self.betagamma
+
+        bunch = self.generate_6D_Gaussian_bunch(n_macroparticles, intensity, epsn_x, epsn_y,
+            sigma_z=sigma_z, epsn_z=epsn_z, matched=True, filling_scheme=filling_scheme)
+
+        return bunch
+
+    def _create_6D_Gaussian_bunch(self, macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z,
+                                  sigma_z, bucket, matched=False):
+
+        epsx_geo = epsn_x / self.betagamma
+        epsy_geo = epsn_y / self.betagamma
+
+        C = self.longitudinal_map.circumference
+        h = np.min(self.longitudinal_map.harmonics)
 
         injection_optics = self.transverse_map.get_injection_optics()
 
+        if not matched:
+            if self.longitudinal_mode == 'linear':
+                check_inside_bucket = lambda z, dp: np.array(len(z)*[True])
+                Q_s = self.longitudinal_map.Q_s
+            elif self.longitudinal_mode == 'non-linear':
+                bucket = self.longitudinal_map.get_bucket(
+                    gamma=self.gamma, mass=self.mass, charge=self.charge)
+                check_inside_bucket = bucket.make_is_accepted(margin=0.05)
+                Q_s = bucket.Q_s
+            else:
+                raise NotImplementedError(
+                    'Something wrong with self.longitudinal_mode')
+
+            eta = self.longitudinal_map.alpha_array[0] - self.gamma ** -2
+            beta_z = np.abs(eta) * C / 2. / np.pi / Q_s
+            sigma_dp = sigma_z / beta_z
+
+            longitudinal_distribution = generators.cut_distribution(
+                    generators.gaussian2D_asymmetrical(sigma_u=sigma_z, sigma_up=sigma_dp),
+                    is_accepted=check_inside_bucket)
+        else:
+            assert self.longitudinal_mode == 'non-linear'
+
+            longitudinal_distribution = generators.RF_bucket_distribution(
+                self.longitudinal_map.get_bucket(gamma=self.gamma), sigma_z=sigma_z, epsn_z=epsn_z)
+
         bunch = generators.ParticleGenerator(
-            macroparticlenumber=n_macroparticles,
-            intensity=intensity, charge=self.charge, mass=self.mass,
-            circumference=self.circumference, gamma=self.gamma,
+            macroparticlenumber=macroparticlenumber, intensity=intensity,
+            charge=self.charge, gamma=self.gamma, mass=self.mass,
+            circumference=self.circumference,
             distribution_x=generators.gaussian2D(epsx_geo),
             alpha_x=injection_optics['alpha_x'],
             beta_x=injection_optics['beta_x'],
@@ -202,12 +283,18 @@ class Synchrotron(Element):
             alpha_y=injection_optics['alpha_y'],
             beta_y=injection_optics['beta_y'],
             D_y=injection_optics['D_y'],
-            distribution_z=generators.RF_bucket_distribution(
-                self.longitudinal_map.get_bucket(gamma=self.gamma),
-                sigma_z=sigma_z, epsn_z=epsn_z)).generate()
+            distribution_z=longitudinal_distribution,
+            bucket_id=bucket).generate()
 
         return bunch
 
+
+
+    ###########################################################################
+    ####  MPI modifications  ##################################################
+    ###########################################################################
+
+    # TODO: How about class names here?
     def _construct_transverse_map(
             self, optics_mode=None,
             circumference=None, n_segments=None, s=None, name=None,
@@ -334,7 +421,8 @@ class Synchrotron(Element):
                 np.atleast_1d(alpha_mom_compaction),
                 self.circumference, Q_s,
                 D_x=self.transverse_map.D_x[insert_before],
-                D_y=self.transverse_map.D_y[insert_before])
+                D_y=self.transverse_map.D_y[insert_before],
+                harmonics=np.min(np.atleast_1d(h_RF)))
 
         elif longitudinal_mode == 'non-linear':
                 self.longitudinal_map = RFSystems(
@@ -380,34 +468,6 @@ class Synchrotron(Element):
         else:
             raise NotImplementedError(
                 'Something wrong with longitudinal_mode')
-
-
-''' The below doesn't work well... this we need to think of how to do it
-properly. It does not seem to be a common problem in any case.
-
-
-@deprecated('--> "BasicSynchrotron" will be removed '
-            'in the near future. Use "Synchrotron" instead.\n')
-class BasicSynchrotron(Synchrotron):
-    pass
-'''
-
-# @deprecated_class('--> "BasicSynchrotron" will be removed '
-#             'in the near future. Use "Synchrotron" instead.\n')
-# class BasicSynchrotron(Synchrotron):
-#     pass
-
-# class BasicSynchrotron(Synchrotron):
-#     @deprecated('"--> BasicSynchrotron" will be deprecated ' +
-#                 'in the near future. Use "Synchrotron" instead.\n')
-#     def __init__(self, *args, **kwargs):
-#         Synchrotron.__init__(self, *args, **kwargs)
-
-
-# @deprecated('--> "BasicSynchrotron" will be removed '
-#             'in the near future. Use "Synchrotron" instead.\n')
-# def BasicSynchrotron(*args, **kwargs):
-#     return Synchrotron(*args, **kwargs)
 
 
 
