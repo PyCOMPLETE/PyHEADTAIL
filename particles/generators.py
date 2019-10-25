@@ -3,6 +3,7 @@
 @date 30.03.2015
 @brief module for generating & matching particle distributions
 '''
+
 from __future__ import division
 
 import numpy as np
@@ -10,8 +11,14 @@ from functools import partial
 from scipy.optimize import brentq, newton
 from scipy.constants import m_p, c, e
 
-from . import Printing
 from particles import Particles
+from rfbucket_matching import RFBucketMatcher, ThermalDistribution
+
+# backwards compatibility:
+StationaryExponential = ThermalDistribution
+
+from . import Printing
+
 from ..cobra_functions.pdf_integrators_2d import quad2d
 
 
@@ -27,7 +34,7 @@ def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
     Returns: A particle instance with the phase space matched to the arguments
     """
     beta = np.sqrt(1.-gamma**(-2))
-    p0 = np.sqrt(gamma**2 -1) * mass * c
+    p0 = np.sqrt(gamma**2 - 1) * mass * c
     eps_geo_x = epsn_x/(beta*gamma)
     eps_geo_y = epsn_y/(beta*gamma)
     eps_geo_z = epsn_z * e / (4. * np.pi * p0)
@@ -39,7 +46,7 @@ def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
     Qs = 1./(2 * np.pi)
     eta = beta_z / circumference
     return ParticleGenerator(
-        macroparticlenumber, intensity, charge, mass, circumference, gamma,0,
+        macroparticlenumber, intensity, charge, mass, circumference, gamma, 0,
         gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
         gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
         gaussian2D(eps_geo_z), Qs, eta
@@ -131,7 +138,8 @@ def longitudinal_linear_matcher(Qs, eta, C):
 
 
 def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
-                           margin=0, *args, **kwargs):
+                           margin=0, distribution_type=ThermalDistribution,
+                           *args, **kwargs):
     '''Return a distribution function which generates particles
     which are matched to the specified bucket and target emittance or std
     Specify only one of sigma_z, epsn_z
@@ -141,12 +149,15 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
         epsn_z: target normalized emittance in z-direction
         margin: relative margin from the separatrix towards the
             inner stable fix point in which particles are avoided
+        distribution_type: longitudinal distribution type from
+            rfbucket_matching (default is ThermalDistribution which
+            produces a Gaussian-like matched Boltzmann distribution)
     Returns:
         A matcher with the specified bucket properties (closure)
     Raises:
         ValueError: If neither or both of sigma_z, epsn_z are specified
     '''
-    rf_bucket_matcher_impl = RFBucketMatcher(rfbucket, StationaryExponential,
+    rf_bucket_matcher_impl = RFBucketMatcher(rfbucket, distribution_type,
                                              sigma_z=sigma_z, epsn_z=epsn_z,
                                              *args, **kwargs)
 
@@ -157,21 +168,30 @@ def RF_bucket_distribution(rfbucket, sigma_z=None, epsn_z=None,
 
 
 def cut_distribution(distribution, is_accepted):
-    """ Generate coordinates according to some distribution inside the region
-    specified by is_accepted. (Wrapper for distributions, based on RF_cut..)
+    """Generate coordinates according to some distribution inside the
+    region specified by where the function is_accepted returns 1.
+    (Wrapper for distributions, based on RF_cut..)
     Args:
-        is_accepted: function taking two parameters (z,dp) and returns an
-                     array [0,1] specifying whether the coordinate lies
-                     inside the desired phase space volume. Possible sources
-                     are the rfbucket.make_is_accepted(...)
-        sigma_z: std of the normally distributed z coordinates
-        sigma_dp: std of the normally distributed dp coordinates
+        distribution: a function which takes the n_particles as a
+                      parameter and returns a list-like object
+                      containing a 2D phase space. result[0] should
+                      stand for the spatial, result[1] for the momentum
+                      coordinate
+        is_accepted: function taking two parameters (z, dp)
+                     [vectorised as arrays] and returning a boolean
+                     specifying whether the coordinate lies
+                     inside the desired phase space volume. A possible
+                     source to provide such an is_accepted function
+                     is the RFBucket.make_is_accepted or
+                     generators.make_is_accepted_within_n_sigma .
     Returns:
         A matcher with the specified bucket properties (closure)
     """
     def _cut_distribution(n_particles):
-        '''Removes all particles for which is_accepted(x,x') is false
-        and redistributes them until all lie inside the bucket
+        '''Regenerates all particles which fall outside a previously
+        specified phase space region (via the function is_accepted
+        in generators.cut_distribution) until all generated particles
+        have valid coordinates and momenta.
         '''
         z = np.zeros(n_particles)
         dp = np.zeros(n_particles)
@@ -187,6 +207,32 @@ def cut_distribution(distribution, is_accepted):
             mask_out = ~is_accepted(z, dp)
         return [z, dp]
     return _cut_distribution
+
+def make_is_accepted_within_n_sigma(epsn_rms, limit_n_rms, twiss_beta=1):
+    '''Closure creating an is_accepted function (e.g. for
+    cut_distribution). The is_accepted function will return whether
+    the canonical coordinate and momentum pair lies within the phase
+    space region limited by the action value limit_n_rms * epsn_rms.
+
+    Coordinate u and momentum up are assumed to be connected to the
+    amplitude J via the twiss_beta value,
+    J = sqrt(u^2 + twiss_beta^2 up^2) .
+    The amplitude is required to be below the limit to be accepted,
+    J < limit_n_rms * epsn_rms.
+    The usual use case will be generating u and up in normalised Floquet
+    space (i.e. before the normalised phase space coordinates
+    get matched to the optics or longitudinal eta and Qs).
+    In this case, twiss_beta takes the default value 1 in normalised
+    Floquet space. Consequently, the 1 sigma RMS reference value
+    epsn_rms corresponds to the normalised 1 sigma RMS emittance
+    (i.e. amounting to beam.epsn_x() and beam.epsn_y() in the transverse
+    plane, and beam.epsn_z()/4 in the longitudinal plane).
+    '''
+    threshold_amplitude_squared = (limit_n_rms * epsn_rms)**2
+    def is_accepted(u, up):
+        Jsq = u**2 + (twiss_beta * up)**2
+        return Jsq < threshold_amplitude_squared
+    return is_accepted
 
 
 class ParticleGenerator(Printing):
@@ -248,8 +294,8 @@ class ParticleGenerator(Printing):
             pass
 
         if Qs is not None and eta is not None:  # match longitudinally iff
-            self.linear_matcher_z = longitudinal_linear_matcher(Qs, eta,
-                                                                circumference)
+            self.linear_matcher_z = longitudinal_linear_matcher(
+                Qs, eta, circumference)
         else:
             self.linear_matcher_z = None
         self.linear_matcher_x = transverse_linear_matcher(alpha_x, beta_x, D_x)
@@ -458,8 +504,8 @@ def kv2D(r_u, r_up):
         '''
         rand = np.random.uniform(low=-0.5, high=0.5, size=n_particles)
         u = np.sin(2 * np.pi * rand)
-        sign = (-1)**np.random.randint(2, size=n_particles)
         r = np.where(u > 1, 2 - u, u)
+        sign = (-1)**np.random.randint(2, size=n_particles)
         up = sign * np.sqrt(1. - r**2)
         return [u, up]
     return _kv2d
@@ -711,4 +757,4 @@ class HEADTAILcoords(object):
     '''The classic HEADTAIL phase space.'''
     coordinates = ('x', 'xp', 'y', 'yp', 'z', 'dp')
     transverse = coordinates[:4]
-    luongitudinal = coordinates[-2:]
+    longitudinal = coordinates[-2:]
