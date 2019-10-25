@@ -214,8 +214,8 @@ class Synchrotron(Element):
 
             return bunch
 
-    def _create_6D_Gaussian_bunch(self, macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z,
-                                  sigma_z, bucket, matched=False):
+    def _create_6D_Gaussian_bunch(self, macroparticlenumber, intensity, epsn_x, epsn_y,
+                                  sigma_z, epsn_z, bucket, matched=False):
 
         epsx_geo = epsn_x / self.betagamma
         epsy_geo = epsn_y / self.betagamma
@@ -565,7 +565,8 @@ class Synchrotron(Element):
             raise ValueError('optics_mode not recognized')
 
         detuners = []
-        if Qp_x != 0 or Qp_y != 0:
+        if any(np.atleast_1d(Qp_x) != 0) or \
+                any(np.atleast_1d(Qp_y) != 0):
             detuners.append(Chromaticity(Qp_x, Qp_y))
         if app_x != 0 or app_y != 0 or app_xy != 0:
             detuners.append(AmplitudeDetuning(app_x, app_y, app_xy))
@@ -673,7 +674,9 @@ class Synchrotron(Element):
             self.one_turn_map.insert(insert_before, self.longitudinal_map)
 
     def _add_wrapper_and_buncher(self):
-
+        '''Add longitudinal z wrapping around the circumference as
+        well as a UniformBinSlicer for bunching the beam.
+        '''
         if self.longitudinal_mode is None:
             return
 
@@ -698,8 +701,17 @@ class Synchrotron(Element):
                 'Something wrong with longitudinal_mode')
 
 
+
+import warnings
 class BasicSynchrotron(Synchrotron):
-    @deprecated('"--> BasicSynchrotron" will be deprecated ' +
-                'in the near future. Use "Synchrotron" instead.\n')
+
     def __init__(self, *args, **kwargs):
+
+        warnings.simplefilter('always', DeprecationWarning)
+        warnings.warn('\n\n*** DEPRECATED: "BasicSynchrotron" will be replaced in a future '
+                      'PyHEADTAIL release! You may want to use "Synchrotron" instead.',
+                      category=DeprecationWarning, stacklevel=2)
+        warnings.simplefilter('default', DeprecationWarning)
+
         Synchrotron.__init__(self, *args, **kwargs)
+
