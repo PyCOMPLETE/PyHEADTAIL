@@ -171,8 +171,8 @@ class Synchrotron(Element):
             for bucket in buckets_for_this_processor:
                 tree[0].append(self._create_6D_Gaussian_bunch(macroparticlenumber,
                                                            intensity, epsn_x,
-                                                           epsn_y, epsn_z,
-                                                           sigma_z, bucket,
+                                                           epsn_y, sigma_z,
+                                                           epsn_z, bucket,
                                                            matched))
 
                 # checks if there are two bunches on the level. In that case
@@ -203,7 +203,7 @@ class Synchrotron(Element):
 # tree approach
 #
 #            bunches = [self._create_6D_Gaussian_bunch(
-#                macroparticlenumber, intensity, epsn_x, epsn_y, epsn_z, sigma_z, bucket, matched)
+#                macroparticlenumber, intensity, epsn_x, epsn_y, sigma_z, epsn_z, bucket, matched)
 #                for bucket in buckets_for_this_processor]
 #
 #            bunch = sum(bunches)  # superbunch
