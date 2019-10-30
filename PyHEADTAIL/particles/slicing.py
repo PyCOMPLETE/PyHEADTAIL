@@ -67,8 +67,8 @@ class SliceSet(Printing):
     '''
 
     def __init__(self, z_bins, slice_index_of_particle, mode,
-                 n_macroparticles_per_slice=None,
-                 beam_parameters={}):
+                 n_macroparticles_per_slice=None, beam_parameters={},
+                 circumference=None, h_bunch=None, bucket_id=None):
         '''Is intended to be created by the Slicer factory method.
         A SliceSet is given a set of intervals defining the slicing
         region and the histogram over the thereby defined slices.
@@ -102,6 +102,11 @@ class SliceSet(Printing):
         slice.
         '''
         self._n_macroparticles_per_slice = n_macroparticles_per_slice
+
+        self.circumference = circumference
+        self.h_bunch = h_bunch
+        self.bucket_id = bucket_id
+
         self._particles_within_cuts = None
         self._particles_outside_cuts = None
         self._pidx_begin = None
@@ -327,13 +332,16 @@ class Slicer(Printing):
 
     @property
     def config(self):
-        return (self.mode, self.n_slices, self.n_sigma_z, self.z_cuts)
+        return (self.mode, self.n_slices, self.n_sigma_z, self.z_cuts,
+                self.circumference, self.h_bunch)
     @config.setter
     def config(self, value):
         self.mode = value[0]
         self.n_slices = value[1]
         self.n_sigma_z = value[2]
         self.z_cuts = value[3]
+        self.circumference = value[4]
+        self.h_bunch = value[5]
         if(self.z_cuts != None and self.z_cuts[0] >= self.z_cuts[1]):
             self.warns('Slicer.config: z_cut_tail >= z_cut_head,'+
                        ' this leads to negative ' +
@@ -378,6 +386,8 @@ class Slicer(Printing):
         sliceset_kwargs['beam_parameters'] = (
             self.extract_beam_parameters(beam))
         sliceset_kwargs['beam_parameters']['is_sorted'] = is_sorted
+        sliceset_kwargs['circumference'] = self.circumference
+        sliceset_kwargs['h_bunch'] = self.h_bunch
         sliceset = SliceSet(**sliceset_kwargs)
         if 'statistics' in kwargs:
             self.add_statistics(sliceset, beam, kwargs['statistics'])
@@ -536,7 +546,8 @@ class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
 
     def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
-                 z_sample_points=None, *args, **kwargs):
+                 z_sample_points=None, circumference=None, h_bunch=None,
+                 *args, **kwargs):
         '''
         Return a UniformBinSlicer object. Set and store the
         corresponding slicing configuration in self.config.
@@ -554,7 +565,7 @@ class UniformBinSlicer(Slicer):
                        " combination of z_cuts and z_sampling_points.")
             n_slices, z_cuts = self._get_slicing_from_z_sample_points(
                 z_sample_points, z_cuts)
-        self.config = (mode, n_slices, n_sigma_z, z_cuts)
+        self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
 
     def _get_slicing_from_z_sample_points(self, z_sample_points, z_cuts=None):
         '''
@@ -578,23 +589,23 @@ class UniformBinSlicer(Slicer):
 
         # Extend/compress edges
         if z_cuts:
-            if z_cuts[0]<aa:
-                while z_cuts[0]<aa:
+            if z_cuts[0] < aa:
+                while z_cuts[0] < aa:
                     aa -= dz
                     n_slices += 1
-            elif z_cuts[0]>aa:
-                while z_cuts[0]>aa:
+            elif z_cuts[0] > aa:
+                while z_cuts[0] > aa:
                     aa += dz
                     n_slices -= 1
 
-            if z_cuts[1]<bb:
-                while z_cuts[1]<bb:
+            if z_cuts[1] < bb:
+                while z_cuts[1] < bb:
                     bb -= dz
-                    n_slices -=1
-            elif z_cuts[1]>bb:
-                while z_cuts[1]>bb:
+                    n_slices -= 1
+            elif z_cuts[1] > bb:
+                while z_cuts[1] > bb:
                     bb += dz
-                    n_slices +=1
+                    n_slices += 1
         z_cuts = (aa, bb)
 
         return n_slices, z_cuts
@@ -615,7 +626,8 @@ class UniformBinSlicer(Slicer):
 
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
-                    mode='uniform_bin')
+                    mode='uniform_bin',
+                    bucket_id=beam.bucket_id[0])
 
 
 class UniformChargeSlicer(Slicer):
@@ -623,7 +635,8 @@ class UniformChargeSlicer(Slicer):
     slicing region.
     '''
 
-    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None, *args, **kwargs):
+    def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
+                 circumference=None, h_bunch=None, *args, **kwargs):
         '''
         Return a UniformChargeSlicer object. Set and store the
         corresponding slicing configuration in self.config .
@@ -634,7 +647,7 @@ class UniformChargeSlicer(Slicer):
             raise ValueError("Both arguments n_sigma_z and z_cuts are" +
                              " given while only one is accepted!")
         mode = 'uniform_charge'
-        self.config = (mode, n_slices, n_sigma_z, z_cuts)
+        self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
 
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
@@ -686,4 +699,5 @@ class UniformChargeSlicer(Slicer):
         return dict(z_bins=z_bins,
                     slice_index_of_particle=slice_index_of_particle,
                     mode='uniform_charge',
-                    n_macroparticles_per_slice=n_part_per_slice)
+                    n_macroparticles_per_slice=n_part_per_slice,
+                    bucket_id=beam.bucket_id[0])
