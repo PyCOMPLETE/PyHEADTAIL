@@ -14,7 +14,8 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from scipy import ndimage, interpolate
+from scipy import ndimage
+from scipy import interpolate
 from scipy.constants import c, e
 
 from random import sample
@@ -35,6 +36,7 @@ def make_int32(array):
 class ModeIsUniformCharge(Exception):
     def __init__(self, message):
         self.message = message
+
     def __str__(self):
         return self.message
 
@@ -58,12 +60,11 @@ def clean_slices(long_track_method):
 
 
 class SliceSet(Printing):
-    '''Defines a set of longitudinal slices. It's a blueprint or photo
-    of a beam's longitudinal profile. It knows where the slices are
-    located, how many and which particles there are in which slice. All
-    its attributes refer to the state of the beam at creation time of
-    the SliceSet. Hence, it must never be updated with new
-    distributions, rather, a new SliceSet needs to be created.
+    '''Defines a set of longitudinal slices. It's a blueprint or photo of a beam's
+    longitudinal profile. It knows where the slices are located, how many and
+    which particles there are in which slice. All its attributes refer to the
+    state of the beam at creation time of the SliceSet. Hence, it must never be
+    updated with new distributions, rather, a new SliceSet needs to be created.
     '''
 
     def __init__(self, z_bins, slice_index_of_particle, mode,
@@ -130,7 +131,17 @@ class SliceSet(Printing):
 
     @property
     def z_centers(self):
-        return self.z_bins[:-1] + 0.5 * (self.z_bins[1:] - self.z_bins[:-1])
+        if (self.circumference is not None) and (self.h_bunch is not None):
+            offset = -self.bucket_id*self.circumference/float(self.h_bunch)
+        else:
+            offset = 0.
+            
+        return self.z_bins[:-1] + 0.5 * (self.z_bins[1:] - self.z_bins[:-1])+offset
+
+    @property
+    def t_centers(self):
+        
+        return self.convert_to_time(self.z_centers)
 
     @property
     def n_slices(self):
@@ -244,7 +255,7 @@ class SliceSet(Printing):
         return lambda_of_bins
 
     def lambda_prime_bins(self, sigma=None, smoothen_before=True,
-                                smoothen_after=True):
+                          smoothen_after=True):
         '''Return array of length (n_slices - 1) containing
         the derivative of the line charge density \lambda
         w.r.t. the slice bins while smoothing via a Gaussian filter.
@@ -302,7 +313,7 @@ class SliceSet(Printing):
         '''Return an array of particle indices which are located in the
         slice defined by the given slice_index.
         '''
-        pos      = self.slice_positions[slice_index]
+        pos = self.slice_positions[slice_index]
         next_pos = self.slice_positions[slice_index + 1]
 
         return self.particle_indices_by_slice[pos:next_pos]
@@ -343,7 +354,7 @@ class Slicer(Printing):
         self.circumference = value[4]
         self.h_bunch = value[5]
         if(self.z_cuts != None and self.z_cuts[0] >= self.z_cuts[1]):
-            self.warns('Slicer.config: z_cut_tail >= z_cut_head,'+
+            self.warns('Slicer.config: z_cut_tail >= z_cut_head,' +
                        ' this leads to negative ' +
                        'bin sizes and particle indices starting at the head')
 
@@ -684,7 +695,7 @@ class UniformChargeSlicer(Slicer):
 
         z_bins = np.empty(self.n_slices + 1)
         z_bins[1:-1] = ((z_sorted[first_indices[1:-1]-1] +
-            z_sorted[first_indices[1:-1]]) / 2)
+                         z_sorted[first_indices[1:-1]]) / 2)
         z_bins[0], z_bins[-1] = z_cut_tail, z_cut_head
 
         slice_index_of_particle_sorted = -np.ones(n_part, dtype=np.int32)
