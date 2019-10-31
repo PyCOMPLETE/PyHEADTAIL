@@ -215,7 +215,7 @@ class Synchrotron(Element):
             return bunch
 
     def _create_6D_Gaussian_bunch(self, macroparticlenumber, intensity, epsn_x, epsn_y,
-                                  sigma_z, epsn_z, bucket, matched=False):
+                                  sigma_z, epsn_z, bucket_id, matched=False):
 
         epsx_geo = epsn_x / self.betagamma
         epsy_geo = epsn_y / self.betagamma
@@ -230,10 +230,10 @@ class Synchrotron(Element):
                 check_inside_bucket = lambda z, dp: np.array(len(z)*[True])
                 Q_s = self.longitudinal_map.Q_s
             elif self.longitudinal_mode == 'non-linear':
-                bucket = self.longitudinal_map.get_bucket(
+                rf_bucket = self.longitudinal_map.get_bucket(
                     gamma=self.gamma, mass=self.mass, charge=self.charge)
-                check_inside_bucket = bucket.make_is_accepted(margin=0.05)
-                Q_s = bucket.Q_s
+                check_inside_bucket = rf_bucket.make_is_accepted(margin=0.05)
+                Q_s = rf_bucket.Q_s
             else:
                 raise NotImplementedError(
                     'Something wrong with self.longitudinal_mode')
@@ -264,7 +264,7 @@ class Synchrotron(Element):
             beta_y=injection_optics['beta_y'],
             D_y=injection_optics['D_y'],
             distribution_z=longitudinal_distribution,
-            bucket_id=bucket).generate()
+            bucket_id=bucket_id).generate()
 
         return bunch
 
