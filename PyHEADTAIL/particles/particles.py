@@ -75,8 +75,8 @@ class ParticlesView(Printing):
         and feasible.
 
         '''
-#        self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
-        self.id = np.array(p_id, copy=False)
+        # self._id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
+        self._id = np.array(p_id, copy=False)
 #        print 'My unique ids: ' + str(np.unique(bucket_id))
 
         self.bucket_id = np.array(bucket_id,copy=False)
