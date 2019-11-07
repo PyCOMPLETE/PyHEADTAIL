@@ -10,7 +10,6 @@ import numpy as np
 import os
 import gpu_utils
 import math
-from functools import wraps
 try:
     import skcuda.misc
     import pycuda.gpuarray
@@ -226,8 +225,8 @@ if has_pycuda:
                   'else notclose[i] = 0;',
         name='allclose_kernel'
     )
-    np_allclose_defaults = np.allclose.func_defaults # (rtol, atol, equal_nan)
-    @wraps(np.allclose)
+    np_allclose_defaults = 1e-05, 1e-08, False
+    #np.allclose.func_defaults # (rtol, atol, equal_nan)
     def allclose(a, b, rtol=np_allclose_defaults[0],
                  atol=np_allclose_defaults[1], out=None, stream=None):
         assert a.shape == b.shape
