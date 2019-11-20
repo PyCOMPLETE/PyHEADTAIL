@@ -145,7 +145,7 @@ for i in range(n_turns):
         ax.set_ylabel('$\sigma_{dp}$', fontsize=size_font)
         ax.ticklabel_format(style='sci', scilimits=(0,0), axis='y', useOffset = False)
         
-	plt.suptitle('Longitudinal phase space is samples "opposite" to the kicks (half drift occurred).')	
+	plt.suptitle('Longitudinal phase space is sampled "opposite" to the kicks (half drift occurred).')
 
         #plt.savefig('mismatched_nonlinear_' + '%02d'%i + '.png', dpi=150)
         
