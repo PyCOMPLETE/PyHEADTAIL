@@ -210,7 +210,7 @@ class Synchrotron(Element):
 
         else:
             bunch = self._create_6D_Gaussian_bunch(
-                macroparticlenumber, intensity, epsn_x, epsn_y, sigma_z, epsn_z, bucket=0, matched=matched)
+                macroparticlenumber, intensity, epsn_x, epsn_y, sigma_z, epsn_z, bucket_id=0, matched=matched)
 
             return bunch
 
