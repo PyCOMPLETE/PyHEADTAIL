@@ -113,7 +113,7 @@ class WakeField(Element):
         if ((n_turns_wake_max > 1) or (mpi is not None)) and ((self.circumference is None) or (self.h_bunch is None)):
             raise ValueError(
                 """ The circumference and h_bunch must be given to the slicer
-                as an input parameter if multi turn ort multi bunch wakes are used!""")
+                as an input parameter if multi turn or multi bunch wakes are used!""")
 
         if mpi == 'circular_mpi_full_ring_fft':
             if (not 'Q_x' in kwargs) or (not 'Q_y' in kwargs) or\
