@@ -140,6 +140,13 @@ class WakeKick(Printing):
         convolutions weighted by the respective moments. Also updates
         the age of each slice set.
         """
+        ##########
+        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+        betas_list = [s.beta for s in slice_set_list]
+        moments_list = [s.n_macroparticles_per_slice
+for s in slice_set_list]
+        ############
+
         target_times = times_list[0]
         accumulated_signal = 0
 
@@ -176,6 +183,7 @@ class WakeKick(Printing):
 
         bunch_offset = []
         for b in bunches:
+            print(b.bucket_id[0], h_bunch)
             bunch_offset.append(-b.bucket_id[0]*circumference/float(h_bunch))
 
         # Isolate the local_bunch_indexes from slice_set_list. After that, it
@@ -299,7 +307,7 @@ class WakeKick(Printing):
         n_slices = len(all_slice_sets[0].mean_x)
 
         # number of extra slices added to each side of the bunch
-        empty_space_per_side = int(math.ceil(n_slices/2.))
+        empty_space_per_side = int(np.ceil(n_slices/2.))
 
         # total number of bins per bunch
         self._n_bins_per_kick = (n_slices + 2*empty_space_per_side)
@@ -447,7 +455,7 @@ class WakeKick(Printing):
         n_slices = len(all_slice_sets[0].mean_x)
 
         # number of extra slices to be added to each side of the bunch
-        empty_space_per_side = int(math.ceil(n_slices/2.))
+        empty_space_per_side = int(np.ceil(n_slices/2.))
 
         # total number of bins per bunch
         self._n_bins_per_kick = (n_slices + 2*empty_space_per_side)
@@ -827,7 +835,12 @@ class ConstantWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        if optimization_method is None:
+
+        if h_bunch is None:
+            constant_kick = self._accumulate_source_signal(
+                bunch, times_list, slice_set_age_list, moments_list, betas_list)
+
+        elif optimization_method is None:
             constant_kick = self._accumulate_source_signal_multibunch(
                     bunch_list, all_slice_sets, circumference=circumference,
                     h_bunch=h_bunch)
@@ -838,8 +851,6 @@ class ConstantWakeKickX(WakeKick):
                                                        local_bunch_indexes,
                                                        optimization_method)
 
-        constant_kick = self._accumulate_source_signal(
-            bunch, times_list, slice_set_age_list, moments_list, betas_list)
         for i, bunch in enumerate(bunch_list):
             slices = bunch.get_slices(self.slicer)
             p_idx = slices.particles_within_cuts
@@ -1188,4 +1199,4 @@ class QuadrupoleWakeKickYX(WakeKick):
             p_idx = s.particles_within_cuts
             s_idx = pm.take(s.slice_index_of_particle, p_idx)
             b.yp[p_idx] += pm.take(quadrupole_kick[i].real, s_idx) * pm.take(b.x, p_idx)
-            b.y[p_idx] += pm.takequadrupole_kick[i].imag, s_idx) * pm.take(b.x, p_idx)
+            b.y[p_idx] += pm.take(quadrupole_kick[i].imag, s_idx) * pm.take(b.x, p_idx)
