@@ -146,7 +146,7 @@ for i in range(n_turns):
 
         #plt.savefig('mismatched_nonlinear_' + '%02d'%i + '.png', dpi=150)
 
-        time.sleep(.1)
+        plt.pause(.001)
         plt.draw()
 
 
