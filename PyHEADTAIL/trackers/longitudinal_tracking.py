@@ -178,7 +178,7 @@ class Kick(LongitudinalMap):
         except AttributeError as e:
             self.warns("Failed to apply transverse dispersion correction "
                        "during longitudinal tracking. Caught AttributeError: \n"
-                       + e.message + "\nContinue without adjusting dispersion "
+                       + str(e) + "\nContinue without adjusting dispersion "
                        "contribution when changing beam.dp...")
             self.track = self.track_without_dispersion
 
@@ -564,7 +564,7 @@ class RFSystems(LongitudinalOneTurnMap):
         except AttributeError as e:
             self.warns("Failed to apply transverse acceleration " +
                        "cooling. Caught AttributeError: \n" +
-                       e.message + "\nContinue without shrinking " +
+                       str(e) + "\nContinue without shrinking " +
                        "transverse emittance...")
             self.track = self.track_no_transverse_shrinking
 
@@ -728,7 +728,7 @@ class LinearMap(LongitudinalOneTurnMap):
         except AttributeError as e:
             self.warns("Failed to apply transverse dispersion correction "
                        "during longitudinal tracking. Caught AttributeError: \n"
-                       + e.message + "\nContinue without adjusting dispersion "
+                       + str(e) + "\nContinue without adjusting dispersion "
                        "contribution when changing beam.dp...")
             self.track = self.track_without_dispersion
 
