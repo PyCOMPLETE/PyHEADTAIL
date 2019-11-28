@@ -41,6 +41,6 @@ dp_before = bunch.mean_dp()
 SynchrotronRadiationLongitudinal.track(bunch)
 dp_after = bunch.mean_dp()
 
-print 'Energy loss\nEvaluated :%.6e [eV]\nExpected :%.6e [eV]\nERROR :%.2f'%((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge),
-		E_loss_eV,(E_loss_eV-((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge)))*100/E_loss_eV)+'%'
+print('Energy loss\nEvaluated :%.6e [eV]\nExpected :%.6e [eV]\nERROR :%.2f'%((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge),
+		E_loss_eV,(E_loss_eV-((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge)))*100/E_loss_eV)+'%')
 

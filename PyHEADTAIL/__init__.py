@@ -22,7 +22,7 @@ except:
     from ._version import __version__
     dirty = False
 
-print ('PyHEADTAIL v' + __version__)
+print(('PyHEADTAIL v' + __version__))
 if dirty:
     print ('(dirty git work tree)')
 print ('\n')

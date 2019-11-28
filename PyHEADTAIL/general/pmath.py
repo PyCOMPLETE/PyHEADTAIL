@@ -331,8 +331,8 @@ def update_active_dict(new_dict):
     if not hasattr(update_active_dict, 'active_dict'):
         update_active_dict.active_dict = new_dict
     # delete all old implementations/references from globals()
-    for key in globals().keys():
-        if key in update_active_dict.active_dict.keys():
+    for key in list(globals().keys()):
+        if key in list(update_active_dict.active_dict.keys()):
             del globals()[key]
     # add the new active dict to the globals()
     globals().update(new_dict)

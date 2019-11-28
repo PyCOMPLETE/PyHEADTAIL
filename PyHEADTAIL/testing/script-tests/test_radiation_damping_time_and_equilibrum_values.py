@@ -57,8 +57,8 @@ beam_z = []
 mean_dp = []
 sx, sy, sz, sdp = [], [], [], []
 epsx, epsy, epsz = [], [], []
-for i_turn in xrange(n_turns):
-    print 'Turn %d/%d'%(i_turn, n_turns)
+for i_turn in range(n_turns):
+    print('Turn %d/%d'%(i_turn, n_turns))
     machine.track(bunch)
 
     beam_x.append(bunch.mean_x())

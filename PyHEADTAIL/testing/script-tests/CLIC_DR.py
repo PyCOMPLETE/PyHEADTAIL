@@ -36,7 +36,7 @@ class CLIC_DR(Synchrotron):
             raise ValueError('machine_configuration not recognized!')
 
         if optics_mode=='smooth':
-            if 's' in kwargs.keys(): raise ValueError('s vector cannot be provided if optics_mode = "smooth"')
+            if 's' in list(kwargs.keys()): raise ValueError('s vector cannot be provided if optics_mode = "smooth"')
 
             n_segments = kwargs['n_segments']
             circumference = 427.5
@@ -54,7 +54,7 @@ class CLIC_DR(Synchrotron):
             s = None
 
         elif optics_mode=='non-smooth':
-            if 'n_segments' in kwargs.keys(): raise ValueError('n_segments cannot be provided if optics_mode = "non-smooth"')
+            if 'n_segments' in list(kwargs.keys()): raise ValueError('n_segments cannot be provided if optics_mode = "non-smooth"')
             n_segments = None
             circumference = None
 
@@ -90,7 +90,7 @@ class CLIC_DR(Synchrotron):
         app_xy      = 0
 
 
-        for attr in kwargs.keys():
+        for attr in list(kwargs.keys()):
             if kwargs[attr] is not None:
                 if type(kwargs[attr]) is list or type(kwargs[attr]) is np.ndarray:
                     str2print = '[%s ...]'%repr(kwargs[attr][0])

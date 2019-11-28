@@ -38,10 +38,10 @@ if has_pycuda:
     atexit.register(skcuda.misc.shutdown)
 
     n_streams = 4
-    streams = [drv.Stream() for i in xrange(n_streams)]
+    streams = [drv.Stream() for i in range(n_streams)]
     stream_pool = cycle(streams)
 
-    stream_emittance = [drv.Stream() for i in xrange(6)]
+    stream_emittance = [drv.Stream() for i in range(6)]
 
 
     def dummy_1(gpuarr, stream=None):

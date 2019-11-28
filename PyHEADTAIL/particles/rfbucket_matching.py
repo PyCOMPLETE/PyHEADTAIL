@@ -4,7 +4,7 @@
 @brief module for matching longitudinal particle distributions to an RFBucket instance
 '''
 
-from __future__ import division, print_function
+
 
 import numpy as np
 from scipy.optimize import brentq, newton

@@ -3,7 +3,7 @@
 @author: Stefan Hegglin, Adrian Oeftiger
 '''
 
-from __future__ import division
+
 
 import unittest
 import numpy as np
@@ -200,7 +200,7 @@ class TestParticles(unittest.TestCase):
             old[attr] = getattr(bunch, attr).copy()
         bunch.sort_for('z')
         new_idx = bunch.id - 1
-        for attr, oldarray in old.iteritems():
+        for attr, oldarray in old.items():
             self.assertTrue(np.all(oldarray[new_idx] == getattr(bunch, attr)),
                             msg="beam.sort_for('z') should reorder all beam "
                             "particle arrays, but beam." + str(attr) + " is "

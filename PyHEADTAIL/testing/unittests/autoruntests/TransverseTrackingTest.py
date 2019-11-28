@@ -19,7 +19,7 @@ def run():
         mean_y = np.empty(n_turns)
         sigma_z = np.empty(n_turns)
 
-        for i in xrange(n_turns):
+        for i in range(n_turns):
             mean_x[i] = bunch.mean_x()
             mean_y[i] = bunch.mean_y()
             sigma_z[i] = bunch.sigma_z()
@@ -241,7 +241,7 @@ def run():
 
     x_i_wD = np.zeros((n_segments*n_turns, n_macroparticles))
     y_i_wD = np.zeros((n_segments*n_turns, n_macroparticles))
-    for j in xrange(n_segments*n_turns):
+    for j in range(n_segments*n_turns):
         x_i_wD[j,:] = bunch_wD.x
         y_i_wD[j,:] = bunch_wD.y
         trans_map_wD[j%n_segments].track(bunch_wD)
@@ -253,7 +253,7 @@ def run():
     x_i_woD = np.zeros((n_segments*n_turns, n_macroparticles))
     y_i_woD = np.zeros((n_segments*n_turns, n_macroparticles))
     dp_i_woD = np.zeros((n_segments*n_turns, n_macroparticles))
-    for j in xrange(n_segments*n_turns):
+    for j in range(n_segments*n_turns):
         x_i_woD[j,:] = bunch_woD.x
         y_i_woD[j,:] = bunch_woD.y
         dp_i_woD[j,:] = bunch_woD.dp

@@ -5,7 +5,7 @@
 @copyright CERN
 """
 
-from __future__ import division
+
 
 import numpy as np
 
@@ -304,7 +304,7 @@ class TransverseMap(Printing):
         dmu_x = dQ_x / pm.atleast_1d(self.accQ_x)[-1]
         dmu_y = dQ_y / pm.atleast_1d(self.accQ_y)[-1]
 
-        for seg in xrange(n_segments):
+        for seg in range(n_segments):
             s0 = seg % n_segments
             s1 = (seg + 1) % n_segments
 

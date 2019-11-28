@@ -9,7 +9,7 @@ NB: the (feature/redesign) branch is required for this!
 @date: 18.01.2016
 '''
 
-from __future__ import division, print_function
+
 
 import numpy as np
 from scipy.constants import c
@@ -429,11 +429,11 @@ class FrozenGaussianSpaceCharge25D(FieldMapSliceWise):
 
         # calculate Bassetti-Erskine formula on either CPU or GPU:
         ## prepare arguments for the proper device:
-        xg, yg = map(pm.ensure_same_device, np.meshgrid(
+        xg, yg = list(map(pm.ensure_same_device, np.meshgrid(
             np.linspace(mesh.x0, mesh.x0 + mesh.dx*mesh.nx, mesh.nx),
             np.linspace(mesh.y0, mesh.y0 + mesh.dy*mesh.ny, mesh.ny)
-        ))
-        sigma_x, sigma_y = map(pm.ensure_same_device, [sigma_x, sigma_y])
+        )))
+        sigma_x, sigma_y = list(map(pm.ensure_same_device, [sigma_x, sigma_y]))
         ## compute fields
         be_sc = TransverseGaussianSpaceCharge(None, None)
         fields_beamframe = be_sc.get_efieldn(xg, yg, 0, 0, sigma_x, sigma_y)

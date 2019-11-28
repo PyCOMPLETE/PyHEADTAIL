@@ -111,7 +111,7 @@ class ThinMultipole(Element):
         '''Efficient Horner scheme.'''
         dpx = kn[-1]
         dpy = ks[-1]
-        nn = range(1, len(kn) + 1)
+        nn = list(range(1, len(kn) + 1))
         for n, kkn, kks in list(zip(nn, kn, ks))[-2::-1]:
             dpxi = (dpx*x - dpy*y) / float(n)
             dpyi = (dpx*y + dpy*x) / float(n)

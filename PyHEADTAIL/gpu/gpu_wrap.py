@@ -5,10 +5,10 @@ Python functions which wrap GPU functionality.
 Use in dispatch of general/pmath
 All functions assume GPU arrays as arguments!
 '''
-from __future__ import division
+
 import numpy as np
 import os
-import gpu_utils
+from . import gpu_utils
 import math
 from functools import wraps
 try:
@@ -226,7 +226,7 @@ if has_pycuda:
                   'else notclose[i] = 0;',
         name='allclose_kernel'
     )
-    np_allclose_defaults = np.allclose.func_defaults # (rtol, atol, equal_nan)
+    np_allclose_defaults = np.allclose.__defaults__ # (rtol, atol, equal_nan)
     @wraps(np.allclose)
     def allclose(a, b, rtol=np_allclose_defaults[0],
                  atol=np_allclose_defaults[1], out=None, stream=None):
@@ -565,9 +565,9 @@ def argsort(to_sort):
     elif dtype.itemsize == 4 and dtype.kind is 'i':
         thrust.get_sort_perm_int(to_sort.copy(), permutation)
     else:
-        print to_sort.dtype
-        print to_sort.dtype.itemsize
-        print to_sort.dtype.kind
+        print(to_sort.dtype)
+        print(to_sort.dtype.itemsize)
+        print(to_sort.dtype.kind)
         raise TypeError('Currently only float64 and int32 types can be sorted')
     return permutation
 
@@ -603,9 +603,9 @@ def apply_permutation(array, permutation):
     elif dtype.itemsize == 4 and dtype.kind is 'i':
         thrust.apply_sort_perm_int(array, tmp, permutation)
     else:
-        print array.dtype
-        print array.dtype.itemsize
-        print array.dtype.kind
+        print(array.dtype)
+        print(array.dtype.itemsize)
+        print(array.dtype.kind)
         raise TypeError('Currently only float64 and int32 types can be sorted')
     return tmp
 

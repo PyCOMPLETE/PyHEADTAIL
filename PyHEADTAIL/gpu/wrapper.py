@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 from pycuda.elementwise import ElementwiseKernel
 from PyHEADTAIL.trackers import wrapper as def_wrapper

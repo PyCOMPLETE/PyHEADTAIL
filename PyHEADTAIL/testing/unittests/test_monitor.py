@@ -2,7 +2,7 @@
 @date:   24/11/2015
 @author: Stefan Hegglin
 '''
-from __future__ import division
+
 
 import h5py as hp
 import os
@@ -41,7 +41,7 @@ class TestMonitor(unittest.TestCase):
         to check pattern when accessing 'mean_x', 'macrop'
         '''
         mock = self.generate_mock_bunch()
-        for i in xrange(self.n_turns):
+        for i in range(self.n_turns):
             self.bunch_monitor.dump(mock)
         bunchdata = hp.File(self.bunch_fn + '.h5')
         b = bunchdata['Bunch']
@@ -60,7 +60,7 @@ class TestMonitor(unittest.TestCase):
                 slicer=mock_slicer, buffer_size=11, write_buffer_every=9,
                 slice_stats_to_store=['propertyA'],
                 bunch_stats_to_store=['mean_x', 'macrop'])
-        for i in xrange(self.n_turns):
+        for i in range(self.n_turns):
             slice_monitor.dump(mock_bunch)
         s = hp.File(self.s_fn + '.h5')
         sd = s['Slices']
@@ -68,8 +68,8 @@ class TestMonitor(unittest.TestCase):
         self.assertTrue(np.allclose(sb['mean_x'],
             np.arange(start=1, stop=self.n_turns+0.5)))
         self.assertTrue(np.allclose(sb['macrop'], 99*np.ones(self.n_turns)))
-        for k in xrange(nslices):
-            for j in xrange(self.n_turns):
+        for k in range(nslices):
+            for j in range(self.n_turns):
                 self.assertTrue(np.allclose(sd['propertyA'][k,j],
                     k + (j+1)*1000), 'Slices part of SliceMonitor wrong')
 
@@ -85,7 +85,7 @@ class TestMonitor(unittest.TestCase):
             beta_z=np.abs(0.003 * bunch.circumference / (2*np.pi*0.004)),
             write_buffer_every=9,
         )
-        for i in xrange(self.n_turns):
+        for i in range(self.n_turns):
             cell_monitor.dump(bunch)
         s = hp.File(self.s_fn + '.h5')
         sc = s['Cells']

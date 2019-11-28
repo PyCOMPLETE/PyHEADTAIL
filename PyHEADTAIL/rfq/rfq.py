@@ -32,7 +32,7 @@ a consequence of the change in momenta xp and yp.
 @copyright CERN
 """
 
-from __future__ import division
+
 
 from abc import ABCMeta, abstractmethod
 from scipy.constants import c, e
@@ -131,12 +131,11 @@ class RFQTransverseDetunerSegment(object):
         return dQ_x, dQ_y
 
 
-class RFQKick(object):
+class RFQKick(object, metaclass=ABCMeta):
     """Python base class to describe the RFQ element in the
     localized kick model for both the transverse and the
     longitudinal coordinates.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def track(self, beam):

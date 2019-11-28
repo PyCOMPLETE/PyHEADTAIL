@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import numpy as np
 from scipy.constants import c
@@ -42,7 +42,7 @@ class TransverseSpaceCharge(Element):
 
         slices = beam.get_slices(self.slicer)
 
-        for sid in xrange(slices.n_slices-1, -1, -1):
+        for sid in range(slices.n_slices-1, -1, -1):
 
             # select particles in the slice
             pid = slices.particle_indices_of_slice(sid)

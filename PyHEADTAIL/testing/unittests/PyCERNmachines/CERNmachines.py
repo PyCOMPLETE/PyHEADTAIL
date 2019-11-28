@@ -1,20 +1,20 @@
-from __future__ import division
+
 
 import numpy as np
 from scipy.constants import c, e, m_p
 
-from machines import Synchrotron
-from SPS import SPSOctupoles
+from .machines import Synchrotron
+from .SPS import SPSOctupoles
 
 
 class PSB(Synchrotron):
 
     def __init__(self, *args, **kwargs):
 
-        if 'n_segments' not in kwargs.keys():
+        if 'n_segments' not in list(kwargs.keys()):
             raise ValueError('Number of segments must be specified')
 
-        if 'machine_configuration' not in kwargs.keys():
+        if 'machine_configuration' not in list(kwargs.keys()):
             raise ValueError('machine_configuration must be specified')
 
         self.n_segments = kwargs['n_segments']
@@ -201,10 +201,10 @@ class SPS(Synchrotron):
 
     def __init__(self, *args, **kwargs):
 
-        if 'n_segments' not in kwargs.keys():
+        if 'n_segments' not in list(kwargs.keys()):
             raise ValueError('Number of segments must be specified')
 
-        if 'machine_configuration' not in kwargs.keys():
+        if 'machine_configuration' not in list(kwargs.keys()):
             raise ValueError('machine_configuration must be specified')
 
         if 'octupole_settings_dict' not in kwargs:
@@ -325,13 +325,13 @@ class SPS(Synchrotron):
                              self.machine_configuration)
 
         for k in ['app_x', 'app_y', 'app_xy']:
-            if k in kwargs.keys():
+            if k in list(kwargs.keys()):
                 kwargs[k] += getattr(self, k)
 
         super(SPS, self).__init__(*args, **kwargs)
 
     def add_effect_of_octupoles(self, kwargs, optics):
-        if 'octupole_settings_dict' in kwargs.keys():
+        if 'octupole_settings_dict' in list(kwargs.keys()):
             octupoles = SPSOctupoles.SPSOctupoles(optics)
             KLOF = kwargs['octupole_settings_dict']['KLOF']
             KLOD = kwargs['octupole_settings_dict']['KLOD']
@@ -342,10 +342,10 @@ class LHC(Synchrotron):
 
     def __init__(self, *args, **kwargs):
 
-        if 'n_segments' not in kwargs.keys():
+        if 'n_segments' not in list(kwargs.keys()):
             raise ValueError('Number of segments must be specified')
 
-        if 'machine_configuration' not in kwargs.keys():
+        if 'machine_configuration' not in list(kwargs.keys()):
             raise ValueError('machine_configuration must be specified')
 
         self.n_segments = kwargs['n_segments']
@@ -465,7 +465,7 @@ class LHC(Synchrotron):
         i_focusing = kwargs.pop('i_focusing', False)
         i_defocusing = kwargs.pop('i_defocusing', False)
         if i_focusing or i_defocusing is True:
-            print ('\n--> Powering LHC octupoles to {:g} A.\n'.format(i_focusing))
+            print(('\n--> Powering LHC octupoles to {:g} A.\n'.format(i_focusing)))
             self.app_x, self.app_y, self.app_xy = self.get_anharmonicities_from_octupole_currents_LHC(
                 i_focusing, i_defocusing)
 
@@ -519,10 +519,10 @@ class HLLHC(Synchrotron):
 
     def __init__(self, *args, **kwargs):
 
-        if 'n_segments' not in kwargs.keys():
+        if 'n_segments' not in list(kwargs.keys()):
             raise ValueError('Number of segments must be specified')
 
-        if 'machine_configuration' not in kwargs.keys():
+        if 'machine_configuration' not in list(kwargs.keys()):
             raise ValueError('machine_configuration must be specified')
 
         self.n_segments = kwargs['n_segments']
@@ -573,7 +573,7 @@ class HLLHC(Synchrotron):
         i_focusing = kwargs.pop('i_focusing', False)
         i_defocusing = kwargs.pop('i_defocusing', False)
         if i_focusing or i_defocusing is True:
-            print ('\n--> Powering LHC octupoles to {:g} A.\n'.format(i_focusing))
+            print(('\n--> Powering LHC octupoles to {:g} A.\n'.format(i_focusing)))
             self.app_x, self.app_y, self.app_xy = self.get_anharmonicities_from_octupole_currents_LHC(
                 i_focusing, i_defocusing)
 
