@@ -48,6 +48,59 @@ class Synchrotron(Element):
         other_detuners=[],
         use_cython=False,
     ):
+    """
+    Creates a synchrotron.
+    Parameters
+    ----------
+    optics_mode : {'smooth', 'non-smooth'}:
+        'smooth': the optics parameters are the same for all segments;
+        'non-smooth': the optics parameters are differetn for each segments.
+    charge : [C] reference particle charge in Coulomb
+    mass : [kg] reference particle mass in Kg
+    p0 : [kg m /s] reference particle momentum
+    circumference : [m] ring circumference (to be provided only if
+        optics_mode is 'smooth').
+    n_segments : Number of segments in the machine (to be provided if
+        optics_mode is 'smooth', othrwise it is inferred by the length of s.
+    name : Name of the machine
+    s : (array) [m] Longitudinal positions at which the machine is cut
+        in segments. The length of the array should be n_segments + 1.
+        The last value in the array provides the ring circumference.
+    alpha_x : [] Horizontal alpha twiss parameter at each segment
+        (cannot be provided if optics_mode is 'smooth').
+    beta_x : [m] Horizontal beta twiss parameter at each segment. It has
+        to be a scalar if optics_mode is 'smooth', an array if optics_mode
+        is 'non-smooth'.
+    D_x : [m] Horizontal beta twiss parameter at each segment. It has
+        to be a scalar if optics_mode is 'smooth', an array if optics_mode
+        is 'non-smooth'.
+    alpha_y : [] Vertical alpha twiss parameter at each segment
+        (cannot be provided if optics_mode is 'smooth').
+    beta_y : [m] Vertical beta twiss parameter at each segment. It has
+        to be a scalar if optics_mode is 'smooth', an array if optics_mode
+        is 'non-smooth'.
+    D_y : [m] Vertical beta twiss parameter at each segment. It has
+        to be a scalar if optics_mode is 'smooth', an array if optics_mode
+        is 'non-smooth'.
+
+    accQ_x=None,
+    accQ_y=None,
+    Qp_x=0,
+    Qp_y=0,
+    app_x=0,
+    app_y=0,
+    app_xy=0,
+    longitudinal_mode=None,
+    Q_s=None,
+    alpha_mom_compaction=None,
+    h_RF=None,
+    V_RF=None,
+    dphi_RF=None,
+    p_increment=None,
+    RF_at="middle",
+    wrap_z=False,
+    other_detuners=[],
+    """
 
         if use_cython:
             self.warns(
