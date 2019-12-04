@@ -383,7 +383,7 @@ class Synchrotron(Element):
         if longitudinal_mode is None:
             return
 
-        # Provide an RF bucket if it is at hand
+        # Provide an RF bucket if possible
         if (
             h_RF is not None
             and V_RF is not None
@@ -418,6 +418,10 @@ class Synchrotron(Element):
             raise ValueError("RF_at=%s not recognized!")
 
         if longitudinal_mode == "linear":
+            if V_RF is not None and Q_s is not None:
+                raise ValueError(
+                    'Q_s and V_RF cannot be provided at the same time')
+
             if Q_s is None:
                 try:
                     Q_s = self.rfbucket.Q_s
@@ -433,6 +437,11 @@ class Synchrotron(Element):
             )
 
         elif longitudinal_mode == "non-linear":
+
+            if Q_s is not None:
+                raise ValueError(
+                    'Q_s cannot be provided if longitudinal mode is non-linear')
+
             self.longitudinal_map = RFSystems(
                 charge=self.charge,
                 mass=self.mass,
