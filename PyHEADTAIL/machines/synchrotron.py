@@ -172,8 +172,8 @@ class Synchrotron(Element):
             Phase of the RF system with respect to the reference
             particle (z=0). For a single harmonic, in the absence of acceleration
             or enegy losses:
-             - below transition z = 0 is the stable fixed-point if dphi_RF = 0;
-             - below transition z = 0 is the stable fixed-point if dphi_RF = pi.
+             - below transition z = 0 is the stable fixed-point if dphi_RF = pi;
+             - below transition z = 0 is the stable fixed-point if dphi_RF = 0.
 
         p_increment : kg m / s
             Acceleration, reference particle momentum change
