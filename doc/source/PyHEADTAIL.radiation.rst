@@ -14,6 +14,8 @@ PyHEADTAIL.radiation.radiation module
 
 .. automodule:: PyHEADTAIL.radiation.radiation
    :members:
-   :undoc-members:
-   :show-inheritance:
+   :private-members:
+   :special-members:
+..   :undoc-members:
+..   :show-inheritance:
 

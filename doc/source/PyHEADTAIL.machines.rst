@@ -14,6 +14,8 @@ PyHEADTAIL.machines.synchrotron module
 
 .. automodule:: PyHEADTAIL.machines.synchrotron
    :members:
-   :undoc-members:
-   :show-inheritance:
+   :private-members:
+   :special-members:
+..   :undoc-members:
+..   :show-inheritance:
 

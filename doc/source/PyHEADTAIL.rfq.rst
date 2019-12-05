@@ -14,6 +14,8 @@ PyHEADTAIL.rfq.rfq module
 
 .. automodule:: PyHEADTAIL.rfq.rfq
    :members:
-   :undoc-members:
-   :show-inheritance:
+   :private-members:
+   :special-members:
+..   :undoc-members:
+..   :show-inheritance:
 

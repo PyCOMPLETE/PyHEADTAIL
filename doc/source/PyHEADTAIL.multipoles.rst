@@ -14,6 +14,8 @@ PyHEADTAIL.multipoles.multipoles module
 
 .. automodule:: PyHEADTAIL.multipoles.multipoles
    :members:
-   :undoc-members:
-   :show-inheritance:
+   :private-members:
+   :special-members:
+..   :undoc-members:
+..   :show-inheritance:
 
