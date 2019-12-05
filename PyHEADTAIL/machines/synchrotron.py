@@ -66,30 +66,49 @@ class Synchrotron(Element):
     s : (array) [m] Longitudinal positions at which the machine is cut
         in segments. The length of the array should be n_segments + 1.
         The last value in the array provides the ring circumference.
-    alpha_x : [] Horizontal alpha twiss parameter at each segment
-        (cannot be provided if optics_mode is 'smooth').
+    alpha_x: [] Horizontal alpha twiss parameter at each segment
+        (cannot be provided if optics_mode is 'smooth'). In this case,
+        the length of the array should be n_segments + 1. The last point of
+        the array should be equal to the first (periodic condition).
     beta_x : [m] Horizontal beta twiss parameter at each segment. It has
         to be a scalar if optics_mode is 'smooth', an array if optics_mode
-        is 'non-smooth'.
+        is 'non-smooth'. In this case, the length of the array should be
+        n_segments + 1. The last point of the array should be equal to the
+        first (periodic condition).
     D_x : [m] Horizontal beta twiss parameter at each segment. It has
         to be a scalar if optics_mode is 'smooth', an array if optics_mode
-        is 'non-smooth'.
-    alpha_y : [] Vertical alpha twiss parameter at each segment
-        (cannot be provided if optics_mode is 'smooth').
+        is 'non-smooth'. In this case, the length of the array should be
+        n_segments + 1. The last point of the array should be equal to the
+        first (periodic condition).
+    alpha_y: [] Vertical alpha twiss parameter at each segment
+        (cannot be provided if optics_mode is 'smooth'). In this case,
+        the length of the array should be n_segments + 1. The last point of
+        the array should be equal to the first (periodic condition).
     beta_y : [m] Vertical beta twiss parameter at each segment. It has
         to be a scalar if optics_mode is 'smooth', an array if optics_mode
-        is 'non-smooth'.
+        is 'non-smooth'. In this case, the length of the array should be
+        n_segments + 1. The last point of the array should be equal to the
+        first (periodic condition).
     D_y : [m] Vertical beta twiss parameter at each segment. It has
         to be a scalar if optics_mode is 'smooth', an array if optics_mode
-        is 'non-smooth'.
-
-    accQ_x=None,
-    accQ_y=None,
-    Qp_x=0,
-    Qp_y=0,
-    app_x=0,
-    app_y=0,
-    app_xy=0,
+        is 'non-smooth'. In this case, the length of the array should be
+        n_segments + 1. The last point of the array should be equal to the
+        first (periodic condition).
+    accQ_x :
+        for 'optics_mode' = 'smooth' this is the horizontal tune;
+        for 'optics_mode' = 'non-smooth' this is the horizontal phase advance
+        per segment in units of (2*pi). The length of the array should be
+        n_segments + 1. The last point of the array should be the
+        horizontal tune.
+    accQ_y :
+        for 'optics_mode' = 'smooth' this is the vertical tune;
+        for 'optics_mode' = 'non-smooth' this is the vertical phase advance
+        per segment in units of (2*pi). The length of the array should be
+        n_segments + 1. The last point of the array should be the
+        vertical tune.
+    Qp_x, Qp_y : Horizontal and vertical chromaticity (dQ/dp), the detuning
+        is shared over segments.
+    app_x, app_y, app_xy : Amplitude detining coefficients (anharmonicities).
     longitudinal_mode=None,
     Q_s=None,
     alpha_mom_compaction=None,
@@ -336,7 +355,7 @@ class Synchrotron(Element):
         app_xy=None,
         other_detuners=None,
         use_cython=None,
-    ):
+:
 
         if optics_mode == "smooth":
             if circumference is None:
