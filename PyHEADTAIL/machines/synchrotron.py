@@ -54,86 +54,116 @@ class Synchrotron(Element):
 
         Parameters
         ----------
-        optics_mode : {'smooth', 'non-smooth'}
-            'smooth': the optics parameters are the same for all segments;
-            'non-smooth': the optics parameters are differetn for each segments.
-        charge : [C] reference particle charge in Coulomb
-        mass : [kg] reference particle mass in Kg
-        p0 : [kg m /s] reference particle momentum
-        circumference : [m] ring circumference (to be provided only if
-            optics_mode is 'smooth').
-        n_segments : Number of segments in the machine (to be provided if
-            optics_mode is 'smooth', othrwise it is inferred by the length of s.
-        name : Name of the machine
-        s : (array) [m] Longitudinal positions at which the machine is cut
+        optics_mode : 'smooth', 'non-smooth'
+
+             - 'smooth': the optics parameters are the same for all segments;
+             - 'non-smooth': the optics parameters are differetn for each segments.
+
+        charge : C
+            reference particle charge in Coulomb
+
+        mass : kg
+            reference particle mass in Kg
+
+        p0 : kg m/s
+            reference particle momentum
+
+        circumference : m
+            ring circumference (to be provided only if optics_mode is 'smooth').
+
+        n_segments : 
+            Number of segments in the machine (to be provided if
+            optics_mode is 'smooth', otherwise it is inferred by the length of s).
+
+        name : 
+            Name of the machine
+
+        s : m, array
+            Longitudinal positions at which the machine is cut
             in segments. The length of the array should be n_segments + 1.
             The last value in the array provides the ring circumference.
-        alpha_x: [] Horizontal alpha twiss parameter at each segment
+
+        alpha_x: 
+            Horizontal alpha twiss parameter at each segment
             (cannot be provided if optics_mode is 'smooth'). In this case,
             the length of the array should be n_segments + 1. The last point of
             the array should be equal to the first (periodic condition).
-        beta_x : [m] Horizontal beta twiss parameter at each segment. It has
+        beta_x : m 
+            Horizontal beta twiss parameter at each segment. It has
             to be a scalar if optics_mode is 'smooth', an array if optics_mode
             is 'non-smooth'. In this case, the length of the array should be
             n_segments + 1. The last point of the array should be equal to the
             first (periodic condition).
-        D_x : [m] Horizontal beta twiss parameter at each segment. It has
+        D_x : m 
+            Horizontal beta twiss parameter at each segment. It has
             to be a scalar if optics_mode is 'smooth', an array if optics_mode
             is 'non-smooth'. In this case, the length of the array should be
             n_segments + 1. The last point of the array should be equal to the
             first (periodic condition).
-        alpha_y: [] Vertical alpha twiss parameter at each segment
+        alpha_y: 
+            Vertical alpha twiss parameter at each segment
             (cannot be provided if optics_mode is 'smooth'). In this case,
             the length of the array should be n_segments + 1. The last point of
             the array should be equal to the first (periodic condition).
-        beta_y : [m] Vertical beta twiss parameter at each segment. It has
+        beta_y : m
+            Vertical beta twiss parameter at each segment. It has
             to be a scalar if optics_mode is 'smooth', an array if optics_mode
             is 'non-smooth'. In this case, the length of the array should be
             n_segments + 1. The last point of the array should be equal to the
             first (periodic condition).
-        D_y : [m] Vertical beta twiss parameter at each segment. It has
+        D_y : m 
+            Vertical beta twiss parameter at each segment. It has
             to be a scalar if optics_mode is 'smooth', an array if optics_mode
             is 'non-smooth'. In this case, the length of the array should be
             n_segments + 1. The last point of the array should be equal to the
             first (periodic condition).
-        accQ_x : []
+        accQ_x :
             for 'optics_mode' = 'smooth' this is the horizontal tune;
             for 'optics_mode' = 'non-smooth' this is the horizontal phase advance
             per segment in units of (2*pi). The length of the array should be
             n_segments + 1. The last point of the array should be the
             horizontal tune.
-        accQ_y : []
-            for 'optics_mode' = 'smooth' this is the vertical tune;
-            for 'optics_mode' = 'non-smooth' this is the vertical phase advance
-            per segment in units of (2*pi). The length of the array should be
-            n_segments + 1. The last point of the array should be the
-            vertical tune.
-        Qp_x, Qp_y : [] Horizontal and vertical chromaticity (dQ/dp), the detuning
+        accQ_y :
+             - for 'optics_mode' = 'smooth' this is the vertical tune;
+             - for 'optics_mode' = 'non-smooth' this is the vertical phase advance
+                per segment in units of (2*pi). The length of the array should be
+                n_segments + 1. The last point of the array should be the
+                vertical tune.
+        Qp_x, Qp_y :
+            Horizontal and vertical chromaticity (dQ/dp), the detuning
             is shared over segments.
-        app_x, app_y, app_xy : [] Amplitude detining coefficients (anharmonicities).
-        longitudinal_mode : {'linear', 'non-linear'}
-            'linear': linear longitudinal force (RF cavity)
-            'non-linear': sinusoidal longitudinal force (RF cavities). Multiple
+        app_x, app_y, app_xy :
+            Amplitude detining coefficients (anharmonicities).
+        longitudinal_mode : 'linear', 'non-linear'
+             - 'linear': linear longitudinal force (RF cavity)
+             - 'non-linear': sinusoidal longitudinal force (RF cavities). Multiple
             harmonics can be deifined in this case.
-        Q_s : [] Synchrotron tune. It can be defined only if longitudinal_mode is
+        Q_s : 
+            Synchrotron tune. It can be defined only if longitudinal_mode is
             'linear'. If Q_s is provided, V_RF cannot be provided.
-        alpha_mom_compaction : [] Momentum compaction factor (dL/L)/(dp)
-        h_RF : [] Harmonic number. For multiple-harmonic RF systems this can be
+        alpha_mom_compaction : 
+            Momentum compaction factor (dL/L)/(dp)
+        h_RF : 
+            Harmonic number. For multiple-harmonic RF systems this can be
             an array.
-        V_RF : [V] RF voltage. For multiple-harmonic RF systems this can be
+        V_RF : V 
+            RF voltage. For multiple-harmonic RF systems this can be
             an array.
-        dphi_RF : [rad] Phase of the RF system with respect to the reference
+        dphi_RF : rad
+            Phase of the RF system with respect to the reference
             particle (z=0). For a single harmonic, in the absence of acceleration
             or enegy losses:
              - below transition z = 0 is the stable fixed-point if dphi_RF = 0.
              - below transition z = 0 is the stable fixed-point if dphi_RF = pi.
-        p_increment : [kg m /s] Acceleration, reference particle momentum change
+        p_increment : kg m / s
+            Acceleration, reference particle momentum change
             per turn.
-        RF_at : {'middle', 'end_of_transverse'}
+        RF_at : 'middle', 'end_of_transverse'
             Position of the longitudinal map in the ring.
-        wrap_z : {True, false}
+        wrap_z : True, False
             Wrap longitudinal position using the accelerator length
-        other_detuners : List of other detuners to be applied
+        other_detuners : 
+            List of other detuners to be applied
             (default is other_detuners = []).
         """
 
