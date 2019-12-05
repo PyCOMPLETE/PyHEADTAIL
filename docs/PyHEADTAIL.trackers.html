@@ -1,0 +1,1659 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PyHEADTAIL.trackers package &#8212; PyHEADTAIL  documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="PyHEADTAIL.spacecharge package" href="PyHEADTAIL.spacecharge.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.spacecharge.html" title="PyHEADTAIL.spacecharge package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" accesskey="U">PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-PyHEADTAIL.trackers">
+<span id="pyheadtail-trackers-package"></span><h1>PyHEADTAIL.trackers package<a class="headerlink" href="#module-PyHEADTAIL.trackers" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-PyHEADTAIL.trackers.detuners">
+<span id="pyheadtail-trackers-detuners-module"></span><h2>PyHEADTAIL.trackers.detuners module<a class="headerlink" href="#module-PyHEADTAIL.trackers.detuners" title="Permalink to this headline">¶</a></h2>
+<p>Module to describe devices/effects, such as chromaticity or octupole
+magnets, leading to an incoherent detuning of the particles in the beam.
+A detuner is (in general) present along the full circumference of the
+accelerator and the detuning is applied proportionally along the ring.</p>
+<p>The structure of this module is such that there is a DetunerCollection
+object for each type of detuning effect present in the accelerator. It
+provides a description of the detuning along the full circumference. The
+accelerator is divided into segments (1 or more) and the
+DetunerCollection can create and store a SegmentDetuner object of the
+given type of detuning for each of these segments. A SegmentDetuner
+object has a detune(beam) method that defines how the phase advance of
+each particle in the beam is changed according to the formula describing
+the effect.</p>
+<p>&#64;author Kevin Li, Michael Schenk, Adrian Oeftiger
+&#64;date 23. June 2014
+&#64;brief Module to describe elements/effects in an accelerator leading to</p>
+<blockquote>
+<div><p>an incoherent detuning.</p>
+</div></blockquote>
+<p>&#64;copyright CERN</p>
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuning">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.detuners.</code><code class="sig-name descname">AmplitudeDetuning</code><span class="sig-paren">(</span><em class="sig-param">app_x</em>, <em class="sig-param">app_y</em>, <em class="sig-param">app_xy</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collection class to contain/manage the segment-wise defined
+amplitude detuning elements (octupoles). They are stored in the
+self.segment_detuners list.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuning.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuning.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuning.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">app_x</em>, <em class="sig-param">app_y</em>, <em class="sig-param">app_xy</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuning.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an instance of the AmplitudeDetuning
+DetunerCollection class. The coefficients app_x, app_y, app_xy
+are the detuning strengths (one-turn values). Note that the
+convention used here is such that they are NOT normalized to
+the reference momentum beam.p0. The normalization to beam.p0
+is done only in the detune(beam) method of the
+AmplitudeDetuningSegment.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuning.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.detuners'</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuning.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuning._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuning._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuning.from_octupole_currents_LHC">
+<em class="property">classmethod </em><code class="sig-name descname">from_octupole_currents_LHC</code><span class="sig-paren">(</span><em class="sig-param">i_focusing</em>, <em class="sig-param">i_defocusing</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuning.from_octupole_currents_LHC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the constants of proportionality app_x, app_y and
+app_xy (== app_yx) for the amplitude detuning introduced by the
+LHC octupole magnets (aka. LHC Landau octupoles) from the
+electric currents i_focusing [A] and i_defocusing [A] flowing
+through the magnets. The maximum current is given by
+i_max = +/- 550 [A]. The values app_x, app_y, app_xy obtained
+from the formulae are proportional to the strength of detuning
+for one complete turn around the accelerator, i.e. one-turn
+values.</p>
+<p>The calculation is based on formulae (3.6) taken from ‘The LHC
+transverse coupled-bunch instability’ by N. Mounet, EPFL PhD
+Thesis, 2012. Values (hard-coded numbers below) are valid for
+LHC Landau octupoles before LS1. Beta functions in x and y are
+correctly taken into account. Note that here, the values of
+app_x, app_y and app_xy are not normalized to the reference
+momentum p0. This is done only during the calculation of the
+detuning in the corresponding detune method of the
+AmplitudeDetuningSegment.</p>
+<p>More detailed explanations and references on how the formulae
+were obtained are given in the PhD thesis (pg. 85ff) cited
+above.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuning.generate_segment_detuner">
+<code class="sig-name descname">generate_segment_detuner</code><span class="sig-paren">(</span><em class="sig-param">dmu_x</em>, <em class="sig-param">dmu_y</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuning.generate_segment_detuner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate an AmplitudeDetuningSegment for the specified
+segment of the accelerator ring. Note that the bare betatron
+phase advances over the current segment, dmu_x and dmu_y, are
+given as relative values, i.e. in units of the overall phase
+advance around the whole accelerator (the betatron tune).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.detuners.</code><code class="sig-name descname">AmplitudeDetuningSegment</code><span class="sig-paren">(</span><em class="sig-param">dapp_x</em>, <em class="sig-param">dapp_y</em>, <em class="sig-param">dapp_xy</em>, <em class="sig-param">dapp_yx</em>, <em class="sig-param">alpha_x</em>, <em class="sig-param">beta_x</em>, <em class="sig-param">alpha_y</em>, <em class="sig-param">beta_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detuning object for a segment of the accelerator ring to
+describe amplitude detuning (introduced by octupoles).</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">dapp_x</em>, <em class="sig-param">dapp_y</em>, <em class="sig-param">dapp_xy</em>, <em class="sig-param">dapp_yx</em>, <em class="sig-param">alpha_x</em>, <em class="sig-param">beta_x</em>, <em class="sig-param">alpha_y</em>, <em class="sig-param">beta_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an instance of an AmplitudeDetuningSegment by passing
+the coefficients of detuning strength dapp_x, dapp_y, dapp_xy,
+dapp_yx (scaled to the segment length. NOT normalized to
+beam.p0 yet).
+Note that beta_{x,y} are only used to correctly calculate the
+transverse actions J_{x,y}. Although they have an influence on
+the strength of detuning, they have no actual effect on the
+integrated strength of the octupoles
+(dapp_x, dapp_y, dapp_xy, dapp_yx).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.detuners'</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment.detune">
+<code class="sig-name descname">detune</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.AmplitudeDetuningSegment.detune" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linear amplitude detuning formula, usually used for detuning
+introduced by octupoles. The normalization of dapp_x, dapp_y,
+dapp_xy, dapp_yx to the reference momentum is done here (compare
+documentation of AmplitudeDetuning class).
+J_x and J_y resp. denote the horizontal and vertical action of
+a specific particle.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.detuners.Chromaticity">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.detuners.</code><code class="sig-name descname">Chromaticity</code><span class="sig-paren">(</span><em class="sig-param">Qp_x</em>, <em class="sig-param">Qp_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.Chromaticity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collection class to contain/manage the segment-wise defined
+elements that introduce detuning as a result of chromaticity
+effects.  They are stored in the self.segment_detuners list.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.Chromaticity.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.Chromaticity.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.Chromaticity.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">Qp_x</em>, <em class="sig-param">Qp_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.Chromaticity.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an instance of a Chromaticity DetunerCollection
+class. The Qp_{x,y} are resp. scalars / lists (or tuples, numpy
+arrays) containing first, second, third, … order chromaticity
+coefficients (one-turn values), aka. Q’_{x,y}, Q’’_{x,y}
+(Q-prime, Q-double-prime), …</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.Chromaticity.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.detuners'</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.Chromaticity.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.Chromaticity._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.Chromaticity._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.Chromaticity.generate_segment_detuner">
+<code class="sig-name descname">generate_segment_detuner</code><span class="sig-paren">(</span><em class="sig-param">dmu_x</em>, <em class="sig-param">dmu_y</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.Chromaticity.generate_segment_detuner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate a ChromaticitySegment for the specified
+segment of the accelerator ring. Note that the bare betatron
+phase advances over the current segment, dmu_x and dmu_y, are
+given as relative values, i.e. in units of the overall phase
+advance around the whole accelerator (the betatron tune).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.detuners.ChromaticitySegment">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.detuners.</code><code class="sig-name descname">ChromaticitySegment</code><span class="sig-paren">(</span><em class="sig-param">dQp_x</em>, <em class="sig-param">dQp_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.ChromaticitySegment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detuning object for a segment of the accelerator ring to
+describe the detuning introduced by chromaticity effects.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.ChromaticitySegment.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.ChromaticitySegment.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.ChromaticitySegment.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">dQp_x</em>, <em class="sig-param">dQp_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.ChromaticitySegment.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an instance of a ChromaticitySegment. The dQp_{x,y}
+denote resp. scalars / lists (or tuples, numpy arrays)
+containing first, second, third, … order chromaticity
+coefficients scaled to the relative bare phase advance.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.ChromaticitySegment.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.detuners'</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.ChromaticitySegment.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.ChromaticitySegment._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.ChromaticitySegment._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.ChromaticitySegment._make_calc_detuning">
+<em class="property">static </em><code class="sig-name descname">_make_calc_detuning</code><span class="sig-paren">(</span><em class="sig-param">Qp</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.ChromaticitySegment._make_calc_detuning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the polynomial used to calculate the chromaticity
+up to higher orders. The polynomials are explicitly defined up
+to order 3 for performance reasons (order 3 is the highest
+usually used). Above order 3, the numpy polyval is used to
+evaluate the polynomial. np.polynomial polyval is considerably
+slower for low order polynomials.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.ChromaticitySegment.detune">
+<code class="sig-name descname">detune</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.ChromaticitySegment.detune" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate for every particle the change in phase advance
+(detuning) dQ_{x,y} caused by chromaticity effects.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.detuners.</code><code class="sig-name descname">DetunerCollection</code><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract base class for a collection of SegmentDetuner objects
+(see above). A detuner collection object defines the detuning for
+one complete turn around the accelerator ring for the given
+detuning element. Hence, the strength of detuning must be specified
+by the user as integrated over one turn.
+The accelerator ring is divided into a number of segments (often
+there is just 1). To apply the detuning segment-wise, a
+SegmentDetuner object is instantiated for each of the accelerator
+segments and the detuning strength is chosen to be proportional to
+the bare betatron phase advance per segment (normalized to the
+respective tunes of the accelerator).
+The instantiation of SegmentDetuner objects is
+handled by the generate_segment_detuner method. This method is
+called by the TransverseSegmentMap object as it contains the
+information of how the segments of the accelerator are defined by
+the user. The SegmentDetuner objects are stored in the
+segment_detuners list (in order of segments along the ring) within
+the DetunerCollection.</p>
+<p>Since the DetunerCollection is implemented as a sequence, the
+individual SegmentDetuner objects stored by a DetunerCollection can
+be accessed via square brackets [i] where i is the index of the
+segment.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({'generate_segment_detuner'})</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.trackers.detuners', '__doc__': 'Abstract base class for a collection of SegmentDetuner objects\n    (see above). A detuner collection object defines the detuning for\n    one complete turn around the accelerator ring for the given\n    detuning element. Hence, the strength of detuning must be specified\n    by the user as integrated over one turn.\n    The accelerator ring is divided into a number of segments (often\n    there is just 1). To apply the detuning segment-wise, a\n    SegmentDetuner object is instantiated for each of the accelerator\n    segments and the detuning strength is chosen to be proportional to\n    the bare betatron phase advance per segment (normalized to the\n    respective tunes of the accelerator).\n    The instantiation of SegmentDetuner objects is\n    handled by the generate_segment_detuner method. This method is\n    called by the TransverseSegmentMap object as it contains the\n    information of how the segments of the accelerator are defined by\n    the user. The SegmentDetuner objects are stored in the\n    segment_detuners list (in order of segments along the ring) within\n    the DetunerCollection.\n\n    Since the DetunerCollection is implemented as a sequence, the\n    individual SegmentDetuner objects stored by a DetunerCollection can\n    be accessed via square brackets [i] where i is the index of the\n    segment.\n    ', 'generate_segment_detuner': &lt;function DetunerCollection.generate_segment_detuner&gt;, '__len__': &lt;function DetunerCollection.__len__&gt;, '__getitem__': &lt;function DetunerCollection.__getitem__&gt;, '__dict__': &lt;attribute '__dict__' of 'DetunerCollection' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'DetunerCollection' objects&gt;, '__abstractmethods__': frozenset({'generate_segment_detuner'}), '_abc_impl': &lt;_abc_data object&gt;})</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection.__getitem__">
+<code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection.__len__">
+<code class="sig-name descname">__len__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection.__len__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.detuners'</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.DetunerCollection.generate_segment_detuner">
+<em class="property">abstract </em><code class="sig-name descname">generate_segment_detuner</code><span class="sig-paren">(</span><em class="sig-param">dmu_x</em>, <em class="sig-param">dmu_y</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.DetunerCollection.generate_segment_detuner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate a SegmentDetuner of the given type for a
+segment of the accelerator ring. Note that the bare betatron
+phase advances over the current segment, dmu_x and dmu_y, are
+given as relative values, i.e. in units of the overall phase
+advance around the whole accelerator (the betatron tune).
+The method is called by the TransverseMap object which manages
+the creation of a detuner for every defined segment.
+The kwargs are used e.g. to pass the beta functions from the
+TransverseMap where necessary (e.g. for AmplitudeDetuning).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.detuners.SegmentDetuner">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.detuners.</code><code class="sig-name descname">SegmentDetuner</code><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.SegmentDetuner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract base class for detuning elements and effects defined
+only for a segment of the accelerator ring (NB. The segment can also
+be given by the full circumference).
+Every detuner element/effect inheriting from this class must
+implement the detune(beam) method to describe the change in phase
+advance for each particle of the beam.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.SegmentDetuner.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({'detune'})</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.SegmentDetuner.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.SegmentDetuner.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.trackers.detuners', '__doc__': 'Abstract base class for detuning elements and effects defined\n    only for a segment of the accelerator ring (NB. The segment can also\n    be given by the full circumference).\n    Every detuner element/effect inheriting from this class must\n    implement the detune(beam) method to describe the change in phase\n    advance for each particle of the beam.\n    ', 'detune': &lt;function SegmentDetuner.detune&gt;, '__dict__': &lt;attribute '__dict__' of 'SegmentDetuner' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'SegmentDetuner' objects&gt;, '__abstractmethods__': frozenset({'detune'}), '_abc_impl': &lt;_abc_data object&gt;})</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.SegmentDetuner.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.SegmentDetuner.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.detuners'</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.SegmentDetuner.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.SegmentDetuner.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.SegmentDetuner.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.detuners.SegmentDetuner._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.SegmentDetuner._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.detuners.SegmentDetuner.detune">
+<em class="property">abstract </em><code class="sig-name descname">detune</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.detuners.SegmentDetuner.detune" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.trackers.libTPSA">
+<span id="pyheadtail-trackers-libtpsa-module"></span><h2>PyHEADTAIL.trackers.libTPSA module<a class="headerlink" href="#module-PyHEADTAIL.trackers.libTPSA" title="Permalink to this headline">¶</a></h2>
+<p>Copyright CERN 2014
+Author: Adrian Oeftiger, <a class="reference external" href="mailto:oeftiger&#37;&#52;&#48;cern&#46;ch">oeftiger<span>&#64;</span>cern<span>&#46;</span>ch</a> Adrian Oeftiger, <a class="reference external" href="mailto:oeftiger&#37;&#52;&#48;cern&#46;ch">oeftiger<span>&#64;</span>cern<span>&#46;</span>ch</a></p>
+<p>This module provides a two-dimensional Truncated Power Series
+up until first order as suited for algebraical Jacobian determination
+for two given variables.</p>
+<p>The TPS class supports elementary operations such as +, -, /, *
+(and true division according to “from __future__ import division”).</p>
+<p>Functions such as sin, cos, exp, log etc are envisaged
+to be implemented in a later version.</p>
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.libTPSA.</code><code class="sig-name descname">TPS</code><span class="sig-paren">(</span><em class="sig-param">vector=array([0</em>, <em class="sig-param">1</em>, <em class="sig-param">0])</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Truncated Power Series which obeys a TPS Algebra,
+cf. “DIFFERENTIAL ALGEBRAIC DESCRIPTION OF BEAM
+DYNAMICS TO VERY HIGH ORDERS” by M. BERZ,
+Particle Accelerators, 1989. Vol. 24, pp. 109-124.</p>
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__add__">
+<code class="sig-name descname">__add__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__add__" title="Permalink to this definition">¶</a></dt>
+<dd><p>this TPS + (other TPS or scalar)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.trackers.libTPSA', '__doc__': 'Truncated Power Series which obeys a TPS Algebra,\n    cf. &quot;DIFFERENTIAL ALGEBRAIC DESCRIPTION OF BEAM\n    DYNAMICS TO VERY HIGH ORDERS&quot; by M. BERZ,\n    Particle Accelerators, 1989. Vol. 24, pp. 109-124.', '__init__': &lt;function TPS.__init__&gt;, 'get_instance': &lt;classmethod object&gt;, '__add__': &lt;function TPS.__add__&gt;, '__radd__': &lt;function TPS.__radd__&gt;, '__mul__': &lt;function TPS.__mul__&gt;, '__rmul__': &lt;function TPS.__rmul__&gt;, '__div__': &lt;function TPS.__div__&gt;, '__rdiv__': &lt;function TPS.__rdiv__&gt;, '__truediv__': &lt;function TPS.__truediv__&gt;, '__rtruediv__': &lt;function TPS.__rtruediv__&gt;, '__sub__': &lt;function TPS.__sub__&gt;, '__rsub__': &lt;function TPS.__rsub__&gt;, '__eq__': &lt;function TPS.__eq__&gt;, '__ne__': &lt;function TPS.__ne__&gt;, '__neg__': &lt;function TPS.__neg__&gt;, 'invert': &lt;function TPS.invert&gt;, 'real': &lt;property object&gt;, 'diff': &lt;property object&gt;, 'getvector': &lt;function TPS.getvector&gt;, '__dict__': &lt;attribute '__dict__' of 'TPS' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'TPS' objects&gt;, '__hash__': None})</em><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__div__">
+<code class="sig-name descname">__div__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__div__" title="Permalink to this definition">¶</a></dt>
+<dd><p>this TPS / (other TPS or scalar)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__eq__">
+<code class="sig-name descname">__eq__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__eq__" title="Permalink to this definition">¶</a></dt>
+<dd><p>this TPS == other TPS or this TPS real value == other scalar.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__hash__">
+<code class="sig-name descname">__hash__</code><em class="property"> = None</em><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__hash__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">vector=array([0</em>, <em class="sig-param">1</em>, <em class="sig-param">0])</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.libTPSA'</em><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__mul__">
+<code class="sig-name descname">__mul__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__mul__" title="Permalink to this definition">¶</a></dt>
+<dd><p>this TPS * (other TPS or scalar)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__ne__">
+<code class="sig-name descname">__ne__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__ne__" title="Permalink to this definition">¶</a></dt>
+<dd><p>this TPS != other TPS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__neg__">
+<code class="sig-name descname">__neg__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__neg__" title="Permalink to this definition">¶</a></dt>
+<dd><ul class="simple">
+<li><p>(this TPS)</p></li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__radd__">
+<code class="sig-name descname">__radd__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__radd__" title="Permalink to this definition">¶</a></dt>
+<dd><p>(other TPS or scalar) + this TPS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__rdiv__">
+<code class="sig-name descname">__rdiv__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__rdiv__" title="Permalink to this definition">¶</a></dt>
+<dd><p>(other TPS or scalar) / this TPS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__rmul__">
+<code class="sig-name descname">__rmul__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__rmul__" title="Permalink to this definition">¶</a></dt>
+<dd><p>(other TPS or scalar) * TPS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__rsub__">
+<code class="sig-name descname">__rsub__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__rsub__" title="Permalink to this definition">¶</a></dt>
+<dd><p>other TPS - this TPS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__rtruediv__">
+<code class="sig-name descname">__rtruediv__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__rtruediv__" title="Permalink to this definition">¶</a></dt>
+<dd><p>(other TPS or scalar) / this TPS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__sub__">
+<code class="sig-name descname">__sub__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__sub__" title="Permalink to this definition">¶</a></dt>
+<dd><p>this TPS - other TPS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__truediv__">
+<code class="sig-name descname">__truediv__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__truediv__" title="Permalink to this definition">¶</a></dt>
+<dd><p>this TPS / (other TPS or scalar)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.diff">
+<em class="property">property </em><code class="sig-name descname">diff</code><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.diff" title="Permalink to this definition">¶</a></dt>
+<dd><p>First-order entries, the first differential values</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.get_instance">
+<em class="property">classmethod </em><code class="sig-name descname">get_instance</code><span class="sig-paren">(</span><em class="sig-param">vector</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.get_instance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.getvector">
+<code class="sig-name descname">getvector</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.getvector" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns all TPS coefficients in an np.ndarray</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.invert">
+<code class="sig-name descname">invert</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.invert" title="Permalink to this definition">¶</a></dt>
+<dd><p>1 / (this TPS)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS.real">
+<em class="property">property </em><code class="sig-name descname">real</code><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS.real" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zero-order entry, the main value</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS4">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.libTPSA.</code><code class="sig-name descname">TPS4</code><span class="sig-paren">(</span><em class="sig-param">vector=array([0</em>, <em class="sig-param">1</em>, <em class="sig-param">0</em>, <em class="sig-param">0</em>, <em class="sig-param">0])</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS4" title="Permalink to this definition">¶</a></dt>
+<dd><p>1D4, 1st order and 4 variables</p>
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS4.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">vector=array([0</em>, <em class="sig-param">1</em>, <em class="sig-param">0</em>, <em class="sig-param">0</em>, <em class="sig-param">0])</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS4.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS4.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.libTPSA'</em><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS4.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS4.__mul__">
+<code class="sig-name descname">__mul__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS4.__mul__" title="Permalink to this definition">¶</a></dt>
+<dd><p>this TPS * (other TPS or scalar)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS4.diff">
+<em class="property">property </em><code class="sig-name descname">diff</code><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS4.diff" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the first-order entries, the first differential values</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libTPSA.TPS4.invert">
+<code class="sig-name descname">invert</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libTPSA.TPS4.invert" title="Permalink to this definition">¶</a></dt>
+<dd><p>1 / (this TPS)</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.trackers.libintegrators">
+<span id="pyheadtail-trackers-libintegrators-module"></span><h2>PyHEADTAIL.trackers.libintegrators module<a class="headerlink" href="#module-PyHEADTAIL.trackers.libintegrators" title="Permalink to this headline">¶</a></h2>
+<p>Copyright CERN 2014
+Author: Adrian Oeftiger, <a class="reference external" href="mailto:oeftiger&#37;&#52;&#48;cern&#46;ch">oeftiger<span>&#64;</span>cern<span>&#46;</span>ch</a></p>
+<p>This module provides various numerical integration methods
+for Hamiltonian vector fields on (currently two-dimensional) phase space.
+The integrators are separated according to symplecticity.
+The method is_symple() is provided to check for symplecticity
+of a given integration method – it may be used generically
+for any integration method with the described signature.</p>
+<dl class="function">
+<dt id="PyHEADTAIL.trackers.libintegrators.is_symple">
+<code class="sig-prename descclassname">PyHEADTAIL.trackers.libintegrators.</code><code class="sig-name descname">is_symple</code><span class="sig-paren">(</span><em class="sig-param">integrator</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.is_symple" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns whether the given integrator is symplectic w.r.t. to a certain
+numerical tolerance (fixed by numpy.allclose).
+The decision is taken on whether the Jacobian determinant remains 1
+(after a time step of 1 while modelling a harmonic oscillator).
+The integrator input should be a function taking the argument
+signature (x_initial, p_initial, timestep, H_p, H_x), where
+the first three arguments are numbers and H_p(p) and H_x(x) are
+functions taking one argument.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.libintegrators.non_symple">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.libintegrators.</code><code class="sig-name descname">non_symple</code><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.non_symple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains <em>non-symplectic</em> integrator algorithms.
+The integrator input should be a function taking the argument
+signature (x_initial, p_initial, timestep, H_p, H_x).
+H_x(x) = dH/dx is a function of x only while
+H_p(p) = dH/dp is a function of p only.</p>
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libintegrators.non_symple.Euler">
+<em class="property">static </em><code class="sig-name descname">Euler</code><span class="sig-paren">(</span><em class="sig-param">x_initial</em>, <em class="sig-param">p_initial</em>, <em class="sig-param">timestep</em>, <em class="sig-param">H_p</em>, <em class="sig-param">H_x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.non_symple.Euler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Non-symplectic one-dimensional Euler O(T^2) Algorithm.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libintegrators.non_symple.RK2">
+<em class="property">static </em><code class="sig-name descname">RK2</code><span class="sig-paren">(</span><em class="sig-param">x_initial</em>, <em class="sig-param">p_initial</em>, <em class="sig-param">timestep</em>, <em class="sig-param">H_p</em>, <em class="sig-param">H_x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.non_symple.RK2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Non-symplectic one-dimensional Runge Kutta 2 O(T^3) Algorithm.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libintegrators.non_symple.RK4">
+<em class="property">static </em><code class="sig-name descname">RK4</code><span class="sig-paren">(</span><em class="sig-param">x_initial</em>, <em class="sig-param">p_initial</em>, <em class="sig-param">timestep</em>, <em class="sig-param">H_p</em>, <em class="sig-param">H_x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.non_symple.RK4" title="Permalink to this definition">¶</a></dt>
+<dd><p>Non-symplectic one-dimensional Runge Kutta 4 O(T^5) Algorithm.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libintegrators.non_symple.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.trackers.libintegrators', '__doc__': 'Contains *non-symplectic* integrator algorithms.\n\tThe integrator input should be a function taking the argument \n\tsignature (x_initial, p_initial, timestep, H_p, H_x).\n\tH_x(x) = dH/dx is a function of x only while\n\tH_p(p) = dH/dp is a function of p only.', 'Euler': &lt;staticmethod object&gt;, 'RK2': &lt;staticmethod object&gt;, 'RK4': &lt;staticmethod object&gt;, '__dict__': &lt;attribute '__dict__' of 'non_symple' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'non_symple' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.non_symple.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libintegrators.non_symple.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.libintegrators'</em><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.non_symple.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libintegrators.non_symple.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.non_symple.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.libintegrators.symple">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.libintegrators.</code><code class="sig-name descname">symple</code><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.symple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains <em>symplectic</em> integrator algorithms.
+The integrator input should be a function taking the argument
+signature (x_initial, p_initial, timestep, H_p, H_x).
+It is assumed that the Hamiltonian is separable into a kinetic
+part T(p) (giving rise to H_p(p) = dH/dp which only depends on the
+conjugate momentum p) and into a potential part V(x) (giving rise
+to H_x(x) = dH/dx which only depends on the spatial coordinate x).</p>
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libintegrators.symple.Euler_Cromer">
+<em class="property">static </em><code class="sig-name descname">Euler_Cromer</code><span class="sig-paren">(</span><em class="sig-param">x_initial</em>, <em class="sig-param">p_initial</em>, <em class="sig-param">timestep</em>, <em class="sig-param">H_p</em>, <em class="sig-param">H_x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.symple.Euler_Cromer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Symplectic one-dimensional Euler Cromer O(T^2) Algorithm.
+This Euler_Cromer is explicite! keyword: drift-kick mechanism</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libintegrators.symple.Ruth">
+<em class="property">static </em><code class="sig-name descname">Ruth</code><span class="sig-paren">(</span><em class="sig-param">x_initial</em>, <em class="sig-param">p_initial</em>, <em class="sig-param">timestep</em>, <em class="sig-param">H_p</em>, <em class="sig-param">H_x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.symple.Ruth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Symplectic one-dimensional Ruth and Forest O(T^5) Algorithm.
+Harvard: 1992IAUS..152..407Y</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.libintegrators.symple.Verlet">
+<em class="property">static </em><code class="sig-name descname">Verlet</code><span class="sig-paren">(</span><em class="sig-param">x_initial</em>, <em class="sig-param">p_initial</em>, <em class="sig-param">timestep</em>, <em class="sig-param">H_p</em>, <em class="sig-param">H_x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.symple.Verlet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Symplectic one-dimensional (Velocity) Verlet O(T^3) Algorithm.
+keyword: leapfrog mechanism</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libintegrators.symple.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.trackers.libintegrators', '__doc__': 'Contains *symplectic* integrator algorithms. \n\tThe integrator input should be a function taking the argument \n\tsignature (x_initial, p_initial, timestep, H_p, H_x).\n\tIt is assumed that the Hamiltonian is separable into a kinetic\n\tpart T(p) (giving rise to H_p(p) = dH/dp which only depends on the \n\tconjugate momentum p) and into a potential part V(x) (giving rise \n\tto H_x(x) = dH/dx which only depends on the spatial coordinate x).', 'Euler_Cromer': &lt;staticmethod object&gt;, 'Verlet': &lt;staticmethod object&gt;, 'Ruth': &lt;staticmethod object&gt;, '__dict__': &lt;attribute '__dict__' of 'symple' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'symple' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.symple.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libintegrators.symple.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.libintegrators'</em><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.symple.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.libintegrators.symple.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.trackers.libintegrators.symple.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.trackers.longitudinal_tracking">
+<span id="pyheadtail-trackers-longitudinal-tracking-module"></span><h2>PyHEADTAIL.trackers.longitudinal_tracking module<a class="headerlink" href="#module-PyHEADTAIL.trackers.longitudinal_tracking" title="Permalink to this headline">¶</a></h2>
+<p>&#64;author Kevin Li, Adrian Oeftiger, Michael Schenk
+&#64;date 03.10.2014
+&#64;copyright CERN</p>
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Drift">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.longitudinal_tracking.</code><code class="sig-name descname">Drift</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">length</em>, <em class="sig-param">shrinkage_p_increment=0</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Drift" title="Permalink to this definition">¶</a></dt>
+<dd><p>The drift (i.e. Delta z) of the particle’s z coordinate is given by
+the (separable) Hamiltonian derived by dp (defined by (p - p0) / p0).</p>
+<p>self.length is the drift length,
+self.shrinkage_p_increment being non-zero includes the shrinking
+ratio eta_{n+1} / eta_n (see MacLachlan 1989 in FN-529),
+it is usually neglected. [Otherwise it may continuously be
+adapted by the user according to the total momentum increment.]
+If it is not neglected, the beta factor ratio would yield
+(eta + Delta eta) / eta =</p>
+<blockquote>
+<div><p>= 1 - Delta gamma / (eta^2 * gamma^2)</p>
+</div></blockquote>
+<p>resp.               = 1 - p_increment / (gamma^3 * p0)
+since p_increment = gamma * m * c / eta * Delta gamma .</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Drift.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Drift.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Drift.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">length</em>, <em class="sig-param">shrinkage_p_increment=0</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Drift.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The length of the momentum compaction factor array /alpha_array/
+defines the order of the slippage factor expansion.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Drift.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.longitudinal_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Drift.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Drift._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Drift._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Drift.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Drift.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Should be decorated by &#64;clean_slices for any inheriting
+classes changing beam.z .</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Kick">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.longitudinal_tracking.</code><code class="sig-name descname">Kick</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">circumference</em>, <em class="sig-param">harmonic</em>, <em class="sig-param">voltage</em>, <em class="sig-param">phi_offset=0</em>, <em class="sig-param">p_increment=0</em>, <em class="sig-param">D_x=0</em>, <em class="sig-param">D_y=0</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Kick" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Kick class represents the kick by a single RF element
+in a ring! The kick (i.e. dp_{n+1} - dp_n) of the particle’s dp
+coordinate is given by the (separable) Hamiltonian derived
+by z, i.e. the force.</p>
+<p>self.p_increment is the momentum step per turn added by this Kick,
+it can be continuously adjusted externally
+by the user to reflect different slopes in the dipole field ramp.</p>
+<p>self.phi_offset reflects an offset of the cavity’s reference system,
+this can be tweaked externally by the user for simulating RF system
+ripple and the like. Include the change of flank of the sine curve
+here, explicitely (i.e. pi below transition and 0 above transition).</p>
+<p>(self._phi_lock adds to the offset as well but should
+be used internally in the module (e.g. by RFSystems) for
+acceleration purposes. It may be used for synchronisation with the
+momentum updating by self.p_increment via self.calc_phi_0(beam),
+thus readjusting the zero-crossing of this sinosoidal kick.
+This requires a convention how to mutually displace the Kick
+phases to each other w.r.t. to their contribution to acceleration.)</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Kick.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Kick.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Kick.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">circumference</em>, <em class="sig-param">harmonic</em>, <em class="sig-param">voltage</em>, <em class="sig-param">phi_offset=0</em>, <em class="sig-param">p_increment=0</em>, <em class="sig-param">D_x=0</em>, <em class="sig-param">D_y=0</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Kick.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>D_x, D_y: horizontal and vertical dispersion</p>
+<p>!! Attention !!
+The user is responsible of making sure the dispersions match the
+dispersions of the beam which were added in the track() of the last map.
+This corresponds to the dispersion of the transverse/longitudinal map
+!following! this Kick (D_x_s1 of the preceding transverse map)
+Example:
+dx = np.array([1, 2., 5]) #the dispersions at the TransverseSegmentMaps
+trans_map = TransverseMap(C, segments, ax, bx, dx, ay, by, Q_x, Q_y)
+<a href="#id1"><span class="problematic" id="id2">map_</span></a> = [m for m in trans_map] + [LinearMap(alpha_0, C, Q_s, D_x=???)]
+D_x = 1. # if we place the LinearMap after the transverse maps, we</p>
+<blockquote>
+<div><p># need to make sure the dispersion matches the dispersion
+# added in this transverse map. This corresponds to the
+# dispersion of the first segment of the transverse map!</p>
+</div></blockquote>
+<p>Or simply: Match the dispersion of this Element with the dispersion
+of the following transverse element.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Kick.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.longitudinal_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Kick.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Kick._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Kick._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Kick.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Kick.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Should be decorated by &#64;clean_slices for any inheriting
+classes changing beam.z .</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Kick.track_with_dispersion">
+<code class="sig-name descname">track_with_dispersion</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Kick.track_with_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subtract the dispersion before computing a new dp, then add
+the dispersion using the new dp.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.Kick.track_without_dispersion">
+<code class="sig-name descname">track_without_dispersion</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.Kick.track_without_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.longitudinal_tracking.</code><code class="sig-name descname">LinearMap</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">circumference</em>, <em class="sig-param">Q_s</em>, <em class="sig-param">D_x=0</em>, <em class="sig-param">D_y=0</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linear Map represented by a Courant-Snyder transfer matrix.
+Makes use only of the linear first order slippage factor eta.
+Higher orders are manifestly neglected:</p>
+<div class="math notranslate nohighlight">
+\[\]</div>
+<p>eta(delta = 0) = sum_i eta_i * delta^i === eta_0</p>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\]</div>
+<p>eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2</p>
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.Qs">
+<em class="property">property </em><code class="sig-name descname">Qs</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.Qs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">circumference</em>, <em class="sig-param">Q_s</em>, <em class="sig-param">D_x=0</em>, <em class="sig-param">D_y=0</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Q_s is the synchrotron tune.
+D_x, D_y are the dispersions in horizontal and vertical direction.</p>
+<p>!! Attention !!
+The user is responsible of making sure the dispersions match the
+dispersions of the beam which were added in the track() of the last map.
+This corresponds to the dispersion of the transverse/longitudinal map
+!following! this LinearMap (D_x_s1 of the preceding transverse map)
+Example:
+dx = np.array([1, 2., 5]) #the dispersions at the TransverseSegmentMaps
+trans_map = TransverseMap(C, segments, ax, bx, dx, ay, by, Q_x, Q_y)
+<a href="#id3"><span class="problematic" id="id4">map_</span></a> = [m for m in trans_map] + [LinearMap(alpha_0, C, Q_s, D_x=???)]
+D_x = 1. # if we place the LinearMap after the transverse maps, we</p>
+<blockquote>
+<div><p># need to make sure the dispersion matches the dispersion
+# added in this transverse map. This corresponds to the
+# dispersion of the first segment of the transverse map!</p>
+</div></blockquote>
+<p>Or simply: Match the dispersion of this Element with the dispersion
+of the following transverse element.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.longitudinal_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contract: advances the longitudinal coordinates
+of the beam over a full turn / circumference.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.track_with_dispersion">
+<code class="sig-name descname">track_with_dispersion</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.track_with_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subtract the dispersion before computing a new dp, then add
+the dispersion using the new dp.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.track_without_dispersion">
+<code class="sig-name descname">track_without_dispersion</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LinearMap.track_without_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.longitudinal_tracking.</code><code class="sig-name descname">LongitudinalMap</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>A longitudinal map represents a longitudinal dynamical element
+(e.g. a kick or a drift…), i.e. an abstraction of a cavity
+of an RF system etc.
+Any track method of a longitudinal element should clean the slices
+from the beam – use &#64;clean_slices!
+LongitudinalMap objects can compose a longitudinal one turn map!
+Definitions of various orders of the slippage factor eta(delta)
+for delta = (p - p0) / p0 should be implemented in this class.
+Any derived objects will access self.eta(delta, gamma).</p>
+<p>Note: the momentum compaction factors are defined by the change of radius
+Delta R / R0 = sum_i alpha_i * delta^(i + 1)
+hence yielding expressions for the higher slippage factor orders
+Delta w / w0 = sum_j  eta_j  * delta^(i + 1)
+(for the revolution frequency w)</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({'track'})</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The length of the momentum compaction factor array /alpha_array/
+defines the order of the slippage factor expansion.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.longitudinal_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap._eta0">
+<em class="property">static </em><code class="sig-name descname">_eta0</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap._eta0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.eta">
+<code class="sig-name descname">eta</code><span class="sig-paren">(</span><em class="sig-param">dp</em>, <em class="sig-param">gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.eta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Depending on the number of entries in self.alpha_array the
+according order of eta = sum_i eta_i * delta^i where
+delta = Delta p / p0 will be included in this gathering function.</p>
+<p>Note: Please implement higher slippage factor orders as static methods
+with name _eta&lt;N&gt; where &lt;N&gt; is the order of delta in eta(delta)
+and with signature (alpha_array, gamma).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.track">
+<em class="property">abstract </em><code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalMap.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Should be decorated by &#64;clean_slices for any inheriting
+classes changing beam.z .</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.longitudinal_tracking.</code><code class="sig-name descname">LongitudinalOneTurnMap</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">circumference</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>A longitudinal one turn map tracks over a complete turn.
+Any inheriting classes guarantee to provide a self.track(beam)
+method that tracks around the whole ring!</p>
+<p>LongitudinalOneTurnMap classes possibly comprise several
+LongitudinalMap objects.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({'track'})</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">alpha_array</em>, <em class="sig-param">circumference</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>LongitudinalOneTurnMap objects know their circumference.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.longitudinal_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap.track">
+<em class="property">abstract </em><code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.LongitudinalOneTurnMap.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contract: advances the longitudinal coordinates
+of the beam over a full turn / circumference.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFBox">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.longitudinal_tracking.</code><code class="sig-name descname">RFBox</code><span class="sig-paren">(</span><em class="sig-param">z_left</em>, <em class="sig-param">z_right</em>, <em class="sig-param">alpha_array</em>, <em class="sig-param">length</em>, <em class="sig-param">shrinkage_p_increment=0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFBox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents longitudinal square well potential.</p>
+<p>Particles drift freely along z within the interval (z_left, z_right)
+according to their momentum. When they hit the box boundary they are
+reflected with their momentum inverted.</p>
+<p>NB: dispersion subtraction not implemented yet!</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFBox.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFBox.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFBox.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">z_left</em>, <em class="sig-param">z_right</em>, <em class="sig-param">alpha_array</em>, <em class="sig-param">length</em>, <em class="sig-param">shrinkage_p_increment=0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFBox.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The length of the momentum compaction factor array /alpha_array/
+defines the order of the slippage factor expansion.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFBox.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.longitudinal_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFBox.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFBox._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFBox._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFBox.reflect">
+<code class="sig-name descname">reflect</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFBox.reflect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFBox.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFBox.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Should be decorated by &#64;clean_slices for any inheriting
+classes changing beam.z .</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.longitudinal_tracking.</code><code class="sig-name descname">RFSystems</code><span class="sig-paren">(</span><em class="sig-param">circumference</em>, <em class="sig-param">harmonic_list</em>, <em class="sig-param">voltage_list</em>, <em class="sig-param">phi_offset_list</em>, <em class="sig-param">alpha_array</em>, <em class="sig-param">gamma_reference</em>, <em class="sig-param">p_increment=0</em>, <em class="sig-param">phase_lock=True</em>, <em class="sig-param">shrink_transverse=True</em>, <em class="sig-param">shrink_longitudinal=False</em>, <em class="sig-param">D_x=0</em>, <em class="sig-param">D_y=0</em>, <em class="sig-param">charge=None</em>, <em class="sig-param">mass=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems" title="Permalink to this definition">¶</a></dt>
+<dd><p>With one RFSystems object in the ring layout (with all Kick
+objects located at the same longitudinal position), the
+longitudinal separatrix function is exact and makes a valid
+local statement about stability!</p>
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.Q_s">
+<em class="property">property </em><code class="sig-name descname">Q_s</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.Q_s" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">circumference</em>, <em class="sig-param">harmonic_list</em>, <em class="sig-param">voltage_list</em>, <em class="sig-param">phi_offset_list</em>, <em class="sig-param">alpha_array</em>, <em class="sig-param">gamma_reference</em>, <em class="sig-param">p_increment=0</em>, <em class="sig-param">phase_lock=True</em>, <em class="sig-param">shrink_transverse=True</em>, <em class="sig-param">shrink_longitudinal=False</em>, <em class="sig-param">D_x=0</em>, <em class="sig-param">D_y=0</em>, <em class="sig-param">charge=None</em>, <em class="sig-param">mass=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first entry in harmonic_list, voltage_list and
+phi_offset_list defines the parameters for the one
+accelerating Kick object (i.e. the accelerating RF system).</p>
+<p>For several accelerating Kick objects one would have to
+extend this class and settle for the relative phases
+between the Kick objects! (For one accelerating Kick object,
+all the other Kick objects’ zero crossings are displaced by
+the negative phase shift induced by the accelerating Kick.)</p>
+<p>The length of the momentum compaction factor array alpha_array
+defines the order of the slippage factor expansion.
+(See the LongitudinalMap class for further details.)</p>
+<p>RFSystems comprises a half the circumference drift,
+then all the kicks by the RF Systems in one location,
+then the remaining half the circumference drift.
+This Verlet algorithm (“leap-frog” featuring O(n_turn^2) as
+opposed to symplectic Euler-Cromer with O(n_turn)) makes
+sure that the longitudinal phase space is read out in
+a symmetric way (otherwise phase space should be tilted
+at the entrance or exit of the cavity / kick location!
+cf. discussions with Christian Carli).</p>
+<p>The boolean parameter shrink_longitudinal determines whether the
+shrinkage ratio beta_{n+1} / beta_n should be taken
+into account during the second Drift.
+(See the Drift class for further details.)</p>
+<p>The boolean parameter shrink_transverse allows for transverse
+emittance cooling from acceleration.</p>
+<p>Arguments:
+- self.p_increment is the momentum step per turn of the
+synchronous particle, it can be continuously adjusted to
+reflect different slopes in the dipole magnet strength ramp.
+(See the Kick class for further details.)
+- phase_lock == True means all phi_offsets are given w.r.t. the
+fundamental kick, adjusted at set-up time.
+- phase_lock == False means all phi_offsets are absolute.
+In this case take care about all Kick.p_increment attributes –
+highly non-trivial, as all other p_increment functionality
+in RFSystems is broken. So take care, you’re on your own! :-)
+- D_x, D_y: horizontal and vertical dispersion. These arguments</p>
+<blockquote>
+<div><p>are passed to the Kicks class. Because both kicks are applied
+consecutively, the dispersion will be the same for both kicks and
+it is therefore sufficient to specify only one dispersion.
+The dispersion must match the dispersion of the following transverse
+map. See the docstring of the Kick class for a more detailed
+description.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.longitudinal_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems._phaselock">
+<code class="sig-name descname">_phaselock</code><span class="sig-paren">(</span><em class="sig-param">gamma</em>, <em class="sig-param">charge</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems._phaselock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Put all _kicks other than the accelerating kick to
+zero phase difference w.r.t. the accelerating kick.
+Attention: Make sure the p_increment of each non-accelerating
+kick is set to 0 (assuming phi_offset == 0, otherwise adapt!).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems._shrink_transverse_emittance">
+<em class="property">static </em><code class="sig-name descname">_shrink_transverse_emittance</code><span class="sig-paren">(</span><em class="sig-param">beam</em>, <em class="sig-param">geo_emittance_factor</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems._shrink_transverse_emittance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Account for the transverse geometrical emittance shrinking
+due to acceleration cooling.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.accelerating_kick">
+<em class="property">property </em><code class="sig-name descname">accelerating_kick</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.accelerating_kick" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.clean_buckets">
+<code class="sig-name descname">clean_buckets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.clean_buckets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Erases all RFBucket records of this RFSystems instance.
+Any change of the Kick parameters should entail calling
+clean_buckets in order to update the Hamiltonian etc.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.elements">
+<em class="property">property </em><code class="sig-name descname">elements</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.elements" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.fundamental_kick">
+<em class="property">property </em><code class="sig-name descname">fundamental_kick</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.fundamental_kick" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.get_bucket">
+<code class="sig-name descname">get_bucket</code><span class="sig-paren">(</span><em class="sig-param">bunch=None</em>, <em class="sig-param">gamma=None</em>, <em class="sig-param">mass=None</em>, <em class="sig-param">charge=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.get_bucket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an RFBucket instance which contains all information
+and all physical parameters of the current longitudinal RF
+configuration. (Factory method)</p>
+<p>Use for plotting or obtaining the Hamiltonian etc.</p>
+<p>Attention: For the moment it is assumed that only the
+accelerating kick (defined by the first entry in the
+parameter lists) has a non-zero p_increment.
+(see RFSystems.p_increment)</p>
+<p>Arguments:
+Either give a bunch or the three parameters
+(gamma, mass, charge) explicitely to return a bucket
+defined by these.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.harmonics">
+<em class="property">property </em><code class="sig-name descname">harmonics</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.harmonics" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of Kick harmonics, ONLY use this interface in RFSystems
+to access and modify any Kick harmonic.
+(Otherwise the get_bucket functionality is broken,
+clean_buckets will not be called if not using this interface.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.kicks">
+<em class="property">property </em><code class="sig-name descname">kicks</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.kicks" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.p_increment">
+<em class="property">property </em><code class="sig-name descname">p_increment</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.p_increment" title="Permalink to this definition">¶</a></dt>
+<dd><p>The increment in momentum of the accelerating Kick, i.e.
+defined by the first entry in the RF parameter lists.
+ONLY use this interface in RFSystems to access and modify
+the accelerating Kick.p_increment.
+(Otherwise the get_bucket functionality is broken,</p>
+<blockquote>
+<div><p>clean_buckets will not be called if not using this interface.)</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.phi_offsets">
+<em class="property">property </em><code class="sig-name descname">phi_offsets</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.phi_offsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of Kick phi_offsets, ONLY use this interface in
+RFSystems to access and modify any Kick phi_offset.
+(Otherwise the get_bucket functionality is broken,
+clean_buckets will not be called if not using this interface.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.phi_s">
+<code class="sig-name descname">phi_s</code><span class="sig-paren">(</span><em class="sig-param">gamma</em>, <em class="sig-param">charge</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.phi_s" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.pop_kick">
+<code class="sig-name descname">pop_kick</code><span class="sig-paren">(</span><em class="sig-param">index</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.pop_kick" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a Kick instance from this RFSystems instance.
+Return the removed Kick instance.
+:param - index: the index according to the defining lists
+:param voltages, harmonics, phi_offsets.:</p>
+<p>Note: can only remove kicks that are not index == 0.
+The accelerating / fundamental kick cannot be removed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.rfbucket">
+<em class="property">property </em><code class="sig-name descname">rfbucket</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.rfbucket" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.set_harmonic_list">
+<code class="sig-name descname">set_harmonic_list</code><span class="sig-paren">(</span><em class="sig-param">harmonic_list</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.set_harmonic_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.set_phi_offset_list">
+<code class="sig-name descname">set_phi_offset_list</code><span class="sig-paren">(</span><em class="sig-param">phi_offset_list</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.set_phi_offset_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.set_voltage_list">
+<code class="sig-name descname">set_voltage_list</code><span class="sig-paren">(</span><em class="sig-param">voltage_list</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.set_voltage_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contract: advances the longitudinal coordinates
+of the beam over a full turn / circumference.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.track_no_transverse_shrinking">
+<code class="sig-name descname">track_no_transverse_shrinking</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.track_no_transverse_shrinking" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.track_transverse_shrinking">
+<code class="sig-name descname">track_transverse_shrinking</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.track_transverse_shrinking" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.voltages">
+<em class="property">property </em><code class="sig-name descname">voltages</code><a class="headerlink" href="#PyHEADTAIL.trackers.longitudinal_tracking.RFSystems.voltages" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of Kick voltages, ONLY use this interface in RFSystems
+to access and modify any Kick voltage.
+(Otherwise the get_bucket functionality is broken,</p>
+<blockquote>
+<div><p>clean_buckets will not be called if not using this interface.)</p>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="pyheadtail-trackers-rf-bucket-module">
+<h2>PyHEADTAIL.trackers.rf_bucket module<a class="headerlink" href="#pyheadtail-trackers-rf-bucket-module" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">members</dt>
+<dd class="field-odd"><p></p></dd>
+<dt class="field-even">private-members</dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">special-members</dt>
+<dd class="field-odd"><p></p></dd>
+<dt class="field-even">undoc-members</dt>
+<dd class="field-even"><p></p></dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="module-PyHEADTAIL.trackers.simple_long_tracking">
+<span id="pyheadtail-trackers-simple-long-tracking-module"></span><h2>PyHEADTAIL.trackers.simple_long_tracking module<a class="headerlink" href="#module-PyHEADTAIL.trackers.simple_long_tracking" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-PyHEADTAIL.trackers.transverse_tracking">
+<span id="pyheadtail-trackers-transverse-tracking-module"></span><h2>PyHEADTAIL.trackers.transverse_tracking module<a class="headerlink" href="#module-PyHEADTAIL.trackers.transverse_tracking" title="Permalink to this headline">¶</a></h2>
+<p>&#64;author Kevin Li, Michael Schenk, Stefan Hegglin
+&#64;date 07. January 2014
+&#64;brief Description of the transport of transverse phase spaces.
+&#64;copyright CERN</p>
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseMap">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.transverse_tracking.</code><code class="sig-name descname">TransverseMap</code><span class="sig-paren">(</span><em class="sig-param">s</em>, <em class="sig-param">alpha_x</em>, <em class="sig-param">beta_x</em>, <em class="sig-param">D_x</em>, <em class="sig-param">alpha_y</em>, <em class="sig-param">beta_y</em>, <em class="sig-param">D_y</em>, <em class="sig-param">accQ_x</em>, <em class="sig-param">accQ_y</em>, <em class="sig-param">detuners=[]</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collection class for TransverseSegmentMap objects. This class is
+used to define a one turn map for transverse particle tracking. An
+accelerator ring is divided into segments (1 or more). They are
+defined by the user with the array s containing the positions of
+all the segment boundaries. The TransverseMap stores all the
+relevant parameters (optics) at each segment boundary. The first
+boundary of the first segment is referred to as the injection
+point.
+At instantiation of the TransverseMap, a TransverseSegmentMap object
+is created for each segment of the accelerator and appended to the
+list self.segment_maps. When generating the TransverseSegmentMaps,
+the influence of incoherent detuning by effects defined in the
+trackers.detuners module is included and the corresponding
+SegmentDetuner objects are generated on the fly. Their strength of
+detuning is distributed proportionally along the accelerator
+circumference.
+Note that the TransverseMap only knows all the relevant optics
+parameters needed to generate the TransverseSegmentMaps. It is not
+capable of tracking particles. The transport mechanism of particles
+in the transverse plane is entirely implemented in the
+TransverseSegmentMap class.
+Since the TransverseMap is implemented to act as a sequence, the
+instances of the TransverseSegmentMap objects (stored in
+self.segment_maps) can be accessed using the notation
+TransverseMap(…)[i] (with i the index of the accelerator
+segment).</p>
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseMap.__getitem__">
+<code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseMap.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseMap.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">s</em>, <em class="sig-param">alpha_x</em>, <em class="sig-param">beta_x</em>, <em class="sig-param">D_x</em>, <em class="sig-param">alpha_y</em>, <em class="sig-param">beta_y</em>, <em class="sig-param">D_y</em>, <em class="sig-param">accQ_x</em>, <em class="sig-param">accQ_y</em>, <em class="sig-param">detuners=[]</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseMap.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a one-turn map that manages the transverse tracking
+for each of the accelerator segments defined by s.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>s is the array of positions defining the boundaries of the
+segments for one turn. The first element in s must be zero
+and the last element must be equal to the accelerator
+circumference C.</p></li>
+<li><p>accQ_{x,y} are arrays with the accumulating phase advance
+in units of 2 pi (i.e. mu_{x,y} / 2 pi) at each segment
+boundary. The respective last entry gives the betatron tune
+Q_{x,y} .
+Note: instead of arrays of length len(s) it is possible
+to provide solely the scalar one-turn betatron tune Q_{x,y}
+directly. Then the phase advances are smoothly distributed
+over the segments (proportional to the respective s length).</p></li>
+<li><p>alpha_{x,y}, beta_{x,y} are the TWISS parameters alpha and
+beta. They are arrays of size len(s) as these parameters
+must be defined at every segment boundary of the
+accelerator.</p></li>
+<li><p>D_{x,y} are the dispersion coefficients. They are arrays of
+size len(s) as these parameters must be defined at every
+segment boundary of the accelerator.</p></li>
+<li><p>detuner_collections is a list of DetunerCollection objects
+that are present in the accelerator. Each DetunerCollection
+knows how to generate and store its SegmentDetuner objects
+to ‘distribute’ the detuning proportionally along the
+accelerator circumference.</p></li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseMap.__len__">
+<code class="sig-name descname">__len__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseMap.__len__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseMap.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.transverse_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseMap.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseMap._generate_segment_maps">
+<code class="sig-name descname">_generate_segment_maps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseMap._generate_segment_maps" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method is called at instantiation of a TransverseMap
+object. For each segment of the accelerator ring (defined by the
+array self.s), a TransverseSegmentMap object is instantiated and
+appended to the list self.segment_maps. The creation of the
+TransverseSegmentMaps includes the instantiation of the
+SegmentDetuner objects which is achieved by calling the
+self.detuner_collections.generate_segment_detuner(…) method.
+The detuning strength given in a DetunerCollection is valid for
+one complete turn around the accelerator. To determine the
+detuning strength of a SegmentDetuner, the one-turn detuning
+strength is scaled to the segment_length. Note that this
+quantity is given in relative units (i.e. it is normalized to
+the accelerator circumference s[-1]).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseMap.detuner_collections">
+<code class="sig-name descname">detuner_collections</code><em class="property"> = None</em><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseMap.detuner_collections" title="Permalink to this definition">¶</a></dt>
+<dd><p>List to store TransverseSegmentMap instances.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseMap.get_injection_optics">
+<code class="sig-name descname">get_injection_optics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseMap.get_injection_optics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dict with the transverse TWISS parameters
+alpha_x, beta_x, D_x, alpha_y, beta_y, D_y from the
+beginning of the first segment (injection point).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.transverse_tracking.</code><code class="sig-name descname">TransverseSegmentMap</code><span class="sig-paren">(</span><em class="sig-param">alpha_x_s0</em>, <em class="sig-param">beta_x_s0</em>, <em class="sig-param">D_x_s0</em>, <em class="sig-param">alpha_x_s1</em>, <em class="sig-param">beta_x_s1</em>, <em class="sig-param">D_x_s1</em>, <em class="sig-param">alpha_y_s0</em>, <em class="sig-param">beta_y_s0</em>, <em class="sig-param">D_y_s0</em>, <em class="sig-param">alpha_y_s1</em>, <em class="sig-param">beta_y_s1</em>, <em class="sig-param">D_y_s1</em>, <em class="sig-param">dQ_x</em>, <em class="sig-param">dQ_y</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class to transport/track the particles of the beam in the
+transverse plane through an accelerator ring segment defined by its
+boundaries [s0, s1]. To calculate the transverse linear transport
+matrix M that transports each particle’s transverse phase space
+coordinates (x, xp, y, yp) from position s0 to position s1 in the
+accelerator, the TWISS parameters alpha and beta at positions s0
+and s1 must be provided. The betatron phase advance of each
+particle in the present segment is given by their betatron tune
+Q_{x,y} (phase advance) and possibly by an incoherent tune shift
+introduced e.g. by amplitude detuning or chromaticity effects
+(see trackers.detuners module).</p>
+<p>Dispersion is added in the horizontal and vertical planes. Care
+needs to be taken, that dispersive effects were taken into account
+upon beam creation. Then, before each linear tracking step, the
+dispersion is removed, linear tracking is performed via the linear
+periodic map and dispersion is added back so that any subsequent
+collective effect has dispersion taken into account.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">alpha_x_s0</em>, <em class="sig-param">beta_x_s0</em>, <em class="sig-param">D_x_s0</em>, <em class="sig-param">alpha_x_s1</em>, <em class="sig-param">beta_x_s1</em>, <em class="sig-param">D_x_s1</em>, <em class="sig-param">alpha_y_s0</em>, <em class="sig-param">beta_y_s0</em>, <em class="sig-param">D_y_s0</em>, <em class="sig-param">alpha_y_s1</em>, <em class="sig-param">beta_y_s1</em>, <em class="sig-param">D_y_s1</em>, <em class="sig-param">dQ_x</em>, <em class="sig-param">dQ_y</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an instance of the TransverseSegmentMap class. The
+values of the TWISS parameters alpha_{x,y} and beta_{x,y} as
+well as of the dispersion coefficients D_{x,y} (not yet
+implemented) are given at the beginning s0 and at the end s1 of
+the corresponding segment. The dQ_{x,y} denote the betatron
+tune advance over the current segment (phase advance divided by
+2 pi). The SegmentDetuner objects present in this segment are
+passed as a list via the keyword argument ‘segment_detuners’.
+The matrices self.I and self.J are constant and are calculated
+only once at instantiation of the TransverseSegmentMap.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.transverse_tracking'</em><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap._build_segment_map">
+<code class="sig-name descname">_build_segment_map</code><span class="sig-paren">(</span><em class="sig-param">alpha_x_s0</em>, <em class="sig-param">beta_x_s0</em>, <em class="sig-param">alpha_x_s1</em>, <em class="sig-param">beta_x_s1</em>, <em class="sig-param">alpha_y_s0</em>, <em class="sig-param">beta_y_s0</em>, <em class="sig-param">alpha_y_s1</em>, <em class="sig-param">beta_y_s1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap._build_segment_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate matrices I and J which are decoupled from the
+phase advance dependency and only depend on the TWISS parameters
+at the boundaries of the accelerator segment. These matrices are
+constant and hence need to be calculated only once at
+instantiation of the TransverseSegmentMap.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap._track_with_dispersion">
+<code class="sig-name descname">_track_with_dispersion</code><span class="sig-paren">(</span><em class="sig-param">beam</em>, <em class="sig-param">M00</em>, <em class="sig-param">M01</em>, <em class="sig-param">M10</em>, <em class="sig-param">M11</em>, <em class="sig-param">M22</em>, <em class="sig-param">M23</em>, <em class="sig-param">M32</em>, <em class="sig-param">M33</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap._track_with_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method gets bound to the self._track() method if
+there are dispersion effects, i.e. any of the 4 dispersion parameters
+is != 0
+It computes the transverse tracking given the matrix elements Mij.
+1) Subtract the dispersion using dp
+2) Change the positions and momenta using the matrix elements
+3) Add the dispersion effects using dp</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap._track_without_dispersion">
+<code class="sig-name descname">_track_without_dispersion</code><span class="sig-paren">(</span><em class="sig-param">beam</em>, <em class="sig-param">M00</em>, <em class="sig-param">M01</em>, <em class="sig-param">M10</em>, <em class="sig-param">M11</em>, <em class="sig-param">M22</em>, <em class="sig-param">M23</em>, <em class="sig-param">M32</em>, <em class="sig-param">M33</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap._track_without_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method gets bound to the self._track() method if there are
+no dispersive effects, i.e. all of the 4 dispersion parameters
+are close to (1e-3) 0.
+It computes the transverse tracking given the matrix elements Mij</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.transverse_tracking.TransverseSegmentMap.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>The dphi_{x,y} denote the phase advance in the horizontal
+and vertical plane respectively for the given accelerator
+segment. They are composed of the betatron tunes dQ_{x,y} and a
+possible incoherent tune shift introduced by detuner elements
+/ effects defined in the list self.segment_detuners (they are
+all instances of the SegmentDetuner child classes).
+The transport matrix is defined by the coefficients M_{ij}.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.trackers.wrapper">
+<span id="pyheadtail-trackers-wrapper-module"></span><h2>PyHEADTAIL.trackers.wrapper module<a class="headerlink" href="#module-PyHEADTAIL.trackers.wrapper" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="PyHEADTAIL.trackers.wrapper.LongWrapper">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.trackers.wrapper.</code><code class="sig-name descname">LongWrapper</code><span class="sig-paren">(</span><em class="sig-param">circumference</em>, <em class="sig-param">z0=0</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.wrapper.LongWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap particles that go out of the z range covering the circumference.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.wrapper.LongWrapper.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.trackers.wrapper.LongWrapper.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.wrapper.LongWrapper.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">circumference</em>, <em class="sig-param">z0=0</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.wrapper.LongWrapper.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arguments:
+- circumference: the interval length in z in [m]
+- z0: the central value of z
+Particles outside of the interval
+[z0 - circumference / 2, z0 + circumference / 2]
+will be folded back into the interval.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.wrapper.LongWrapper.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.trackers.wrapper'</em><a class="headerlink" href="#PyHEADTAIL.trackers.wrapper.LongWrapper.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.trackers.wrapper.LongWrapper._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.trackers.wrapper.LongWrapper._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.wrapper.LongWrapper.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.wrapper.LongWrapper.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform tracking of beam through this Element.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.trackers.wrapper.LongWrapper.track_numpy">
+<code class="sig-name descname">track_numpy</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.trackers.wrapper.LongWrapper.track_numpy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Explicitly uses numpy functions on the beam.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PyHEADTAIL.trackers package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.trackers.detuners">PyHEADTAIL.trackers.detuners module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.trackers.libTPSA">PyHEADTAIL.trackers.libTPSA module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.trackers.libintegrators">PyHEADTAIL.trackers.libintegrators module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.trackers.longitudinal_tracking">PyHEADTAIL.trackers.longitudinal_tracking module</a></li>
+<li><a class="reference internal" href="#pyheadtail-trackers-rf-bucket-module">PyHEADTAIL.trackers.rf_bucket module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.trackers.simple_long_tracking">PyHEADTAIL.trackers.simple_long_tracking module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.trackers.transverse_tracking">PyHEADTAIL.trackers.transverse_tracking module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.trackers.wrapper">PyHEADTAIL.trackers.wrapper module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.spacecharge.html"
+                        title="previous chapter">PyHEADTAIL.spacecharge package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/PyHEADTAIL.trackers.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.spacecharge.html" title="PyHEADTAIL.spacecharge package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" >PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

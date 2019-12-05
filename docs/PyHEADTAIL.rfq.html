@@ -1,0 +1,419 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PyHEADTAIL.rfq package &#8212; PyHEADTAIL  documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyHEADTAIL.spacecharge package" href="PyHEADTAIL.spacecharge.html" />
+    <link rel="prev" title="PyHEADTAIL.radiation package" href="PyHEADTAIL.radiation.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.spacecharge.html" title="PyHEADTAIL.spacecharge package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.radiation.html" title="PyHEADTAIL.radiation package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" accesskey="U">PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-PyHEADTAIL.rfq">
+<span id="pyheadtail-rfq-package"></span><h1>PyHEADTAIL.rfq package<a class="headerlink" href="#module-PyHEADTAIL.rfq" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-PyHEADTAIL.rfq.rfq">
+<span id="pyheadtail-rfq-rfq-module"></span><h2>PyHEADTAIL.rfq.rfq module<a class="headerlink" href="#module-PyHEADTAIL.rfq.rfq" title="Permalink to this headline">¶</a></h2>
+<p>This module contains the Python implementation of a pillbox-cavity RF
+quadrupole - referred to as the RFQ - as it was proposed by Alexej
+Grudiev in ‘Radio frequency quadrupole for Landau damping in
+accelerators’, Phys. Rev. Special Topics - Accelerators and Beams 17,
+011001 (2014) [1]. Similar to a ‘Landau’ octupole magnet, this device
+is intended to introduce an incoherent tune spread such that Landau
+damping can prevent the growth of transverse collective instabilities.</p>
+<p>The formulae that are used are based on [1] and make use of the thin-
+lens approximation. On the one hand, the RFQ introduces a longitudinal
+spread of the betatron frequency and on the other hand, a transverse
+spread of the synchrotron frequency.</p>
+<p>The effect in the transverse plane is modelled in two different
+ways</p>
+<ol class="upperroman simple">
+<li><p>RFQ as a detuner acting directly on each particles’ betatron
+tunes,</p></li>
+<li><p>RFQ as a localized kick acting on each particles’ momenta xp
+and yp.</p></li>
+</ol>
+<p>The effect in the longitudinal plane is always modelled as a localized
+kick, i.e. a change in a particle’s normalized momentum dp. For model
+(II), the incoherent betatron detuning is not applied directly, but is
+a consequence of the change in momenta xp and yp.</p>
+<p>&#64;author Michael Schenk, Adrian Oeftiger
+&#64;date July, 10th 2014
+&#64;brief Python implementation of a pillbox cavity RF quadrupole for</p>
+<blockquote>
+<div><p>Landau damping.</p>
+</div></blockquote>
+<p>&#64;copyright CERN</p>
+<dl class="class">
+<dt id="PyHEADTAIL.rfq.rfq.RFQKick">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.rfq.rfq.</code><code class="sig-name descname">RFQKick</code><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQKick" title="Permalink to this definition">¶</a></dt>
+<dd><p>Python base class to describe the RFQ element in the
+localized kick model for both the transverse and the
+longitudinal coordinates.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQKick.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({'track'})</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQKick.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQKick.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.rfq.rfq', '__doc__': 'Python base class to describe the RFQ element in the\n    localized kick model for both the transverse and the\n    longitudinal coordinates.\n    ', 'track': &lt;function RFQKick.track&gt;, '__dict__': &lt;attribute '__dict__' of 'RFQKick' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'RFQKick' objects&gt;, '__abstractmethods__': frozenset({'track'}), '_abc_impl': &lt;_abc_data object&gt;})</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQKick.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQKick.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.rfq.rfq'</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQKick.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQKick.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQKick.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQKick._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQKick._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQKick.track">
+<em class="property">abstract </em><code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQKick.track" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.rfq.rfq.RFQLongitudinalKick">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.rfq.rfq.</code><code class="sig-name descname">RFQLongitudinalKick</code><span class="sig-paren">(</span><em class="sig-param">v_2</em>, <em class="sig-param">omega</em>, <em class="sig-param">phi_0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQLongitudinalKick" title="Permalink to this definition">¶</a></dt>
+<dd><p>Python implementation of the RFQ element acting on the
+particles’ longitudinal coordinate dp.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQLongitudinalKick.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQLongitudinalKick.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQLongitudinalKick.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">v_2</em>, <em class="sig-param">omega</em>, <em class="sig-param">phi_0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQLongitudinalKick.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>An RFQ element is fully characterized by the parameters
+v_2:   quadrupolar expansion coefficient of the</p>
+<blockquote>
+<div><p>accelerating voltage (~strength of the RFQ), in
+[V/m^2].</p>
+</div></blockquote>
+<p>omega: Angular frequency of the RF wave, in [rad/s].
+phi_0: Constant phase offset wrt. bunch center (z=0), in</p>
+<blockquote>
+<div><p>[rad].</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQLongitudinalKick.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.rfq.rfq'</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQLongitudinalKick.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQLongitudinalKick._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQLongitudinalKick._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQLongitudinalKick.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQLongitudinalKick.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>The formula used to describe the longitudinal kick is given
+by</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Delta p_z = -(x^2 - y^2) (e v_2 / (beta c)) *</dt><dd><p>sin(omega z / (beta c) + phi_0).</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetuner">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.rfq.rfq.</code><code class="sig-name descname">RFQTransverseDetuner</code><span class="sig-paren">(</span><em class="sig-param">v_2</em>, <em class="sig-param">omega</em>, <em class="sig-param">phi_0</em>, <em class="sig-param">beta_x_RFQ</em>, <em class="sig-param">beta_y_RFQ</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetuner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collection class to contain/manage the segment-wise defined
+RFQ elements RFQTransverseDetunerSegment acting on the
+betatron tunes (detuner model of the RFQ). This is a pure
+Python class and it derives from the DetunerCollection class
+defined in the module PyHEADTAIL.trackers.detuners.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetuner.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetuner.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetuner.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">v_2</em>, <em class="sig-param">omega</em>, <em class="sig-param">phi_0</em>, <em class="sig-param">beta_x_RFQ</em>, <em class="sig-param">beta_y_RFQ</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetuner.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl>
+<dt>An RFQ element is fully characterized by the parameters</dt><dd><dl class="simple">
+<dt>v_2:   quadrupolar expansion coefficient of the accelerating</dt><dd><p>voltage (~strength of the RFQ), in [V/m^2]. One-turn
+value.</p>
+</dd>
+</dl>
+<p>omega: Angular frequency of the RF wave, in [rad/s].
+phi_0: Constant phase offset wrt. bunch center (z=0), in</p>
+<blockquote>
+<div><p>[rad].</p>
+</div></blockquote>
+</dd>
+</dl>
+<p>beta_x_RFQ and beta_y_RFQ are the beta functions at the
+position of the RFQ, although in the detuner model of the RFQ,
+the RFQ should not actually be understood as being localized.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetuner.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.rfq.rfq'</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetuner.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetuner._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetuner._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetuner.generate_segment_detuner">
+<code class="sig-name descname">generate_segment_detuner</code><span class="sig-paren">(</span><em class="sig-param">dmu_x</em>, <em class="sig-param">dmu_y</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetuner.generate_segment_detuner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate a RFQTransverseSegmentDetuner for the
+specified segment of the accelerator ring.
+Note that the bare betatron
+phase advances over the current segment, dmu_x and dmu_y, are
+given as relative values, i.e. in units of the overall phase
+advance around the whole accelerator (the betatron tune).
+The method is called by the TransverseMap object which manages
+the creation of a detuner for every defined segment.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.rfq.rfq.</code><code class="sig-name descname">RFQTransverseDetunerSegment</code><span class="sig-paren">(</span><em class="sig-param">dapp_xz</em>, <em class="sig-param">dapp_yz</em>, <em class="sig-param">omega</em>, <em class="sig-param">phi_0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Python implementation of the RFQ element acting directly on the
+particles’ betatron tunes (i.e. RFQ detuner model).</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.rfq.rfq', '__doc__': &quot;Python implementation of the RFQ element acting directly on the\n    particles' betatron tunes (i.e. RFQ detuner model).\n    &quot;, '__init__': &lt;function RFQTransverseDetunerSegment.__init__&gt;, 'detune': &lt;function RFQTransverseDetunerSegment.detune&gt;, '__dict__': &lt;attribute '__dict__' of 'RFQTransverseDetunerSegment' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'RFQTransverseDetunerSegment' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">dapp_xz</em>, <em class="sig-param">dapp_yz</em>, <em class="sig-param">omega</em>, <em class="sig-param">phi_0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an instance of the RFQTransverseDetunerSegment
+class. The RFQ is characterized by</p>
+<blockquote>
+<div><p>omega:   Angular frequency of the RF wave, in [rad/s].
+phi_0:   Constant phase offset wrt. bunch center (z=0), in</p>
+<blockquote>
+<div><p>[rad].</p>
+</div></blockquote>
+<dl class="simple">
+<dt>dapp_xz: Strength of detuning in the horizontal plane, scaled</dt><dd><p>to the relative bare betatron phase advance in x.</p>
+</dd>
+<dt>dapp_yz: Strength of detuning in the vertical plane, scaled</dt><dd><p>to the relative bare betatron phase advance in y.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.rfq.rfq'</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.detune">
+<code class="sig-name descname">detune</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseDetunerSegment.detune" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates for each particle its betatron detuning
+dQ_x, dQ_y according to formulae taken from [1] (see
+above).</p>
+<blockquote>
+<div><p>dQ_x = dapp_xz / p * cos(omega / (beta c) z + phi_0)
+dQ_y = dapp_yz / p * cos(omega / (beta c) z + phi_0)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>with</dt><dd><p>dapp_xz = beta_x_RFQ  * v_2 * e / (2 Pi * omega)
+dapp_yz = -beta_y_RFQ  * v_2 * e / (2 Pi * omega)</p>
+</dd>
+</dl>
+<p>and p the particle momentum p = (1 + dp) p0.
+(Probably, it would make sense to approximate p by p0 for better
+performance).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseKick">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.rfq.rfq.</code><code class="sig-name descname">RFQTransverseKick</code><span class="sig-paren">(</span><em class="sig-param">v_2</em>, <em class="sig-param">omega</em>, <em class="sig-param">phi_0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseKick" title="Permalink to this definition">¶</a></dt>
+<dd><p>Python implementation of the RFQ element acting on the
+particles’ transverse coordinates (i.e. localized kick
+model).</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseKick.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseKick.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseKick.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">v_2</em>, <em class="sig-param">omega</em>, <em class="sig-param">phi_0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseKick.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>An RFQ element is fully characterized by the parameters
+v_2:   quadrupolar expansion coefficient of the</p>
+<blockquote>
+<div><p>accelerating voltage (~strength of the RFQ), in
+[V/m^2].</p>
+</div></blockquote>
+<p>omega: Angular frequency of the RF wave, in [rad/s].
+phi_0: Constant phase offset wrt. bunch center (z=0), in</p>
+<blockquote>
+<div><p>[rad].</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseKick.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.rfq.rfq'</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseKick.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseKick._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseKick._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.rfq.rfq.RFQTransverseKick.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.rfq.rfq.RFQTransverseKick.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>The formula that describes the transverse kick experienced
+by an ultra-relativistic particle traversing the RFQ
+longitudinally is based on the thin-lens approximation</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Delta p_x = -x*(2 e v_2 / omega) *</dt><dd><p>cos(omega z / (beta c) + phi_0),</p>
+</dd>
+<dt>Delta p_y =  y*(2 e v_2 / omega) *</dt><dd><p>cos(omega z / (beta c) + phi_0).</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PyHEADTAIL.rfq package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.rfq.rfq">PyHEADTAIL.rfq.rfq module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.radiation.html"
+                        title="previous chapter">PyHEADTAIL.radiation package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.spacecharge.html"
+                        title="next chapter">PyHEADTAIL.spacecharge package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/PyHEADTAIL.rfq.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.spacecharge.html" title="PyHEADTAIL.spacecharge package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.radiation.html" title="PyHEADTAIL.radiation package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" >PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>
