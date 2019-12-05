@@ -3,11 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyHEADTAIL's documentation!
+Welcome to PyHEADTAIL's API description!
 ======================================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 3 
    :caption: Contents:
 
    PyHEADTAIL

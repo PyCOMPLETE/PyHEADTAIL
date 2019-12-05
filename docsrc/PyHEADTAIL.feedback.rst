@@ -14,14 +14,20 @@ PyHEADTAIL.feedback.transverse\_damper module
 
 .. automodule:: PyHEADTAIL.feedback.transverse_damper
    :members:
+   :private-members:
+   :special-members:
    :undoc-members:
-   :show-inheritance:
+..   :show-inheritance:
+
 
 PyHEADTAIL.feedback.widebandfeedback module
 -------------------------------------------
 
 .. automodule:: PyHEADTAIL.feedback.widebandfeedback
    :members:
+   :private-members:
+   :special-members:
    :undoc-members:
-   :show-inheritance:
+..   :show-inheritance:
+
 
