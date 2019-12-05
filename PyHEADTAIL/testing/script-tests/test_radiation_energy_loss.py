@@ -1,20 +1,17 @@
-import sys, os
-BIN=os.path.expanduser('../../../')
-sys.path.append(BIN)
-
-from scipy.constants import e,c
-from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse, SynchrotronRadiationLongitudinal
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.constants import e,c
+
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationLongitudinal
+from CLIC_DR import CLIC_DR
 
 macroparticlenumber = 50000
 n_turns = 512*8
 
-import pickle
-
 # MACHINE
 # =======
-from CLIC_DR import CLIC_DR
 machine = CLIC_DR(machine_configuration='3TeV_linear', n_segments=1)
 
 # BEAM
@@ -44,6 +41,6 @@ dp_before = bunch.mean_dp()
 SynchrotronRadiationLongitudinal.track(bunch)
 dp_after = bunch.mean_dp()
 
-print 'Energy loss\nEvaluated :%.6e [eV]\nExpected :%.6e [eV]\nERROR :%.2f'%((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge),
-		E_loss_eV,(E_loss_eV-((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge)))*100/E_loss_eV)+'%'
+print('Energy loss\nEvaluated :%.6e [eV]\nExpected :%.6e [eV]\nERROR :%.2f'%((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge),
+		E_loss_eV,(E_loss_eV-((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge)))*100/E_loss_eV)+'%')
 

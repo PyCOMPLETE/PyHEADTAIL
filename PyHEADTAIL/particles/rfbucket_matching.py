@@ -4,20 +4,18 @@
 @brief module for matching longitudinal particle distributions to an RFBucket instance
 '''
 
-from __future__ import division, print_function
+
 
 import numpy as np
 from scipy.optimize import brentq, newton
 from scipy.integrate import fixed_quad
 from scipy.constants import e, c
-
-from ..cobra_functions import pdf_integrators_2d as integr
-
-from . import Printing
-
 from functools import partial
-
 from abc import abstractmethod
+
+from PyHEADTAIL.cobra_functions import pdf_integrators_2d as integr
+from PyHEADTAIL.general.element import Printing
+
 
 class RFBucketMatcher(Printing):
 

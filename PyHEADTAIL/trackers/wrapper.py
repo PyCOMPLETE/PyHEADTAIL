@@ -1,8 +1,9 @@
-from __future__ import division
 
-from . import Element
 
 import numpy as np
+
+from PyHEADTAIL.general.element import Element
+
 
 class LongWrapper(Element):
     '''Wrap particles that go out of the z range covering the circumference.'''

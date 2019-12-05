@@ -7,8 +7,10 @@ accelerator) for PyHeadtail. All implemented elements derive from this.
 Can be used for implementing general features that every derived element
 in PyHEADTAIL should have.
 '''
-from .printers import ConsolePrinter
+
 from abc import ABCMeta, abstractmethod
+
+from PyHEADTAIL.general.printers import ConsolePrinter
 
 
 class Printing(object):
@@ -23,6 +25,9 @@ class Printing(object):
 
     in order to obtain full flexibility over output channels.
     '''
+
+    def __init__(self, *args, **kwargs):
+        pass
 
     def __new__(cls, *args, **kwargs):
         '''
@@ -66,12 +71,11 @@ class Printing(object):
         self._warningprinter.prints("*** PyHEADTAIL WARNING! " + output)
 
 
-class Element(Printing):
+class Element(Printing, metaclass=ABCMeta):
     '''
     Abstract element as part of the tracking layout. Guarantees
     to fulfil its tracking contract via the method track(beam).
     '''
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def track(self, beam):

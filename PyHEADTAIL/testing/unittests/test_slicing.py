@@ -3,18 +3,9 @@
 @author: Stefan Hegglin
 '''
 
-from __future__ import division
 
-import sys, os
-BIN = os.path.dirname(__file__) # ./PyHEADTAIL/testing/unittests/
-BIN = os.path.abspath( BIN ) # absolute path to unittests
-BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/testing/
-BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/
-BIN = os.path.dirname( BIN ) # ../ -->  ./
-sys.path.append(BIN)
 
 import unittest
-
 import numpy as np
 from scipy.constants import c, e, m_p
 
@@ -105,10 +96,10 @@ class TestSlicing(unittest.TestCase):
                             'slices in UniformChargeSlicer don\'t have' +
                             'the same number of macroparticles in them')
         else :
-            print('test_unif_charge_slicer() not run because ' +
+            print(('test_unif_charge_slicer() not run because ' +
                   'uniform charge distribution is impossible ' +
                   '(nparticles[' + str(self.macroparticlenumber) +
-                  '] % nslices[' + str(self.nslices) + '] != 0)')
+                  '] % nslices[' + str(self.nslices) + '] != 0)'))
 
     def test_sliceset_macroparticles(self):
         '''Tests whether the sum of all particles per slice
@@ -140,7 +131,7 @@ class TestSlicing(unittest.TestCase):
         bunch = self.create_bunch_with_params(1, 42, 0., 20)
         slice_set = self.basic_slicer.slice(bunch)
         self.basic_slicer.add_statistics(slice_set, bunch, True)
-        for n in xrange(self.nslices):
+        for n in range(self.nslices):
             self.assertAlmostEqual(slice_set.epsn_x[n],
                                    slice_set.eff_epsn_x[n],
                                    places=4,

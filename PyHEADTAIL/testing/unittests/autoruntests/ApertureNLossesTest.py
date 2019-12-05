@@ -1,24 +1,12 @@
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
-
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.constants import m_p, c, e
 
-
+import PyHEADTAIL.aperture.aperture as aperture
 from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.trackers.longitudinal_tracking import RFSystems
-import PyHEADTAIL.aperture.aperture as aperture
 
-
-# In[5]:
-
-import matplotlib.pyplot as plt
-
-
-# In[6]:
 
 def run():
 

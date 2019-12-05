@@ -3,21 +3,12 @@
 @author: Stefan Hegglin
 Tests for generator
 '''
-from __future__ import division
 
-
-import sys, os
-BIN = os.path.dirname(__file__) # ./PyHEADTAIL/testing/unittests/
-BIN = os.path.abspath(BIN) # absolute path to unittests
-BIN = os.path.dirname(BIN) # ../ -->  ./PyHEADTAIL/testing/
-BIN = os.path.dirname(BIN) # ../ -->  ./PyHEADTAIL/
-BIN = os.path.dirname(BIN) # ../ -->  ./
-sys.path.append(BIN)
 
 import unittest
-
 import numpy as np
 import scipy.constants as constants
+
 from PyHEADTAIL.trackers.longitudinal_tracking import RFSystems
 import PyHEADTAIL.particles.generators as gf
 from PyHEADTAIL.general.printers import SilentPrinter
@@ -79,7 +70,7 @@ class TestParticleGenerators(unittest.TestCase):
         self.assertEqual(self.beam.dp.size, self.nparticles,
                          'Updating the beam with new coordinates leads to' +
                          'faulty coordinates')
-        for n in xrange(self.nparticles):
+        for n in range(self.nparticles):
             self.assertAlmostEqual(x_copy[n], self.beam.x[n],
                 msg='Updating the beam with new coordinates invalidates' +
                 'existing coordinates')

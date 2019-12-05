@@ -3,18 +3,12 @@ Context manager classes
 @author Stefan Hegglin
 @data 30.09.2015
 '''
+
 import numpy as np
 
-class UnknownContextManagerError(Exception):
-    '''Raise if context manager is not found, e.g. cannot determine
-    whether on CPU or on GPU.
-    '''
-    def __init__(self, message='Failed to determine current context, e.g. '
-                               'whether pmath.device is "CPU" or "GPU".'):
-        self.message = message
+import PyHEADTAIL.general.pmath as pm
+from PyHEADTAIL.gpu import gpu_utils
 
-import pmath as pm
-from ..gpu import gpu_utils
 try:
     import pycuda.gpuarray as gpuarray
     import pycuda
@@ -24,6 +18,7 @@ try:
 except ImportError:
     # print ('pycuda not found, GPU context unavailable')
     has_pycuda = False
+
 
 if has_pycuda:
     def create_kernel(operator):

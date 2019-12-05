@@ -5,6 +5,7 @@
        of bunch and slice_set data.
 @copyright CERN
 """
+
 import numpy as np
 cimport numpy as np
 cimport libc.math as cmath
@@ -99,21 +100,28 @@ cpdef double emittance(double[::1] u, double[::1] up, double[::1] dp):
     cdef double sigma11 = 0.
     cdef double sigma12 = 0.
     cdef double sigma22 = 0.
-    cdef double cov_u2 = covariance(u,u)
+    cdef double cov_u2 = covariance(u, u)
     cdef double cov_up2 = covariance(up, up)
     cdef double cov_u_up = covariance(up, u)
-    cdef double cov_u_dp = 0.
-    cdef double cov_up_dp = 0.
-    cdef double cov_dp2 = 1.
+
+    cdef double term_u2_dp = 0.
+    cdef double term_u_up_dp = 0.
+    cdef double term_up2_dp = 0.
 
     if dp != None: #if not None, assign values to variables involving dp
-        cov_u_dp = covariance(u, dp)
-        cov_up_dp = covariance(up,dp)
-        cov_dp2 = covariance(dp,dp)
+        cov_dp2 = covariance(dp, dp)
 
-    sigma11 = cov_u2 - cov_u_dp*cov_u_dp/cov_dp2
-    sigma12 = cov_u_up - cov_u_dp*cov_up_dp/cov_dp2
-    sigma22 = cov_up2 - cov_up_dp*cov_up_dp/cov_dp2
+        if cov_dp2 != 0:
+            cov_u_dp = covariance(u, dp)
+            cov_up_dp = covariance(up, dp)
+
+            term_u2_dp = cov_u_dp * cov_u_dp / cov_dp2
+            term_u_up_dp = cov_u_dp * cov_up_dp / cov_dp2
+            term_up2_dp = cov_up_dp * cov_up_dp / cov_dp2
+
+    sigma11 = cov_u2 - term_u2_dp
+    sigma12 = cov_u_up - term_u_up_dp
+    sigma22 = cov_up2 - term_up2_dp
 
     return cmath.sqrt(_det_beam_matrix(sigma11, sigma12, sigma22))
 
@@ -386,7 +394,7 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
     cdef double[::1] cov_u_up = np.zeros(n_slices, dtype=np.double)
     cdef double[::1] cov_u_dp = np.zeros(n_slices, dtype=np.double)
     cdef double[::1] cov_up_dp = np.zeros(n_slices, dtype=np.double)
-    cdef double[::1] cov_dp2 = np.ones(n_slices, dtype=np.double)
+    cdef double[::1] cov_dp2 = np.zeros(n_slices, dtype=np.double)
 
     # compute the covariances
     cov_per_slice(slice_index_of_particle, particles_within_cuts,
@@ -395,6 +403,7 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
                   n_macroparticles, u, up, cov_u_up)
     cov_per_slice(slice_index_of_particle, particles_within_cuts,
                   n_macroparticles, up, up, cov_up2)
+
     if dp != None:
         cov_per_slice(slice_index_of_particle, particles_within_cuts,
                       n_macroparticles, u, dp, cov_u_dp)
@@ -408,9 +417,13 @@ cpdef emittance_per_slice(int[::1] slice_index_of_particle,
     cdef unsigned int i
     for i in xrange(n_slices):
         if n_macroparticles[i] > 1:
-            sigma11 = cov_u2[i] - cov_u_dp[i]*cov_u_dp[i]/cov_dp2[i]
-            sigma12 = cov_u_up[i] - cov_u_dp[i]*cov_up_dp[i]/cov_dp2[i]
-            sigma22 = cov_up2[i] - cov_up_dp[i]*cov_up_dp[i]/cov_dp2[i]
+            sigma11 = cov_u2[i]
+            sigma12 = cov_u_up[i]
+            sigma22 = cov_up2[i]
+            if dp != None and cov_dp2[i] != 0.:
+                sigma11 -= cov_u_dp[i] * cov_u_dp[i] / cov_dp2[i]
+                sigma12 -= cov_u_dp[i] * cov_up_dp[i] / cov_dp2[i]
+                sigma22 -= cov_up_dp[i] * cov_up_dp[i] / cov_dp2[i]
             emittance[i] = cmath.sqrt(_det_beam_matrix(sigma11, sigma12, sigma22))
         else:
             emittance[i] = 0.

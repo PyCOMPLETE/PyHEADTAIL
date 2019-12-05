@@ -57,7 +57,7 @@ And there you go, start using PyHEADTAIL!
 
     In [1]: import PyHEADTAIL
 
-    PyHEADTAIL v1.12.2
+    PyHEADTAIL v1.13.3
 
 For a single installation of PyHEADTAIL we recommended to add
 the PyHEADTAIL path to your PYTHONPATH.

@@ -6,8 +6,7 @@
 import numpy as np
 from PyHEADTAIL._version import __version__
 
-import re, os, sys, subprocess
-import numpy as np
+import os, sys, subprocess
 
 from setuptools import setup, Extension, find_packages
 
@@ -21,7 +20,7 @@ if platform.system() is 'Darwin':
            "may have to install with the following line:\n\n"
            "$ CC=gcc-4.9 ./install\n"
            "(or any equivalent version of gcc)")
-    raw_input('Hit any key to continue...')
+    input('Hit any key to continue...')
 
 
 args = sys.argv[1:]
@@ -55,7 +54,10 @@ with open('README.rst', 'rb') as f:
 # Set up extension and build
 cy_ext_options = {
     "compiler_directives": {"profile": False, # SLOW!!!
-                            "embedsignature": True},
+                            "embedsignature": True,
+                            "linetrace": False,
+                            "language_level": sys.version_info[0],
+                            },
     "annotate": True,
 }
 cy_ext = [

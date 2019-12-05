@@ -6,14 +6,14 @@ This script runs all the unit tests specified in test_list
 
 import sys
 import unittest
+from pprint import pprint
 
 try:
     import pycuda.autoinit
 except ImportError:
     has_pycuda = False
-    print 'No PyCUDA installation found.'
+    print('No PyCUDA installation found.')
 
-from pprint import pprint
 
 from test_slicing import TestSlicing
 from test_particles import TestParticles
@@ -44,6 +44,7 @@ test_list = [TestSlicing,
              TestDispatch,
              TestMonitor]
 
+test_list = sorted(test_list, key=str)
 
 if __name__ == '__main__':
     test_load = unittest.TestLoader()

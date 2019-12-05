@@ -16,9 +16,9 @@ April 5, 1995
 @date:    23/03/2016
 '''
 
-from . import Element
-
 from math import factorial
+
+from PyHEADTAIL.general.element import Element
 
 
 class ThinQuadrupole(Element):
@@ -111,8 +111,8 @@ class ThinMultipole(Element):
         '''Efficient Horner scheme.'''
         dpx = kn[-1]
         dpy = ks[-1]
-        nn = range(1, len(kn) + 1)
-        for n, kkn, kks in zip(nn, kn, ks)[-2::-1]:
+        nn = list(range(1, len(kn) + 1))
+        for n, kkn, kks in list(zip(nn, kn, ks))[-2::-1]:
             dpxi = (dpx*x - dpy*y) / float(n)
             dpyi = (dpx*y + dpy*x) / float(n)
             dpx = kkn + dpxi

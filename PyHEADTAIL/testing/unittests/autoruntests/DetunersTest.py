@@ -1,27 +1,12 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
-
-# In[2]:
-
 import numpy as np
 from scipy.constants import m_p, c, e
 import matplotlib.pyplot as plt
 
+import PyHEADTAIL.particles.generators as generators
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
-import PyHEADTAIL.particles.generators as generators
 
 
-# In[3]:
-
-# HELPERS
 def run():
     def track(bunch, map_):
         for i in range(n_turns):

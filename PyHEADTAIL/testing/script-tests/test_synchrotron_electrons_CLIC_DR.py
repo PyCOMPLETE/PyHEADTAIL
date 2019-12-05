@@ -1,9 +1,10 @@
-import sys, os
-BIN=os.path.expanduser('../../../')
-sys.path.append(BIN)
-
-
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
 from scipy.constants import e,c
+
+from CLIC_DR import CLIC_DR
+
 
 macroparticlenumber_track = 2000
 macroparticlenumber_optics = 2000
@@ -15,19 +16,13 @@ sigma_z = 1.8e-3
 
 intensity = 4.1e9
 
-
-import pickle
-from CLIC_DR import CLIC_DR
-
-
 machine = CLIC_DR(machine_configuration='3TeV', n_segments=29,
                   charge=-e)
 
-
-print 'Create bunch for optics...'
+print('Create bunch for optics...')
 bunch   = machine.generate_6D_Gaussian_bunch_matched(
     macroparticlenumber_optics, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
-print 'Done.'
+print('Done.')
 
 bunch.x += 10.
 bunch.y += 20.
@@ -41,17 +36,15 @@ beam_beta_x = []
 beam_alpha_y = []
 beam_beta_y = []
 for i_ele, m in enumerate(machine.one_turn_map):
-    print 'Element %d/%d'%(i_ele, len(machine.one_turn_map))
+    print('Element %d/%d'%(i_ele, len(machine.one_turn_map)))
     beam_alpha_x.append(bunch.alpha_Twiss_x())
     beam_beta_x.append(bunch.beta_Twiss_x())
     beam_alpha_y.append(bunch.alpha_Twiss_y())
     beam_beta_y.append(bunch.beta_Twiss_y())
     m.track(bunch)
 
-import numpy as np
-import matplotlib.pyplot as plt
-plt.close('all')
 
+plt.close('all')
 
 fig, axes = plt.subplots(2, sharex=True)
 
@@ -72,7 +65,7 @@ axes[1].grid('on')
 axes[1].set_ylabel('alpha_x, alpha_y')
 axes[1].set_xlabel('# point')
 
-if mode == 'non-smooth':
+if machine.optics_mode == 'non-smooth':
     axes[0].plot(np.array(optics['beta_x']), 'xk')
     axes[0].plot(np.array(optics['beta_y']), 'xk')
     axes[1].plot(np.array(optics['alpha_x']), 'xk')
@@ -90,8 +83,8 @@ beam_y = []
 beam_z = []
 sx, sy, sz = [], [], []
 epsx, epsy, epsz = [], [], []
-for i_turn in xrange(n_turns):
-    print 'Turn %d/%d'%(i_turn, n_turns)
+for i_turn in range(n_turns):
+    print('Turn %d/%d'%(i_turn, n_turns))
     machine.track(bunch)
 
     beam_x.append(bunch.mean_x())

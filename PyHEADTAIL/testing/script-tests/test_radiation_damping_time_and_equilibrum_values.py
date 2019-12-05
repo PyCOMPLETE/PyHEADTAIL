@@ -1,22 +1,18 @@
-import sys, os
-BIN=os.path.expanduser('../../../')
-sys.path.append(BIN)
-
-
-from scipy.constants import e,c
-from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse, SynchrotronRadiationLongitudinal
-import numpy as np
+import sys
 import matplotlib.pyplot as plt
+import numpy as np
+import pickle
+from scipy.constants import e,c
+
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse
+from PyHEADTAIL.radiation.radiation import SynchrotronRadiationLongitudinal
+from CLIC_DR import CLIC_DR
 
 macroparticlenumber = 50000
 n_turns = 512*8
 
-
-import pickle
-
 # MACHINE
 # =======
-from CLIC_DR import CLIC_DR
 machine = CLIC_DR(machine_configuration='3TeV_linear', n_segments=1)
 
 # BEAM
@@ -61,8 +57,8 @@ beam_z = []
 mean_dp = []
 sx, sy, sz, sdp = [], [], [], []
 epsx, epsy, epsz = [], [], []
-for i_turn in xrange(n_turns):
-    print 'Turn %d/%d'%(i_turn, n_turns)
+for i_turn in range(n_turns):
+    print('Turn %d/%d'%(i_turn, n_turns))
     machine.track(bunch)
 
     beam_x.append(bunch.mean_x())
@@ -89,8 +85,8 @@ xx_y = beam_y
 xx_x_env_damping = []
 xx_y_env_damping = []
 for j in range(N_interval_damping): #for loop to evaluate the envelope of centroid position in x and y
-    xx_x_env_damping.append(np.max(xx_x[((n_turns_damping/n_intervals_damping)*j):((n_turns_damping/n_intervals_damping)*(j+1))])) # take the maximum in each interval
-    xx_y_env_damping.append(np.max(xx_y[((n_turns_damping/n_intervals_damping)*j):((n_turns_damping/n_intervals_damping)*(j+1))]))
+    xx_x_env_damping.append(np.max(xx_x[((n_turns_damping//n_intervals_damping)*j):((n_turns_damping//n_intervals_damping)*(j+1))])) # take the maximum in each interval
+    xx_y_env_damping.append(np.max(xx_y[((n_turns_damping//n_intervals_damping)*j):((n_turns_damping//n_intervals_damping)*(j+1))]))
 xx_x_env_log_damping = np.log(np.abs(xx_x_env_damping) + sys.float_info.epsilon) #exponential fit using linear fit (exp->log)
 p0_x, p1_x = np.polyfit(interval_vector_damping, xx_x_env_log_damping, 1)
 xx_y_env_log_damping = np.log(np.abs(xx_y_env_damping) + sys.float_info.epsilon)
