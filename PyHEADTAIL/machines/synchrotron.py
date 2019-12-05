@@ -52,7 +52,7 @@ class Synchrotron(Element):
     Creates a synchrotron.
     Parameters
     ----------
-    optics_mode : {'smooth', 'non-smooth'}:
+    optics_mode : {'smooth', 'non-smooth'}
         'smooth': the optics parameters are the same for all segments;
         'non-smooth': the optics parameters are differetn for each segments.
     charge : [C] reference particle charge in Coulomb
@@ -94,27 +94,37 @@ class Synchrotron(Element):
         is 'non-smooth'. In this case, the length of the array should be
         n_segments + 1. The last point of the array should be equal to the
         first (periodic condition).
-    accQ_x :
+    accQ_x : []
         for 'optics_mode' = 'smooth' this is the horizontal tune;
         for 'optics_mode' = 'non-smooth' this is the horizontal phase advance
         per segment in units of (2*pi). The length of the array should be
         n_segments + 1. The last point of the array should be the
         horizontal tune.
-    accQ_y :
+    accQ_y : []
         for 'optics_mode' = 'smooth' this is the vertical tune;
         for 'optics_mode' = 'non-smooth' this is the vertical phase advance
         per segment in units of (2*pi). The length of the array should be
         n_segments + 1. The last point of the array should be the
         vertical tune.
-    Qp_x, Qp_y : Horizontal and vertical chromaticity (dQ/dp), the detuning
+    Qp_x, Qp_y : [] Horizontal and vertical chromaticity (dQ/dp), the detuning
         is shared over segments.
-    app_x, app_y, app_xy : Amplitude detining coefficients (anharmonicities).
-    longitudinal_mode=None,
-    Q_s=None,
-    alpha_mom_compaction=None,
-    h_RF=None,
-    V_RF=None,
-    dphi_RF=None,
+    app_x, app_y, app_xy : [] Amplitude detining coefficients (anharmonicities).
+    longitudinal_mode : {'linear', 'non-linear'}
+        'linear': linear longitudinal force (RF cavity)
+        'non-linear': sinusoidal longitudinal force (RF cavities). Multiple
+        harmonics can be deifined in this case.
+    Q_s : [] Synchrotron tune. It can be defined only if longitudinal_mode is
+        'linear'. If Q_s is provided, V_RF cannot be provided.
+    alpha_mom_compaction : [] Momentum compaction factor (dL/L)/(dp)
+    h_RF : [] Harmonic number. For multiple-harmonic RF systems this can be
+        an array.
+    V_RF : [V] RF voltage. For multiple-harmonic RF systems this can be
+        an array.
+    dphi_RF : [rad] Phase of the RF system with respect to the reference
+        particle (z=0). For a single harmonic, in the absence of acceleration
+        or enegy losses:
+         - below transition z = 0 is the stable fixed-point if dphi_RF = 0.
+         - below transition z = 0 is the stable fixed-point if dphi_RF = pi.
     p_increment=None,
     RF_at="middle",
     wrap_z=False,
