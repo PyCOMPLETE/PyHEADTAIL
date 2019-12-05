@@ -16,7 +16,7 @@ PyHEADTAIL.particles.generators module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.particles.particles module
@@ -26,7 +26,7 @@ PyHEADTAIL.particles.particles module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.particles.rfbucket\_matching module
@@ -36,7 +36,7 @@ PyHEADTAIL.particles.rfbucket\_matching module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.particles.slicing module
@@ -46,6 +46,6 @@ PyHEADTAIL.particles.slicing module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 

@@ -16,6 +16,6 @@ PyHEADTAIL.monitors.monitors module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 

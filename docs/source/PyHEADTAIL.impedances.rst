@@ -16,7 +16,7 @@ PyHEADTAIL.impedances.wake\_kicks module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 PyHEADTAIL.impedances.wakes module
 ----------------------------------
@@ -25,5 +25,5 @@ PyHEADTAIL.impedances.wakes module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:

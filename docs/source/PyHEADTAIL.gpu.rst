@@ -16,7 +16,7 @@ PyHEADTAIL.gpu.gpu\_utils module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.gpu.gpu\_wrap module
@@ -26,7 +26,7 @@ PyHEADTAIL.gpu.gpu\_wrap module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.gpu.oldinit module
@@ -36,7 +36,7 @@ PyHEADTAIL.gpu.oldinit module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.gpu.particles module
@@ -46,7 +46,7 @@ PyHEADTAIL.gpu.particles module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.gpu.pypic module
@@ -56,7 +56,7 @@ PyHEADTAIL.gpu.pypic module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.gpu.slicing module
@@ -66,7 +66,7 @@ PyHEADTAIL.gpu.slicing module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.gpu.thrust\_interface module
@@ -76,7 +76,7 @@ PyHEADTAIL.gpu.thrust\_interface module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance::
 
 PyHEADTAIL.gpu.wrapper module
@@ -86,6 +86,6 @@ PyHEADTAIL.gpu.wrapper module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 

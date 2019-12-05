@@ -14,14 +14,20 @@ PyHEADTAIL.field\_maps.Transverse\_Efield\_map module
 
 .. automodule:: PyHEADTAIL.field_maps.Transverse_Efield_map
    :members:
+   :private-members:
+   :special-members:
    :undoc-members:
-   :show-inheritance:
+..   :show-inheritance:
+
 
 PyHEADTAIL.field\_maps.field\_map module
 ----------------------------------------
 
 .. automodule:: PyHEADTAIL.field_maps.field_map
    :members:
+   :private-members:
+   :special-members:
    :undoc-members:
-   :show-inheritance:
+..   :show-inheritance:
+
 

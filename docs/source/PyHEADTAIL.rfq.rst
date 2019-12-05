@@ -16,6 +16,6 @@ PyHEADTAIL.rfq.rfq module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 

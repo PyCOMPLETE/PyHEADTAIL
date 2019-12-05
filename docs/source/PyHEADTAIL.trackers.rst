@@ -16,7 +16,7 @@ PyHEADTAIL.trackers.detuners module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.trackers.libTPSA module
@@ -26,8 +26,9 @@ PyHEADTAIL.trackers.libTPSA module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
+
 
 PyHEADTAIL.trackers.libintegrators module
 -----------------------------------------
@@ -36,7 +37,7 @@ PyHEADTAIL.trackers.libintegrators module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.trackers.longitudinal\_tracking module
@@ -46,7 +47,7 @@ PyHEADTAIL.trackers.longitudinal\_tracking module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.trackers.rf\_bucket module
@@ -55,7 +56,7 @@ PyHEADTAIL.trackers.rf\_bucket module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.trackers.simple\_long\_tracking module
@@ -75,7 +76,7 @@ PyHEADTAIL.trackers.transverse\_tracking module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.trackers.wrapper module
@@ -85,6 +86,5 @@ PyHEADTAIL.trackers.wrapper module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
-

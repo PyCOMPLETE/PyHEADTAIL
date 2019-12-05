@@ -16,7 +16,7 @@ PyHEADTAIL.spacecharge.pypic\_factory module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.spacecharge.pypic\_spacecharge module
@@ -26,7 +26,7 @@ PyHEADTAIL.spacecharge.pypic\_spacecharge module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.spacecharge.spacecharge module
@@ -36,7 +36,7 @@ PyHEADTAIL.spacecharge.spacecharge module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
 
 PyHEADTAIL.spacecharge.transverse\_spacecharge module
@@ -46,5 +46,5 @@ PyHEADTAIL.spacecharge.transverse\_spacecharge module
    :members:
    :private-members:
    :special-members:
-..   :undoc-members:
+   :undoc-members:
 ..   :show-inheritance:
