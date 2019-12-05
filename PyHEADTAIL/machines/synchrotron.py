@@ -75,7 +75,8 @@ class Synchrotron(Element):
             optics_mode is 'smooth', otherwise it is inferred by the length of s).
 
         name :
-            Name of the machine
+            Name of the locations in between segments. The length of the array
+            should be n_segments + 1.
 
         s : m, array
             Longitudinal positions at which the machine is cut
@@ -232,9 +233,9 @@ class Synchrotron(Element):
             longitudinal_mode=longitudinal_mode,
             Q_s=Q_s,
             alpha_mom_compaction=alpha_mom_compaction,
-            h_RF=h_RF,
-            V_RF=V_RF,
-            dphi_RF=dphi_RF,
+            h_RF=np.atleast_1d(h_RF),
+            V_RF=np.atleast_1d(V_RF),
+            dphi_RF=np.atleast_1d(dphi_RF),
             p_increment=p_increment,
             RF_at=RF_at,
         )
