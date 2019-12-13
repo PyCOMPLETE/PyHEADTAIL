@@ -183,7 +183,6 @@ for s in slice_set_list]
 
         bunch_offset = []
         for b in bunches:
-            print(b.bucket_id[0], h_bunch)
             bunch_offset.append(-b.bucket_id[0]*circumference/float(h_bunch))
 
         # Isolate the local_bunch_indexes from slice_set_list. After that, it
