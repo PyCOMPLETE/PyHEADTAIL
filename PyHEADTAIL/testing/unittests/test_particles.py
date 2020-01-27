@@ -3,18 +3,9 @@
 @author: Stefan Hegglin, Adrian Oeftiger
 '''
 
-from __future__ import division
 
-import sys, os
-BIN = os.path.dirname(__file__) # ./PyHEADTAIL/testing/unittests/
-BIN = os.path.abspath( BIN ) # absolute path to unittests
-BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/testing/
-BIN = os.path.dirname( BIN ) # ../ -->  ./PyHEADTAIL/
-BIN = os.path.dirname( BIN ) # ../ -->  ./
-sys.path.append(BIN)
 
 import unittest
-
 import numpy as np
 from scipy.constants import c, e, m_p
 
@@ -209,7 +200,7 @@ class TestParticles(unittest.TestCase):
             old[attr] = getattr(bunch, attr).copy()
         bunch.sort_for('z')
         new_idx = bunch.id - 1
-        for attr, oldarray in old.iteritems():
+        for attr, oldarray in old.items():
             self.assertTrue(np.all(oldarray[new_idx] == getattr(bunch, attr)),
                             msg="beam.sort_for('z') should reorder all beam "
                             "particle arrays, but beam." + str(attr) + " is "

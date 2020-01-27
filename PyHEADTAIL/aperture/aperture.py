@@ -1,4 +1,3 @@
-from __future__ import division
 '''
 Aperture module to manage particle losses. An aperture is
 defined as a condition on the phase space coordinates. Particles
@@ -11,25 +10,25 @@ under aperture_cython.pyx for better performance.
          Michael Schenk
 '''
 
-from . import Element, clean_slices
 
+
+import numpy as np
 from abc import ABCMeta, abstractmethod
 
-from ..general import pmath as pm
-import numpy as np
+from PyHEADTAIL.general.element import Element, Printing
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.particles.slicing import clean_slices
 
 def make_int32(array):
     return array.astype(np.int32)
 
 
-class Aperture(Element):
+class Aperture(Element, metaclass=ABCMeta):
     '''Abstract base class for Aperture elements. An aperture is
     generally defined as a condition on the phase space coordinates.
     Particles not fulfilling this condition are tagged as lost and
     are removed from the beam directly after.
     '''
-
-    __metaclass__ = ABCMeta
 
     @clean_slices
     def track(self, beam):

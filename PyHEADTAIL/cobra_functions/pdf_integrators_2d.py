@@ -3,9 +3,9 @@
 @date 21.06.2017
 @brief 2D distribution integration methods for y(x) parametrised domains
 '''
-from scipy.integrate import quad, dblquad, cumtrapz, romb
 
 import numpy as np
+from scipy.integrate import quad, dblquad, cumtrapz, romb
 
 
 def quad2d(f, ylimits, xmin, xmax):

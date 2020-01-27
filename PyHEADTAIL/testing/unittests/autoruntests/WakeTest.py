@@ -1,26 +1,14 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
-
-
-# In[2]:
-
+import os
 import numpy as np
 from scipy.constants import m_p, c, e
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-from PyHEADTAIL.impedances.wakes import (
-    WakeField, WakeTable, Resonator, CircularResonator)
+from PyHEADTAIL.impedances.wakes import WakeField, WakeTable
+from PyHEADTAIL.impedances.wakes import Resonator, CircularResonator
 from PyHEADTAIL.impedances.wakes import (
     ParallelHorizontalPlatesResonator as ParallelPlatesResonator)
-from PyHEADTAIL.impedances.wakes import (
-    ResistiveWall, CircularResistiveWall, ParallelPlatesResistiveWall)
+from PyHEADTAIL.impedances.wakes import ResistiveWall, CircularResistiveWall
+from PyHEADTAIL.impedances.wakes import ParallelPlatesResistiveWall
 from PyHEADTAIL.impedances.wakes import (
     ParallelHorizontalPlatesResistiveWall as ParallelPlatesResistiveWall)
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
@@ -30,8 +18,6 @@ from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 from PyHEADTAIL.general.printers import SilentPrinter
 
 
-# In[3]:
-
 # HELPERS
 def run():
 
@@ -40,7 +26,7 @@ def run():
         mean_y = np.empty(n_turns)
         sigma_z = np.empty(n_turns)
 
-        for i in xrange(n_turns):
+        for i in range(n_turns):
             mean_x[i] = bunch.mean_x()
             mean_y[i] = bunch.mean_y()
             sigma_z[i] = bunch.sigma_z()
@@ -86,7 +72,7 @@ def run():
 
         xp_diff  = np.zeros(n_macroparticles)
 
-        for i in xrange(n_turns):
+        for i in range(n_turns):
             for m_ in map_woWakes:
                 m_.track(bunch)
 

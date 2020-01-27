@@ -1,0 +1,1523 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PyHEADTAIL.particles package &#8212; PyHEADTAIL  documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyHEADTAIL.radiation package" href="PyHEADTAIL.radiation.html" />
+    <link rel="prev" title="PyHEADTAIL.multipoles package" href="PyHEADTAIL.multipoles.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.radiation.html" title="PyHEADTAIL.radiation package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.multipoles.html" title="PyHEADTAIL.multipoles package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" accesskey="U">PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-PyHEADTAIL.particles">
+<span id="pyheadtail-particles-package"></span><h1>PyHEADTAIL.particles package<a class="headerlink" href="#module-PyHEADTAIL.particles" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-PyHEADTAIL.particles.generators">
+<span id="pyheadtail-particles-generators-module"></span><h2>PyHEADTAIL.particles.generators module<a class="headerlink" href="#module-PyHEADTAIL.particles.generators" title="Permalink to this headline">¶</a></h2>
+<p>&#64;author Kevin Li, Michael Schenk, Adrian Oeftiger, Stefan Hegglin
+&#64;date 30.03.2015
+&#64;brief module for generating &amp; matching particle distributions</p>
+<dl class="class">
+<dt id="PyHEADTAIL.particles.generators.HEADTAILcoords">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">HEADTAILcoords</code><a class="headerlink" href="#PyHEADTAIL.particles.generators.HEADTAILcoords" title="Permalink to this definition">¶</a></dt>
+<dd><p>The classic HEADTAIL phase space.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.generators.HEADTAILcoords.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.particles.generators', '__doc__': 'The classic HEADTAIL phase space.', 'coordinates': ('x', 'xp', 'y', 'yp', 'z', 'dp'), 'transverse': ('x', 'xp', 'y', 'yp'), 'longitudinal': ('z', 'dp'), '__dict__': &lt;attribute '__dict__' of 'HEADTAILcoords' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'HEADTAILcoords' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.particles.generators.HEADTAILcoords.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.generators.HEADTAILcoords.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.generators'</em><a class="headerlink" href="#PyHEADTAIL.particles.generators.HEADTAILcoords.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.generators.HEADTAILcoords.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.particles.generators.HEADTAILcoords.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.generators.HEADTAILcoords.coordinates">
+<code class="sig-name descname">coordinates</code><em class="property"> = ('x', 'xp', 'y', 'yp', 'z', 'dp')</em><a class="headerlink" href="#PyHEADTAIL.particles.generators.HEADTAILcoords.coordinates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.generators.HEADTAILcoords.longitudinal">
+<code class="sig-name descname">longitudinal</code><em class="property"> = ('z', 'dp')</em><a class="headerlink" href="#PyHEADTAIL.particles.generators.HEADTAILcoords.longitudinal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.generators.HEADTAILcoords.transverse">
+<code class="sig-name descname">transverse</code><em class="property"> = ('x', 'xp', 'y', 'yp')</em><a class="headerlink" href="#PyHEADTAIL.particles.generators.HEADTAILcoords.transverse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.generators.ParticleGenerator">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">ParticleGenerator</code><span class="sig-paren">(</span><em class="sig-param">macroparticlenumber</em>, <em class="sig-param">intensity</em>, <em class="sig-param">charge</em>, <em class="sig-param">mass</em>, <em class="sig-param">circumference</em>, <em class="sig-param">gamma</em>, <em class="sig-param">distribution_x=None</em>, <em class="sig-param">alpha_x=0.0</em>, <em class="sig-param">beta_x=1.0</em>, <em class="sig-param">D_x=None</em>, <em class="sig-param">distribution_y=None</em>, <em class="sig-param">alpha_y=0.0</em>, <em class="sig-param">beta_y=1.0</em>, <em class="sig-param">D_y=None</em>, <em class="sig-param">distribution_z=None</em>, <em class="sig-param">Qs=None</em>, <em class="sig-param">eta=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.ParticleGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Factory to generate Particle instances according to distributions
+specified by the parameters in the initializer.
+The Particle instance can be generated via the .generate() method</p>
+<dl class="method">
+<dt id="PyHEADTAIL.particles.generators.ParticleGenerator.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">macroparticlenumber</em>, <em class="sig-param">intensity</em>, <em class="sig-param">charge</em>, <em class="sig-param">mass</em>, <em class="sig-param">circumference</em>, <em class="sig-param">gamma</em>, <em class="sig-param">distribution_x=None</em>, <em class="sig-param">alpha_x=0.0</em>, <em class="sig-param">beta_x=1.0</em>, <em class="sig-param">D_x=None</em>, <em class="sig-param">distribution_y=None</em>, <em class="sig-param">alpha_y=0.0</em>, <em class="sig-param">beta_y=1.0</em>, <em class="sig-param">D_y=None</em>, <em class="sig-param">distribution_z=None</em>, <em class="sig-param">Qs=None</em>, <em class="sig-param">eta=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.ParticleGenerator.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Specify the distribution for each phase space seperately. Only
+the phase spaces for which a distribution has been specified
+will be generated.
+The transverse phase space can be matched by specifying the Twiss
+parameters alpha and/or beta. The dispersion will be take into
+account after the beam has been matched longitudinally (if matched).
+The longitudinal phase space will only get matched
+if both Qs and eta are specified.
+:param distribution_[x,y,z]: a function which takes the n_particles</p>
+<blockquote>
+<div><p>as a parameter and returns a list-like object containing
+a 2D phase space. result[0] should stand for the spatial,
+result[1] for the momentum coordinate</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha_</strong><strong>[</strong><strong>x</strong><strong>,</strong><strong>y</strong><strong>]</strong> – Twiss parameter. The corresponding transverse phase
+space gets matched to (alpha_[], beta_[])</p></li>
+<li><p><strong>beta_</strong><strong>[</strong><strong>x</strong><strong>,</strong><strong>y</strong><strong>]</strong> – Twiss parameter. The corresponding transverse phase
+space gets matched to (alpha_[], beta_[])</p></li>
+<li><p><strong>D_</strong><strong>[</strong><strong>x</strong><strong>,</strong><strong>y</strong><strong>]</strong> – Dispersion. Only valid in combination with a longitudinal
+phase space.</p></li>
+<li><p><strong>Qs</strong> – Synchrotron tune. If Qs and eta are specified the
+longitudinal phase space gets matched to these parameters.</p></li>
+<li><p><strong>eta</strong> – Slippage factor (zeroth order).If Qs and eta are specified
+the longitudinal phase space gets matched to these parameters.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.generators.ParticleGenerator.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.generators'</em><a class="headerlink" href="#PyHEADTAIL.particles.generators.ParticleGenerator.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.generators.ParticleGenerator._create_phase_space">
+<code class="sig-name descname">_create_phase_space</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.ParticleGenerator._create_phase_space" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.generators.ParticleGenerator._linear_match_phase_space">
+<code class="sig-name descname">_linear_match_phase_space</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.ParticleGenerator._linear_match_phase_space" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.generators.ParticleGenerator.generate">
+<code class="sig-name descname">generate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.ParticleGenerator.generate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a particle  object with the parameters specified
+in the constructor of the Generator object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.generators.ParticleGenerator.update">
+<code class="sig-name descname">update</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.ParticleGenerator.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the beam coordinates specified in the constructor of the
+Generator object. Existing coordinates will be overriden, new ones
+will be added. Calls beam.update()</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.RF_bucket_distribution">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">RF_bucket_distribution</code><span class="sig-paren">(</span><em class="sig-param">rfbucket</em>, <em class="sig-param">sigma_z=None</em>, <em class="sig-param">epsn_z=None</em>, <em class="sig-param">margin=0</em>, <em class="sig-param">distribution_type=&lt;class 'PyHEADTAIL.particles.rfbucket_matching.ThermalDistribution'&gt;</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.RF_bucket_distribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a distribution function which generates particles
+which are matched to the specified bucket and target emittance or std
+Specify only one of sigma_z, epsn_z
+:param rfbucket: An object of type RFBucket
+:param sigma_z: target std
+:param epsn_z: target normalized emittance in z-direction
+:param margin: relative margin from the separatrix towards the</p>
+<blockquote>
+<div><p>inner stable fix point in which particles are avoided</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>distribution_type</strong> – longitudinal distribution type from
+rfbucket_matching (default is ThermalDistribution which
+produces a Gaussian-like matched Boltzmann distribution)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A matcher with the specified bucket properties (closure)</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If neither or both of sigma_z, epsn_z are specified</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.cut_distribution">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">cut_distribution</code><span class="sig-paren">(</span><em class="sig-param">distribution</em>, <em class="sig-param">is_accepted</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.cut_distribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate coordinates according to some distribution inside the
+region specified by where the function is_accepted returns 1.
+(Wrapper for distributions, based on RF_cut..)
+:param distribution: a function which takes the n_particles as a</p>
+<blockquote>
+<div><p>parameter and returns a list-like object
+containing a 2D phase space. result[0] should
+stand for the spatial, result[1] for the momentum
+coordinate</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>is_accepted</strong> – function taking two parameters (z, dp)
+[vectorised as arrays] and returning a boolean
+specifying whether the coordinate lies
+inside the desired phase space volume. A possible
+source to provide such an is_accepted function
+is the RFBucket.make_is_accepted or
+generators.make_is_accepted_within_n_sigma .</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A matcher with the specified bucket properties (closure)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.gaussian2D">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">gaussian2D</code><span class="sig-paren">(</span><em class="sig-param">emittance_geo</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.gaussian2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closure which generates a gaussian distribution with the given
+geometrical emittance. Uncorrelated and symmetrical.
+:param -emittance_geo: geometrical emittance (normalized emittance/betagamma</p>
+<blockquote>
+<div><p>for transverse, emittance*e/(4*pi*p0) for longitudinal)</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A function generating a 2d gaussian with the desired parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.gaussian2D_asymmetrical">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">gaussian2D_asymmetrical</code><span class="sig-paren">(</span><em class="sig-param">sigma_u</em>, <em class="sig-param">sigma_up</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.gaussian2D_asymmetrical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closure which generates a gaussian distribution with the given
+standard deviations. No correlation between u and up
+:param - sigma_u: standard deviation of the marginal spatial distribution
+:param - sigma_up: standard deviation of the marginal momentum distribution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A function generating a 2d gaussian with the desired parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.generate_Gaussian6DTwiss">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">generate_Gaussian6DTwiss</code><span class="sig-paren">(</span><em class="sig-param">macroparticlenumber</em>, <em class="sig-param">intensity</em>, <em class="sig-param">charge</em>, <em class="sig-param">mass</em>, <em class="sig-param">circumference</em>, <em class="sig-param">gamma</em>, <em class="sig-param">alpha_x</em>, <em class="sig-param">alpha_y</em>, <em class="sig-param">beta_x</em>, <em class="sig-param">beta_y</em>, <em class="sig-param">beta_z</em>, <em class="sig-param">epsn_x</em>, <em class="sig-param">epsn_y</em>, <em class="sig-param">epsn_z</em>, <em class="sig-param">dispersion_x=None</em>, <em class="sig-param">dispersion_y=None</em>, <em class="sig-param">limit_n_rms_x=None</em>, <em class="sig-param">limit_n_rms_y=None</em>, <em class="sig-param">limit_n_rms_z=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.generate_Gaussian6DTwiss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience wrapper generating a 6D Gaussian phase space
+distribution of macro-particles with the specified parameters:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>macroparticlenumber</strong> – number of macro-particles in the beam</p></li>
+<li><p><strong>intensity</strong> – number of represented beam particles</p></li>
+<li><p><strong>charge</strong> – charge per particle [SI unit Coul]</p></li>
+<li><p><strong>mass</strong> – mass per particle [SI unit kg]</p></li>
+<li><p><strong>circumference</strong> – ring circumference (needed for effective models)</p></li>
+<li><p><strong>gamma</strong> – relativistic Lorentz factor</p></li>
+<li><p><strong>alpha_</strong><strong>[</strong><strong>x</strong><strong>,</strong><strong>y</strong><strong>]</strong> – Twiss parameter. The corresponding transverse phase
+space gets matched to (alpha_[], beta_[])</p></li>
+<li><p><strong>beta_</strong><strong>[</strong><strong>x</strong><strong>,</strong><strong>y</strong><strong>]</strong> – Twiss parameter. The corresponding transverse phase
+space gets matched to (alpha_[], beta_[])</p></li>
+<li><p><strong>beta_z</strong> – corresponding longitudinal Twiss parameter
+amounting to <a href="#id1"><span class="problematic" id="id2">|eta|</span></a> * circumference / (2 * pi * Qs)</p></li>
+<li><p><strong>epsn_x</strong> – horizontal normalised RMS emittance [m.rad]</p></li>
+<li><p><strong>epsn_y</strong> – vertical normalised RMS emittance [m.rad]</p></li>
+<li><p><strong>epsn_z</strong> – longitudinal 90% emittance (4x the RMS emittance) [eV.s]</p></li>
+</ul>
+</dd>
+</dl>
+<dl>
+<dt>Optional args:</dt><dd><p>dispersion_x: horizontal optics dispersion value for matching
+dispersion_y: vertical optics dispersion value for matching
+limit_n_rms_[x,y]: number of RMS amplitudes to cut distribution
+limit_n_rms_z: longitudinal number of RMS amplitudes to cut</p>
+<blockquote>
+<div><p>distribution (remember that epsn_z is already 4x the RMS
+value, i.e. 2 amplitudes)</p>
+</div></blockquote>
+</dd>
+</dl>
+<p>Return a Particles instance with the phase space matched to the
+arguments.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.import_distribution2D">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">import_distribution2D</code><span class="sig-paren">(</span><em class="sig-param">coords</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.import_distribution2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a closure which generates the phase space specified
+by the coords list
+:param coords: list containing the coordinates to use</p>
+<blockquote>
+<div><p>coords[0] is the space, coords[1] the momentum coordinate</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.kv2D">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">kv2D</code><span class="sig-paren">(</span><em class="sig-param">r_u</em>, <em class="sig-param">r_up</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.kv2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closure which generates a Kapchinski-Vladimirski-type uniform
+distribution in 2D. The extent is determined by the arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r_u</strong> (<em>-</em>) – envelope edge radius for the spatial axis</p></li>
+<li><p><strong>r_up</strong> (<em>-</em>) – envelope edge angle for the momentum axis</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.kv4D">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">kv4D</code><span class="sig-paren">(</span><em class="sig-param">r_x</em>, <em class="sig-param">r_xp</em>, <em class="sig-param">r_y</em>, <em class="sig-param">r_yp</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.kv4D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closure which generates a Kapchinski-Vladimirski-type uniform
+distribution in 4D. The extent of the phase space ellipses is
+determined by the arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r_x</strong> (<em>-</em>) – envelope edge radius for the horizontal spatial axis</p></li>
+<li><p><strong>r_xp</strong> (<em>-</em>) – envelope edge angle for the horizontal momentum axis</p></li>
+<li><p><strong>r_y</strong> (<em>-</em>) – envelope edge radius for the vertical spatial axis</p></li>
+<li><p><strong>r_yp</strong> (<em>-</em>) – envelope edge angle for the vertical momentum axis</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.longitudinal_linear_matcher">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">longitudinal_linear_matcher</code><span class="sig-paren">(</span><em class="sig-param">Qs</em>, <em class="sig-param">eta</em>, <em class="sig-param">C</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.longitudinal_linear_matcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return simple longitudinal matcher
+Internally calls the transverse linear matcher with beta=beta_z
+and alpha = 0.
+beta_z = <a href="#id3"><span class="problematic" id="id4">|eta|</span></a> * C / (2*pi*Qs)t p
+:param Qs: synchroton tune
+:param eta: slippage factor (zeroth order),</p>
+<blockquote>
+<div><p>is lpha_c - gamma^2 (lpha_c = momentum compaction factor)</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>C</strong> – circumference</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A matcher with the specified Qs, eta (closure)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.make_is_accepted_within_n_sigma">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">make_is_accepted_within_n_sigma</code><span class="sig-paren">(</span><em class="sig-param">rms_amplitude=None</em>, <em class="sig-param">limit_n_rms=None</em>, <em class="sig-param">epsn_rms=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.make_is_accepted_within_n_sigma" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closure creating an is_accepted function (e.g. for
+cut_distribution). The is_accepted function will return whether
+the canonical coordinate and momentum pair lies within the phase
+space region limited by the action value
+limit_n_rms * rms_amplitude.
+The closure acts on normalised Floquet space, i.e. do apply this
+function to the particles before matching to the optics values.</p>
+<p>Coordinate u and momentum up are squared to give the action
+amplitude
+J = u^2 + up^2 .
+The amplitude is required to be below the limit to be accepted,
+J &lt; limit_n_rms * rms_amplitude.
+The usual use case will be generating u and up in normalised Floquet
+space (i.e. before the normalised phase space coordinates
+get matched to the optics or longitudinal eta and Qs).
+Consequently, the 1 sigma RMS reference value
+epsn_rms corresponds to the normalised 1 sigma RMS emittance
+(i.e. amounting to beam.epsn_x() and beam.epsn_y() in the transverse
+plane, and beam.epsn_z()/4 in the longitudinal plane).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.transverse_linear_matcher">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">transverse_linear_matcher</code><span class="sig-paren">(</span><em class="sig-param">alpha</em>, <em class="sig-param">beta</em>, <em class="sig-param">dispersion=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.transverse_linear_matcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a transverse matcher with the desired parameters.
+:param alpha: Twiss parameter
+:param beta: Twiss parameter
+:param dispersion: (optional) only use in combination with a longitudinal</p>
+<blockquote>
+<div><p>phase space</p>
+</div></blockquote>
+<p>Returns: Matcher(closure) taking two parameters: coords and direction</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.generators.uniform2D">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.generators.</code><code class="sig-name descname">uniform2D</code><span class="sig-paren">(</span><em class="sig-param">low</em>, <em class="sig-param">high</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.generators.uniform2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closure which generates a uniform distribution for the space coords.
+All momenta are 0.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.particles.particles">
+<span id="pyheadtail-particles-particles-module"></span><h2>PyHEADTAIL.particles.particles module<a class="headerlink" href="#module-PyHEADTAIL.particles.particles" title="Permalink to this headline">¶</a></h2>
+<p>Created on 17.10.2014
+&#64;author: Kevin Li, Michael Schenk, Adrian Oeftiger
+&#64;copyright CERN</p>
+<dl class="class">
+<dt id="PyHEADTAIL.particles.particles.Particles">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.particles.</code><code class="sig-name descname">Particles</code><span class="sig-paren">(</span><em class="sig-param">macroparticlenumber</em>, <em class="sig-param">particlenumber_per_mp</em>, <em class="sig-param">charge</em>, <em class="sig-param">mass</em>, <em class="sig-param">circumference</em>, <em class="sig-param">gamma</em>, <em class="sig-param">coords_n_momenta_dict={}</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains the basic properties of a particle ensemble with
+their coordinate and conjugate momentum arrays, energy and the like.
+Designed to describe beams, electron clouds, …</p>
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.__add__">
+<code class="sig-name descname">__add__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.__add__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges two beams.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">macroparticlenumber</em>, <em class="sig-param">particlenumber_per_mp</em>, <em class="sig-param">charge</em>, <em class="sig-param">mass</em>, <em class="sig-param">circumference</em>, <em class="sig-param">gamma</em>, <em class="sig-param">coords_n_momenta_dict={}</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The dictionary coords_n_momenta_dict contains the coordinate
+and conjugate momenta names and assigns to each the
+corresponding array.
+e.g.: coords_n_momenta_dict = {‘x’: array(..), ‘xp’: array(..)}</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.particles.Particles.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.particles'</em><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.__radd__">
+<code class="sig-name descname">__radd__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.__radd__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.particles.Particles._slice_sets">
+<code class="sig-name descname">_slice_sets</code><em class="property"> = None</em><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles._slice_sets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set of coordinate and momentum attributes of this Particles
+instance.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.add">
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param">coords_n_momenta_dict</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the coordinates and momenta with their according arrays
+to the attributes of the Particles instance (via
+self.update(coords_n_momenta_dict)). Does not allow existing
+coordinate or momentum attributes to be overwritten.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.alpha_Twiss_x">
+<code class="sig-name descname">alpha_Twiss_x</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.alpha_Twiss_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.alpha_Twiss_y">
+<code class="sig-name descname">alpha_Twiss_y</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.alpha_Twiss_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.beta">
+<em class="property">property </em><code class="sig-name descname">beta</code><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.beta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.beta_Twiss_x">
+<code class="sig-name descname">beta_Twiss_x</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.beta_Twiss_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.beta_Twiss_y">
+<code class="sig-name descname">beta_Twiss_y</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.beta_Twiss_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.betagamma">
+<em class="property">property </em><code class="sig-name descname">betagamma</code><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.betagamma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.charge_per_mp">
+<em class="property">property </em><code class="sig-name descname">charge_per_mp</code><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.charge_per_mp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.clean_slices">
+<code class="sig-name descname">clean_slices</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.clean_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Erases the SliceSet records of this Particles instance.
+Any longitudinal trackers (or otherwise modifying elements)
+should use this method to clean the recorded SliceSet objects.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.particles.Particles.coords_n_momenta">
+<code class="sig-name descname">coords_n_momenta</code><em class="property"> = None</em><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.coords_n_momenta" title="Permalink to this definition">¶</a></dt>
+<dd><p>ID of particles in order to keep track of single entries
+in the coordinate and momentum arrays.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.dispersion_x">
+<code class="sig-name descname">dispersion_x</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.dispersion_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.dispersion_y">
+<code class="sig-name descname">dispersion_y</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.dispersion_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.effective_normalized_emittance_x">
+<code class="sig-name descname">effective_normalized_emittance_x</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.effective_normalized_emittance_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.effective_normalized_emittance_y">
+<code class="sig-name descname">effective_normalized_emittance_y</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.effective_normalized_emittance_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.effective_normalized_emittance_z">
+<code class="sig-name descname">effective_normalized_emittance_z</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.effective_normalized_emittance_z" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.epsn_x">
+<code class="sig-name descname">epsn_x</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.epsn_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.epsn_y">
+<code class="sig-name descname">epsn_y</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.epsn_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.epsn_z">
+<code class="sig-name descname">epsn_z</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.epsn_z" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.extract_slices">
+<code class="sig-name descname">extract_slices</code><span class="sig-paren">(</span><em class="sig-param">slicer</em>, <em class="sig-param">include_non_sliced='if_any'</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.extract_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list Particles object with the different slices.
+The last element of the list contains particles not assigned to any slice.</p>
+<p>include_non_sliced : {‘always’, ‘never’, ‘if_any’}, optional
+‘always’:</p>
+<blockquote>
+<div><p>extra element in the list with particles not belonging to any slice
+is always inserted (it can be empty).</p>
+</div></blockquote>
+<dl class="simple">
+<dt>‘never’:</dt><dd><p>extra element in the list with particles not belonging to any slice
+is never inserted.</p>
+</dd>
+<dt>‘if_any’:</dt><dd><p>extra element in the list with particles not belonging to any slice
+is inserted only if such particles exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.gamma">
+<em class="property">property </em><code class="sig-name descname">gamma</code><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.gamma" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary of SliceSet objects which are retrieved via
+self.get_slices(slicer) by a client. Each SliceSet is recorded
+only once for a specific longitudinal state of Particles.
+Any longitudinal trackers (or otherwise modifying elements)
+should clean the saved SliceSet dictionary via
+self.clean_slices().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.gamma_Twiss_x">
+<code class="sig-name descname">gamma_Twiss_x</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.gamma_Twiss_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.gamma_Twiss_y">
+<code class="sig-name descname">gamma_Twiss_y</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.gamma_Twiss_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.get_coords_n_momenta_dict">
+<code class="sig-name descname">get_coords_n_momenta_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.get_coords_n_momenta_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dictionary containing the coordinate and conjugate
+momentum arrays.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.get_slices">
+<code class="sig-name descname">get_slices</code><span class="sig-paren">(</span><em class="sig-param">slicer</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.get_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>For the given Slicer, the last SliceSet is returned.
+If there is no SliceSet recorded (i.e. the longitudinal
+state has changed), a new SliceSet is requested from the Slicer
+via Slicer.slice(self) and stored for future reference.</p>
+<p>Arguments:
+- statistics=True attaches mean values, standard deviations
+and emittances to the SliceSet for all planes.
+- statistics=[‘mean_x’, ‘sigma_dp’, ‘epsn_z’] only adds the
+listed statistics values (can be used to save time).
+Valid list entries are all statistics functions of Particles.</p>
+<p>Note: Requesting statistics after calling get_slices w/o
+the statistics keyword results in creating a new SliceSet!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.intensity">
+<em class="property">property </em><code class="sig-name descname">intensity</code><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.intensity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.mean_dp">
+<code class="sig-name descname">mean_dp</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.mean_dp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.mean_x">
+<code class="sig-name descname">mean_x</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.mean_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.mean_xp">
+<code class="sig-name descname">mean_xp</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.mean_xp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.mean_y">
+<code class="sig-name descname">mean_y</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.mean_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.mean_yp">
+<code class="sig-name descname">mean_yp</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.mean_yp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.mean_z">
+<code class="sig-name descname">mean_z</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.mean_z" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.p0">
+<em class="property">property </em><code class="sig-name descname">p0</code><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.p0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.reorder">
+<code class="sig-name descname">reorder</code><span class="sig-paren">(</span><em class="sig-param">permutation</em>, <em class="sig-param">except_for_attrs=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.reorder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reorder all particle coordinate and momentum arrays
+(in self.coords_n_momenta) and ids except for except_for_attrs
+according to the given index array permutation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.sigma_dp">
+<code class="sig-name descname">sigma_dp</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.sigma_dp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.sigma_x">
+<code class="sig-name descname">sigma_x</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.sigma_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.sigma_xp">
+<code class="sig-name descname">sigma_xp</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.sigma_xp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.sigma_y">
+<code class="sig-name descname">sigma_y</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.sigma_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.sigma_yp">
+<code class="sig-name descname">sigma_yp</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.sigma_yp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.sigma_z">
+<code class="sig-name descname">sigma_z</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.sigma_z" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.sort_for">
+<code class="sig-name descname">sort_for</code><span class="sig-paren">(</span><em class="sig-param">attr</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.sort_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort the named particle attribute (coordinate / momentum)
+array and reorder all particles accordingly.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.update">
+<code class="sig-name descname">update</code><span class="sig-paren">(</span><em class="sig-param">coords_n_momenta_dict</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assigns the keys of the dictionary coords_n_momenta_dict as
+attributes to this Particles instance and puts the corresponding
+values. Pretty much the same as dict.update({…}) .
+Attention: overwrites existing coordinate / momentum attributes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.particles.Particles.z_beamframe">
+<em class="property">property </em><code class="sig-name descname">z_beamframe</code><a class="headerlink" href="#PyHEADTAIL.particles.particles.Particles.z_beamframe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.particles.rfbucket_matching">
+<span id="pyheadtail-particles-rfbucket-matching-module"></span><h2>PyHEADTAIL.particles.rfbucket_matching module<a class="headerlink" href="#module-PyHEADTAIL.particles.rfbucket_matching" title="Permalink to this headline">¶</a></h2>
+<p>&#64;author Kevin Li, Adrian Oeftiger, Stefan Hegglin
+&#64;date 16.06.2017
+&#64;brief module for matching longitudinal particle distributions to an RFBucket instance</p>
+<dl class="class">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.ParabolicDistribution">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.rfbucket_matching.</code><code class="sig-name descname">ParabolicDistribution</code><span class="sig-paren">(</span><em class="sig-param">H</em>, <em class="sig-param">Hmax=None</em>, <em class="sig-param">Hcut=0</em>, <em class="sig-param">H0=1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.ParabolicDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>The parabolic profile distribution is a specific case of the
+present implementation of the q-Gaussian distribution for n = 1/2,
+psi ~ sqrt(1 - H/H0).
+For a quadratic harmonic oscillator Hamiltonian this distribution
+provides a parabolic line density.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.ParabolicDistribution.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.rfbucket_matching'</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.ParabolicDistribution.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.ParabolicDistribution._psi">
+<code class="sig-name descname">_psi</code><span class="sig-paren">(</span><em class="sig-param">H</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.ParabolicDistribution._psi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the distribution value for the given H, the output
+lies in the interval [0,1]. This is the central function to
+be implemented by stationary distributions.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.QGaussianDistribution">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.rfbucket_matching.</code><code class="sig-name descname">QGaussianDistribution</code><span class="sig-paren">(</span><em class="sig-param">H</em>, <em class="sig-param">Hmax=None</em>, <em class="sig-param">Hcut=0</em>, <em class="sig-param">H0=1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.QGaussianDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Specific Tsallis q-Gaussian distribution for q=3/5 for now,
+leading to psi ~ (1 - H/H0)^2, this may be generalised.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.QGaussianDistribution.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.rfbucket_matching'</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.QGaussianDistribution.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.QGaussianDistribution._psi">
+<code class="sig-name descname">_psi</code><span class="sig-paren">(</span><em class="sig-param">H</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.QGaussianDistribution._psi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the distribution value for the given H, the output
+lies in the interval [0,1]. This is the central function to
+be implemented by stationary distributions.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.QGaussianDistribution.n">
+<code class="sig-name descname">n</code><em class="property"> = 2</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.QGaussianDistribution.n" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.rfbucket_matching.</code><code class="sig-name descname">RFBucketMatcher</code><span class="sig-paren">(</span><em class="sig-param">rfbucket</em>, <em class="sig-param">distribution_type=None</em>, <em class="sig-param">sigma_z=None</em>, <em class="sig-param">epsn_z=None</em>, <em class="sig-param">verbose_regeneration=False</em>, <em class="sig-param">psi=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">rfbucket</em>, <em class="sig-param">distribution_type=None</em>, <em class="sig-param">sigma_z=None</em>, <em class="sig-param">epsn_z=None</em>, <em class="sig-param">verbose_regeneration=False</em>, <em class="sig-param">psi=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.rfbucket_matching'</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher._compute_emittance">
+<code class="sig-name descname">_compute_emittance</code><span class="sig-paren">(</span><em class="sig-param">rfbucket</em>, <em class="sig-param">psi</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher._compute_emittance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher._compute_sigma">
+<code class="sig-name descname">_compute_sigma</code><span class="sig-paren">(</span><em class="sig-param">rfbucket</em>, <em class="sig-param">psi</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher._compute_sigma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.generate">
+<code class="sig-name descname">generate</code><span class="sig-paren">(</span><em class="sig-param">macroparticlenumber</em>, <em class="sig-param">cutting_margin=0</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.generate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a 2d phase space of n_particles particles randomly distributed
+according to the particle distribution function psi within the region
+[xmin, xmax, ymin, ymax].</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.get_moment_integrators">
+<code class="sig-name descname">get_moment_integrators</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.get_moment_integrators" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return moment integrators from
+cobra_functions.pdf_integrators_2d according to the chosen
+self.integrationmethod. Allows to change integration method
+for RFBucket matching.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.integrationmethod">
+<code class="sig-name descname">integrationmethod</code><em class="property"> = 'quad'</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.integrationmethod" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.linedensity">
+<code class="sig-name descname">linedensity</code><span class="sig-paren">(</span><em class="sig-param">xx</em>, <em class="sig-param">quad_type=&lt;function fixed_quad&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.linedensity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.psi_for_bunchlength_newton_method">
+<code class="sig-name descname">psi_for_bunchlength_newton_method</code><span class="sig-paren">(</span><em class="sig-param">sigma</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.psi_for_bunchlength_newton_method" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.psi_for_emittance_newton_method">
+<code class="sig-name descname">psi_for_emittance_newton_method</code><span class="sig-paren">(</span><em class="sig-param">epsn_z</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.RFBucketMatcher.psi_for_emittance_newton_method" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.rfbucket_matching.</code><code class="sig-name descname">StationaryDistribution</code><span class="sig-paren">(</span><em class="sig-param">H</em>, <em class="sig-param">Hmax=None</em>, <em class="sig-param">Hcut=0</em>, <em class="sig-param">H0=1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.particles.rfbucket_matching', '__init__': &lt;function StationaryDistribution.__init__&gt;, '_psi': &lt;function StationaryDistribution._psi&gt;, 'function': &lt;function StationaryDistribution.function&gt;, '__dict__': &lt;attribute '__dict__' of 'StationaryDistribution' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'StationaryDistribution' objects&gt;, '__doc__': None})</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">H</em>, <em class="sig-param">Hmax=None</em>, <em class="sig-param">Hcut=0</em>, <em class="sig-param">H0=1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.rfbucket_matching'</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution._psi">
+<em class="property">abstract </em><code class="sig-name descname">_psi</code><span class="sig-paren">(</span><em class="sig-param">H</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution._psi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the distribution value for the given H, the output
+lies in the interval [0,1]. This is the central function to
+be implemented by stationary distributions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.function">
+<code class="sig-name descname">function</code><span class="sig-paren">(</span><em class="sig-param">z</em>, <em class="sig-param">dp</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.StationaryDistribution.function" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.ThermalDistribution">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.rfbucket_matching.</code><code class="sig-name descname">ThermalDistribution</code><span class="sig-paren">(</span><em class="sig-param">H</em>, <em class="sig-param">Hmax=None</em>, <em class="sig-param">Hcut=0</em>, <em class="sig-param">H0=1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.ThermalDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thermal Boltzmann distribution psi ~ exp(-H/H0).
+For a quadratic harmonic oscillator Hamiltonian this gives the
+bi-Gaussian phase space distribution.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.ThermalDistribution.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.rfbucket_matching'</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.ThermalDistribution.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.ThermalDistribution._psi">
+<code class="sig-name descname">_psi</code><span class="sig-paren">(</span><em class="sig-param">H</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.ThermalDistribution._psi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the distribution value for the given H, the output
+lies in the interval [0,1]. This is the central function to
+be implemented by stationary distributions.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.WaterbagDistribution">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.rfbucket_matching.</code><code class="sig-name descname">WaterbagDistribution</code><span class="sig-paren">(</span><em class="sig-param">H</em>, <em class="sig-param">Hmax=None</em>, <em class="sig-param">Hcut=0</em>, <em class="sig-param">H0=1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.WaterbagDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>The waterbag distribution has a constant Hamiltonian distribution
+until a cutoff, psi ~ Theta(H - H0) with Theta the Heaviside
+step function.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.WaterbagDistribution.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.rfbucket_matching'</em><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.WaterbagDistribution.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.rfbucket_matching.WaterbagDistribution._psi">
+<code class="sig-name descname">_psi</code><span class="sig-paren">(</span><em class="sig-param">H</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.rfbucket_matching.WaterbagDistribution._psi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the distribution value for the given H, the output
+lies in the interval [0,1]. This is the central function to
+be implemented by stationary distributions.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.particles.slicing">
+<span id="pyheadtail-particles-slicing-module"></span><h2>PyHEADTAIL.particles.slicing module<a class="headerlink" href="#module-PyHEADTAIL.particles.slicing" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt>&#64;authors: Hannes Bartosik,</dt><dd><p>Stefan Hegglin,
+Giovanni Iadarola,
+Kevin Li,
+Adrian Oeftiger,
+Michael Schenk</p>
+</dd>
+</dl>
+<p>&#64;date:    01/10/2014
+&#64;copyright CERN</p>
+<dl class="exception">
+<dt id="PyHEADTAIL.particles.slicing.ModeIsUniformCharge">
+<em class="property">exception </em><code class="sig-prename descclassname">PyHEADTAIL.particles.slicing.</code><code class="sig-name descname">ModeIsUniformCharge</code><span class="sig-paren">(</span><em class="sig-param">message</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.ModeIsUniformCharge" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.ModeIsUniformCharge.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">message</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.ModeIsUniformCharge.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.ModeIsUniformCharge.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.slicing'</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.ModeIsUniformCharge.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.ModeIsUniformCharge.__str__">
+<code class="sig-name descname">__str__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.ModeIsUniformCharge.__str__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return str(self).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.ModeIsUniformCharge.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.ModeIsUniformCharge.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.slicing.</code><code class="sig-name descname">SliceSet</code><span class="sig-paren">(</span><em class="sig-param">z_bins</em>, <em class="sig-param">slice_index_of_particle</em>, <em class="sig-param">mode</em>, <em class="sig-param">n_macroparticles_per_slice=None</em>, <em class="sig-param">beam_parameters={}</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a set of longitudinal slices. It’s a blueprint or photo
+of a beam’s longitudinal profile. It knows where the slices are
+located, how many and which particles there are in which slice. All
+its attributes refer to the state of the beam at creation time of
+the SliceSet. Hence, it must never be updated with new
+distributions, rather, a new SliceSet needs to be created.</p>
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">z_bins</em>, <em class="sig-param">slice_index_of_particle</em>, <em class="sig-param">mode</em>, <em class="sig-param">n_macroparticles_per_slice=None</em>, <em class="sig-param">beam_parameters={}</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is intended to be created by the Slicer factory method.
+A SliceSet is given a set of intervals defining the slicing
+region and the histogram over the thereby defined slices.</p>
+<p>beam_parameters is a dictionary containing certain beam
+parameters to be recorded with this SliceSet.
+(e.g. beta being saved via beam_parameters[‘beta’] = beam.beta)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.slicing'</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.age">
+<code class="sig-name descname">age</code><em class="property"> = None</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.age" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array of z values of each bin, goes from the left bin edge
+of the first bin to the right bin edge of the last bin.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.charge_per_slice">
+<em class="property">property </em><code class="sig-name descname">charge_per_slice</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.charge_per_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array of slice charges, i.e. summing up all the
+particle charges for each slice.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.convert_to_particles">
+<code class="sig-name descname">convert_to_particles</code><span class="sig-paren">(</span><em class="sig-param">slice_array</em>, <em class="sig-param">empty_particles=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.convert_to_particles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert slice_array with entries for each slice to a
+particle array with the respective entry of each particle
+given by its slice_array value via the slice that the
+particle belongs to.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.convert_to_time">
+<code class="sig-name descname">convert_to_time</code><span class="sig-paren">(</span><em class="sig-param">z</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.convert_to_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert longitudinal quantity from length to time units using
+the relativistic beta saved at creation time of the SliceSet.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.lambda_bins">
+<code class="sig-name descname">lambda_bins</code><span class="sig-paren">(</span><em class="sig-param">sigma=None</em>, <em class="sig-param">smoothen=True</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.lambda_bins" title="Permalink to this definition">¶</a></dt>
+<dd><p>Line charge density with respect to bins along the slices.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.lambda_prime_bins">
+<code class="sig-name descname">lambda_prime_bins</code><span class="sig-paren">(</span><em class="sig-param">sigma=None</em>, <em class="sig-param">smoothen_before=True</em>, <em class="sig-param">smoothen_after=True</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.lambda_prime_bins" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return array of length (n_slices - 1) containing
+the derivative of the line charge density lambda
+w.r.t. the slice bins while smoothing via a Gaussian filter.
+(i.e. the smoothened derivative of the n_macroparticles array
+times the macroparticle charge.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.lambda_prime_z">
+<code class="sig-name descname">lambda_prime_z</code><span class="sig-paren">(</span><em class="sig-param">z</em>, <em class="sig-param">sigma=None</em>, <em class="sig-param">smoothen_before=True</em>, <em class="sig-param">smoothen_after=True</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.lambda_prime_z" title="Permalink to this definition">¶</a></dt>
+<dd><p>Line charge density derivative with respect to z along
+the slices.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.lambda_z">
+<code class="sig-name descname">lambda_z</code><span class="sig-paren">(</span><em class="sig-param">z=None</em>, <em class="sig-param">sigma=None</em>, <em class="sig-param">smoothen=True</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.lambda_z" title="Permalink to this definition">¶</a></dt>
+<dd><p>Line charge density with respect to z along the slices.
+If z is None, return the line charge density along the slice
+centres.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.mode">
+<code class="sig-name descname">mode</code><em class="property"> = None</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Numpy array containing the number of macroparticles in each
+slice.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.n_macroparticles_per_slice">
+<em class="property">property </em><code class="sig-name descname">n_macroparticles_per_slice</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.n_macroparticles_per_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Slice distribution, i.e. number of macroparticles in each
+slice.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.n_slices">
+<em class="property">property </em><code class="sig-name descname">n_slices</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.n_slices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.particle_indices_by_slice">
+<em class="property">property </em><code class="sig-name descname">particle_indices_by_slice</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.particle_indices_by_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array of particle indices arranged / sorted according to
+their slice affiliation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.particle_indices_of_slice">
+<code class="sig-name descname">particle_indices_of_slice</code><span class="sig-paren">(</span><em class="sig-param">slice_index</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.particle_indices_of_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an array of particle indices which are located in the
+slice defined by the given slice_index.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.particles_outside_cuts">
+<em class="property">property </em><code class="sig-name descname">particles_outside_cuts</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.particles_outside_cuts" title="Permalink to this definition">¶</a></dt>
+<dd><p>All particle indices which are situated outside the slicing
+region defined by [z_cut_tail, z_cut_head).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.particles_within_cuts">
+<em class="property">property </em><code class="sig-name descname">particles_within_cuts</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.particles_within_cuts" title="Permalink to this definition">¶</a></dt>
+<dd><p>All particle indices which are situated within the slicing
+region defined by [z_cut_tail, z_cut_head).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.particles_within_cuts_slice">
+<em class="property">property </em><code class="sig-name descname">particles_within_cuts_slice</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.particles_within_cuts_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a continous slice(first,last,1) of particles indices
+between [z_cut_tail, z_cut_head]
+Required for gpuarrays slicing syntax, i.e. x[slice] += 2
+Only use when beam is sorted!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.pidx_begin">
+<em class="property">property </em><code class="sig-name descname">pidx_begin</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.pidx_begin" title="Permalink to this definition">¶</a></dt>
+<dd><p>particle index of the first particle within the sliceset region</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.pidx_end">
+<em class="property">property </em><code class="sig-name descname">pidx_end</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.pidx_end" title="Permalink to this definition">¶</a></dt>
+<dd><p>particle index of the last+1 particle within the sliceset region</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.slice_index_of_particle">
+<code class="sig-name descname">slice_index_of_particle</code><em class="property"> = None</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.slice_index_of_particle" title="Permalink to this definition">¶</a></dt>
+<dd><p>How is the slicing done? For the moment it is either
+‘uniform_charge’ or ‘uniform_bin’.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.slice_positions">
+<em class="property">property </em><code class="sig-name descname">slice_positions</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.slice_positions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Position of the respective slice start within the array
+self.particle_indices_by_slice .</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.slice_widths">
+<em class="property">property </em><code class="sig-name descname">slice_widths</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.slice_widths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array of the widths of the slices.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.smoothing_sigma">
+<em class="property">property </em><code class="sig-name descname">smoothing_sigma</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.smoothing_sigma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.z_bins">
+<code class="sig-name descname">z_bins</code><em class="property"> = None</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.z_bins" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array of slice indices for each particle, positions (indices)
+are the same as in beam.z .</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.z_centers">
+<em class="property">property </em><code class="sig-name descname">z_centers</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.z_centers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.z_cut_head">
+<em class="property">property </em><code class="sig-name descname">z_cut_head</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.z_cut_head" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.SliceSet.z_cut_tail">
+<em class="property">property </em><code class="sig-name descname">z_cut_tail</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.SliceSet.z_cut_tail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.slicing.Slicer">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.slicing.</code><code class="sig-name descname">Slicer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Slicer class that controls longitudinal binning of a beam.
+Factory for SliceSet objects.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({'compute_sliceset_kwargs'})</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.__eq__">
+<code class="sig-name descname">__eq__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.__eq__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return self==value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.__hash__">
+<code class="sig-name descname">__hash__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.__hash__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies different instantiations of Slicer objects via
+their configuration (instead of their instance ID).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.slicing'</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.__ne__">
+<code class="sig-name descname">__ne__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.__ne__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return self!=value.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._eff_epsn_x">
+<code class="sig-name descname">_eff_epsn_x</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._eff_epsn_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._eff_epsn_y">
+<code class="sig-name descname">_eff_epsn_y</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._eff_epsn_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._epsn">
+<code class="sig-name descname">_epsn</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">up</em>, <em class="sig-param">dp</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._epsn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._epsn_x">
+<code class="sig-name descname">_epsn_x</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._epsn_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._epsn_y">
+<code class="sig-name descname">_epsn_y</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._epsn_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._epsn_z">
+<code class="sig-name descname">_epsn_z</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._epsn_z" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._mean">
+<code class="sig-name descname">_mean</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._mean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._mean_dp">
+<code class="sig-name descname">_mean_dp</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._mean_dp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._mean_x">
+<code class="sig-name descname">_mean_x</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._mean_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._mean_xp">
+<code class="sig-name descname">_mean_xp</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._mean_xp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._mean_y">
+<code class="sig-name descname">_mean_y</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._mean_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._mean_yp">
+<code class="sig-name descname">_mean_yp</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._mean_yp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._mean_z">
+<code class="sig-name descname">_mean_z</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._mean_z" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._sigma">
+<code class="sig-name descname">_sigma</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._sigma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._sigma_dp">
+<code class="sig-name descname">_sigma_dp</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._sigma_dp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._sigma_x">
+<code class="sig-name descname">_sigma_x</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._sigma_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._sigma_y">
+<code class="sig-name descname">_sigma_y</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._sigma_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer._sigma_z">
+<code class="sig-name descname">_sigma_z</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">beam</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer._sigma_z" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.add_statistics">
+<code class="sig-name descname">add_statistics</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.add_statistics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.compute_sliceset_kwargs">
+<em class="property">abstract </em><code class="sig-name descname">compute_sliceset_kwargs</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.compute_sliceset_kwargs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return argument dictionary to create a new
+SliceSet object according to the saved configuration.
+This method defines the slicing behaviour of inheriting
+Slicer implementations.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.config">
+<em class="property">property </em><code class="sig-name descname">config</code><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.extract_beam_parameters">
+<em class="property">static </em><code class="sig-name descname">extract_beam_parameters</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.extract_beam_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dictionary of beam parameters to be stored
+in a SliceSet instance. (such as beam.beta etc.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.get_long_cuts">
+<code class="sig-name descname">get_long_cuts</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.get_long_cuts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return boundaries of slicing region,
+(z_cut_tail, z_cut_head). If they have been set at
+instantiation, self.z_cuts is returned.
+If n_sigma_z is given, a cut of
+n_sigma_z * beam.sigma_z to the left and to the right
+respectively is applied, otherwise the longitudinally first and
+last particle define the full region.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.slice">
+<code class="sig-name descname">slice</code><span class="sig-paren">(</span><em class="sig-param">beam</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SliceSet object according to the saved
+configuration. Generate it using the keywords of the
+self.compute_sliceset_kwargs(beam) method.
+Defines interface to create SliceSet instances
+(factory method).</p>
+<p>Arguments:
+- statistics=True attaches mean values, standard deviations
+and emittances to the SliceSet for all planes.
+- statistics=[‘mean_x’, ‘sigma_dp’, ‘epsn_z’] only adds the
+listed statistics values (can be used to save time).
+Valid list entries are all statistics functions of Particles.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.Slicer.update_slices">
+<code class="sig-name descname">update_slices</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.Slicer.update_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>non-existent anymore!</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.slicing.UniformBinSlicer">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.slicing.</code><code class="sig-name descname">UniformBinSlicer</code><span class="sig-paren">(</span><em class="sig-param">n_slices</em>, <em class="sig-param">n_sigma_z=None</em>, <em class="sig-param">z_cuts=None</em>, <em class="sig-param">z_sample_points=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformBinSlicer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Slices with respect to uniform bins along the slicing region.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.UniformBinSlicer.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformBinSlicer.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.UniformBinSlicer.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">n_slices</em>, <em class="sig-param">n_sigma_z=None</em>, <em class="sig-param">z_cuts=None</em>, <em class="sig-param">z_sample_points=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformBinSlicer.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a UniformBinSlicer object. Set and store the
+corresponding slicing configuration in self.config.
+Note that either n_sigma_z or z_cuts and/or z_sampling_point
+can be set. If both are given, a ValueError will be raised.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.UniformBinSlicer.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.slicing'</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformBinSlicer.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.UniformBinSlicer._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformBinSlicer._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.UniformBinSlicer._get_slicing_from_z_sample_points">
+<code class="sig-name descname">_get_slicing_from_z_sample_points</code><span class="sig-paren">(</span><em class="sig-param">z_sample_points</em>, <em class="sig-param">z_cuts=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformBinSlicer._get_slicing_from_z_sample_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alternative slicing function for UniformBinSlicer. The function
+takes a given array of sampling points and ensures that the
+slice centers lie at those sampling points. If z_cuts is
+given and is beyond the sampling points, it furthermore extends
+the given sampling points at the same sampling frequency to
+include the range given by z_cuts. Very useful if one wants
+to ensure that certain points or regions of a wakefield are
+included or correctl sampled.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.UniformBinSlicer.compute_sliceset_kwargs">
+<code class="sig-name descname">compute_sliceset_kwargs</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformBinSlicer.compute_sliceset_kwargs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return argument dictionary to create a new SliceSet
+according to the saved configuration for
+uniformly binned SliceSet objects.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.particles.slicing.UniformChargeSlicer">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.particles.slicing.</code><code class="sig-name descname">UniformChargeSlicer</code><span class="sig-paren">(</span><em class="sig-param">n_slices</em>, <em class="sig-param">n_sigma_z=None</em>, <em class="sig-param">z_cuts=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformChargeSlicer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Slices with respect to uniform charge for each bin along the
+slicing region.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.UniformChargeSlicer.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformChargeSlicer.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.UniformChargeSlicer.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">n_slices</em>, <em class="sig-param">n_sigma_z=None</em>, <em class="sig-param">z_cuts=None</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformChargeSlicer.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a UniformChargeSlicer object. Set and store the
+corresponding slicing configuration in self.config .
+Note that either n_sigma_z or z_cuts can be set. If both are
+given, a ValueError will be raised.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.UniformChargeSlicer.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.particles.slicing'</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformChargeSlicer.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.particles.slicing.UniformChargeSlicer._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformChargeSlicer._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.particles.slicing.UniformChargeSlicer.compute_sliceset_kwargs">
+<code class="sig-name descname">compute_sliceset_kwargs</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.UniformChargeSlicer.compute_sliceset_kwargs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return argument dictionary to create a new SliceSet
+according to the saved configuration for a uniform charge
+distribution along the bins.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.slicing.clean_slices">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.slicing.</code><code class="sig-name descname">clean_slices</code><span class="sig-paren">(</span><em class="sig-param">long_track_method</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.clean_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the beam.clean_slices() to any track(beam) method of
+longitudinal elements (elements that change beam.z, the
+longitudinal position of any particles).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.particles.slicing.make_int32">
+<code class="sig-prename descclassname">PyHEADTAIL.particles.slicing.</code><code class="sig-name descname">make_int32</code><span class="sig-paren">(</span><em class="sig-param">array</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.particles.slicing.make_int32" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PyHEADTAIL.particles package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.particles.generators">PyHEADTAIL.particles.generators module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.particles.particles">PyHEADTAIL.particles.particles module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.particles.rfbucket_matching">PyHEADTAIL.particles.rfbucket_matching module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.particles.slicing">PyHEADTAIL.particles.slicing module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.multipoles.html"
+                        title="previous chapter">PyHEADTAIL.multipoles package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.radiation.html"
+                        title="next chapter">PyHEADTAIL.radiation package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/PyHEADTAIL.particles.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.radiation.html" title="PyHEADTAIL.radiation package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.multipoles.html" title="PyHEADTAIL.multipoles package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" >PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

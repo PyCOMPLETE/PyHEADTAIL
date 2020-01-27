@@ -20,7 +20,7 @@ if platform.system() is 'Darwin':
            "may have to install with the following line:\n\n"
            "$ CC=gcc-4.9 ./install\n"
            "(or any equivalent version of gcc)")
-    raw_input('Hit any key to continue...')
+    input('Hit any key to continue...')
 
 
 args = sys.argv[1:]

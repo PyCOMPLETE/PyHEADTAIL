@@ -1,11 +1,7 @@
-import sys, os
-BIN=os.path.expanduser('../../../')
-sys.path.append(BIN)
-
 import numpy as np
-
 from scipy.constants import c, e, m_p
-from PyHEADTAIL.machines.synchrotron import BasicSynchrotron
+
+from PyHEADTAIL.machines.synchrotron import Synchrotron
 
 circumference = 26658.8832
 n_segments = 15
@@ -43,7 +39,7 @@ p_increment = 0
 
 
 
-machine = BasicSynchrotron(optics_mode='smooth', circumference=circumference, n_segments=n_segments, 
+machine = Synchrotron(optics_mode='smooth', circumference=circumference, n_segments=n_segments, 
              beta_x=beta_x, D_x=D_x, beta_y=beta_y, D_y=D_y,
              accQ_x=Q_x, accQ_y=Q_y, Qp_x=Qp_x, Qp_y=Qp_y, app_x=app_x, app_y=app_y, app_xy=app_xy,
              alpha_mom_compaction=alpha, longitudinal_mode='non-linear',

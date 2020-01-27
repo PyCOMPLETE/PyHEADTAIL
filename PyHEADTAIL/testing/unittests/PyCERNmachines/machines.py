@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import numpy as np
 from scipy.constants import c, e, m_p
@@ -38,7 +38,7 @@ class Synchrotron(Element):
         if self.longitudinal_focusing not in ['linear', 'non-linear']:
             raise ValueError('longitudinal_focusing not recognized!!!')
 
-        for attr in kwargs.keys():
+        for attr in list(kwargs.keys()):
             if kwargs[attr] is not None:
                 self.prints('Synchrotron init. From kwargs: %s = %s'
                             % (attr, repr(kwargs[attr])))

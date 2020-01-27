@@ -1,28 +1,15 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
-
-# In[2]:
-
-import numpy as np
-from scipy.constants import m_p, c, e
-import matplotlib.pyplot as plt
 import h5py as hp
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from scipy.constants import m_p, c, e
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor, ParticleMonitor
-from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
+from PyHEADTAIL.particles.particles import Particles
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 
-
-# In[3]:
 
 def run():
 # HELPERS
@@ -36,7 +23,7 @@ def run():
 
         n_turns = len(bdata['mean_x'])
         _ = np.empty(n_turns)
-        for key in bdata.keys():
+        for key in list(bdata.keys()):
             _[:] = bdata[key][:]
 
         # Slicedata
@@ -45,23 +32,23 @@ def run():
 
         n_turns = len(sbdata['mean_x'])
         _ = np.empty(n_turns)
-        for key in sbdata.keys():
+        for key in list(sbdata.keys()):
             _[:] = sbdata[key][:]
 
         n_slices, n_turns = sdata['mean_x'].shape
         _ = np.empty((n_slices, n_turns))
-        for key in sdata.keys():
+        for key in list(sdata.keys()):
             _[:,:] = sdata[key][:,:]
 
         # Particledata
         pdata = particledata['Step#0']
         n_particles = len(pdata['x'])
-        n_steps = len(particledata.keys())
+        n_steps = len(list(particledata.keys()))
         _ = np.empty(n_particles)
 
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             step = 'Step#%d' % i
-            for key in particledata[step].keys():
+            for key in list(particledata[step].keys()):
                 _[:] = particledata[step][key][:]
 
         bunchdata.close()
@@ -176,7 +163,7 @@ def run():
 
     arrays_dict = {}
     map_ = trans_map
-    for i in xrange(n_turns):
+    for i in range(n_turns):
         for m_ in map_:
             m_.track(bunch)
         bunch_monitor.dump(bunch)

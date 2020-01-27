@@ -1,0 +1,400 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PyHEADTAIL.spacecharge package &#8212; PyHEADTAIL  documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyHEADTAIL.trackers package" href="PyHEADTAIL.trackers.html" />
+    <link rel="prev" title="PyHEADTAIL.rfq package" href="PyHEADTAIL.rfq.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.trackers.html" title="PyHEADTAIL.trackers package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.rfq.html" title="PyHEADTAIL.rfq package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" accesskey="U">PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-PyHEADTAIL.spacecharge">
+<span id="pyheadtail-spacecharge-package"></span><h1>PyHEADTAIL.spacecharge package<a class="headerlink" href="#module-PyHEADTAIL.spacecharge" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="pyheadtail-spacecharge-pypic-factory-module">
+<h2>PyHEADTAIL.spacecharge.pypic_factory module<a class="headerlink" href="#pyheadtail-spacecharge-pypic-factory-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="pyheadtail-spacecharge-pypic-spacecharge-module">
+<h2>PyHEADTAIL.spacecharge.pypic_spacecharge module<a class="headerlink" href="#pyheadtail-spacecharge-pypic-spacecharge-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-PyHEADTAIL.spacecharge.spacecharge">
+<span id="pyheadtail-spacecharge-spacecharge-module"></span><h2>PyHEADTAIL.spacecharge.spacecharge module<a class="headerlink" href="#module-PyHEADTAIL.spacecharge.spacecharge" title="Permalink to this headline">¶</a></h2>
+<p>&#64;authors: Adrian Oeftiger
+&#64;date:    17/04/2015</p>
+<dl class="class">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.spacecharge.spacecharge.</code><code class="sig-name descname">LongSpaceCharge</code><span class="sig-paren">(</span><em class="sig-param">slicer</em>, <em class="sig-param">pipe_radius</em>, <em class="sig-param">length</em>, <em class="sig-param">n_slice_sigma=3</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains longitudinal space charge (SC) via Chao’s expression:</p>
+<p>dp’ = - e^2 * g * lambda’(z) / (2 * pi * eps_0 * gamma^2 * p_0)</p>
+<p>cf. the original HEADTAIL version.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">slicer</em>, <em class="sig-param">pipe_radius</em>, <em class="sig-param">length</em>, <em class="sig-param">n_slice_sigma=3</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arguments:
+- pipe_radius is the the radius of the vacuum pipe in metres.
+- length is an s interval (in metres) along which the SC force
+is integrated. Usually you want to set this to circumference
+in conjunction with the LongitudinalOneTurnMap RFSystems.
+- n_slice_sigma indicates the number of slices taken as a
+sigma for the Gaussian kernel that smoothens the line charge
+density derivative (see SliceSet.lambda_prime_bins for more
+info).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.spacecharge.spacecharge'</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge._gfactor0">
+<code class="sig-name descname">_gfactor0</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge._gfactor0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Geometry factor for circular vacuum pipe.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge._prefactor">
+<em class="property">static </em><code class="sig-name descname">_prefactor</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge._prefactor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.directSC">
+<code class="sig-name descname">directSC</code><em class="property"> = 0.67</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.directSC" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.make_force">
+<code class="sig-name descname">make_force</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.make_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the electric force field due to space charge
+of the given SliceSet instance as a function of z
+in units of Coul*Volt/metre.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.make_potential">
+<code class="sig-name descname">make_potential</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.make_potential" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the electric potential energy due to space charge
+of the given SliceSet instance as a function of z
+in units of Coul*Volt.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.LongSpaceCharge.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the longitudinal space charge contribution to the beam’s
+dp kick.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.spacecharge.spacecharge.</code><code class="sig-name descname">TransverseGaussianSpaceCharge</code><span class="sig-paren">(</span><em class="sig-param">slicer</em>, <em class="sig-param">length</em>, <em class="sig-param">sig_check=True</em>, <em class="sig-param">other_efieldn=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains transverse space charge for a Gaussian configuration.
+Applies the Bassetti-Erskine electric field expression slice-wise
+for each particle centred around the slice centre.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">slicer</em>, <em class="sig-param">length</em>, <em class="sig-param">sig_check=True</em>, <em class="sig-param">other_efieldn=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arguments:
+- slicer determines the slicing parameters for the slices over
+which the Bassetti-Erskine electric field expression is applied,
+given a slicer with n_slices == 1, you can apply a
+longitudinally averaged kick over the whole beam.
+- length is an s interval along which the space charge force
+is integrated.
+- sig_check exchanges x and y quantities for sigma_x &lt; sigma_y
+and applies the round beam formula for sigma_x == sigma_y .
+sig_check defaults to True and should not usually be False.
+- other_efieldn can be used to use a different implementation of
+the charge-normalised electric field expression (there are four
+different implementations to choose from in this class:
+_efieldn_mit, _efield_mitmod, _efieldn_koelbig,
+_efieldn_pyecloud; in order of computational time consumption)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.spacecharge.spacecharge'</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_koelbig">
+<em class="property">static </em><code class="sig-name descname">_efieldn_koelbig</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">sig_x</em>, <em class="sig-param">sig_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_koelbig" title="Permalink to this definition">¶</a></dt>
+<dd><p>The charge-normalised electric field components of a
+two-dimensional Gaussian charge distribution according to
+M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.</p>
+<p>Return (E_x / Q, E_y / Q).</p>
+<p>Assumes sig_x &gt; sig_y and mean_x == 0 as well as mean_y == 0.
+For convergence reasons of the erfc, use only x &gt; 0 and y &gt; 0.</p>
+<p>Uses CERN library from K. Koelbig.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_mit">
+<em class="property">static </em><code class="sig-name descname">_efieldn_mit</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">sig_x</em>, <em class="sig-param">sig_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_mit" title="Permalink to this definition">¶</a></dt>
+<dd><p>The charge-normalised electric field components of a
+two-dimensional Gaussian charge distribution according to
+M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.</p>
+<p>Return (E_x / Q, E_y / Q).</p>
+<p>Assumes sig_x &gt; sig_y and mean_x == 0 as well as mean_y == 0.
+For convergence reasons of the erfc, use only x &gt; 0 and y &gt; 0.</p>
+<p>Uses FADDEEVA C++ implementation from MIT (via SciPy &gt;= 0.13.0).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_mitmod">
+<em class="property">static </em><code class="sig-name descname">_efieldn_mitmod</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">sig_x</em>, <em class="sig-param">sig_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_mitmod" title="Permalink to this definition">¶</a></dt>
+<dd><p>The charge-normalised electric field components of a
+two-dimensional Gaussian charge distribution according to
+M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.</p>
+<p>Return (E_x / Q, E_y / Q).</p>
+<p>Assumes sig_x &gt; sig_y and mean_x == 0 as well as mean_y == 0.
+For convergence reasons of the erfc, use only x &gt; 0 and y &gt; 0.</p>
+<p>Uses erfc C++ implementation from MIT (via SciPy &gt;= 0.13.0)
+and calculates wofz (FADDEEVA function) explicitely.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_pyecloud">
+<em class="property">static </em><code class="sig-name descname">_efieldn_pyecloud</code><span class="sig-paren">(</span><em class="sig-param">xin</em>, <em class="sig-param">yin</em>, <em class="sig-param">sigmax</em>, <em class="sig-param">sigmay</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_pyecloud" title="Permalink to this definition">¶</a></dt>
+<dd><p>The charge-normalised electric field components of a
+two-dimensional Gaussian charge distribution according to
+M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.</p>
+<p>Return (E_x / Q, E_y / Q).</p>
+<p>Effective copy of PyECLOUD.BassErsk.BassErsk implementation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_round">
+<em class="property">static </em><code class="sig-name descname">_efieldn_round</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">sig_r</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._efieldn_round" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return (E_x / Q, E_y / Q) for a round distribution
+with sigma_x == sigma_y == sig_r .</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._sig_sqrt">
+<em class="property">static </em><code class="sig-name descname">_sig_sqrt</code><span class="sig-paren">(</span><em class="sig-param">sig_x</em>, <em class="sig-param">sig_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge._sig_sqrt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.absolute_threshold">
+<code class="sig-name descname">absolute_threshold</code><em class="property"> = 1e-10</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.absolute_threshold" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.add_sigma_check">
+<em class="property">static </em><code class="sig-name descname">add_sigma_check</code><span class="sig-paren">(</span><em class="sig-param">efieldn</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.add_sigma_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for a normalised electric field function.</p>
+<p>Adds the following actions before calculating the field:
+- exchange x and y quantities if sigma_x &lt; sigma_y
+- apply round beam field formula when sigma_x close to sigma_y</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.get_efieldn">
+<code class="sig-name descname">get_efieldn</code><span class="sig-paren">(</span><em class="sig-param">xr</em>, <em class="sig-param">yr</em>, <em class="sig-param">mean_x</em>, <em class="sig-param">mean_y</em>, <em class="sig-param">sig_x</em>, <em class="sig-param">sig_y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.get_efieldn" title="Permalink to this definition">¶</a></dt>
+<dd><p>The charge-normalised electric field components of a
+two-dimensional Gaussian charge distribution according to
+M. Bassetti and G. A. Erskine in CERN-ISR-TH/80-06.</p>
+<p>Return (E_x / Q, E_y / Q).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.ratio_threshold">
+<code class="sig-name descname">ratio_threshold</code><em class="property"> = 0.001</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.ratio_threshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Threshold for absolute transverse beam size difference
+below which the beam is assumed to be round:
+abs(sig_y - sig_x) &lt; absolute_threshold ==&gt; round beam</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the transverse space charge contribution to the beam’s
+transverse kicks.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.wfun">
+<em class="property">static </em><code class="sig-name descname">wfun</code><span class="sig-paren">(</span><em class="sig-param">z</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.spacecharge.TransverseGaussianSpaceCharge.wfun" title="Permalink to this definition">¶</a></dt>
+<dd><p>FADDEEVA function as implemented in PyECLOUD, vectorised.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.spacecharge.transverse_spacecharge">
+<span id="pyheadtail-spacecharge-transverse-spacecharge-module"></span><h2>PyHEADTAIL.spacecharge.transverse_spacecharge module<a class="headerlink" href="#module-PyHEADTAIL.spacecharge.transverse_spacecharge" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.spacecharge.transverse_spacecharge.</code><code class="sig-name descname">TransverseSpaceCharge</code><span class="sig-paren">(</span><em class="sig-param">L_interaction</em>, <em class="sig-param">slicer</em>, <em class="sig-param">pyPICsolver</em>, <em class="sig-param">flag_clean_slices=False</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">L_interaction</em>, <em class="sig-param">slicer</em>, <em class="sig-param">pyPICsolver</em>, <em class="sig-param">flag_clean_slices=False</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.spacecharge.transverse_spacecharge'</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.get_beam_x">
+<code class="sig-name descname">get_beam_x</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.get_beam_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.get_beam_y">
+<code class="sig-name descname">get_beam_y</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.get_beam_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.spacecharge.transverse_spacecharge.TransverseSpaceCharge.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform tracking of beam through this Element.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PyHEADTAIL.spacecharge package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#pyheadtail-spacecharge-pypic-factory-module">PyHEADTAIL.spacecharge.pypic_factory module</a></li>
+<li><a class="reference internal" href="#pyheadtail-spacecharge-pypic-spacecharge-module">PyHEADTAIL.spacecharge.pypic_spacecharge module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.spacecharge.spacecharge">PyHEADTAIL.spacecharge.spacecharge module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.spacecharge.transverse_spacecharge">PyHEADTAIL.spacecharge.transverse_spacecharge module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.rfq.html"
+                        title="previous chapter">PyHEADTAIL.rfq package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.trackers.html"
+                        title="next chapter">PyHEADTAIL.trackers package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/PyHEADTAIL.spacecharge.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.trackers.html" title="PyHEADTAIL.trackers package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.rfq.html" title="PyHEADTAIL.rfq package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" >PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

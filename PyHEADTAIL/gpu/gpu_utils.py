@@ -5,6 +5,10 @@ This could also be the place to store the context, device, streams, etc...
 The module is automatically a singleton
 @author Stefan Hegglin
 '''
+
+import atexit
+from itertools import cycle
+
 try:
     import pycuda.tools
     import pycuda.driver as drv
@@ -18,8 +22,7 @@ try:
         has_pycuda = False
 except ImportError:
     has_pycuda = False
-import atexit
-from itertools import cycle
+
 ################################################################################
 
 if has_pycuda:
@@ -35,10 +38,10 @@ if has_pycuda:
     atexit.register(skcuda.misc.shutdown)
 
     n_streams = 4
-    streams = [drv.Stream() for i in xrange(n_streams)]
+    streams = [drv.Stream() for i in range(n_streams)]
     stream_pool = cycle(streams)
 
-    stream_emittance = [drv.Stream() for i in xrange(6)]
+    stream_emittance = [drv.Stream() for i in range(6)]
 
 
     def dummy_1(gpuarr, stream=None):

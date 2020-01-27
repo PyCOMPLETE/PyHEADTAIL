@@ -1,31 +1,17 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import sys, os
-BIN = os.path.expanduser("../../../../")
-sys.path.append(BIN)
-
-
-# In[2]:
-
 import numpy as np
 from scipy.constants import m_p, c, e
 import matplotlib.pyplot as plt
 
-np.random.seed(0)
 
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
-from PyHEADTAIL.rfq.rfq import (
-    RFQLongitudinalKick, RFQTransverseKick, RFQTransverseDetuner)
+from PyHEADTAIL.rfq.rfq import RFQLongitudinalKick, RFQTransverseKick
+from PyHEADTAIL.rfq.rfq import RFQTransverseDetuner
 import PyHEADTAIL.particles.generators as generators
 
 
-# In[3]:
+np.random.seed(0)
 
-# HELPERS
 def run():
     def track(bunch, map_):
         for i in range(n_turns):

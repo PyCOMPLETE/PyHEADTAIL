@@ -1,0 +1,878 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PyHEADTAIL.general package &#8212; PyHEADTAIL  documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyHEADTAIL.gpu package" href="PyHEADTAIL.gpu.html" />
+    <link rel="prev" title="PyHEADTAIL.field_maps package" href="PyHEADTAIL.field_maps.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.gpu.html" title="PyHEADTAIL.gpu package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.field_maps.html" title="PyHEADTAIL.field_maps package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" accesskey="U">PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-PyHEADTAIL.general">
+<span id="pyheadtail-general-package"></span><h1>PyHEADTAIL.general package<a class="headerlink" href="#module-PyHEADTAIL.general" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-PyHEADTAIL.general.contextmanager">
+<span id="pyheadtail-general-contextmanager-module"></span><h2>PyHEADTAIL.general.contextmanager module<a class="headerlink" href="#module-PyHEADTAIL.general.contextmanager" title="Permalink to this headline">¶</a></h2>
+<p>Context manager classes
+&#64;author Stefan Hegglin
+&#64;data 30.09.2015</p>
+<dl class="class">
+<dt id="PyHEADTAIL.general.contextmanager.CPU">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.contextmanager.</code><code class="sig-name descname">CPU</code><span class="sig-paren">(</span><em class="sig-param">bunch</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.CPU" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dummy class to run the code on the CPU.
+Does nothing but has the same interface as the GPU contextmanager</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.CPU.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.general.contextmanager', '__doc__': '\n    Dummy class to run the code on the CPU.\n    Does nothing but has the same interface as the GPU contextmanager\n    ', '__init__': &lt;function CPU.__init__&gt;, '__enter__': &lt;function CPU.__enter__&gt;, '__exit__': &lt;function CPU.__exit__&gt;, '__dict__': &lt;attribute '__dict__' of 'CPU' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'CPU' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.CPU.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.CPU.__enter__">
+<code class="sig-name descname">__enter__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.CPU.__enter__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove slice records from bunch.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.CPU.__exit__">
+<code class="sig-name descname">__exit__</code><span class="sig-paren">(</span><em class="sig-param">exc_type</em>, <em class="sig-param">exc_value</em>, <em class="sig-param">traceback</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.CPU.__exit__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove slice records from bunch.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.CPU.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">bunch</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.CPU.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.CPU.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.contextmanager'</em><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.CPU.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.CPU.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.CPU.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.general.contextmanager.Context">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.contextmanager.</code><code class="sig-name descname">Context</code><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.Context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Example contextmanager class providing enter and exit methods</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.Context.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.general.contextmanager', '__doc__': '\n    Example contextmanager class providing enter and exit methods\n    ', '__init__': &lt;function Context.__init__&gt;, '__enter__': &lt;function Context.__enter__&gt;, '__exit__': &lt;function Context.__exit__&gt;, '__dict__': &lt;attribute '__dict__' of 'Context' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'Context' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.Context.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.Context.__enter__">
+<code class="sig-name descname">__enter__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.Context.__enter__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.Context.__exit__">
+<code class="sig-name descname">__exit__</code><span class="sig-paren">(</span><em class="sig-param">exc_type</em>, <em class="sig-param">exc_value</em>, <em class="sig-param">traceback</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.Context.__exit__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.Context.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.Context.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.Context.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.contextmanager'</em><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.Context.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.Context.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.Context.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.general.contextmanager.GPU">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.contextmanager.</code><code class="sig-name descname">GPU</code><span class="sig-paren">(</span><em class="sig-param">bunch</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.GPU" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class providing enter/exit methods to move/get data from/to the gpu or
+provide a general base framework for all decorated function calls
+All data after must be in the same state after exiting as before entering
+this context!</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.GPU.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.general.contextmanager', '__doc__': '\n    Class providing enter/exit methods to move/get data from/to the gpu or\n    provide a general base framework for all decorated function calls\n    All data after must be in the same state after exiting as before entering\n    this context!\n    ', '__init__': &lt;function GPU.__init__&gt;, '__enter__': &lt;function GPU.__enter__&gt;, '__exit__': &lt;function GPU.__exit__&gt;, '__dict__': &lt;attribute '__dict__' of 'GPU' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'GPU' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.GPU.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.GPU.__enter__">
+<code class="sig-name descname">__enter__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.GPU.__enter__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Move all data to the GPU (and monkey patch methods?)
+Returns self (eg. to provide info about gpu/status/…)</p>
+<p>Remove slice records from bunch.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.GPU.__exit__">
+<code class="sig-name descname">__exit__</code><span class="sig-paren">(</span><em class="sig-param">exc_type</em>, <em class="sig-param">exc_value</em>, <em class="sig-param">traceback</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.GPU.__exit__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Move all data back to the CPU (and un-patch the methods?)
+Reestablish state of everything as it was before entering</p>
+<p>Remove slice records from bunch.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.contextmanager.GPU.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">bunch</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.GPU.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass the bunch to the context s.t. the context knows what to copy
+to the gpu. The problem with this approach: not very nice for the user:
+with GPU(bunch) as context:</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.GPU.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.contextmanager'</em><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.GPU.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.contextmanager.GPU.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.general.contextmanager.GPU.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.general.decorators">
+<span id="pyheadtail-general-decorators-module"></span><h2>PyHEADTAIL.general.decorators module<a class="headerlink" href="#module-PyHEADTAIL.general.decorators" title="Permalink to this headline">¶</a></h2>
+<p>&#64;authors: Adrian Oeftiger
+&#64;date:    02/10/2014</p>
+<p>Provide useful decorators for PyHEADTAIL.</p>
+<dl class="function">
+<dt id="PyHEADTAIL.general.decorators.deprecated">
+<code class="sig-prename descclassname">PyHEADTAIL.general.decorators.</code><code class="sig-name descname">deprecated</code><span class="sig-paren">(</span><em class="sig-param">message</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.decorators.deprecated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecation warning as described in warnings documentation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.decorators.memoize">
+<code class="sig-prename descclassname">PyHEADTAIL.general.decorators.</code><code class="sig-name descname">memoize</code><span class="sig-paren">(</span><em class="sig-param">function</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.decorators.memoize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Memoizes the output of a function for given arguments (no keyword arguments)
+and returns the correspondingly saved value after the first evaluation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.decorators.synchronize_gpu_streams_after">
+<code class="sig-prename descclassname">PyHEADTAIL.general.decorators.</code><code class="sig-name descname">synchronize_gpu_streams_after</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.decorators.synchronize_gpu_streams_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use this decorator if you need the results of all the streams
+synchronized after this function is called</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.decorators.synchronize_gpu_streams_before">
+<code class="sig-prename descclassname">PyHEADTAIL.general.decorators.</code><code class="sig-name descname">synchronize_gpu_streams_before</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.decorators.synchronize_gpu_streams_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use this decorator if you need the results of all the streams
+synchronized before this function is called</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.general.element">
+<span id="pyheadtail-general-element-module"></span><h2>PyHEADTAIL.general.element module<a class="headerlink" href="#module-PyHEADTAIL.general.element" title="Permalink to this headline">¶</a></h2>
+<p>&#64;authors: Adrian Oeftiger
+&#64;date:    12/09/2014</p>
+<p>Provide abstract element as part of the tracking layout (e.g. circular
+accelerator) for PyHeadtail. All implemented elements derive from this.
+Can be used for implementing general features that every derived element
+in PyHEADTAIL should have.</p>
+<dl class="class">
+<dt id="PyHEADTAIL.general.element.Element">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.element.</code><code class="sig-name descname">Element</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Element" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract element as part of the tracking layout. Guarantees
+to fulfil its tracking contract via the method track(beam).</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.element.Element.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({'track'})</em><a class="headerlink" href="#PyHEADTAIL.general.element.Element.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.element.Element.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.element'</em><a class="headerlink" href="#PyHEADTAIL.general.element.Element.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.element.Element._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.general.element.Element._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.element.Element.track">
+<em class="property">abstract </em><code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Element.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform tracking of beam through this Element.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.general.element.Printing">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.element.</code><code class="sig-name descname">Printing</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Printing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides prints(output) method in order to communicate any output
+to the user. Use for instance</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">prints</span><span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>instead of</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>in order to obtain full flexibility over output channels.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.element.Printing.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.general.element', '__doc__': 'Provides prints(output) method in order to communicate any output\n    to the user. Use for instance\n\n    &gt;&gt;&gt; self.prints(&quot;Example message to console.&quot;)\n\n    instead of\n\n    &gt;&gt;&gt; print (&quot;Example message to console.&quot;)\n\n    in order to obtain full flexibility over output channels.\n    ', '__init__': &lt;function Printing.__init__&gt;, '__new__': &lt;staticmethod object&gt;, 'prints': &lt;function Printing.prints&gt;, 'warns': &lt;function Printing.warns&gt;, '__dict__': &lt;attribute '__dict__' of 'Printing' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'Printing' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.element.Printing.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.element.Printing.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.element'</em><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.element.Printing.__new__">
+<em class="property">static </em><code class="sig-name descname">__new__</code><span class="sig-paren">(</span><em class="sig-param">cls</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.__new__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Factory method makes sure that inheriting elements always
+have a Printer available for output redirection.
+If an inheriting element constructor gets the keyword argument
+‘printer’, an individual Printer as defined in the
+PyHEADTAIL.general.printers module can be attached to this
+instance. Standard is console output, i.e. ConsolePrinter.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.element.Printing.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.element.Printing.prints">
+<code class="sig-name descname">prints</code><span class="sig-paren">(</span><em class="sig-param">output</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.prints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Communicate any output to the user. Use for instance</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">prints</span><span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>instead of</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>in order to obtain full flexibility over output channels.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.element.Printing.warns">
+<code class="sig-name descname">warns</code><span class="sig-paren">(</span><em class="sig-param">output</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.warns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Communicate warnings to the user. Use for instance</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">warns</span><span class="p">(</span><span class="s2">&quot;Example warning to console.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>instead of</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.general.pmath">
+<span id="pyheadtail-general-pmath-module"></span><h2>PyHEADTAIL.general.pmath module<a class="headerlink" href="#module-PyHEADTAIL.general.pmath" title="Permalink to this headline">¶</a></h2>
+<p>PyHEADTAIL math functions
+Dispatches for CPU/GPU versions
+&#64;author Stefan Hegglin
+&#64;date 05.10.2015</p>
+<dl class="exception">
+<dt id="PyHEADTAIL.general.pmath.UnknownContextManagerError">
+<em class="property">exception </em><code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">UnknownContextManagerError</code><span class="sig-paren">(</span><em class="sig-param">message='Failed to determine current context</em>, <em class="sig-param">e.g. whether pmath.device is &quot;CPU&quot; or &quot;GPU&quot;.'</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.UnknownContextManagerError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise if context manager is not found, e.g. cannot determine
+whether on CPU or on GPU.</p>
+<dl class="method">
+<dt id="PyHEADTAIL.general.pmath.UnknownContextManagerError.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">message='Failed to determine current context</em>, <em class="sig-param">e.g. whether pmath.device is &quot;CPU&quot; or &quot;GPU&quot;.'</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.UnknownContextManagerError.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.pmath.UnknownContextManagerError.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.pmath'</em><a class="headerlink" href="#PyHEADTAIL.general.pmath.UnknownContextManagerError.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.pmath.UnknownContextManagerError.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.general.pmath.UnknownContextManagerError.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._count_macroparticles_per_slice_cpu">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_count_macroparticles_per_slice_cpu</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._count_macroparticles_per_slice_cpu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._emittance_per_slice_cpu">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_emittance_per_slice_cpu</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">up</em>, <em class="sig-param">dp=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._emittance_per_slice_cpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU Wrapper for the emittance per slice function.
+TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+–&gt; Directly into cobra_functions/stats.pyx?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._errfadd">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_errfadd</code><span class="sig-paren">(</span><em class="sig-param">z</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._errfadd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._init_bunch_buffer">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_init_bunch_buffer</code><span class="sig-paren">(</span><em class="sig-param">bunch_stats</em>, <em class="sig-param">buffer_size</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._init_bunch_buffer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._init_slice_buffer">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_init_slice_buffer</code><span class="sig-paren">(</span><em class="sig-param">slice_stats</em>, <em class="sig-param">n_slices</em>, <em class="sig-param">buffer_size</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._init_slice_buffer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._mean_per_slice_cpu">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_mean_per_slice_cpu</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._mean_per_slice_cpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU Wrapper for the mean per slice function.
+TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+–&gt; Directly into cobra_functions/stats.pyx?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._searchsortedleft">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_searchsortedleft</code><span class="sig-paren">(</span><em class="sig-param">array</em>, <em class="sig-param">values</em>, <em class="sig-param">dest_array=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._searchsortedleft" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._searchsortedright">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_searchsortedright</code><span class="sig-paren">(</span><em class="sig-param">array</em>, <em class="sig-param">values</em>, <em class="sig-param">dest_array=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._searchsortedright" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._slice_to_particles">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_slice_to_particles</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">slice_array</em>, <em class="sig-param">particle_array=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._slice_to_particles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert slice_array with entries for each slice to a
+particle array with the respective entry of each particle
+given by its slice_array value via the slice that the
+particle belongs to. If provided, particle_array should be a
+zero-filled destination array.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._std_per_slice_cpu">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_std_per_slice_cpu</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._std_per_slice_cpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU Wrapper for the cov per slice function.
+TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+–&gt; Directly into cobra_functions/stats.pyx?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath._wofz">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">_wofz</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath._wofz" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.almost_zero">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">almost_zero</code><span class="sig-paren">(</span><em class="sig-param">array</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.almost_zero" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.apply_permutation">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">apply_permutation</code><span class="sig-paren">(</span><em class="sig-param">array</em>, <em class="sig-param">permutation</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.apply_permutation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.emittance">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">emittance</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.emittance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.emittance_per_slice">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">emittance_per_slice</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">up</em>, <em class="sig-param">dp=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.emittance_per_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU Wrapper for the emittance per slice function.
+TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+–&gt; Directly into cobra_functions/stats.pyx?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.ensure_CPU">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">ensure_CPU</code><span class="sig-paren">(</span><em class="sig-param">array</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.ensure_CPU" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accept a GPUArray or a NumPy.ndarray and return a NumPy.ndarray.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.ensure_same_device">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">ensure_same_device</code><span class="sig-paren">(</span><em class="sig-param">array</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.ensure_same_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accept a GPUarray or a NumPy.ndarray, check which device we
+are currently running on in the context manager, and return
+a possibly transferred GPUarray or a NumPy.ndarray accordingly.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.indexify">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">indexify</code><span class="sig-paren">(</span><em class="sig-param">array</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.indexify" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.init_bunch_buffer">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">init_bunch_buffer</code><span class="sig-paren">(</span><em class="sig-param">bunch</em>, <em class="sig-param">bunch_stats</em>, <em class="sig-param">buffer_size</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.init_bunch_buffer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.init_slice_buffer">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">init_slice_buffer</code><span class="sig-paren">(</span><em class="sig-param">slice_set</em>, <em class="sig-param">slice_stats</em>, <em class="sig-param">buffer_size</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.init_slice_buffer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.macroparticles_per_slice">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">macroparticles_per_slice</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.macroparticles_per_slice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.mean_per_slice">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">mean_per_slice</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.mean_per_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU Wrapper for the mean per slice function.
+TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+–&gt; Directly into cobra_functions/stats.pyx?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.np_sincos">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">np_sincos</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.np_sincos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.particles_outside_cuts">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">particles_outside_cuts</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.particles_outside_cuts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.particles_within_cuts">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">particles_within_cuts</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.particles_within_cuts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.searchsortedleft">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">searchsortedleft</code><span class="sig-paren">(</span><em class="sig-param">array</em>, <em class="sig-param">values</em>, <em class="sig-param">dest_array=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.searchsortedleft" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.searchsortedright">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">searchsortedright</code><span class="sig-paren">(</span><em class="sig-param">array</em>, <em class="sig-param">values</em>, <em class="sig-param">dest_array=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.searchsortedright" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.seq">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">seq</code><span class="sig-paren">(</span><em class="sig-param">stop</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.seq" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.sincos">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">sincos</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.sincos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.slice_to_particles">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">slice_to_particles</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">slice_array</em>, <em class="sig-param">particle_array=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.slice_to_particles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert slice_array with entries for each slice to a
+particle array with the respective entry of each particle
+given by its slice_array value via the slice that the
+particle belongs to. If provided, particle_array should be a
+zero-filled destination array.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.std_per_slice">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">std_per_slice</code><span class="sig-paren">(</span><em class="sig-param">sliceset</em>, <em class="sig-param">u</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.std_per_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU Wrapper for the cov per slice function.
+TODO: Find a good spot where to put this function (equiv to gpu_wrap)
+–&gt; Directly into cobra_functions/stats.pyx?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.update_active_dict">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">update_active_dict</code><span class="sig-paren">(</span><em class="sig-param">new_dict</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.update_active_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the currently active dictionary. Removes the keys of the currently
+active dictionary from globals() and spills the keys
+from new_dict to globals()
+:param new_dict A dictionary which contents will be spilled to globals():</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyHEADTAIL.general.pmath.wofz">
+<code class="sig-prename descclassname">PyHEADTAIL.general.pmath.</code><code class="sig-name descname">wofz</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.pmath.wofz" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.general.printers">
+<span id="pyheadtail-general-printers-module"></span><h2>PyHEADTAIL.general.printers module<a class="headerlink" href="#module-PyHEADTAIL.general.printers" title="Permalink to this headline">¶</a></h2>
+<p>&#64;authors: Adrian Oeftiger
+&#64;date:    12/09/2014</p>
+<p>Printer functionality provides different means to control the flow of
+output streams.</p>
+<dl class="class">
+<dt id="PyHEADTAIL.general.printers.AccumulatorPrinter">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.printers.</code><code class="sig-name descname">AccumulatorPrinter</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.printers.AccumulatorPrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulates all calls to prints in a list ‘log’</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.AccumulatorPrinter.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.general.printers.AccumulatorPrinter.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.printers.AccumulatorPrinter.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.printers.AccumulatorPrinter.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.AccumulatorPrinter.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.printers'</em><a class="headerlink" href="#PyHEADTAIL.general.printers.AccumulatorPrinter.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.AccumulatorPrinter._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.general.printers.AccumulatorPrinter._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.printers.AccumulatorPrinter.prints">
+<code class="sig-name descname">prints</code><span class="sig-paren">(</span><em class="sig-param">output</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.printers.AccumulatorPrinter.prints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores warnings in list log</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.general.printers.ConsolePrinter">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.printers.</code><code class="sig-name descname">ConsolePrinter</code><a class="headerlink" href="#PyHEADTAIL.general.printers.ConsolePrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Redirects to console, equivalent to the print statement</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">output</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.ConsolePrinter.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.general.printers.ConsolePrinter.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.ConsolePrinter.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.printers'</em><a class="headerlink" href="#PyHEADTAIL.general.printers.ConsolePrinter.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.ConsolePrinter._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.general.printers.ConsolePrinter._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.printers.ConsolePrinter.prints">
+<code class="sig-name descname">prints</code><span class="sig-paren">(</span><em class="sig-param">output</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.printers.ConsolePrinter.prints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Directs the output to console.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.general.printers.Printer">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.printers.</code><code class="sig-name descname">Printer</code><a class="headerlink" href="#PyHEADTAIL.general.printers.Printer" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic printer knows where to redirect text for print.
+Use Printer.prints(output) to print the output instead of
+using the standard keyword</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">output</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>in order to gain flexibility in redirecting output centrally.
+E.g. instead of directing output to console one could specify
+a file or use different streams for errors, warnings and content
+related output etc.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.Printer.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({'prints'})</em><a class="headerlink" href="#PyHEADTAIL.general.printers.Printer.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.Printer.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.general.printers', '__doc__': '\n    A generic printer knows where to redirect text for print.\n    Use Printer.prints(output) to print the output instead of\n    using the standard keyword\n\n    &gt;&gt;&gt; print (output)\n\n    in order to gain flexibility in redirecting output centrally.\n    E.g. instead of directing output to console one could specify\n    a file or use different streams for errors, warnings and content\n    related output etc.\n    ', 'prints': &lt;function Printer.prints&gt;, '__dict__': &lt;attribute '__dict__' of 'Printer' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'Printer' objects&gt;, '__abstractmethods__': frozenset({'prints'}), '_abc_impl': &lt;_abc_data object&gt;})</em><a class="headerlink" href="#PyHEADTAIL.general.printers.Printer.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.Printer.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.printers'</em><a class="headerlink" href="#PyHEADTAIL.general.printers.Printer.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.Printer.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.general.printers.Printer.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.Printer._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.general.printers.Printer._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.printers.Printer.prints">
+<em class="property">abstract </em><code class="sig-name descname">prints</code><span class="sig-paren">(</span><em class="sig-param">output</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.printers.Printer.prints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Direct the output to the internally defined printing stream.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.general.printers.SilentPrinter">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.printers.</code><code class="sig-name descname">SilentPrinter</code><a class="headerlink" href="#PyHEADTAIL.general.printers.SilentPrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mutes output.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.SilentPrinter.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.general.printers.SilentPrinter.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.SilentPrinter.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.printers'</em><a class="headerlink" href="#PyHEADTAIL.general.printers.SilentPrinter.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.printers.SilentPrinter._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.general.printers.SilentPrinter._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.printers.SilentPrinter.prints">
+<code class="sig-name descname">prints</code><span class="sig-paren">(</span><em class="sig-param">output</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.printers.SilentPrinter.prints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts output and does nothing.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-PyHEADTAIL.general.utils">
+<span id="pyheadtail-general-utils-module"></span><h2>PyHEADTAIL.general.utils module<a class="headerlink" href="#module-PyHEADTAIL.general.utils" title="Permalink to this headline">¶</a></h2>
+<p>&#64;authors: Kevin Li, Adrian Oeftiger
+&#64;date:    10/02/2015</p>
+<p>Provide useful conceptual classes and logics for PyHEADTAIL.</p>
+<dl class="class">
+<dt id="PyHEADTAIL.general.utils.ListProxy">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.utils.</code><code class="sig-name descname">ListProxy</code><span class="sig-paren">(</span><em class="sig-param">list_of_objects</em>, <em class="sig-param">attr_name</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is a list of object attributes. Accessing ListProxy entries
+evaluates the object attributes each time it is accessed,
+i.e. this list “proxies” the object attributes.</p>
+<p>Attention:
+If accessed via slicing, e.g.
+&gt;&gt;&gt; original = ListProxy(…)
+&gt;&gt;&gt; part = original[2:5]
+then part created a new list of references, a new _list_of_objects.
+Consequently, any change to the direct contents of
+original._list_of_objects (such as popping or adding elements)
+is not reflected in part.</p>
+<dl class="method">
+<dt id="PyHEADTAIL.general.utils.ListProxy.__getitem__">
+<code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">index</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a ListProxy for slice arguments,
+otherwise return the requested value at the given index.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.utils.ListProxy.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">list_of_objects</em>, <em class="sig-param">attr_name</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide a list of object instances and a name of a commonly
+shared attribute that should be proxied by this ListProxy
+instance.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.utils.ListProxy.__len__">
+<code class="sig-name descname">__len__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy.__len__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.utils.ListProxy.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.utils'</em><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.utils.ListProxy.__repr__">
+<code class="sig-name descname">__repr__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy.__repr__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return repr(self).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.utils.ListProxy.__setitem__">
+<code class="sig-name descname">__setitem__</code><span class="sig-paren">(</span><em class="sig-param">index</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy.__setitem__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.utils.ListProxy._rewritable_setitem">
+<code class="sig-name descname">_rewritable_setitem</code><span class="sig-paren">(</span><em class="sig-param">index</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy._rewritable_setitem" title="Permalink to this definition">¶</a></dt>
+<dd><p>This setter method may be overwritten.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.utils.ListProxy.pop">
+<code class="sig-name descname">pop</code><span class="sig-paren">(</span><em class="sig-param">index</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.ListProxy.pop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the object from the internal list and return the
+corresponding attribute, analogous to list.pop .</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.general.utils.MutableNumber">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.utils.</code><code class="sig-name descname">MutableNumber</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.MutableNumber" title="Permalink to this definition">¶</a></dt>
+<dd><p>Documentation for MutableNumber</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.utils.MutableNumber.__dict__">
+<code class="sig-name descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'PyHEADTAIL.general.utils', '__doc__': 'Documentation for MutableNumber\n\n    ', '__init__': &lt;function MutableNumber.__init__&gt;, '__dict__': &lt;attribute '__dict__' of 'MutableNumber' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'MutableNumber' objects&gt;})</em><a class="headerlink" href="#PyHEADTAIL.general.utils.MutableNumber.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.general.utils.MutableNumber.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.utils.MutableNumber.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.utils.MutableNumber.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.general.utils'</em><a class="headerlink" href="#PyHEADTAIL.general.utils.MutableNumber.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.general.utils.MutableNumber.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#PyHEADTAIL.general.utils.MutableNumber.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PyHEADTAIL.general package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.general.contextmanager">PyHEADTAIL.general.contextmanager module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.general.decorators">PyHEADTAIL.general.decorators module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.general.element">PyHEADTAIL.general.element module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.general.pmath">PyHEADTAIL.general.pmath module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.general.printers">PyHEADTAIL.general.printers module</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.general.utils">PyHEADTAIL.general.utils module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.field_maps.html"
+                        title="previous chapter">PyHEADTAIL.field_maps package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.gpu.html"
+                        title="next chapter">PyHEADTAIL.gpu package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/PyHEADTAIL.general.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.gpu.html" title="PyHEADTAIL.gpu package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.field_maps.html" title="PyHEADTAIL.field_maps package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" >PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>

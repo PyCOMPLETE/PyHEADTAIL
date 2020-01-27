@@ -1,16 +1,16 @@
 import numpy as np
 from scipy.constants import c
 
+from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyPIC.PyPIC_Scatter_Gather import PyPIC_Scatter_Gather
 
-from . import Element
 
 class Transverse_Efield_map(Element):
     def __init__(self, xg, yg, Ex, Ey, L_interaction, slicer,
-        	flag_clean_slices=False, wrt_slice_centroid=False,
-        	x_beam_offset=0., y_beam_offset=0., verbose=False,
-            *args, **kwargs):
+                 flag_clean_slices=False, wrt_slice_centroid=False,
+                 x_beam_offset=0., y_beam_offset=0., verbose=False,
+                 *args, **kwargs):
 
         self.slicer = slicer
         self.L_interaction = L_interaction
@@ -36,7 +36,7 @@ class Transverse_Efield_map(Element):
 
         slices = beam.get_slices(self.slicer)
 
-        for sid in xrange(slices.n_slices-1, -1, -1):
+        for sid in range(slices.n_slices-1, -1, -1):
 
             # select particles in the slice
             pid = slices.particle_indices_of_slice(sid)

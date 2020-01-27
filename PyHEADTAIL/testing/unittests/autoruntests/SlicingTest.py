@@ -1,25 +1,13 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import sys, os
-BIN = os.path.expanduser("../../../..")
-sys.path.append(BIN)
-
-
-# In[2]:
-
 import numpy as np
 from scipy.constants import m_p, c, e
 from scipy.constants import e as ee
 
 from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
-from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer, ModeIsUniformCharge
+from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
+from PyHEADTAIL.particles.slicing import ModeIsUniformCharge
 
 
-# In[3]:
 def run():
     #HELPERS
     def test_particle_indices_of_slice(bunch, slice_set):
@@ -28,7 +16,7 @@ def run():
         if everything works correctly.
         '''
         all_pass = True
-        for i in xrange(slice_set.n_slices):
+        for i in range(slice_set.n_slices):
             pix_slice = slice_set.particle_indices_of_slice(i)
             six_pix = slice_set.slice_index_of_particle[pix_slice]
             if (six_pix != i).any():
@@ -247,7 +235,7 @@ def run():
 
     beam_parameters = slicer.extract_beam_parameters(bunch)
 
-    for p_name, p_value in beam_parameters.iteritems():
+    for p_name, p_value in beam_parameters.items():
         pass
 
     # In[14]:

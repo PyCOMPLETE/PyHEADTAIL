@@ -9,11 +9,13 @@ https://github.com/PyCOMPLETE/PyPIC .
 @date: 18.01.2016
 '''
 
-from __future__ import division
+
+
 import numpy as np
 
 from PyPIC.GPU import pypic, meshing
 from PyPIC.GPU.poisson_solver import FFT_solver
+from PyHEADTAIL.general import pmath as pm
 
 try:
     pypic_algorithm_class = pypic.PyPIC_GPU
@@ -35,13 +37,13 @@ except ImportError:
             ext_boundary=False,
         )
 
-from ..general import pmath as pm
 
 def ensure_cpu(array):
     try:
         return array.get()
     except:
         return array
+
 
 def create_pypic(slices, context=None, **mesh_args):
     '''Factory method for PyPIC.pypic.PyPIC(_GPU) instances.
@@ -103,9 +105,9 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size,
         raise ValueError('All arguments for the mesh need to have as '
                          'many entries as the mesh should have dimensions!')
     mesh_class = getattr(meshing, 'RectMesh{dim}D'.format(dim=dim))
-    return mesh_class(map(ensure_cpu, mesh_origin),
-                      map(ensure_cpu, mesh_distances),
-                      map(ensure_cpu, mesh_size),
+    return mesh_class(list(map(ensure_cpu, mesh_origin)),
+                      list(map(ensure_cpu, mesh_distances)),
+                      list(map(ensure_cpu, mesh_size)),
                       mathlib=pm)
 
 

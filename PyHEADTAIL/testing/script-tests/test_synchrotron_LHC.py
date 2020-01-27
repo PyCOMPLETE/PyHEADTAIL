@@ -1,9 +1,9 @@
-import sys, os
-BIN=os.path.expanduser('../../../')
-sys.path.append(BIN)
-
-
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
 from scipy.constants import e,c
+
+from LHC import LHC
 
 macroparticlenumber_track = 50000
 macroparticlenumber_optics = 2000000
@@ -18,9 +18,6 @@ intensity = 1e11
 mode = 'smooth'
 #mode = 'non-smooth'
 
-import pickle
-from LHC import LHC
-
 if mode == 'smooth':
     machine = LHC(machine_configuration='Injection', n_segments=29, D_x=10)
 elif mode == 'non-smooth':
@@ -30,10 +27,10 @@ elif mode == 'non-smooth':
 
     machine = LHC(machine_configuration='Injection', optics_mode = 'non-smooth', V_RF=10e6,  **optics)
 
-print 'Create bunch for optics...'
+print('Create bunch for optics...')
 bunch   = machine.generate_6D_Gaussian_bunch_matched(
     macroparticlenumber_optics, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
-print 'Done.'
+print('Done.')
 
 bunch.x += 10.
 bunch.y += 20.
@@ -47,17 +44,15 @@ beam_beta_x = []
 beam_alpha_y = []
 beam_beta_y = []
 for i_ele, m in enumerate(machine.one_turn_map):
-    print 'Element %d/%d'%(i_ele, len(machine.one_turn_map))
+    print('Element %d/%d'%(i_ele, len(machine.one_turn_map)))
     beam_alpha_x.append(bunch.alpha_Twiss_x())
     beam_beta_x.append(bunch.beta_Twiss_x())
     beam_alpha_y.append(bunch.alpha_Twiss_y())
     beam_beta_y.append(bunch.beta_Twiss_y())
     m.track(bunch)
 
-import numpy as np
-import matplotlib.pyplot as plt
-plt.close('all')
 
+plt.close('all')
 
 fig, axes = plt.subplots(2, sharex=True)
 
@@ -96,8 +91,8 @@ beam_y = []
 beam_z = []
 sx, sy, sz = [], [], []
 epsx, epsy, epsz = [], [], []
-for i_turn in xrange(n_turns):
-    print 'Turn %d/%d'%(i_turn, n_turns)
+for i_turn in range(n_turns):
+    print('Turn %d/%d'%(i_turn, n_turns))
     machine.track(bunch)
 
     beam_x.append(bunch.mean_x())
@@ -165,16 +160,16 @@ for ax in list(twax):
 #~ plt.plot(optics['s'][:],optics['beta_x'][:], '-o')
 
 LHC_with_octupole_injection = LHC(machine_configuration='Injection', n_segments=5, octupole_knob = -1.5)
-print '450GeV:'
-print 'i_octupole_focusing =',LHC_with_octupole_injection.i_octupole_focusing
-print 'i_octupole_defocusing =',LHC_with_octupole_injection.i_octupole_defocusing
-print 'in the machine we get 19.557'
-print '  '
+print('450GeV:')
+print('i_octupole_focusing =',LHC_with_octupole_injection.i_octupole_focusing)
+print('i_octupole_defocusing =',LHC_with_octupole_injection.i_octupole_defocusing)
+print('in the machine we get 19.557')
+print('  ')
 LHC_with_octupole_flattop = LHC(machine_configuration='Injection', n_segments=5, p0=6.5e12*e/c, octupole_knob = -2.9)
 
-print '6.5TeV:'
-print 'i_octupole_focusing =',LHC_with_octupole_flattop.i_octupole_focusing
-print 'i_octupole_defocusing =',LHC_with_octupole_flattop.i_octupole_defocusing
-print 'in the machine we get 546.146'
+print('6.5TeV:')
+print('i_octupole_focusing =',LHC_with_octupole_flattop.i_octupole_focusing)
+print('i_octupole_defocusing =',LHC_with_octupole_flattop.i_octupole_defocusing)
+print('in the machine we get 546.146')
 
 plt.show()
