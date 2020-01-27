@@ -256,11 +256,11 @@ to fulfil its tracking contract via the method track(beam).</p>
 <em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.element.</code><code class="sig-name descname">Printing</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Printing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Provides prints(output) method in order to communicate any output
 to the user. Use for instance</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">prints</span><span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">prints</span><span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>instead of</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>in order to obtain full flexibility over output channels.</p>
@@ -301,11 +301,11 @@ instance. Standard is console output, i.e. ConsolePrinter.</p>
 <dt id="PyHEADTAIL.general.element.Printing.prints">
 <code class="sig-name descname">prints</code><span class="sig-paren">(</span><em class="sig-param">output</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.prints" title="Permalink to this definition">¶</a></dt>
 <dd><p>Communicate any output to the user. Use for instance</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">prints</span><span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">prints</span><span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>instead of</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>in order to obtain full flexibility over output channels.</p>
@@ -315,11 +315,11 @@ instance. Standard is console output, i.e. ConsolePrinter.</p>
 <dt id="PyHEADTAIL.general.element.Printing.warns">
 <code class="sig-name descname">warns</code><span class="sig-paren">(</span><em class="sig-param">output</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.general.element.Printing.warns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Communicate warnings to the user. Use for instance</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">warns</span><span class="p">(</span><span class="s2">&quot;Example warning to console.&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="bp">self</span><span class="o">.</span><span class="n">warns</span><span class="p">(</span><span class="s2">&quot;Example warning to console.&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>instead of</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Example message to console.&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -602,7 +602,7 @@ output streams.</p>
 <dt id="PyHEADTAIL.general.printers.ConsolePrinter">
 <em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.general.printers.</code><code class="sig-name descname">ConsolePrinter</code><a class="headerlink" href="#PyHEADTAIL.general.printers.ConsolePrinter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Redirects to console, equivalent to the print statement</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">output</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">output</span><span class="p">)</span>
 </pre></div>
 </div>
 <dl class="attribute">
@@ -634,7 +634,7 @@ output streams.</p>
 <dd><p>A generic printer knows where to redirect text for print.
 Use Printer.prints(output) to print the output instead of
 using the standard keyword</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">output</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">output</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>in order to gain flexibility in redirecting output centrally.
@@ -872,7 +872,7 @@ corresponding attribute, analogous to list.pop .</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019, Author.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.
     </div>
   </body>
 </html>

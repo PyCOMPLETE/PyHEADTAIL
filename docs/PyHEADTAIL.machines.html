@@ -62,16 +62,17 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>optics_mode</strong> (<em>'smooth'</em><em>, </em><em>'non-smooth'</em>) – <ul>
 <li><p>‘smooth’: the optics parameters are the same for all segments;</p></li>
-<li><p>’non-smooth’: the optics parameters are differetn for each segments.</p></li>
+<li><p>’non-smooth’: the optics parameters are different for each segment.</p></li>
 </ul>
 </p></li>
-<li><p><strong>charge</strong> (<em>C</em>) – reference particle charge in Coulomb</p></li>
-<li><p><strong>mass</strong> (<em>kg</em>) – reference particle mass in Kg</p></li>
-<li><p><strong>p0</strong> (<em>kg m/s</em>) – reference particle momentum</p></li>
+<li><p><strong>charge</strong> (<em>C</em>) – reference particle charge in Coulomb.</p></li>
+<li><p><strong>mass</strong> (<em>kg</em>) – reference particle mass in Kg.</p></li>
+<li><p><strong>p0</strong> (<em>kg m/s</em>) – reference particle momentum.</p></li>
 <li><p><strong>circumference</strong> (<em>m</em>) – ring circumference (to be provided only if optics_mode is ‘smooth’).</p></li>
 <li><p><strong>n_segments</strong> – Number of segments in the machine (to be provided if
 optics_mode is ‘smooth’, otherwise it is inferred by the length of s).</p></li>
-<li><p><strong>name</strong> – Name of the machine</p></li>
+<li><p><strong>name</strong> – Name of the locations in between segments. The length of the array
+should be n_segments + 1.</p></li>
 <li><p><strong>s</strong> (<em>m</em><em>, </em><em>array</em>) – Longitudinal positions at which the machine is cut
 in segments. The length of the array should be n_segments + 1.
 The last value in the array provides the ring circumference.</p></li>
@@ -125,12 +126,12 @@ vertical tune.</p></li>
 </p></li>
 <li><p><strong>Qp_x</strong><strong>,</strong><strong>Qp_y</strong> – Horizontal and vertical chromaticity (dQ/dp), the detuning
 is shared over segments.</p></li>
-<li><p><strong>app_x</strong><strong>,</strong><strong>app_y</strong><strong>,</strong><strong>app_xy</strong> – Amplitude detining coefficients (anharmonicities).</p></li>
+<li><p><strong>app_x</strong><strong>,</strong><strong>app_y</strong><strong>,</strong><strong>app_xy</strong> – Amplitude detuning coefficients (anharmonicities).</p></li>
 <li><p><strong>longitudinal_mode</strong> (<em>'linear'</em><em>, </em><em>'non-linear'</em>) – <dl class="simple">
 <dt>Longitudinal mode:</dt><dd><ul>
 <li><p>’linear’: linear longitudinal force (RF cavity)</p></li>
 <li><dl class="simple">
-<dt>’non-linear’: sinusoidal longitudinal force (RF cavities). Multiple</dt><dd><p>harmonics can be deifined in this case.</p>
+<dt>’non-linear’: sinusoidal longitudinal force (RF cavities). Multiple</dt><dd><p>harmonics can be defined in this case.</p>
 </dd>
 </dl>
 </li>
@@ -147,10 +148,10 @@ an array.</p></li>
 an array.</p></li>
 <li><p><strong>dphi_RF</strong> (<em>rad</em>) – <p>Phase of the RF system with respect to the reference
 particle (z=0). For a single harmonic, in the absence of acceleration
-or enegy losses:</p>
+or energy losses:</p>
 <blockquote>
 <div><ul>
-<li><p>below transition z = 0 is the stable fixed-point if dphi_RF = 0;</p></li>
+<li><p>above transition z = 0 is the stable fixed-point if dphi_RF = 0;</p></li>
 <li><p>below transition z = 0 is the stable fixed-point if dphi_RF = pi.</p></li>
 </ul>
 </div></blockquote>
@@ -158,7 +159,7 @@ or enegy losses:</p>
 <li><p><strong>p_increment</strong> (<em>kg m / s</em>) – Acceleration, reference particle momentum change
 per turn.</p></li>
 <li><p><strong>RF_at</strong> (<em>'middle'</em><em>, </em><em>'end_of_transverse'</em>) – Position of the longitudinal map in the ring.</p></li>
-<li><p><strong>wrap_z</strong> (<em>True</em><em>, </em><em>False</em>) – Wrap longitudinal position using the accelerator length</p></li>
+<li><p><strong>wrap_z</strong> (<em>True</em><em>, </em><em>False</em>) – Wrap longitudinal position using the accelerator length.</p></li>
 <li><p><strong>other_detuners</strong> – List of other detuners to be applied
 (default is other_detuners = []).</p></li>
 </ul>
@@ -200,16 +201,17 @@ per turn.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>optics_mode</strong> (<em>'smooth'</em><em>, </em><em>'non-smooth'</em>) – <ul>
 <li><p>‘smooth’: the optics parameters are the same for all segments;</p></li>
-<li><p>’non-smooth’: the optics parameters are differetn for each segments.</p></li>
+<li><p>’non-smooth’: the optics parameters are different for each segment.</p></li>
 </ul>
 </p></li>
-<li><p><strong>charge</strong> (<em>C</em>) – reference particle charge in Coulomb</p></li>
-<li><p><strong>mass</strong> (<em>kg</em>) – reference particle mass in Kg</p></li>
-<li><p><strong>p0</strong> (<em>kg m/s</em>) – reference particle momentum</p></li>
+<li><p><strong>charge</strong> (<em>C</em>) – reference particle charge in Coulomb.</p></li>
+<li><p><strong>mass</strong> (<em>kg</em>) – reference particle mass in Kg.</p></li>
+<li><p><strong>p0</strong> (<em>kg m/s</em>) – reference particle momentum.</p></li>
 <li><p><strong>circumference</strong> (<em>m</em>) – ring circumference (to be provided only if optics_mode is ‘smooth’).</p></li>
 <li><p><strong>n_segments</strong> – Number of segments in the machine (to be provided if
 optics_mode is ‘smooth’, otherwise it is inferred by the length of s).</p></li>
-<li><p><strong>name</strong> – Name of the machine</p></li>
+<li><p><strong>name</strong> – Name of the locations in between segments. The length of the array
+should be n_segments + 1.</p></li>
 <li><p><strong>s</strong> (<em>m</em><em>, </em><em>array</em>) – Longitudinal positions at which the machine is cut
 in segments. The length of the array should be n_segments + 1.
 The last value in the array provides the ring circumference.</p></li>
@@ -263,12 +265,12 @@ vertical tune.</p></li>
 </p></li>
 <li><p><strong>Qp_x</strong><strong>,</strong><strong>Qp_y</strong> – Horizontal and vertical chromaticity (dQ/dp), the detuning
 is shared over segments.</p></li>
-<li><p><strong>app_x</strong><strong>,</strong><strong>app_y</strong><strong>,</strong><strong>app_xy</strong> – Amplitude detining coefficients (anharmonicities).</p></li>
+<li><p><strong>app_x</strong><strong>,</strong><strong>app_y</strong><strong>,</strong><strong>app_xy</strong> – Amplitude detuning coefficients (anharmonicities).</p></li>
 <li><p><strong>longitudinal_mode</strong> (<em>'linear'</em><em>, </em><em>'non-linear'</em>) – <dl class="simple">
 <dt>Longitudinal mode:</dt><dd><ul>
 <li><p>’linear’: linear longitudinal force (RF cavity)</p></li>
 <li><dl class="simple">
-<dt>’non-linear’: sinusoidal longitudinal force (RF cavities). Multiple</dt><dd><p>harmonics can be deifined in this case.</p>
+<dt>’non-linear’: sinusoidal longitudinal force (RF cavities). Multiple</dt><dd><p>harmonics can be defined in this case.</p>
 </dd>
 </dl>
 </li>
@@ -285,10 +287,10 @@ an array.</p></li>
 an array.</p></li>
 <li><p><strong>dphi_RF</strong> (<em>rad</em>) – <p>Phase of the RF system with respect to the reference
 particle (z=0). For a single harmonic, in the absence of acceleration
-or enegy losses:</p>
+or energy losses:</p>
 <blockquote>
 <div><ul>
-<li><p>below transition z = 0 is the stable fixed-point if dphi_RF = 0;</p></li>
+<li><p>above transition z = 0 is the stable fixed-point if dphi_RF = 0;</p></li>
 <li><p>below transition z = 0 is the stable fixed-point if dphi_RF = pi.</p></li>
 </ul>
 </div></blockquote>
@@ -296,7 +298,7 @@ or enegy losses:</p>
 <li><p><strong>p_increment</strong> (<em>kg m / s</em>) – Acceleration, reference particle momentum change
 per turn.</p></li>
 <li><p><strong>RF_at</strong> (<em>'middle'</em><em>, </em><em>'end_of_transverse'</em>) – Position of the longitudinal map in the ring.</p></li>
-<li><p><strong>wrap_z</strong> (<em>True</em><em>, </em><em>False</em>) – Wrap longitudinal position using the accelerator length</p></li>
+<li><p><strong>wrap_z</strong> (<em>True</em><em>, </em><em>False</em>) – Wrap longitudinal position using the accelerator length.</p></li>
 <li><p><strong>other_detuners</strong> – List of other detuners to be applied
 (default is other_detuners = []).</p></li>
 </ul>
@@ -451,7 +453,7 @@ for the bucket.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019, Author.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.
     </div>
   </body>
 </html>
