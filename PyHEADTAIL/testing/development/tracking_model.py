@@ -1,15 +1,14 @@
 import numpy as np
-from PyHEADTAIL.general.utils import ListProxy
 from scipy.constants import c
-
 from abc import ABCMeta, abstractmethod
 
+from PyHEADTAIL.general.utils import ListProxy
 
-class KineticElement(object):
+
+class KineticElement(object, metaclass=ABCMeta):
     """Documentation for KineticElement
 
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, gamma, mass):
         self.gamma = gamma
@@ -53,11 +52,10 @@ class KineticElement(object):
                       np.sqrt(value**2+self.mass**2*c**2))
 
 
-class TrackingElement(object):
+class TrackingElement(object, metaclass=ABCMeta):
     """Documentation for TrackingElement
 
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, args):
         super(TrackingElement, self).__init__()
@@ -68,11 +66,10 @@ class TrackingElement(object):
         pass
 
 
-class Detuner(object):
+class Detuner(object, metaclass=ABCMeta):
     """Documentation for Detuner
 
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, args):
         super(Detuner, self).__init__()

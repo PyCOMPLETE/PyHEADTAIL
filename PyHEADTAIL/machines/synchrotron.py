@@ -1,9 +1,9 @@
-from __future__ import division
+
 
 import numpy as np
 from scipy.constants import c
 
-from ..general.decorators import deprecated
+from PyHEADTAIL.general.decorators import deprecated
 from PyHEADTAIL.particles import generators
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.trackers.rf_bucket import RFBucket
@@ -268,7 +268,7 @@ class Synchrotron(Element):
         self.transverse_map.n_segments = len(s)-1
 
         if name is None:
-            self.transverse_map.name = ['P_%d' % ip for ip in xrange(len(s)-1)]
+            self.transverse_map.name = ['P_%d' % ip for ip in range(len(s)-1)]
             self.transverse_map.name.append('end_ring')
         else:
             self.transverse_map.name = name

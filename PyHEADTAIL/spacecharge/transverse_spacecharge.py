@@ -1,9 +1,10 @@
-from __future__ import division
 
-from . import Element
 
 import numpy as np
 from scipy.constants import c
+
+from PyHEADTAIL.general.element import Element
+
 
 class TransverseSpaceCharge(Element):
     def __init__(self, L_interaction, slicer, pyPICsolver,
@@ -41,7 +42,7 @@ class TransverseSpaceCharge(Element):
 
         slices = beam.get_slices(self.slicer)
 
-        for sid in xrange(slices.n_slices-1, -1, -1):
+        for sid in range(slices.n_slices-1, -1, -1):
 
             # select particles in the slice
             pid = slices.particle_indices_of_slice(sid)

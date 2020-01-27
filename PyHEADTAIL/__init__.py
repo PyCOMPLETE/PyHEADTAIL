@@ -22,13 +22,11 @@ except:
     from ._version import __version__
     dirty = False
 
-print ('PyHEADTAIL v' + __version__)
+print(('PyHEADTAIL v' + __version__))
 if dirty:
     print ('(dirty git work tree)')
 print ('\n')
 
-from .general.element import Element, Printing
-from .general import utils
 # print '                                                                                                                             '
 # print '                                                                ;Cfttttt11111111tttt1f0f.                                    '
 # print '                                                                ,GttttfG0GGG00000GGG0G0G0G0G0G0Ct1t1fG:                      '

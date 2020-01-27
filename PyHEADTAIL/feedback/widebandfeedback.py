@@ -3,7 +3,7 @@
 @date 20/06/2014
 @copyright CERN
 '''
-from __future__ import division
+
 
 
 import numpy as np

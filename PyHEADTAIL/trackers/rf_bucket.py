@@ -1,16 +1,18 @@
 """.. copyright:: CERN"""
-from __future__ import division
+
+
 
 import numpy as np
-
 from scipy.constants import c
 from scipy.optimize import newton
 from scipy.integrate import dblquad
 from functools import partial, wraps
 
-from ..cobra_functions.curve_tools import zero_crossings as cvt_zero_crossings
-from ..general.decorators import deprecated
-from . import Printing
+from PyHEADTAIL.cobra_functions.curve_tools import (
+    zero_crossings as cvt_zero_crossings)
+from PyHEADTAIL.general.decorators import deprecated
+from PyHEADTAIL.general.element import Printing
+from functools import reduce
 
 
 def attach_clean_buckets(rf_parameter_changing_method, rfsystems_instance):
@@ -404,7 +406,7 @@ class RFBucket(Printing):
             coefficient = np.abs(self.charge)/self.circumference
             focusing_potential = reduce(lambda x, y: x+y, [
                 self.R/h[i] * V[i] * np.cos(h[i]*z/self.R + dphi[i])
-                for i in xrange(len(V))])
+                for i in range(len(V))])
             return coefficient * focusing_potential
 
         if not acceleration:

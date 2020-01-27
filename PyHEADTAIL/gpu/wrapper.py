@@ -1,8 +1,8 @@
-from __future__ import division
 
-from ..trackers import wrapper as def_wrapper
 
 from pycuda.elementwise import ElementwiseKernel
+from PyHEADTAIL.trackers import wrapper as def_wrapper
+
 
 class LongWrapperGPU(def_wrapper.LongWrapper):
     '''Wrap particles that go out of the z range covering the circumference.

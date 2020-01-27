@@ -3,19 +3,20 @@
 @date 03.10.2014
 @copyright CERN
 '''
-from __future__ import division
+
+
 
 import numpy as np
 from types import MethodType
 from scipy.constants import c
-
-from ..general.decorators import deprecated
-from . import Element, clean_slices, utils
-from rf_bucket import RFBucket, attach_clean_buckets
-
 from abc import ABCMeta, abstractmethod
 
-from ..general import pmath as pm
+from PyHEADTAIL.general.decorators import deprecated
+from PyHEADTAIL.general.element import Element
+from PyHEADTAIL.general import utils
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.particles.slicing import clean_slices
+from PyHEADTAIL.trackers.rf_bucket import RFBucket, attach_clean_buckets
 
 
 # @TODO
@@ -25,7 +26,7 @@ from ..general import pmath as pm
 # currently: only Velocity Verlet algorithm hard coded in RFSystems
 
 
-class LongitudinalMap(Element):
+class LongitudinalMap(Element, metaclass=ABCMeta):
     """
     A longitudinal map represents a longitudinal dynamical element
     (e.g. a kick or a drift...), i.e. an abstraction of a cavity
@@ -43,7 +44,6 @@ class LongitudinalMap(Element):
     \Delta w / w0 = \sum_j  \eta_j  * \delta^(i + 1)
     (for the revolution frequency w)
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, alpha_array, *args, **kwargs):
         """
@@ -71,7 +71,7 @@ class LongitudinalMap(Element):
         and with signature (alpha_array, gamma).
         """
         eta = 0
-        for i in xrange(len(self.alpha_array)):   # order = len - 1
+        for i in range(len(self.alpha_array)):   # order = len - 1
             eta_func = getattr(self, '_eta' + str(i))
             eta_i = eta_func(self.alpha_array, gamma)
             eta += eta_i * (dp ** i)
@@ -177,7 +177,7 @@ class Kick(LongitudinalMap):
         except AttributeError as e:
             self.warns("Failed to apply transverse dispersion correction "
                        "during longitudinal tracking. Caught AttributeError: \n"
-                       + e.message + "\nContinue without adjusting dispersion "
+                       + str(e) + "\nContinue without adjusting dispersion "
                        "contribution when changing beam.dp...")
             self.track = self.track_without_dispersion
 
@@ -253,7 +253,7 @@ class Kick(LongitudinalMap):
     #         return phi_rel
 
 
-class LongitudinalOneTurnMap(LongitudinalMap):
+class LongitudinalOneTurnMap(LongitudinalMap, metaclass=ABCMeta):
     """
     A longitudinal one turn map tracks over a complete turn.
     Any inheriting classes guarantee to provide a self.track(beam)
@@ -262,8 +262,6 @@ class LongitudinalOneTurnMap(LongitudinalMap):
     LongitudinalOneTurnMap classes possibly comprise several
     LongitudinalMap objects.
     """
-
-    __metaclass__ = ABCMeta
 
     def __init__(self, alpha_array, circumference, *args, **kwargs):
         """LongitudinalOneTurnMap objects know their circumference."""
@@ -563,7 +561,7 @@ class RFSystems(LongitudinalOneTurnMap):
         except AttributeError as e:
             self.warns("Failed to apply transverse acceleration " +
                        "cooling. Caught AttributeError: \n" +
-                       e.message + "\nContinue without shrinking " +
+                       str(e) + "\nContinue without shrinking " +
                        "transverse emittance...")
             self.track = self.track_no_transverse_shrinking
 
@@ -727,7 +725,7 @@ class LinearMap(LongitudinalOneTurnMap):
         except AttributeError as e:
             self.warns("Failed to apply transverse dispersion correction "
                        "during longitudinal tracking. Caught AttributeError: \n"
-                       + e.message + "\nContinue without adjusting dispersion "
+                       + str(e) + "\nContinue without adjusting dispersion "
                        "contribution when changing beam.dp...")
             self.track = self.track_without_dispersion
 
