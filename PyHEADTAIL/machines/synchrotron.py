@@ -56,16 +56,16 @@ class Synchrotron(Element):
         optics_mode : 'smooth', 'non-smooth'
 
              - 'smooth': the optics parameters are the same for all segments;
-             - 'non-smooth': the optics parameters are differetn for each segments.
+             - 'non-smooth': the optics parameters are different for each segment.
 
         charge : C
-            reference particle charge in Coulomb
+            reference particle charge in Coulomb.
 
         mass : kg
-            reference particle mass in Kg
+            reference particle mass in Kg.
 
         p0 : kg m/s
-            reference particle momentum
+            reference particle momentum.
 
         circumference : m
             ring circumference (to be provided only if optics_mode is 'smooth').
@@ -145,13 +145,13 @@ class Synchrotron(Element):
             is shared over segments.
 
         app_x,app_y,app_xy :
-            Amplitude detining coefficients (anharmonicities).
+            Amplitude detuning coefficients (anharmonicities).
 
         longitudinal_mode : 'linear', 'non-linear'
             Longitudinal mode:
              - 'linear': linear longitudinal force (RF cavity)
              - 'non-linear': sinusoidal longitudinal force (RF cavities). Multiple
-                harmonics can be deifined in this case.
+                harmonics can be defined in this case.
 
         Q_s :
             Synchrotron tune. It can be defined only if longitudinal_mode is
@@ -171,8 +171,8 @@ class Synchrotron(Element):
         dphi_RF : rad
             Phase of the RF system with respect to the reference
             particle (z=0). For a single harmonic, in the absence of acceleration
-            or enegy losses:
-             - below transition z = 0 is the stable fixed-point if dphi_RF = 0;
+            or energy losses:
+             - above transition z = 0 is the stable fixed-point if dphi_RF = 0;
              - below transition z = 0 is the stable fixed-point if dphi_RF = pi.
 
         p_increment : kg m / s
@@ -183,7 +183,7 @@ class Synchrotron(Element):
             Position of the longitudinal map in the ring.
 
         wrap_z : True, False
-            Wrap longitudinal position using the accelerator length
+            Wrap longitudinal position using the accelerator length.
 
         other_detuners :
             List of other detuners to be applied
