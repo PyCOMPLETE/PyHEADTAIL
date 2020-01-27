@@ -30,7 +30,7 @@ class CLIC_DR(Synchrotron):
             p_increment       = 0.
             accQ_x        = 48.35
             accQ_y        = 10.4
-            V_RF          = 5.1e6
+            V_RF          = None
             dphi_RF       = 0.
         else:
             raise ValueError('machine_configuration not recognized!')

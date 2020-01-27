@@ -526,10 +526,9 @@ class Synchrotron(Element):
             return
 
         # Provide an RF bucket if possible
-        if (
-            h_RF is not None
-            and V_RF is not None
-            and dphi_RF is not None
+        if (h_RF[0] is not None
+            and V_RF[0] is not None
+            and dphi_RF[0] is not None
             and alpha_mom_compaction is not None
             and p_increment is not None
         ):
@@ -560,7 +559,7 @@ class Synchrotron(Element):
             raise ValueError("RF_at=%s not recognized!")
 
         if longitudinal_mode == "linear":
-            if V_RF is not None and Q_s is not None:
+            if V_RF[0] is not None and Q_s is not None:
                 raise ValueError("Q_s and V_RF cannot be provided at the same time")
 
             if Q_s is None:
