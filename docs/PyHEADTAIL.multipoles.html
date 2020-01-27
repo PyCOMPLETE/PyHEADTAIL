@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PyHEADTAIL.multipoles package &#8212; PyHEADTAIL  documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyHEADTAIL.particles package" href="PyHEADTAIL.particles.html" />
+    <link rel="prev" title="PyHEADTAIL.monitors package" href="PyHEADTAIL.monitors.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.particles.html" title="PyHEADTAIL.particles package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.monitors.html" title="PyHEADTAIL.monitors package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" accesskey="U">PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-PyHEADTAIL.multipoles">
+<span id="pyheadtail-multipoles-package"></span><h1>PyHEADTAIL.multipoles package<a class="headerlink" href="#module-PyHEADTAIL.multipoles" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-PyHEADTAIL.multipoles.multipoles">
+<span id="pyheadtail-multipoles-multipoles-module"></span><h2>PyHEADTAIL.multipoles.multipoles module<a class="headerlink" href="#module-PyHEADTAIL.multipoles.multipoles" title="Permalink to this headline">¶</a></h2>
+<p>Collection of localised thin multipole maps.
+For formulae see e.g. SIXTRACK:</p>
+<p>SixTrack Physics Manual
+R. De. Maria and M. Fjellstrom
+August 18, 2015</p>
+<p>or, likewise,</p>
+<p>A Symplectic Six-Dimensional Thin-Lens Formalism for Tracking
+G. Ripken, F. Schmidt
+April 5, 1995</p>
+<p>&#64;authors: Adrian Oeftiger
+&#64;date:    23/03/2016</p>
+<dl class="class">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinMultipole">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.multipoles.multipoles.</code><code class="sig-name descname">ThinMultipole</code><span class="sig-paren">(</span><em class="sig-param">knl</em>, <em class="sig-param">ksl=[]</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinMultipole" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements the Horner scheme to efficiently calculate the
+polynomials for any order multipole maps.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinMultipole.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinMultipole.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinMultipole.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">knl</em>, <em class="sig-param">ksl=[]</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinMultipole.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>MAD style counting of of normal and skew multipole strengths:
+[dipolar, quadrupolar, sextupolar, octupolar, …] components.
+:param - knl: list of normalised normal strengths times the length</p>
+<blockquote>
+<div><p>of the multipole magnet [1/m^order] in ascending
+order</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Optional arguments:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>ksl: list of normalised skew strengths times the length</dt><dd><p>of the multipole magnet [1/m^order] in ascending
+order</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<p>N.B.: If knl and ksl have different lengths, zeros are appended
+until they are equally long.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinMultipole.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.multipoles.multipoles'</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinMultipole.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinMultipole._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinMultipole._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinMultipole.ctaylor">
+<em class="property">static </em><code class="sig-name descname">ctaylor</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">kn</em>, <em class="sig-param">ks</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinMultipole.ctaylor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Efficient Horner scheme.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinMultipole.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinMultipole.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform tracking of beam through this Element.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinMultipole.ztaylor">
+<em class="property">static </em><code class="sig-name descname">ztaylor</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">kn</em>, <em class="sig-param">ks</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinMultipole.ztaylor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as ctaylor but using complex numbers, slower but more
+readable – added for the sake of clarity.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinOctupole">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.multipoles.multipoles.</code><code class="sig-name descname">ThinOctupole</code><span class="sig-paren">(</span><em class="sig-param">k3l</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinOctupole" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thin octupolar map.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinOctupole.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinOctupole.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinOctupole.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">k3l</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinOctupole.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arguments:
+- k3l: normalised strength times the length of the</p>
+<blockquote>
+<div><p>octupole magnet [1/m^3]</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinOctupole.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.multipoles.multipoles'</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinOctupole.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinOctupole._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinOctupole._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinOctupole.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinOctupole.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform tracking of beam through this Element.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinQuadrupole">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.multipoles.multipoles.</code><code class="sig-name descname">ThinQuadrupole</code><span class="sig-paren">(</span><em class="sig-param">k1l</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinQuadrupole" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thin quadrupolar map.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinQuadrupole.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinQuadrupole.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinQuadrupole.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">k1l</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinQuadrupole.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arguments:
+- k1l: normalised strength times the length of the</p>
+<blockquote>
+<div><p>quadrupole magnet [1/m]</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinQuadrupole.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.multipoles.multipoles'</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinQuadrupole.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinQuadrupole._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinQuadrupole._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinQuadrupole.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinQuadrupole.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform tracking of beam through this Element.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSextupole">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.multipoles.multipoles.</code><code class="sig-name descname">ThinSextupole</code><span class="sig-paren">(</span><em class="sig-param">k2l</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSextupole" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thin sextupolar map.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSextupole.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSextupole.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSextupole.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">k2l</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSextupole.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arguments:
+- k2l: normalised strength times the length of the</p>
+<blockquote>
+<div><p>sextupole magnet [1/m^2]</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSextupole.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.multipoles.multipoles'</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSextupole.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSextupole._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSextupole._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSextupole.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSextupole.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform tracking of beam through this Element.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole">
+<em class="property">class </em><code class="sig-prename descclassname">PyHEADTAIL.multipoles.multipoles.</code><code class="sig-name descname">ThinSkewQuadrupole</code><span class="sig-paren">(</span><em class="sig-param">k1sl</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thin skew quadrupolar map.</p>
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole.__abstractmethods__">
+<code class="sig-name descname">__abstractmethods__</code><em class="property"> = frozenset({})</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">k1sl</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Arguments:
+- k1sl: normalised strength times the length of the</p>
+<blockquote>
+<div><p>skew quadrupole magnet [1/m]</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole.__module__">
+<code class="sig-name descname">__module__</code><em class="property"> = 'PyHEADTAIL.multipoles.multipoles'</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole._abc_impl">
+<code class="sig-name descname">_abc_impl</code><em class="property"> = &lt;_abc_data object&gt;</em><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole._abc_impl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole.track">
+<code class="sig-name descname">track</code><span class="sig-paren">(</span><em class="sig-param">beam</em><span class="sig-paren">)</span><a class="headerlink" href="#PyHEADTAIL.multipoles.multipoles.ThinSkewQuadrupole.track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform tracking of beam through this Element.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PyHEADTAIL.multipoles package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-PyHEADTAIL.multipoles.multipoles">PyHEADTAIL.multipoles.multipoles module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.monitors.html"
+                        title="previous chapter">PyHEADTAIL.monitors package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="PyHEADTAIL.particles.html"
+                        title="next chapter">PyHEADTAIL.particles package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/PyHEADTAIL.multipoles.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.particles.html" title="PyHEADTAIL.particles package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="PyHEADTAIL.monitors.html" title="PyHEADTAIL.monitors package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PyHEADTAIL  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="PyHEADTAIL.html" >PyHEADTAIL package</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.2.
+    </div>
+  </body>
+</html>
