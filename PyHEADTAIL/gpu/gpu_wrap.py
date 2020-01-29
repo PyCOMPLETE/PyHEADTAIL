@@ -560,9 +560,9 @@ def argsort(to_sort):
     permutation = pycuda.gpuarray.empty(
         to_sort.shape, dtype=np.int32,
         allocator=gpu_utils.memory_pool.allocate)
-    if dtype.itemsize == 8 and dtype.kind is 'f':
+    if dtype.itemsize == 8 and dtype.kind == 'f':
         thrust.get_sort_perm_double(to_sort.copy(), permutation)
-    elif dtype.itemsize == 4 and dtype.kind is 'i':
+    elif dtype.itemsize == 4 and dtype.kind == 'i':
         thrust.get_sort_perm_int(to_sort.copy(), permutation)
     else:
         print(to_sort.dtype)
@@ -595,12 +595,12 @@ def apply_permutation(array, permutation):
         array gpuarray to be permuted. Either float64 or int32
         permutation permutation array: must be np.int32 (or int32), is asserted
     '''
-    assert(permutation.dtype.itemsize == 4 and permutation.dtype.kind is 'i')
+    assert(permutation.dtype.itemsize == 4 and permutation.dtype.kind == 'i')
     tmp = _empty_like(array)
     dtype = array.dtype
-    if dtype.itemsize == 8 and dtype.kind is 'f':
+    if dtype.itemsize == 8 and dtype.kind == 'f':
         thrust.apply_sort_perm_double(array, tmp, permutation)
-    elif dtype.itemsize == 4 and dtype.kind is 'i':
+    elif dtype.itemsize == 4 and dtype.kind == 'i':
         thrust.apply_sort_perm_int(array, tmp, permutation)
     else:
         print(array.dtype)

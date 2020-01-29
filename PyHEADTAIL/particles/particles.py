@@ -198,7 +198,7 @@ class Particles(Printing):
         # handle unsliced
         if include_non_sliced is not 'never':
             ix = slices.particles_outside_cuts
-            if len(ix)>0 or include_non_sliced is 'always':
+            if len(ix)>0 or include_non_sliced == 'always':
                 slice_object = Particles(macroparticlenumber=len(ix),
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                     mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})

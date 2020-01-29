@@ -53,9 +53,9 @@ def compute_mean_quad(psi, ylimit_min, ylimit_max, xmin, xmax, direction='x'):
     '''
 
     Q = compute_zero_quad(psi, ylimit_min, ylimit_max, xmin, xmax)
-    if direction is 'x':
+    if direction == 'x':
         f = lambda y, x: x * psi(x, y)
-    elif direction is 'y':
+    elif direction == 'y':
         f = lambda y, x: y * psi(x, y)
     else:
         raise ValueError('direction needs to be either "x" or "y".')
@@ -83,9 +83,9 @@ def compute_var_quad(psi, ylimit_min, ylimit_max, xmin, xmax, direction='x'):
 
     Q = compute_zero_quad(psi, ylimit_min, ylimit_max, xmin, xmax)
     M = compute_mean_quad(psi, ylimit_min, ylimit_max, xmin, xmax, direction)
-    if direction is 'x':
+    if direction == 'x':
         f = lambda y, x: (x - M)**2 * psi(x, y)
-    elif direction is 'y':
+    elif direction == 'y':
         f = lambda y, x: (y - M)**2 * psi(x, y)
     else:
         raise ValueError('direction needs to be either "x" or "y".')
@@ -174,9 +174,9 @@ def compute_mean_cumtrapz(psi, ylimit_min, ylimit_max, xmin, xmax,
     x_arr = np.linspace(xmin, xmax, num=n_samples)
     dx = x_arr[1] - x_arr[0]
 
-    if direction is 'x':
+    if direction == 'x':
         f = lambda x, y: x * psi(x, y)
-    elif direction is 'y':
+    elif direction == 'y':
         f = lambda x, y: y * psi(x, y)
     else:
         raise ValueError('direction needs to be either "x" or "y".')
@@ -216,9 +216,9 @@ def compute_var_cumtrapz(psi, ylimit_min, ylimit_max, xmin, xmax,
     x_arr = np.linspace(xmin, xmax, num=n_samples)
     dx = x_arr[1] - x_arr[0]
 
-    if direction is 'x':
+    if direction == 'x':
         f = lambda x, y: (x - M)**2 * psi(x, y)
-    elif direction is 'y':
+    elif direction == 'y':
         f = lambda x, y: (y - M)**2 * psi(x, y)
     else:
         raise ValueError('direction needs to be either "x" or "y".')
