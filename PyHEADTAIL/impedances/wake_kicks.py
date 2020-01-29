@@ -128,9 +128,6 @@ class WakeKick(Printing):
             (target_times - source_times[-1],
             (target_times - source_times[0])[1:]))
         wake = self.wake_function(dt_to_target_slice, beta=source_beta)
-        #print 'len convolution', len(source_moments), len(wake)
-        #print 'type moments', type(source_moments[0])
-        #print 'type wake', type(wake[0]), wake
         return pm.convolve(source_moments, wake, 'valid')
 
     def _accumulate_source_signal(self, bunch, times_list, ages_list,
@@ -208,8 +205,6 @@ for s in slice_set_list]
                              "'zero', 'mean_x' or 'mean_y'!")
 
         accumulated_signal_list = []
-        # print moments_list
-        # print betas_list
 
         # Check for strictly descending order
         z_delays = [b.mean_z()+offset for b, offset in zip(bunches, bunch_offset)]
@@ -590,8 +585,6 @@ for s in slice_set_list]
 
         # processes moment data for the convolutions
         self._moment.fill(0.)
-#        print 'all_slice_sets[0].mean_x[:20]: '
-#        print all_slice_sets[0].mean_x[:20]
         for i  in range(len(all_slice_sets)):
             i_from = self._idx_data[i][0]
             i_to = self._idx_data[i][1]
