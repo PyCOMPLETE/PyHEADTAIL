@@ -1,7 +1,8 @@
+# from __future__ import print_function
 import numpy as np
 import copy
-from mpi4py import MPI
-
+# from mpi4py import MPI
+from MPI import MPI
 
 def my_rank():
     """Returns the rank index of this processors.
@@ -644,6 +645,7 @@ class MpiGatherer(object):
 
         self._fill_output_buffer(superbunch, self.slice_set_list)
 
+
         self._mpi_comm.Allgatherv(
             self._output_buffer,
             [self._raw_data, self._slice_data_sizes,
@@ -694,7 +696,6 @@ class MpiGatherer(object):
         output_buffer_len = int(self._n_variables * self._n_slices *
                                 self._n_local_bunches)
         self._output_buffer = np.zeros(output_buffer_len)
-
         values_per_bunch = int(self._n_variables * self._n_slices)
 
         self._slice_data_sizes = (np.ones(self._mpi_size) *
