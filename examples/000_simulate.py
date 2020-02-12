@@ -26,3 +26,33 @@ machine = Synchrotron(
          Q_s=1.909e-3,
          alpha_mom_compaction=3.48e-4,
         )
+
+bunch = machine.generate_6D_Gaussian_bunch(
+        n_macroparticles=100000,
+        intensity=3e11,
+        epsn_x=2.5e-6,
+        epsn_y=2.5e-6,
+        sigma_z=1e-9/4*clight)
+
+bunch.x += 1e-4
+
+from PyHEADTAIL.particles.slicing import UniformBinSlicer
+slicer_for_wakefields = UniformBinSlicer(
+    1000, z_cuts=(-1.1*bunch.sigma_z(), 1.1*bunch.sigma_z()))
+
+
+import PyHEADTAIL.impedances.wakes as wakes
+wake = wakes.CircularResonator(R_shunt=25e6,
+        frequency=2e9, Q=1)
+wake_element = wakes.WakeField(slicer_for_wakefields, wake)
+
+machine.one_turn_map.append(wake_element)
+
+N_turns = 10000
+x_list = []
+for ii in range(N_turns):
+    if ii % 100 == 0:
+        print(f'{ii}/{N_turns}, pos={bunch.mean_x():.2e}')
+    x_list.append(bunch.mean_x())
+    machine.track(bunch)
+
