@@ -97,6 +97,9 @@ class WakeField(Element):
         """
 
         self.slicer = slicer
+        self.h_bunch = self.slicer.h_bunch
+        self.circumference = self.slicer.circumference
+
         wake_sources_list = np.atleast_1d(wake_sources_list)
         self.wake_kicks = reduce(lambda x,y: x+y, [source.get_wake_kicks(self.slicer)
                            for source in wake_sources_list])
@@ -106,9 +109,6 @@ class WakeField(Element):
                                 for source in wake_sources_list])
         self.slice_set_deque = deque([], maxlen=n_turns_wake_max)
         # self.slice_set_age_deque = deque([], maxlen=n_turns_wake_max)
-
-        self.circumference = self.slicer.circumference
-        self.h_bunch = self.slicer.h_bunch
 
         if ((n_turns_wake_max > 1) or (mpi is not None)) and ((self.circumference is None) or (self.h_bunch is None)):
             raise ValueError(
@@ -136,8 +136,6 @@ class WakeField(Element):
         self._required_variables = ['age', 'beta', 't_centers',
                                     'n_macroparticles_per_slice',
                                     'mean_x', 'mean_y']
-
-
 
     def _serial_track(self, beam):
 

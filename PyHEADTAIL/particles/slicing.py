@@ -67,9 +67,8 @@ class SliceSet(Printing):
     updated with new distributions, rather, a new SliceSet needs to be created.
     '''
 
-    def __init__(self, z_bins, slice_index_of_particle, mode,
-                 n_macroparticles_per_slice=None, beam_parameters={},
-                 circumference=0., h_bunch=None, bucket_id=0):
+    def __init__(self, z_bins, slice_index_of_particle, mode, circumference, h_bunch,
+                 n_macroparticles_per_slice=None, beam_parameters={}, bucket_id=0):
         '''Is intended to be created by the Slicer factory method.
         A SliceSet is given a set of intervals defining the slicing
         region and the histogram over the thereby defined slices.
@@ -343,8 +342,7 @@ class Slicer(Printing):
 
     @property
     def config(self):
-        return (self.mode, self.n_slices, self.n_sigma_z, self.z_cuts,
-                self.circumference, self.h_bunch)
+        return (self.mode, self.n_slices, self.n_sigma_z, self.z_cuts, self.circumference, self.h_bunch)
     @config.setter
     def config(self, value):
         self.mode = value[0]
@@ -557,7 +555,7 @@ class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
 
     def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
-                 z_sample_points=None, circumference=None, h_bunch=None,
+                 z_sample_points=None, circumference=0, h_bunch=1,
                  *args, **kwargs):
         '''
         Return a UniformBinSlicer object. Set and store the
@@ -574,16 +572,17 @@ class UniformBinSlicer(Slicer):
         if z_sample_points is not None:
             self.warns("n_slices will be overridden to match given" +
                        " combination of z_cuts and z_sampling_points.")
-            n_slices, z_cuts = self._get_slicing_from_z_sample_points(
-                z_sample_points, z_cuts)
-        self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
+            n_slices, z_cuts = self._get_slicing_from_z_sample_points(z_sample_points, z_cuts)
 
-        # if self.circumference == 0. and h_bunch != 1:
-        #     self.warns("h_bunch is set with circumference = 0. Please" +
-        #                " verify that this is intentional.")
-        # elif self.circumference != 0. and h_bunch == 1:
-        #     self.warns("circumference is set with h_bunch = 1. Please" +
-        #                "verify that this is intentional.")
+        if self.circumference == 0. and h_bunch != 1:
+            self.warns("h_bunch is set with circumference = 0. Please" +
+                       " verify that this is intentional.")
+        elif self.circumference != 0. and h_bunch == 1:
+            self.warns("circumference is set with h_bunch = 1. Please" +
+                       "verify that this is intentional.")
+
+        # Here all fields of the slicer are actually set!
+        self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
 
     def _get_slicing_from_z_sample_points(self, z_sample_points, z_cuts=None):
         '''
@@ -664,8 +663,8 @@ class UniformChargeSlicer(Slicer):
         if n_sigma_z and z_cuts:
             raise ValueError("Both arguments n_sigma_z and z_cuts are" +
                              " given while only one is accepted!")
+
         mode = 'uniform_charge'
-        self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
 
         if self.circumference == 0. and h_bunch != 1:
             self.warns("h_bunch is set with circumference = 0. Please" +
@@ -673,6 +672,9 @@ class UniformChargeSlicer(Slicer):
         elif self.circumference != 0. and h_bunch == 1:
             self.warns("circumference is set with h_bunch = 1. Please" +
                        "verify that this is intentional.")
+
+        # Here all fields of the slicer are actually set!
+        self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
 
     def compute_sliceset_kwargs(self, beam):
         '''Return argument dictionary to create a new SliceSet
