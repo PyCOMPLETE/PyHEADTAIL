@@ -165,8 +165,9 @@ class WakeKick(Printing):
 
         # accumulated_signal_list = np.atleast_1d(accumulated_signal)
 
-        return self._accumulate_source_signal_multibunch(self, bunches, slice_set_list,
-                                                         moments=moments, circumference=0, h_bunch=1)
+        return self._accumulate_source_signal_multibunch(
+            self, bunch_list, all_slice_sets, moments=moments,
+            circumference=0, h_bunch=1) # called explicitly here to enforce single bunch
 
     def _accumulate_source_signal_multibunch(
             self, bunches, slice_set_list, moments='zero', circumference=None,
@@ -727,7 +728,7 @@ class WakeKick(Printing):
             #   (practical limit probably between 100-1000 bunches for 100 slices per bunch,
             #    depending on the number of processors available)
 
-            return  self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
+            self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
                                                  bunch_list, local_bunch_indexes,
                                                  optimization_method, moments)
 
@@ -835,8 +836,7 @@ class ConstantWakeKickX(WakeKick):
         """
 
         if h_bunch is None:
-            constant_kick = self._accumulate_source_signal(
-                bunch, times_list, slice_set_age_list, moments_list, betas_list)
+            constant_kick = self._accumulate_source_signal(bunch_list, all_slice_sets, moments='zero')
 
         elif optimization_method is None:
             constant_kick = self._accumulate_source_signal_multibunch(
