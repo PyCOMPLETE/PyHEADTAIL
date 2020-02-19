@@ -130,37 +130,43 @@ class WakeKick(Printing):
         wake = self.wake_function(dt_to_target_slice, beta=source_beta)
         return pm.convolve(source_moments, wake, 'valid')
 
-    def _accumulate_source_signal(self, bunch, times_list, ages_list,
-                                  moments_list, betas_list):
+    def _accumulate_source_signal(self, bunch_list, all_slice_sets, moments='zero'):
+# , bunch, times_list, ages_list,
+#                                   moments_list, betas_list):
         """Accumulate (multiturn-)wake signals left by source slices.
         Takes a list of slice set attributes and adds up all
         convolutions weighted by the respective moments. Also updates
         the age of each slice set.
         """
-        ##########
-        times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
-        betas_list = [s.beta for s in slice_set_list]
-        moments_list = [s.n_macroparticles_per_slice
-for s in slice_set_list]
-        ############
+        print('\nThis is the old accumulate_source_signal function!!\n')
 
-        target_times = times_list[0]
-        accumulated_signal = 0
+#         ##########
+#         times_list = [s.convert_to_time(s.z_centers) for s in slice_set_list]
+#         betas_list = [s.beta for s in slice_set_list]
+#         moments_list = [s.n_macroparticles_per_slice
+# for s in slice_set_list]
+#         ############
 
-        if len(ages_list) < self.n_turns_wake:
-            n_turns = len(ages_list)
-        else:
-            n_turns = self.n_turns_wake
+#         target_times = times_list[0]
+#         accumulated_signal = 0
 
-        # Source beta is not needed?!?!
-        for i in range(n_turns):
-            source_times = times_list[i] + ages_list[i]
-            source_beta = betas_list[i]
-            source_moments = moments_list[i]
-            accumulated_signal += self._convolution(
-                target_times, source_times, source_moments, source_beta)
+#         if len(ages_list) < self.n_turns_wake:
+#             n_turns = len(ages_list)
+#         else:
+#             n_turns = self.n_turns_wake
 
-        return self._wake_factor(bunch) * accumulated_signal
+        # # Source beta is not needed?!?!
+        # for i in range(n_turns):
+        #     source_times = times_list[i] + ages_list[i]
+        #     source_beta = betas_list[i]
+        #     source_moments = moments_list[i]
+        #     accumulated_signal += self._convolution(
+        #         target_times, source_times, source_moments, source_beta)
+
+        # accumulated_signal_list = np.atleast_1d(accumulated_signal)
+
+        return self._accumulate_source_signal_multibunch(self, bunches, slice_set_list,
+                                                         moments=moments, circumference=0, h_bunch=1)
 
     def _accumulate_source_signal_multibunch(
             self, bunches, slice_set_list, moments='zero', circumference=None,
@@ -1072,7 +1078,12 @@ class QuadrupoleWakeKickX(WakeKick):
         particles_within_cuts (defined by the slice_set) experience the kick.
 
         """
-        if optimization_method is None:
+        if h_bunch is None:
+            quadrupole_kick = self._accumulate_source_signal(
+                    bunch_list, all_slice_sets)
+                # bunch, times_list, slice_set_age_list, moments_list, betas_list)
+
+        elif optimization_method is None:
             quadrupole_kick = self._accumulate_source_signal_multibunch(
                     bunch_list, all_slice_sets, circumference=circumference,
                     h_bunch=h_bunch)
