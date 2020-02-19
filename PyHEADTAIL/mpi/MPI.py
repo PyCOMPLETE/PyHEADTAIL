@@ -1,8 +1,48 @@
-# from __future__ import print_function
 import numpy as np
 import copy
-# from mpi4py import MPI
-from MPI import MPI
+
+
+class COMM(object):
+
+    def __init__(self):
+        pass
+
+    def Get_rank(self):
+        return 0
+
+    def Get_size(self):
+        return 1
+
+    def Allgatherv(self, input_buffer, output_list):
+        try:
+            output_list[0][:] = input_buffer[:] 
+        except ValueError:
+            print('ValueError, doing nothing')
+
+    def Gatherv(self, local_data, mpi_output, root=0):
+        try:
+            mpi_output[0][:] = local_data[:] 
+        except ValueError:
+            print('ValueError, doing nothing')
+
+    def Bcast(self, all_data, root=0):
+        pass
+
+class MPI(object):
+
+    COMM_WORLD = COMM()
+
+    FLOAT = np.float32
+    DOUBLE = np.float64
+    INT8_T = np.int8
+    INT16_T = np.int16
+    INT32_T = np.int32
+    INT64_T = np.int64
+    UINT8_T = np.uint8
+    UINT16_T = np.uint16
+    UINT32_T = np.uint32
+    UINT64_T = np.uint64
+
 
 def my_rank():
     """Returns the rank index of this processors.
@@ -645,7 +685,6 @@ class MpiGatherer(object):
 
         self._fill_output_buffer(superbunch, self.slice_set_list)
 
-
         self._mpi_comm.Allgatherv(
             self._output_buffer,
             [self._raw_data, self._slice_data_sizes,
@@ -696,6 +735,7 @@ class MpiGatherer(object):
         output_buffer_len = int(self._n_variables * self._n_slices *
                                 self._n_local_bunches)
         self._output_buffer = np.zeros(output_buffer_len)
+
         values_per_bunch = int(self._n_variables * self._n_slices)
 
         self._slice_data_sizes = (np.ones(self._mpi_size) *

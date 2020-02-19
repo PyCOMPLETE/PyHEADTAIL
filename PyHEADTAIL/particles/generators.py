@@ -43,7 +43,7 @@ def generate_Gaussian6DTwiss(macroparticlenumber, intensity, charge, mass,
     Qs = 1./(2 * np.pi)
     eta = beta_z / circumference
     return ParticleGenerator(
-        macroparticlenumber, intensity, charge, mass, circumference, gamma,
+        macroparticlenumber, intensity, charge, mass, circumference, gamma, 0,
         gaussian2D(eps_geo_x), alpha_x, beta_x, dispersion_x,
         gaussian2D(eps_geo_y), alpha_y, beta_y, dispersion_y,
         gaussian2D(eps_geo_z), Qs, eta
@@ -238,7 +238,7 @@ class ParticleGenerator(Printing):
     The Particle instance can be generated via the .generate() method
     '''
     def __init__(self, macroparticlenumber, intensity, charge, mass,
-                 circumference, gamma,
+                 circumference, gamma, bucket_id=0,
                  distribution_x=None, alpha_x=0., beta_x=1., D_x=None,
                  distribution_y=None, alpha_y=0., beta_y=1., D_y=None,
                  distribution_z=None, Qs=None, eta=None,
@@ -274,6 +274,8 @@ class ParticleGenerator(Printing):
         self.mass = mass
         self.circumference = circumference
         self.gamma = gamma
+        self.bucket_id = bucket_id
+
         # bind the generator methods and parameters for the matching
         self.distribution_x = distribution_x
         self.distribution_y = distribution_y
@@ -297,7 +299,8 @@ class ParticleGenerator(Printing):
                               self.intensity/self.macroparticlenumber,
                               self.charge, self.mass, self.circumference,
                               self.gamma,
-                              coords_n_momenta_dict=coords)
+                              coords_n_momenta_dict=coords,
+                              bucket_id=self.bucket_id)
         self._linear_match_phase_space(particles)
         return particles
 
@@ -410,60 +413,67 @@ def uniform2D(low, high):
     return _uniform2D
 
 
-'''
-Why we have this ll algo in here? We had a better one (Knuth):
-http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.138.8671&rep=rep1&type=pdf
+def _knuth_uniform(order=0, d=2, *args, **kwargs):
+    '''Algorithm based on Don Knuth:
+
+    Jan Poland: "Three Different Algorithms for Generating Uniformly
+    Distributed Random Points on the N-Sphere",
+    http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.138.8671&rep=rep1&type=pdf
+
+    '''
+    def _uniform(n_macroparticles):
+        u = np.random.normal(size=(d, n_macroparticles))
+        r = np.sqrt(np.sum(u**2, axis=0)) # sum across dimensions for radius
+
+        if order == 0: # K-V or airbag
+            s = 1./r
+        elif order==1: # Waterbag
+            s = 1./r * np.random.rand(n_macroparticles)**(1./d)
+        u *= s
+
+        # a = args
+        # print order, d, args
+        # print(u.shape, r.shape, s.shape)
+
+        u *= np.array([args]).T
+        return u
+    return _uniform
 
 
-import numpy as np
+def KV2D(r_u, r_up):
+    '''Using Knuth's algorithm
+
+    ..Args: r_u, r_up are +/- extensions in u and u_p
+
+    '''
+    return _knuth_uniform(0, 2, r_u, r_up)
 
 
-def transform_into_kv(bunch, a_x, a_xp, a_y, a_yp):
+def KV4D(r_x, r_xp, r_y, r_yp):
+    '''Using Knuth's algorithm
 
-    # KV distribution
-    # ==================================================
-    d = 4
-    for i in range(bunch.macroparticlenumber):
-       u = np.random.normal(size=d)
-       r = np.sqrt(np.sum(u**2))
-       u *= 1./r
+    ..Args: r_u, r_up are +/- extensions in u and u_p
 
-       bunch.x[i]  = u[0]
-       bunch.xp[i] = u[1]
-       bunch.y[i]  = u[2]
-       bunch.yp[i] = u[3]
-    # ==================================================
-
-    bunch.x  *= a_x
-    bunch.xp *= a_xp
-    bunch.y  *= a_y
-    bunch.yp *= a_yp
+    '''
+    return _knuth_uniform(0, 4, r_x, r_xp, r_y, r_yp)
 
 
-def transform_into_waterbag(bunch, a_x, a_xp, a_y, a_yp):
+def waterbag2D(r_u, r_up):
+    '''Using Knuth's algorithm
 
-    # waterbag distribution
-    # ==================================================
-    d = 4
-    for i in range(bunch.macroparticlenumber):
-        u = np.random.normal(size=d)
-        r = np.sqrt(np.sum(u**2))
-        u *= (np.random.rand(1))**(1./d)/r
+    ..Args: r_u, r_up are +/- extensions in u and u_p
 
-        bunch.x[i]  = u[0]
-        bunch.xp[i] = u[1]
-        bunch.y[i]  = u[2]
-        bunch.yp[i] = u[3]
-    # ==================================================
-
-    bunch.x  *= a_x
-    bunch.xp *= a_xp
-    bunch.y  *= a_y
-    bunch.yp *= a_yp
+    '''
+    return _knuth_uniform(1, 2, r_u, r_up)
 
 
-Want to get this back in the near future...
-'''
+def waterbag4D(r_x, r_xp, r_y, r_yp):
+    '''Using Knuth's algorithm
+
+    ..Args: r_u, r_up are +/- extensions in u and u_p
+
+    '''
+    return _knuth_uniform(1, 4, r_x, r_xp, r_y, r_yp)
 
 
 def kv2D(r_u, r_up):
