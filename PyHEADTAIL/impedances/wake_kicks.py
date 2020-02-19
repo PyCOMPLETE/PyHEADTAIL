@@ -840,14 +840,15 @@ class ConstantWakeKickX(WakeKick):
 
         elif optimization_method is None:
             constant_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets, circumference=circumference,
+                    bunch_list, all_slice_sets, moments='zero', circumference=circumference,
                     h_bunch=h_bunch)
         else:
             constant_kick = self._accumulate_optimized(all_slice_sets,
                                                        local_slice_sets,
                                                        bunch_list,
                                                        local_bunch_indexes,
-                                                       optimization_method)
+                                                       optimization_method,
+                                                       moments='zero')
 
         for i, bunch in enumerate(bunch_list):
             slices = bunch.get_slices(self.slicer)
@@ -873,14 +874,15 @@ class ConstantWakeKickY(WakeKick):
         if optimization_method is None:
 
             constant_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets, circumference=circumference,
+                    bunch_list, all_slice_sets, moments='zero', circumference=circumference,
                     h_bunch=h_bunch)
         else:
             constant_kick = self._accumulate_optimized(all_slice_sets,
                                                        local_slice_sets,
                                                        bunch_list,
                                                        local_bunch_indexes,
-                                                       optimization_method)
+                                                       optimization_method,
+                                                       moments='zero')
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -905,14 +907,15 @@ class ConstantWakeKickZ(WakeKick):
         """
         if optimization_method is None:
             constant_kick = self._accumulate_source_signal_multibunch(
-                    bunch_list, all_slice_sets, circumference=circumference,
+                    bunch_list, all_slice_sets, moments='zero', circumference=circumference,
                     h_bunch=h_bunch)
         else:
             constant_kick = self._accumulate_optimized(all_slice_sets,
                                                        local_slice_sets,
                                                        bunch_list,
                                                        local_bunch_indexes,
-                                                       optimization_method)
+                                                       optimization_method,
+                                                       moments='zero')
 
 #        for i, (b, s) in enumerate(zip(bunch_list, local_slice_sets)):
         for i, b in enumerate(bunch_list):
