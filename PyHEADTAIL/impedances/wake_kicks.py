@@ -784,7 +784,7 @@ class WakeKick(Printing):
     def calculate_field(self, all_slice_sets, local_slice_sets,
                               bunch_list, local_bunch_indexes,
                               optimization_method, turns_on_this_proc,
-                              circular_conv_params, moments=self._moments):
+                              circular_conv_params):
 
         if optimization_method == 'memory_optimized':
             pass
@@ -807,7 +807,7 @@ class WakeKick(Printing):
                                                     bunch_list,
                                                     local_bunch_indexes,
                                                     optimization_method,
-                                                    moments,
+                                                    self._moments,
                                                     turns_on_this_proc,
                                                     Q, beta)
         elif optimization_method == 'linear_mpi_full_ring_fft':
@@ -816,7 +816,7 @@ class WakeKick(Printing):
                                                     bunch_list,
                                                     local_bunch_indexes,
                                                     optimization_method,
-                                                    moments,
+                                                    self._moments,
                                                     turns_on_this_proc,
                                                     None, None)
         elif optimization_method == 'dummy':
@@ -833,8 +833,7 @@ class ConstantWakeKickX(WakeKick):
                                              target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a constant wake kick to bunch.xp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -842,7 +841,7 @@ class ConstantWakeKickX(WakeKick):
         """
 
         constant_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                          local_slice_sets, optimization_method, moments)
+                                          local_slice_sets, optimization_method, self._moments)
 
         for i, bunch in enumerate(bunch_list):
             slices = bunch.get_slices(self.slicer)
@@ -860,8 +859,7 @@ class ConstantWakeKickY(WakeKick):
                                              target_plane='y',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a constant wake kick to bunch.yp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -869,7 +867,7 @@ class ConstantWakeKickY(WakeKick):
         """
 
         constant_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                           local_slice_sets, optimization_method, moments)
+                                           local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -885,8 +883,7 @@ class ConstantWakeKickZ(WakeKick):
                                              target_plane=None,**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a constant wake kick to bunch.dp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -894,7 +891,7 @@ class ConstantWakeKickZ(WakeKick):
         """
 
         constant_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                           local_slice_sets, optimization_method, moments)
+                                           local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -912,8 +909,7 @@ class DipoleWakeKickX(WakeKick):
                                              target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a dipolar wake kick to bunch.xp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -921,7 +917,7 @@ class DipoleWakeKickX(WakeKick):
         """
 
         dipole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                       local_slice_sets, optimization_method, moments)
+                                       local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -937,8 +933,7 @@ class DipoleWakeKickXY(WakeKick):
                                              target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a dipolar (cross term x-y) wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing region,
         i.e particles_within_cuts (defined by the slice_set) experience the
@@ -947,7 +942,7 @@ class DipoleWakeKickXY(WakeKick):
         """
 
         dipole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                         local_slice_sets, optimization_method, moments)
+                                         local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -963,8 +958,7 @@ class DipoleWakeKickY(WakeKick):
                                              target_plane='y',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a dipolar wake kick to bunch.yp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -972,7 +966,7 @@ class DipoleWakeKickY(WakeKick):
         """
 
         dipole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                         local_slice_sets, optimization_method, moments)
+                                         local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -988,8 +982,7 @@ class DipoleWakeKickYX(WakeKick):
                                              target_plane='y',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a dipolar (cross term y-x) wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing region,
         i.e particles_within_cuts (defined by the slice_set) experience the
@@ -998,7 +991,7 @@ class DipoleWakeKickYX(WakeKick):
         """
 
         dipole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                         local_slice_sets, optimization_method, moments)
+                                         local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -1016,8 +1009,7 @@ class QuadrupoleWakeKickX(WakeKick):
                                              target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a quadrupolar wake kick to bunch.xp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -1025,7 +1017,7 @@ class QuadrupoleWakeKickX(WakeKick):
         """
 
         quadrupole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                         local_slice_sets, optimization_method)
+                                         local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -1041,8 +1033,7 @@ class QuadrupoleWakeKickXY(WakeKick):
                                              target_plane='x',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a quadrupolar (cross term x-y) wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing region,
         i.e particles_within_cuts (defined by the slice_set) experience the
@@ -1051,7 +1042,7 @@ class QuadrupoleWakeKickXY(WakeKick):
         """
 
         quadrupole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                         local_slice_sets, optimization_method, moments)
+                                         local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -1067,8 +1058,7 @@ class QuadrupoleWakeKickY(WakeKick):
                                              target_plane='y',**kwargs)
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-              local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+              local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a quadrupolar wake kick to bunch.yp using the given
         slice_set. Only particles within the slicing region, i.e
         particles_within_cuts (defined by the slice_set) experience the kick.
@@ -1076,7 +1066,7 @@ class QuadrupoleWakeKickY(WakeKick):
         """
 
         quadrupole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                         local_slice_sets, optimization_method, moments)
+                                         local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
@@ -1093,8 +1083,7 @@ class QuadrupoleWakeKickYX(WakeKick):
 
 
     def apply(self, bunch_list, all_slice_sets, local_slice_sets=None,
-               local_bunch_indexes=None, optimization_method=None,
-              moments=self._moments):
+               local_bunch_indexes=None, optimization_method=None):
         """Calculates and applies a quadrupolar (cross term y-x) wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing region,
         i.e particles_within_cuts (defined by the slice_set) experience the
@@ -1103,7 +1092,7 @@ class QuadrupoleWakeKickYX(WakeKick):
         """
 
         quadrupole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
-                                         local_slice_sets, optimization_method, moments)
+                                         local_slice_sets, optimization_method, self._moments)
 
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
