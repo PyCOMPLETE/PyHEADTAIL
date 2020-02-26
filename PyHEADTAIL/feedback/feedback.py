@@ -212,17 +212,12 @@ class GenericOneTurnMapObject(object):
         bin_edges = None
         segment_ref_points = []
     
-        if len(signal_slice_sets) > 1:
-            circumference = signal_slice_sets[0].circumference
-            h_bunch = signal_slice_sets[0].h_bunch
-        else:
-            circumference=None
-            h_bunch=None
+        circumference = signal_slice_sets[0].circumference
+        h_bunch = signal_slice_sets[0].h_bunch
             
         for slice_set in signal_slice_sets:
                 z_bins = np.copy(slice_set.z_bins)
-                if circumference is not None:
-                    z_bins -= slice_set.bucket_id*circumference/float(h_bunch)
+                z_bins -= slice_set.bucket_id*circumference/float(h_bunch)
             
                 edges = -1.*z_bins_to_bin_edges(z_bins)/c
                 segment_ref_points.append(-1.*np.mean(z_bins)/c)
