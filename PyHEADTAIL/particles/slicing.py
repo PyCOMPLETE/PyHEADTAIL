@@ -555,7 +555,7 @@ class UniformBinSlicer(Slicer):
     '''Slices with respect to uniform bins along the slicing region.'''
 
     def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
-                 z_sample_points=None, circumference=0, h_bunch=1,
+                 z_sample_points=None, circumference=None, h_bunch=1,
                  *args, **kwargs):
         '''
         Return a UniformBinSlicer object. Set and store the
@@ -574,12 +574,12 @@ class UniformBinSlicer(Slicer):
                        " combination of z_cuts and z_sampling_points.")
             n_slices, z_cuts = self._get_slicing_from_z_sample_points(z_sample_points, z_cuts)
 
-        if self.circumference == 0. and h_bunch != 1:
-            self.warns("h_bunch is set with circumference = 0. Please" +
-                       " verify that this is intentional.")
-        elif self.circumference != 0. and h_bunch == 1:
-            self.warns("circumference is set with h_bunch = 1. Please" +
-                       "verify that this is intentional.")
+        if circumference is None:
+            circumference = 0.
+            print("Circumference not explicitly provided. I will set circumference " 
+                  "to 0. Note that this circumference is used exclusively for the "
+                  "slicing in combination with the discretisation of the ring for "
+                  "multibunch computations.")
 
         # Here all fields of the slicer are actually set!
         self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
@@ -653,7 +653,7 @@ class UniformChargeSlicer(Slicer):
     '''
 
     def __init__(self, n_slices, n_sigma_z=None, z_cuts=None,
-                 circumference=0., h_bunch=1, *args, **kwargs):
+                 circumference=None, h_bunch=1, *args, **kwargs):
         '''
         Return a UniformChargeSlicer object. Set and store the
         corresponding slicing configuration in self.config .
@@ -666,12 +666,12 @@ class UniformChargeSlicer(Slicer):
 
         mode = 'uniform_charge'
 
-        if self.circumference == 0. and h_bunch != 1:
-            self.warns("h_bunch is set with circumference = 0. Please" +
-                       " verify that this is intentional.")
-        elif self.circumference != 0. and h_bunch == 1:
-            self.warns("circumference is set with h_bunch = 1. Please" +
-                       "verify that this is intentional.")
+        if circumference is None:
+            circumference = 0.
+            print("Circumference not explicitly provided. I will set circumference " 
+                  "to 0. Note that this circumference is used exclusively for the "
+                  "slicing in combination with the discretisation of the ring for "
+                  "multibunch computations.")
 
         # Here all fields of the slicer are actually set!
         self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
