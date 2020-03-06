@@ -198,8 +198,7 @@ class WakeField(Element):
         )
 
         for kick in self.wake_kicks:
-            kick.apply(bunches_list, self.slice_set_deque,
-                       circumference=self.circumference, h_bunch=self.h_bunch)
+            kick.apply(bunches_list, self.slice_set_deque)
 
         beam_new = sum(bunches_list)
         beam.update({'x': beam_new.x,
