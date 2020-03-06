@@ -13,8 +13,8 @@ from scipy.constants import c
 from scipy.signal import fftconvolve
 
 from abc import ABCMeta, abstractmethod
-from ..general import pmath as pm
-from . import Printing
+from PyHEADTAIL.general import pmath as pm
+from PyHEADTAIL.general.element import Printing
 
 from PyHEADTAIL.mpi import mpi_data
 
@@ -260,9 +260,9 @@ class WakeKick(Printing):
                 # else:
                 #     n_bunches_infront = n_sources
                 for j in range(n_bunches_infront)[::-1]:
-                    source_beta = betas_list[k, j]
-                    source_times = (times_list[k, j] + ages_list[k, j])
-                    source_moments = moments_list[k, j]
+                    source_beta = betas_list[k, j, 0]
+                    source_times = (times_list[k, j, :] + ages_list[k, j, :])
+                    source_moments = moments_list[k, j, :]
 
                     accumulated_signal += self._convolution(
                         target_times, source_times,
