@@ -10,7 +10,7 @@ import numpy as np
 from scipy.special import k0
 from scipy.constants import c, e
 
-from . import Element
+from PyHEADTAIL.general.element import Element
 
 class TransverseDamper(Element):
 
