@@ -4,7 +4,8 @@
 '''
 
 
-from . import Element, clean_slices
+from PyHEADTAIL.general.element import Element
+from PyHEADTAIL.particles.slicing import clean_slices
 from PyHEADTAIL.field_maps import efields_funcs as efields
 
 import numpy as np
