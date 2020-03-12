@@ -10,12 +10,12 @@ import numpy as np
 from scipy.special import k0
 from scipy.constants import c, e
 
-from PyHEADTAIL.general.element import Element
+from . import Element
 
 class TransverseDamper(Element):
 
     def __init__(self, dampingrate_x, dampingrate_y, phase=90,
-                 local_beta_function=None, *args, **kwargs):
+                 local_beta_function=None, verbose=True, *args, **kwargs):
         '''Ideal transverse damper with an in-place "measurement"
         (transverse "pick-up") of the transverse dipole moment.
         Note: a single bunch in the beam is assumed, i.e. this works on
@@ -36,22 +36,26 @@ class TransverseDamper(Element):
                 assumed to be the same for both transverse planes,
                 otherwise use two instances of the TransverseDamper.
         '''
-
+        self.verbose=verbose
         if dampingrate_x and not dampingrate_y:
             self.gain_x = 2/dampingrate_x
             self.track = self.track_horizontal
-            self.prints('Damper in horizontal plane active')
+            if self.verbose==True:
+                self.prints('Damper in horizontal plane active')
         elif not dampingrate_x and dampingrate_y:
             self.gain_y = 2/dampingrate_y
             self.track = self.track_vertical
-            self.prints('Damper in vertical plane active')
+            if self.verbose==True:
+                self.prints('Damper in vertical plane active')
         elif not dampingrate_x and not dampingrate_y:
-            self.prints('Dampers not active')
+            if self.verbose==True:
+                self.prints('Dampers not active')
         else:
             self.gain_x = 2/dampingrate_x
             self.gain_y = 2/dampingrate_y
             self.track = self.track_all
-            self.prints('Dampers active')
+            if self.verbose == True:
+                self.prints('Dampers active')
         if phase != 90 and phase != 270 and not local_beta_function:
             raise TypeError(
                 'TransverseDamper: numeric local_beta_function value at '
@@ -59,7 +63,6 @@ class TransverseDamper(Element):
                 'reactive damper component.)')
         self.phase_in_2pi = phase / 360. * 2*np.pi
         self.local_beta_function = local_beta_function
-
     # will be overwritten at initialisation
     def track(self, beam):
         pass
