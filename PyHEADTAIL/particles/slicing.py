@@ -576,10 +576,10 @@ class UniformBinSlicer(Slicer):
 
         if circumference is None:
             circumference = 0.
-            print("Circumference not explicitly provided. I will set circumference " 
+            print("\n*** WARNING ***\nCircumference not explicitly provided. I will set circumference "
                   "to 0. Note that this circumference is used exclusively for the "
                   "slicing in combination with the discretisation of the ring for "
-                  "multibunch computations.")
+                  "multibunch computations.\n")
 
         # Here all fields of the slicer are actually set!
         self.config = (mode, n_slices, n_sigma_z, z_cuts, circumference, h_bunch)
