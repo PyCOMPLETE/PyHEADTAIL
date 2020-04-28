@@ -71,7 +71,7 @@ class LongitudinalMap(Element):
         and with signature (alpha_array, gamma).
         """
         eta = 0
-        for i in xrange(len(self.alpha_array)):   # order = len - 1
+        for i in xrange(len(self.alpha_array)):  # order = len - 1
             eta_func = getattr(self, '_eta' + str(i))
             eta_i = eta_func(self.alpha_array, gamma)
             eta += eta_i * (dp ** i)
@@ -79,7 +79,7 @@ class LongitudinalMap(Element):
 
     @staticmethod
     def _eta0(alpha_array, gamma):
-        return alpha_array[0] - gamma**-2
+        return alpha_array[0] - gamma ** -2
 
 
 class Drift(LongitudinalMap):
@@ -107,7 +107,7 @@ class Drift(LongitudinalMap):
 
     @clean_slices
     def track(self, beam):
-        beta_ratio = 1 - self.shrinkage_p_increment / (beam.gamma**3 * beam.p0)
+        beta_ratio = 1 - self.shrinkage_p_increment / (beam.gamma ** 3 * beam.p0)
         beam.z = (beta_ratio * beam.z -
                   self.eta(beam.dp, beam.gamma) * beam.dp * self.length)
 
@@ -178,24 +178,24 @@ class Kick(LongitudinalMap):
             self.warns("Failed to apply transverse dispersion correction "
                        "during longitudinal tracking. Caught AttributeError: \n"
                        + e.message + "\nContinue without adjusting dispersion "
-                       "contribution when changing beam.dp...")
+                                     "contribution when changing beam.dp...")
             self.track = self.track_without_dispersion
 
     def track_with_dispersion(self, beam):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp.
         '''
-        beam.x -= self.D_x*beam.dp
-        beam.y -= self.D_y*beam.dp
+        beam.x -= self.D_x * beam.dp
+        beam.y -= self.D_y * beam.dp
 
         self.track_without_dispersion(beam)
 
-        beam.x += self.D_x*beam.dp
-        beam.y += self.D_y*beam.dp
+        beam.x += self.D_x * beam.dp
+        beam.y += self.D_y * beam.dp
 
     def track_without_dispersion(self, beam):
-        amplitude = np.abs(beam.charge)*self.voltage / (beam.beta*c)
-        phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
+        amplitude = np.abs(beam.charge) * self.voltage / (beam.beta * c)
+        phi = (self.harmonic * (2 * np.pi * beam.z / self.circumference)
                + self.phi_offset + self._phi_lock)
 
         delta_p = beam.dp * beam.p0
@@ -466,6 +466,10 @@ class RFSystems(LongitudinalOneTurnMap):
         return self.get_bucket(charge=self.charge, mass=self.mass,
                                gamma=self.gamma).Q_s
 
+    @property
+    def beta_z(self):
+        return self.eta(dp=0, gamma=self.gamma) * self.circumference / (2 * np.pi * self.Q_s)
+
     def pop_kick(self, index):
         '''Remove a Kick instance from this RFSystems instance.
         Return the removed Kick instance.
@@ -533,7 +537,7 @@ class RFSystems(LongitudinalOneTurnMap):
         self._rfbuckets = {}
 
     def phi_s(self, gamma, charge):
-        beta = np.sqrt(1 - gamma**-2)
+        beta = np.sqrt(1 - gamma ** -2)
         eta0 = self.eta(0, gamma)
 
         V = self._accelerating_kick.voltage
@@ -592,9 +596,8 @@ class RFSystems(LongitudinalOneTurnMap):
         non_accelerating_kicks = (k for k in self._kicks if k is not acc)
 
         for kick in non_accelerating_kicks:
-            kick._phi_lock -= (kick.harmonic/acc.harmonic *
+            kick._phi_lock -= (kick.harmonic / acc.harmonic *
                                self.phi_s(gamma, charge))
-
 
     # --- INTERFACE CHANGE notifications to update users of previous versions
     # --- to use the right new methods
@@ -721,6 +724,9 @@ class LinearMap(LongitudinalOneTurnMap):
     def Qs(self):
         return self.Q_s
 
+    def beta_z(self, gamma):
+        return self.eta(dp=0, gamma=gamma) * self.circumference / (2 * np.pi * self.Q_s)
+
     def track(self, beam):
         try:
             self.track_with_dispersion(beam)
@@ -729,20 +735,20 @@ class LinearMap(LongitudinalOneTurnMap):
             self.warns("Failed to apply transverse dispersion correction "
                        "during longitudinal tracking. Caught AttributeError: \n"
                        + e.message + "\nContinue without adjusting dispersion "
-                       "contribution when changing beam.dp...")
+                                     "contribution when changing beam.dp...")
             self.track = self.track_without_dispersion
 
     def track_with_dispersion(self, beam):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp.
         '''
-        beam.x -= self.D_x*beam.dp
-        beam.y -= self.D_y*beam.dp
+        beam.x -= self.D_x * beam.dp
+        beam.y -= self.D_y * beam.dp
 
         self.track_without_dispersion(beam)
 
-        beam.x += self.D_x*beam.dp
-        beam.y += self.D_y*beam.dp
+        beam.x += self.D_x * beam.dp
+        beam.y += self.D_y * beam.dp
 
     @clean_slices
     def track_without_dispersion(self, beam):
@@ -777,6 +783,7 @@ class RFBox(Drift):
 
     NB: dispersion subtraction not implemented yet!
     '''
+
     def __init__(self, z_left, z_right, alpha_array, length, shrinkage_p_increment=0):
         self.z_left = z_left
         self.z_right = z_right

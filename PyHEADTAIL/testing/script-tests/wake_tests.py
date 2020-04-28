@@ -230,7 +230,7 @@ def show_sampled_wake(bunch, slicer, wake_table, wake_component, case):
     fig.savefig('Case_%s_show_sampled_wake.png'%(case))
 
 
-wake_table_path = '/home/lmether/Desktop/PyHEADTAIL_multibunch_merge/PyHEADTAIL_develop/PyHEADTAIL/testing/script-tests'
+# wake_table_path = '/home/lmether/Desktop/PyHEADTAIL_multibunch_merge/PyHEADTAIL_develop/PyHEADTAIL/testing/script-tests'
 
 # Error cases
 # (I) for WakeTable. Number of wake_file_columns does not correspond to that
@@ -238,7 +238,7 @@ wake_table_path = '/home/lmether/Desktop/PyHEADTAIL_multibunch_merge/PyHEADTAIL_
 try:
     wake_file_columns = ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y',
                          'dipole_xy', 'dipole_yx', 'nonsense' ]
-    table = WakeTable(wake_table_path + '/wake_table.dat', wake_file_columns)
+    table = WakeTable('wake_table.dat', wake_file_columns)
     print ('test NOT passed. No error raised!')
 except ValueError as exc:
     print ('test passed: the expected ValueError due to mismatched column contents ' +
@@ -251,7 +251,7 @@ except ValueError as exc:
 try:
     wake_file_columns = ['nonsense', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y',
                          'dipole_xy', 'dipole_yx' ]
-    table = WakeTable(wake_table_path + '/wake_table.dat', wake_file_columns)
+    table = WakeTable('wake_table.dat', wake_file_columns)
     print ('test NOT passed. No error raised!')
 except ValueError as exc:
     print ('test passed: the expected ValueError due to missing \'time\' column occured.\n ')
@@ -281,7 +281,7 @@ uniform_bin_slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=n_sigma_z,
 # Definition of WakeField as a composition of different sources.
 wake_file_columns = ['time', 'dipole_x', 'no_dipole_y', 'no_quadrupole_x', 'no_quadrupole_y',
                      'no_dipole_xy', 'no_dipole_yx']
-table = WakeTable(wake_table_path + '/wake_table.dat', wake_file_columns, 
+table = WakeTable('wake_table.dat', wake_file_columns,
                   warningprinter=SilentPrinter())
 wake_field = WakeField(uniform_bin_slicer, table)
 for i in wake_field.wake_kicks:
@@ -305,7 +305,7 @@ uniform_charge_slicer = UniformChargeSlicer(n_slices=n_slices, n_sigma_z=n_sigma
 # Definition of WakeField as a composition of different sources.
 wake_file_columns = ['time', 'dipole_x', 'no_dipole_y', 'no_quadrupole_x', 'no_quadrupole_y',
                      'no_dipole_xy', 'no_dipole_yx']
-table = WakeTable(wake_table_path + '/wake_table.dat', wake_file_columns, 
+table = WakeTable('wake_table.dat', wake_file_columns,
                   warningprinter=SilentPrinter())
 wake_field = WakeField(uniform_charge_slicer, table)
 for i in wake_field.wake_kicks:
@@ -329,7 +329,7 @@ uniform_charge_slicer = UniformChargeSlicer(n_slices=n_slices, n_sigma_z=n_sigma
 # Definition of WakeField as a composition of different sources.
 wake_file_columns = ['time', 'no_dipole_x', 'no_dipole_y', 'quadrupole_x', 'no_quadrupole_y',
                      'no_dipole_xy', 'no_dipole_yx']
-table = WakeTable(wake_table_path + '/wake_table.dat', wake_file_columns,
+table = WakeTable('wake_table.dat', wake_file_columns,
                   warningprinter=SilentPrinter())
 wake_field = WakeField(uniform_charge_slicer, table)
 for i in wake_field.wake_kicks:
@@ -353,7 +353,7 @@ uniform_bin_slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=n_sigma_z)
 # Definition of WakeField as a composition of different sources.
 wake_file_columns = ['time', 'no_dipole_x', 'no_dipole_y', 'quadrupole_x', 'no_quadrupole_y',
                      'no_dipole_xy', 'no_dipole_yx']
-table = WakeTable(wake_table_path + '/wake_table.dat', wake_file_columns,
+table = WakeTable('wake_table.dat', wake_file_columns,
                   warningprinter=SilentPrinter())
 wake_field = WakeField(uniform_bin_slicer, table)
 for i in wake_field.wake_kicks:
@@ -505,7 +505,7 @@ resis_circ = CircularResistiveWall(pipe_radius=5e-2, resistive_wall_length=C,
 reson_para = ParallelHorizontalPlatesResonator(R_shunt=1e6, frequency=1e8, Q=1)
 wake_file_columns = ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y',
                      'dipole_xy', 'dipole_yx']
-table = WakeTable(wake_table_path + '/wake_table.dat', wake_file_columns,
+table = WakeTable('wake_table.dat', wake_file_columns,
                   warningprinter=SilentPrinter())
 
 wake_field = WakeField(uniform_bin_slicer, [resis_circ, reson_para, table])
