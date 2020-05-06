@@ -7,7 +7,7 @@ NVCC_TEST := $(notdir $(NVCC_RESULT))
 all: PyHEADTAIL PyHEADTAILGPU errfff
 
 PyHEADTAIL:
-	python setup.py build_ext --inplace
+	python3 setup.py build_ext --inplace
 
 PyHEADTAILGPU:
 ifeq ($(NVCC_TEST),nvcc)
