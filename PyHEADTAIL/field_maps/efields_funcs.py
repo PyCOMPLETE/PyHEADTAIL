@@ -204,9 +204,9 @@ def _efieldn_linearized(x, y, sig_x, sig_y):
     '''
     Returns linearized
     '''
-    a = np.sqrt(2)*sig_x
-    b = np.sqrt(2)*sig_y
-    amplitude  = 1./(4.*np.pi*epsilon_0*a*b)
+    a = pm.sqrt(2)*sig_x
+    b = pm.sqrt(2)*sig_y
+    amplitude  = 1./(2.*np.pi*epsilon_0*a*b)
     return x * amplitude, y * amplitude
 @np.vectorize
 def _efieldn_kv_round(x, y, r):
@@ -215,9 +215,9 @@ def _efieldn_kv_round(x, y, r):
     '''
     r2 = x*x + y*y
     if r2 < r**2:
-        amplitude = 1/(4*np.pi*r*r*epsilon_0)
+        amplitude = 1/(2*np.pi*r*r*epsilon_0)
     else:
-        amplitude = 1/(4*np.pi*r2**(3/2)*epsilon_0)
+        amplitude = 1/(2*np.pi*r2*epsilon_0)
     return x * amplitude, y * amplitude
 
 

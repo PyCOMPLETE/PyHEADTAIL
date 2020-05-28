@@ -88,7 +88,7 @@ class ElectronLens(Element):
         elif self.dist == 'WB':
             self._efieldn = efields._efieldn_wb
         elif self.dist == 'KV':
-            self._efieldn = efields._efieldn_kv_a
+            self._efieldn = efields._efieldn_kv_b
             if sig_check:
                 self._efieldn = efields.add_sigma_check(
                     self._efieldn, self.dist)
@@ -114,22 +114,22 @@ class ElectronLens(Element):
         assert (bunch.sigma_y() - bunch.sigma_y()
                 ) < absolute_threshold, ('The given bunch is not round')
         if dist == 'GS':
-            I_e = dQ_max * I_a * (m_p / m_e) * (
+            I_e = e/bunch.charge*dQ_max * I_a * (bunch.mass / m_e) * (
                 4 * np.pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + np.abs(beta_e) * bunch.beta)
         elif dist == 'WB':
-            I_e = 3 / 4 * dQ_max * I_a * (m_p / m_e) * (
+            I_e =  e/bunch.charge*3 / 4 * dQ_max * I_a * (bunch.mass / m_e) * (
                 4 * np.pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + np.abs(beta_e) * bunch.beta)
         elif dist == 'KV':
-            I_e = 2*dQ_max * I_a * (m_p / m_e) * (
+            I_e =  e/bunch.charge*4*dQ_max * I_a * (bunch.mass / m_e) * (
                 4 * np.pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + np.abs(beta_e) * bunch.beta)
         elif dist == 'LN':
-            I_e = 2*dQ_max * I_a * (m_p / m_e) * (
+            I_e =  e/bunch.charge*4*dQ_max * I_a * (bunch.mass / m_e) * (
                 4 * np.pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + np.abs(beta_e) * bunch.beta)
@@ -151,7 +151,7 @@ class ElectronLens(Element):
             # not m_p but bunch.mass() also the charge
             [
                 dQmax,
-            ] = self.I_e / self.I_a * m_e / m_p * self.L_e / (
+            ] =  bunch.charge/e*self.I_e / self.I_a * m_e / bunch.mass * self.L_e / (
                 4 * np.pi *
                 bunch.epsn_x()) * (bunch.sigma_x() / self.sigma_x())**2 * (
                     1 + self.beta_e * bunch.beta) / (np.abs(self.beta_e) *
@@ -159,7 +159,7 @@ class ElectronLens(Element):
         elif self.dist == 'WB':
             [
                 dQmax,
-            ] = 4 * self.I_e / self.I_a * m_e / m_p * self.L_e / (
+            ] = bunch.charge/e*4 * self.I_e / self.I_a * m_e / bunch.mass * self.L_e / (
                 4 * np.pi * bunch.epsn_x()) * (1 / 3) * (
                     bunch.sigma_x() / self.sigma_x())**2 * (
                         1 + self.beta_e * bunch.beta) / (np.abs(self.beta_e) *
@@ -167,7 +167,7 @@ class ElectronLens(Element):
         elif self.dist == 'KV':
             [
                 dQmax,
-            ] = self.I_e / self.I_a * m_e / m_p * self.L_e / (
+            ] = bunch.charge/e*self.I_e / self.I_a * m_e / bunch.mass * self.L_e / (
                 4 * np.pi * bunch.epsn_x()) * (1 / 3) * (
                     bunch.sigma_x() / self.sigma_x())**2 * (
                         1 + self.beta_e * bunch.beta) / (np.abs(self.beta_e) *
@@ -183,7 +183,7 @@ class ElectronLens(Element):
             self.slicer, statistics=['mean_x', 'mean_y', 'sigma_x', 'sigma_y'])
         # Prefactor for round Gaussian bunch from theory:
         prefactor = -bunch.charge * self.L_e * (
-            1 + self.beta_e * bunch.beta) * 1. / (bunch.gamma * m_p *
+            1 + self.beta_e * bunch.beta) * 1. / (bunch.gamma * bunch.mass *
                                                   (bunch.beta * c)**2)
         # Nlambda_i is the line density [Coul/m] for the current slice
         for s_i, I_i in enumerate(self.I_e):
