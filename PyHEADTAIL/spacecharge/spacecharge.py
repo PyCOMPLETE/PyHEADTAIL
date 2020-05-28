@@ -3,7 +3,6 @@
 @date:    17/04/2015
 '''
 
-
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.particles.slicing import clean_slices
 from PyHEADTAIL.field_maps import efields_funcs as efields
@@ -14,7 +13,7 @@ from scipy.constants import c, epsilon_0, pi
 from scipy.interpolate import splrep, splev
 from functools import wraps
 
-from ..general import pmath as pm
+from PyHEADTAIL.general import pmath as pm
 
 
 class LongSpaceCharge(Element):
@@ -128,24 +127,8 @@ class LongSpaceCharge(Element):
                     sliceset.lambda_z(z) * beam.p0)
         return potential
 
-class TransverseLinearSpaceCharge(Element):
-    def __init__(self, length):
-        self.length = length
-        self._efieldn = efields._efieldn_linearized
-    def track(self, beam):
-        x = beam.x - beam.mean_x()
-        y = beam.y - beam.mean_y()
-        prefactor = (beam.charge * self.length /
-                     (beam.p0 * beam.betagamma * beam.gamma * c))
-        en_x, en_y = self._efieldn(pm.abs(x), pm.abs(y), beam.sigma_x(), beam.sigma_y)
-        kicks_x = (en_x) * prefactor
-        kicks_y = (en_y) * prefactor
 
-        kicked_xp = pm.take(beam.xp, p_id) + kicks_x
-        kicked_yp = pm.take(beam.yp, p_id) + kicks_y
 
-        pm.put(beam.xp, p_id, kicked_xp)
-        pm.put(beam.yp, p_id, kicked_yp)
 class TransverseGaussianSpaceCharge(Element):
     '''Contains transverse space charge for a Gaussian configuration.
     Applies the Bassetti-Erskine electric field expression slice-wise
@@ -198,7 +181,6 @@ class TransverseGaussianSpaceCharge(Element):
             self.slicer, statistics=["mean_x", "mean_y", "sigma_x", "sigma_y"])
         prefactor = (beam.charge * self.length /
                      (beam.p0 * beam.betagamma * beam.gamma * c))
-
         # Nlambda_i is the line density [Coul/m] for the current slice
         for s_i, (Nlambda_i, mean_x, mean_y, sig_x, sig_y) in enumerate(zip(
                 slices.lambda_bins(smoothen=False)/slices.slice_widths,
@@ -211,7 +193,6 @@ class TransverseGaussianSpaceCharge(Element):
             en_x, en_y = self.get_efieldn(
                 pm.take(beam.x, p_id), pm.take(beam.y, p_id),
                 mean_x, mean_y, sig_x, sig_y)
-
             kicks_x = (en_x * Nlambda_i) * prefactor
             kicks_y = (en_y * Nlambda_i) * prefactor
 
@@ -238,3 +219,51 @@ class TransverseGaussianSpaceCharge(Element):
         en_y = pm.abs(en_y) * pm.sign(y)
 
         return en_x, en_y
+class TransverseLinearSpaceCharge(TransverseGaussianSpaceCharge):
+    '''Contains transverse space charge for a Gaussian configuration.
+    Applies the Bassetti-Erskine electric field expression slice-wise
+    for each particle centred around the slice centre.
+    '''
+
+    '''Threshold for relative transverse beam size difference
+    below which the beam is assumed to be round:
+    abs(1 - sig_y / sig_x) < ratio_threshold ==> round beam
+    '''
+    ratio_threshold = 1e-3
+
+    '''Threshold for absolute transverse beam size difference
+    below which the beam is assumed to be round:
+    abs(sig_y - sig_x) < absolute_threshold ==> round beam
+    '''
+    absolute_threshold = 1e-10
+
+    def __init__(self, slicer, length, sig_check=True):
+        '''Arguments:
+        - slicer determines the slicing parameters for the slices over
+        which the KV electric field expression is applied,
+        given a slicer with n_slices == 1, you can apply a
+        longitudinally averaged kick over the whole beam.
+        - length is an s interval along which the space charge force
+        is integrated.
+        - sig_check exchanges x and y quantities for sigma_x < sigma_y
+        and applies the round beam formula for sigma_x == sigma_y .
+        sig_check defaults to True and should not usually be False.
+        '''
+        self.slicer = slicer
+        self.length = length
+        self._efieldn = efields._efieldn_kv_b
+        if sig_check:
+            self._efieldn = efields.add_sigma_check(self._efieldn, 'GS')
+
+    def track(self, beam):
+        '''Add the transverse space charge contribution to the beam's
+        transverse kicks.
+        '''
+        return super().track(beam)
+
+
+    def get_efieldn(self, xr, yr, mean_x, mean_y, sig_x, sig_y):
+        '''
+        Return (E_x / Q, E_y / Q).
+        '''
+        return super().get_efieldn(xr, yr, mean_x, mean_y, sig_x, sig_y)
