@@ -251,9 +251,9 @@ class TransverseLinearSpaceCharge(TransverseGaussianSpaceCharge):
         '''
         self.slicer = slicer
         self.length = length
-        self._efieldn = efields._efieldn_kv_b
+        self._efieldn = efields._efieldn_linearized
         if sig_check:
-            self._efieldn = efields.add_sigma_check(self._efieldn, 'GS')
+            self._efieldn = efields.add_sigma_check(self._efieldn, 'KV')
 
     def track(self, beam):
         '''Add the transverse space charge contribution to the beam's
