@@ -141,6 +141,8 @@ class ElectronLens(Element):
             ratio * bunch.sigma_x(),
             ratio * bunch.sigma_x(),
             beta_e,
+            offset_x=bunch.mean_x(),
+            offset_y=bunch.mean_y(),
             dist=dist,
             sig_check=True)
 
@@ -193,7 +195,7 @@ class ElectronLens(Element):
             Nlambda_i = I_i / (self.beta_e * c)
             # Offset for an electron lens
             en_x, en_y = self.get_efieldn(pm.take(bunch.x, p_id),
-                                          pm.take(bunch.y, p_id), 0.0, 0.0,
+                                          pm.take(bunch.y, p_id), (self.offset_x), (self.offset_y),
                                           self.sigma_x, self.sigma_y)
             kicks_x = (en_x * Nlambda_i) * prefactor
             kicks_y = (en_y * Nlambda_i) * prefactor

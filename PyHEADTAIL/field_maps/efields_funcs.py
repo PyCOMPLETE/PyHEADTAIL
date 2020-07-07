@@ -192,11 +192,12 @@ def _efieldn_wb(x, y, sigma_x, sigma_y):
     return efield.real/denom, efield.imag/denom
 
 
-def _efieldn_gauss_round(x, y, sig_r):
+def _efieldn_gauss_round(x, y, sig_x, sig_y):
     '''Return (E_x / Q, E_y / Q) for a round distribution
     with sigma_x == sigma_y == sig_r .
     '''
     r2 = x*x + y*y
+    sig_r = sig_x
     amplitude = (1 - pm.exp(-r2/(2*sig_r*sig_r))) / (2*pi*epsilon_0 * r2)
     return x * amplitude, y * amplitude
 
@@ -208,18 +209,6 @@ def _efieldn_linearized(x, y, sig_x, sig_y):
     b = pm.sqrt(2)*sig_y
     amplitude  = 1./(2.*np.pi*epsilon_0*a*b)
     return x * amplitude, y * amplitude
-@np.vectorize
-def _efieldn_kv_round(x, y, r):
-    '''Return (E_x / Q, E_y / Q) for a round distribution
-    with sigma_x == sigma_y == sig_r .
-    '''
-    r2 = x*x + y*y
-    if r2 < r**2:
-        amplitude = 1/(2*np.pi*r*r*epsilon_0)
-    else:
-        amplitude = 1/(2*np.pi*r2*epsilon_0)
-    return x * amplitude, y * amplitude
-
 
 def add_sigma_check(efieldn, dist):
     '''Wrapper for a normalised electric field function.
@@ -243,8 +232,6 @@ def add_sigma_check(efieldn, dist):
     if dist == 'GS':
         efieldn_round = _efieldn_gauss_round
     elif dist == 'KV':
-        efieldn_round = _efieldn_kv_round
-    elif dist == 'LN':
         efieldn_round = _efieldn_linearized
 
     @wraps(efieldn)
@@ -257,7 +244,7 @@ def add_sigma_check(efieldn, dist):
             if pm.almost_zero(sig_y, **tol_kwargs):
                 en_x = en_y = pm.zeros(x.shape, dtype=x.dtype)
             else:
-                en_x, en_y = efieldn_round(x, y, sig_x, *args, **kwargs)
+                en_x, en_y = efieldn_round(x, y, sig_x, sig_y, *args, **kwargs)
         elif pm.all(sig_x < sig_y):
             en_y, en_x = efieldn(y, x, sig_y, sig_x, *args, **kwargs)
         else:
