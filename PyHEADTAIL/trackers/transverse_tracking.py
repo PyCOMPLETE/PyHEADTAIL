@@ -267,7 +267,7 @@ class TransverseMap(Printing):
         self.segment_maps = []
         self._generate_segment_maps()
 
-        if self.D_x.any() or self.D_y.any():
+        if any(self.D_x) or any(self.D_y):
             self.prints('Non-zero dispersion in tracking: '
                         'ensure the beam has been generated '
                         'being matched to the correct dispersion!')
