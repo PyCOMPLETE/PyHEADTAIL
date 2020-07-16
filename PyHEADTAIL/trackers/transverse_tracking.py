@@ -267,7 +267,7 @@ class TransverseMap(Printing):
         self.segment_maps = []
         self._generate_segment_maps()
 
-        if self.D_x.any() or self.D_y.any():
+        if any(self.D_x) or any(self.D_y):
             self.prints('Non-zero dispersion in tracking: '
                         'ensure the beam has been generated '
                         'being matched to the correct dispersion!')
@@ -328,18 +328,27 @@ class TransverseMap(Printing):
 
             self.segment_maps.append(transverse_segment_map)
 
-    def get_injection_optics(self):
+    def get_injection_optics(self, for_particle_generation=False):
         """Return a dict with the transverse TWISS parameters
         alpha_x, beta_x, D_x, alpha_y, beta_y, D_y from the
         beginning of the first segment (injection point).
+
+        The argument for_particle_generation == True names
+        the dispersion "dispersion_x" and not "D_x" as usual,
+        as e.g. required by the function
+        PyHEADTAIL.particles.generators.generate_Gaussian6DTwiss.
         """
+        if for_particle_generation:
+            disp_name = 'dispersion'
+        else:
+            disp_name = 'D'
         return {
             'alpha_x': self.alpha_x[0],
             'beta_x': self.beta_x[0],
-            'D_x': self.D_x[0],
+            disp_name + '_x': self.D_x[0],
             'alpha_y': self.alpha_y[0],
             'beta_y': self.beta_y[0],
-            'D_y': self.D_y[0]
+            disp_name + '_y': self.D_y[0]
         }
 
     def __len__(self):
