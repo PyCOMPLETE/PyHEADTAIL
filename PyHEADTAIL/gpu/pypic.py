@@ -8,7 +8,6 @@ PyPIC can be found under https://github.com/PyCOMPLETE/PyPIC .
 '''
 
 from PyHEADTAIL.general import pmath as pm
-from pm import UnknownContextManagerError
 
 from PyPIC.GPU import pypic
 
@@ -25,4 +24,4 @@ def make_PyPIC(*args, **kwargs):
             kwargs.update(context=context)
         return pypic.PyPIC_GPU(*args, **kwargs)
     else:
-        raise UnknownContextManagerError()
+        raise pm.UnknownContextManagerError()
