@@ -15,7 +15,7 @@ try:
     import pycuda.elementwise
     has_pycuda = True
     try:
-        pycuda.driver.mem_get_info()
+        drv.mem_get_info()
         import pycuda.autoinit
     except pycuda._driver.LogicError: #the error pycuda throws if no context initialized
         # print ('No context initialized. Please import pycuda.autoinit at the '
@@ -28,9 +28,8 @@ except ImportError:
 
 if has_pycuda:
 
-    device = pycuda.autoinit.device
-    context = pycuda.autoinit.context
-    driver = drv
+    device = drv.Context.get_device() #pycuda.autoinit.device
+    context = drv.Context.get_current() #pycuda.autoinit.context
 
     memory_pool = pycuda.tools.DeviceMemoryPool()
 
