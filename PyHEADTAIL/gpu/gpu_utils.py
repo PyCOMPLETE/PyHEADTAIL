@@ -6,6 +6,8 @@ The module is automatically a singleton
 @author Stefan Hegglin
 '''
 
+use_streams = False
+
 import atexit
 from itertools import cycle
 
@@ -38,11 +40,16 @@ if has_pycuda:
     atexit.register(skcuda.misc.shutdown)
 
     n_streams = 4
-    streams = [drv.Stream() for i in range(n_streams)]
+    n_streams_emittance = 6
+
+    if use_streams:
+        streams = [drv.Stream() for i in range(n_streams)]
+        stream_emittance = [drv.Stream() for i in range(n_streams_emittance)]
+    else:
+        streams = [None] * n_streams
+        stream_emittance = [None] * n_streams_emittance
+
     stream_pool = cycle(streams)
-
-    stream_emittance = [drv.Stream() for i in range(6)]
-
 
     def dummy_1(gpuarr, stream=None):
         __dummy1(gpuarr, stream=stream)
