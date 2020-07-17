@@ -16,6 +16,7 @@ try:
     has_pycuda = True
     try:
         pycuda.driver.mem_get_info()
+        import pycuda.autoinit
     except pycuda._driver.LogicError: #the error pycuda throws if no context initialized
         # print ('No context initialized. Please import pycuda.autoinit at the '
         #        'beginning of your script if you want to use GPU functionality')
