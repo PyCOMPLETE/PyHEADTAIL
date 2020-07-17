@@ -52,8 +52,9 @@ def synchronize_gpu_streams_before(func):
     synchronized before this function is called
     '''
     def sync_before_wrap(*args, **kwargs):
-        for stream in gpu_utils.streams:
-            stream.synchronize()
+        if gpu_utils.use_streams:
+            for stream in gpu_utils.streams:
+                stream.synchronize()
         return func(*args, **kwargs)
     return sync_before_wrap
 
@@ -64,7 +65,8 @@ def synchronize_gpu_streams_after(func):
     '''
     def sync_after_wrap(*args, **kwargs):
         res = func(*args, **kwargs)
-        for stream in gpu_utils.streams:
-            stream.synchronize()
+        if gpu_utils.use_streams:
+            for stream in gpu_utils.streams:
+                stream.synchronize()
         return res
     return sync_after_wrap
