@@ -1,4 +1,7 @@
-PyHEADTAIL [![Build Status](https://travis-ci.org/PyCOMPLETE/PyHEADTAIL.svg?branch=master)](https://travis-ci.org/PyCOMPLETE/PyHEADTAIL)
+.. image:: https://travis-ci.org/PyCOMPLETE/PyHEADTAIL.svg?branch=master
+    :target: https://travis-ci.org/PyCOMPLETE/PyHEADTAIL
+
+PyHEADTAIL
 ==========
 
 CERN PyHEADTAIL numerical n-body simulation code
