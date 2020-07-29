@@ -122,7 +122,7 @@ def generate_bunch(n_macroparticles, alpha_x, alpha_y, beta_x, beta_y, linear_ma
     
     return bunch
 
-def track_n_show(bunch, slicer, map_woWakes, wake_field, case):
+def track_n_show(bunch, slicer, map_woWakes, wake_field, case, show=False, savefig=False):
     fig, ((ax1, ax2)) = plt.subplots(2, 1, figsize=(10,10))
 
 
@@ -188,9 +188,12 @@ def track_n_show(bunch, slicer, map_woWakes, wake_field, case):
     #ax13.set_xlim((xmin, xmax))
     fig.subplots_adjust(bottom=0.05, top=0.93, hspace=0.16)
     
-    # plt.show()
     fig.suptitle(np.random.rand())
-    fig.savefig('Case_%s_track_n_show.png'%(case))
+    np.save("reference_data/wake_kicks/case_{:s}_kick_data.npy".format(case), xp_diff)
+    if show:
+        plt.show()
+    if savefig:
+        fig.savefig('Case_%s_track_n_show.png'%(case))
     
 def show_sampled_wake(bunch, slicer, wake_table, wake_component, case):
     slice_set = bunch.get_slices(slicer)

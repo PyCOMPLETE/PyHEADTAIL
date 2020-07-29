@@ -2,6 +2,9 @@ from __future__ import division, print_function
 
 from collections import OrderedDict
 
+import matplotlib
+
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.constants import m_p, c, e
@@ -159,26 +162,26 @@ def main():
     wakes_collection = OrderedDict([
         ('wake_dipole',
          [wake_dipole, uniform_bin_slicer, "(I) dipole wake", "dipole_x"]),
-        ('wake_dipole_unicharge',
-         [wake_dipole_unicharge, uniform_charge_slicer, "(II) dipole wake uniform charge", "dipole_x"]),
-        ('wake_quads_unicharge',
-         [wake_quads_unicharge, uniform_charge_slicer, "(III) quad wake uniform charge", "quadrupole_x"]),
-        ('wake_quads',
-         [wake_quads, uniform_bin_slicer, "(IV) quad wake", "quadrupole_x"]),
-        ('wake_resonator',
-         [wake_resonator, uniform_bin_slicer, "(V) resonator wake", "dipole_x"]),
-        ('wake_resonators',
-         [wake_resonators, uniform_bin_slicer, "(VI) resonators list wake", "dipole_x"]),
-        ('wake_resonator_parallel',
-         [wake_resonator_parallel, uniform_bin_slicer, "(VII) parallel plates resonator wake", "dipole_x"]),
-        ('wake_longitudinal',
-         [wake_longitudinal, uniform_bin_slicer, "(VIII) longitudinal resonator wake", "longitudinal"]),
-        ('wake_rewall',
-         [wake_rewall, uniform_bin_slicer, "(IX) resistive wall wake", "dipole_x"]),
-        ('wake_rewall_parallel',
-         [wake_rewall_parallel, uniform_bin_slicer, "(X) parallel plates resistive wall wakes", "dipole_x"]),
-        ('wake_mixed',
-         [wake_mixed, uniform_bin_slicer, "(XI) several mixed wakes", "dipole_x"])
+        # ('wake_dipole_unicharge',
+        #  [wake_dipole_unicharge, uniform_charge_slicer, "(II) dipole wake uniform charge", "dipole_x"]),
+        # ('wake_quads_unicharge',
+        #  [wake_quads_unicharge, uniform_charge_slicer, "(III) quad wake uniform charge", "quadrupole_x"]),
+        # ('wake_quads',
+        #  [wake_quads, uniform_bin_slicer, "(IV) quad wake", "quadrupole_x"]),
+        # ('wake_resonator',
+        #  [wake_resonator, uniform_bin_slicer, "(V) resonator wake", "dipole_x"]),
+        # ('wake_resonators',
+        #  [wake_resonators, uniform_bin_slicer, "(VI) resonators list wake", "dipole_x"]),
+        # ('wake_resonator_parallel',
+        #  [wake_resonator_parallel, uniform_bin_slicer, "(VII) parallel plates resonator wake", "dipole_x"]),
+        # ('wake_longitudinal',
+        #  [wake_longitudinal, uniform_bin_slicer, "(VIII) longitudinal resonator wake", "longitudinal"]),
+        # ('wake_rewall',
+        #  [wake_rewall, uniform_bin_slicer, "(IX) resistive wall wake", "dipole_x"]),
+        # ('wake_rewall_parallel',
+        #  [wake_rewall_parallel, uniform_bin_slicer, "(X) parallel plates resistive wall wakes", "dipole_x"]),
+        # ('wake_mixed',
+        #  [wake_mixed, uniform_bin_slicer, "(XI) several mixed wakes", "dipole_x"])
     ])
 
     # Python 3 way
@@ -207,7 +210,8 @@ def main():
     # =============
     for i, wakes_entry in enumerate(wakes_collection.values()):
         wake, slicer, label, component = wakes_entry
-        evaluate_wake_kick(bunch, slicer, one_turn_map, wake, case=label)
+        test_wake_kick(bunch, slicer, one_turn_map, wake, case=label)
+        # evaluate_wake_kick(bunch, slicer, one_turn_map, wake, case=label)
         # if i < 4:
         #     print(i, label)
         #     show_sampled_wake(bunch, uniform_bin_slicer, table, wake_component=component, case=label)
@@ -269,7 +273,7 @@ def main():
 #     return fft_freq, np.abs(fft.real)
 
 
-def evaluate_wake_kick(bunch, slicer, one_turn_map, wake_field, case):
+def evaluate_wake_kick(bunch, slicer, one_turn_map, wake_field, case, show=True, savefig=False, test=True):
     fig, ((ax1, ax2)) = plt.subplots(2, 1, figsize=(10, 10))
 
     print('\nCase %s\n' % case)
@@ -328,13 +332,50 @@ def evaluate_wake_kick(bunch, slicer, one_turn_map, wake_field, case):
     ymin += ymin * 0.2
 
     ax1.set_xlim((xmin, xmax))
-    ax2.set_xlim((xmin, xmax))
+    # ax2.set_xlim((xmin, xmax))
     # ax13.set_xlim((xmin, xmax))
     fig.subplots_adjust(bottom=0.05, top=0.93, hspace=0.16)
+    fig.suptitle(case)
 
-    # plt.show()
-    fig.suptitle(np.random.rand())
-    fig.savefig('output/Case_%s.png' % (case))
+    if test:
+        ix = case.split('(')[1].split(')')[0]
+        xp_diff_ref = np.load("reference_data/wake_kicks/case_{:s}_kick_data.npy".format(ix))
+        xx = xp_diff / abs(xp_diff).max()
+        xx_ref = xp_diff_ref / abs(xp_diff_ref).max()
+        ax2.plot(slidx, xx, 'd', color='cyan', label='x kicks')
+        ax2.plot(slidx, xx_ref, 'o', color='magenta', label='x kicks')
+        print(np.sum((xx - xx_ref) ** 2))
+    if savefig:
+        fig.savefig('output/Case_%s.png' % (case))
+    if show:
+        plt.show()
+
+
+def test_wake_kick(bunch, slicer, one_turn_map, wake_field, case):
+    xp_diff = np.zeros(n_macroparticles)
+
+    for i in xrange(n_turns):
+        for m in one_turn_map:
+            m.track(bunch)
+
+        # Dipole X kick.
+        if i == (n_turns - 1):
+            xp_old = bunch.xp.copy()
+        wake_field.track(bunch)
+
+        if i == (n_turns - 1):
+            xp_diff[:] = bunch.xp[:] - xp_old[:]
+
+    ix = case.split('(')[1].split(')')[0]
+    xp_diff_ref = np.load("reference_data/wake_kicks/case_{:s}_kick_data.npy".format(ix))
+    xx = xp_diff / abs(xp_diff).max()
+    xx_ref = xp_diff_ref / abs(xp_diff_ref).max()
+    # ax2.plot(slidx, xx, 'd', color='cyan', label='x kicks')
+    # ax2.plot(slidx, xx_ref, 'o', color='magenta', label='x kicks')
+
+    chi_square = np.sum((xx - xx_ref) ** 2)
+    # print(chi_square)
+    assert chi_square < 1e-9
 
 
 def show_sampled_wake(bunch, slicer, wake_table, wake_component, case):
