@@ -136,6 +136,9 @@ def _efieldn_pyecloud(xin, yin, sigmax, sigmay):
 
 @np.vectorize
 def _efieldn_kv_a(x, y, sigma_x, sigma_y):
+    '''
+        Field of a KV distrubition calculated as in here: https://cds.cern.ch/record/258225/files/P00020427.pdf
+    '''
     a = sigma_x*pm.sqrt(2)
     b = sigma_y*pm.sqrt(2)
     if (x/a)**2+(y/b)**2 <= 1:
@@ -156,6 +159,9 @@ def _efieldn_kv_a(x, y, sigma_x, sigma_y):
 
 @np.vectorize
 def _efieldn_kv_b(x, y, sigma_x, sigma_y):
+    '''
+        Field of a KV distrubition calculated as in here: https://cds.cern.ch/record/258225/files/P00020427.pdf
+    '''
     a = sigma_x*pm.sqrt(2)
     b = sigma_y*pm.sqrt(2)
     if x == 0 and y == 0:
@@ -171,7 +177,6 @@ def _efieldn_kv_b(x, y, sigma_x, sigma_y):
     denom = 4*np.pi*epsilon_0
     return efield_x/denom, efield_y/denom
 
-###Still far slower than Gaussian
 @np.vectorize
 def _efieldn_wb(x, y, sigma_x, sigma_y):
     a = sigma_x*pm.sqrt(3)
@@ -203,12 +208,12 @@ def _efieldn_gauss_round(x, y, sig_x, sig_y):
 
 def _efieldn_linearized(x, y, sig_x, sig_y):
     '''
-    Returns linearized
+    Returns linearized field
     '''
     a = pm.sqrt(2)*sig_x
     b = pm.sqrt(2)*sig_y
-    amplitude  = 1./(2.*np.pi*epsilon_0*a*b)
-    return x * amplitude, y * amplitude
+    amplitude  = 1./(2.*np.pi*epsilon_0*(a+b))
+    return x/a * amplitude, y/b * amplitude
 
 def add_sigma_check(efieldn, dist):
     '''Wrapper for a normalised electric field function.
