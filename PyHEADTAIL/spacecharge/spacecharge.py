@@ -251,7 +251,7 @@ class TransverseLinearSpaceCharge(TransverseGaussianSpaceCharge):
         '''
         self.slicer = slicer
         self.length = length
-        self._efieldn = efields._efieldn_kv_a
+        self._efieldn = efields._efieldn_linearized
         if sig_check:
             self._efieldn = efields.add_sigma_check(self._efieldn, 'KV')
 
