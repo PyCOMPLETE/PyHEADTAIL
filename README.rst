@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/PyCOMPLETE/PyHEADTAIL.svg?branch=master
+    :target: https://travis-ci.org/PyCOMPLETE/PyHEADTAIL
+
 PyHEADTAIL
 ==========
 
