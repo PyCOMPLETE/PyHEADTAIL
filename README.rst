@@ -1,7 +1,9 @@
-.. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/PyHEADTAIL-deployment/badge.svg
-   :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
-   
 .. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/Manually%20triggered%20workflow/badge.svg
+   :alt: Manual action status
+   :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
+
+.. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/PyHEADTAIL-deployment/badge.svg
+   :alt: Build status
    :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
    
 PyHEADTAIL
