@@ -1,6 +1,6 @@
-.. image:: https://travis-ci.org/PyCOMPLETE/PyHEADTAIL.svg?branch=master
-    :target: https://travis-ci.org/PyCOMPLETE/PyHEADTAIL
-
+.. |Build| image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/PyHEADTAIL-deployment/badge.svg
+   :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
+   
 PyHEADTAIL
 ==========
 
