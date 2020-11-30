@@ -1,11 +1,10 @@
 .. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/manual/badge.svg
-   :alt: Manual action status
    :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
 
 .. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/build/badge.svg
+   :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
 
 .. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/test/badge.svg
-   :alt: Build status
    :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
    
 PyHEADTAIL
