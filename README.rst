@@ -4,7 +4,7 @@
 .. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/build/badge.svg
    :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
 
-.. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/test/badge.svg
+.. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/tests/badge.svg
    :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
    
 PyHEADTAIL
