@@ -64,15 +64,36 @@ def apply_sort_perm_double(to_sort, out, permutation):
     '''
     Permutes the array to_sort using permutation and stores it into out
     Returns: nothing
-    All arguments are GPUArrays with a double datatype
+    All arguments are GPUArrays with a double datatype,
+    only permutation is int32.
     '''
     _libthrustwrap.thrust_apply_sort_perm_double(int(to_sort.gpudata),
                                                  np.int32(len(to_sort)),
                                                  int(out.gpudata),
                                                  int(permutation.gpudata))
 
+#### thrust_apply_sort_perm_long #############################################
+_libthrustwrap.thrust_apply_sort_perm_long.restype = None
+_libthrustwrap.thrust_apply_sort_perm_long.argtypes = [
+    ctypes.c_void_p, #in
+    ctypes.c_int, #length
+    ctypes.c_void_p, #out
+    ctypes.c_void_p #perm
+]
+def apply_sort_perm_long(to_sort, out, permutation):
+    '''
+    Permutes the array to_sort using permutation and stores it into out
+    Returns: nothing
+    All arguments are GPUArrays with an int64 datatype,
+    only permutation is int32.
+    '''
+    _libthrustwrap.thrust_apply_sort_perm_long(int(to_sort.gpudata),
+                                                 np.int32(len(to_sort)),
+                                                 int(out.gpudata),
+                                                 int(permutation.gpudata))
 
-#### thrust_apply_sort_perm_double #############################################
+
+#### thrust_apply_sort_perm_int #############################################
 _libthrustwrap.thrust_apply_sort_perm_int.restype = None
 _libthrustwrap.thrust_apply_sort_perm_int.argtypes = [
     ctypes.c_void_p, #in
@@ -84,7 +105,7 @@ def apply_sort_perm_int(to_sort, out, permutation):
     '''
     Permutes the array to_sort using permutation and stores it into out
     Returns: nothing
-    All arguments are GPUArrays with an int datatype
+    All arguments are GPUArrays with an int datatype.
     '''
     _libthrustwrap.thrust_apply_sort_perm_int(int(to_sort.gpudata),
                                               np.int32(len(to_sort)),
@@ -153,6 +174,23 @@ def get_sort_perm_int(input, out):
     _libthrustwrap.thrust_get_sort_perm_int(int(input.gpudata),
                                             np.int32(len(input)),
                                             int(out.gpudata))
+
+
+#### thrust_get_sort_perm_int ###############################################
+#void thrust_get_sort_perm_int(long* input_ptr, int length, int* perm_ptr)
+_libthrustwrap.thrust_get_sort_perm_long.restype = None
+_libthrustwrap.thrust_get_sort_perm_long.argtypes = [
+    ctypes.c_void_p,
+    ctypes.c_int,
+    ctypes.c_void_p
+]
+def get_sort_perm_long(input, out):
+    '''
+    Sort the GPUArray (int64) input and store the used permutation in out (int)
+    '''
+    _libthrustwrap.thrust_get_sort_perm_long(int(input.gpudata),
+                                             np.int32(len(input)),
+                                             int(out.gpudata))
 
 
 #### thrust_cumsum_double ###############################################
