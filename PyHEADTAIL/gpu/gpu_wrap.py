@@ -564,11 +564,12 @@ def argsort(to_sort):
         thrust.get_sort_perm_double(to_sort.copy(), permutation)
     elif dtype.itemsize == 4 and dtype.kind == 'i':
         thrust.get_sort_perm_int(to_sort.copy(), permutation)
+    elif dtype.itemsize == 8 and dtype.kind == 'i':
+        thrust.get_sort_perm_long(to_sort.copy(), permutation)
     else:
-        print(to_sort.dtype)
-        print(to_sort.dtype.itemsize)
-        print(to_sort.dtype.kind)
-        raise TypeError('Currently only float64 and int32 types can be sorted')
+        raise TypeError(
+            'Currently only float64, int64 and int32 types can '
+            'be sorted -- I encountered ' + str(to_sort.dtype))
     return permutation
 
 def searchsortedleft(array, values, dest_array=None):
@@ -590,9 +591,9 @@ def searchsortedright(array, values, dest_array=None):
 def apply_permutation(array, permutation):
     '''
     Permute the entries in array according to the permutation array.
-    Return a new (permuted) array which is equal to array[permutation]
+    Return a new (permuted) array which is equal to array[permutation].
     Args:
-        array gpuarray to be permuted. Either float64 or int32
+        array gpuarray to be permuted. Must be float64, int64 or int32
         permutation permutation array: must be np.int32 (or int32), is asserted
     '''
     assert(permutation.dtype.itemsize == 4 and permutation.dtype.kind == 'i')
@@ -602,11 +603,12 @@ def apply_permutation(array, permutation):
         thrust.apply_sort_perm_double(array, tmp, permutation)
     elif dtype.itemsize == 4 and dtype.kind == 'i':
         thrust.apply_sort_perm_int(array, tmp, permutation)
+    elif dtype.itemsize == 8 and dtype.kind == 'i':
+        thrust.apply_sort_perm_long(array, tmp, permutation)
     else:
-        print(array.dtype)
-        print(array.dtype.itemsize)
-        print(array.dtype.kind)
-        raise TypeError('Currently only float64 and int32 types can be sorted')
+        raise TypeError(
+            'Currently only float64, int64 and int32 types can '
+            'be sorted -- I encountered ' + str(array.dtype))
     return tmp
 
 def particles_within_cuts(sliceset):
