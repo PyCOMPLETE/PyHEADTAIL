@@ -90,6 +90,40 @@ if has_pycuda:
             b.gpudata, out.gpudata, a.mem_size)
         return out
 
+    def _subtract(a, b, out=None, stream=None):
+        '''Elementwise subtraction of two gpuarray specifying a stream
+        Required because gpuarray.__sub__ has no stream argument'''
+        if out is None:
+            out = _empty_like(a)
+        func = pycuda.elementwise.get_binary_op_kernel(a.dtype, b.dtype,
+            out.dtype, "-")
+        func.prepared_async_call(a._grid, a._block, stream, a.gpudata,
+            b.gpudata, out.gpudata, a.mem_size)
+        return out
+
+    def _add(a, b, out=None, stream=None):
+        '''Elementwise addition of two gpuarray specifying a stream
+        Required because gpuarray.__add__ has no stream argument'''
+        if out is None:
+            out = _empty_like(a)
+        func = pycuda.elementwise.get_binary_op_kernel(a.dtype, b.dtype,
+            out.dtype, "+")
+        func.prepared_async_call(a._grid, a._block, stream, a.gpudata,
+            b.gpudata, out.gpudata, a.mem_size)
+        return out
+
+    def _divide(a, b, out=None, stream=None):
+        '''Elementwise division of two gpuarray specifying a stream
+        Required because gpuarray.__div__ has no stream argument'''
+        if out is None:
+            out = _empty_like(a)
+        func = pycuda.elementwise.get_binary_op_kernel(a.dtype, b.dtype,
+            out.dtype, "/")
+        func.prepared_async_call(a._grid, a._block, stream, a.gpudata,
+            b.gpudata, out.gpudata, a.mem_size)
+        return out
+
+
     _arange_gpu_float64 = pycuda.elementwise.ElementwiseKernel(
         'double* out, double* start, const double* step',
         'const double s = step[0];'
@@ -386,7 +420,6 @@ def mean(a, stream=None):
     the stream (because gpuarray.__div__ does not have a stream
     argument).
     '''
-    #out = pycuda.gpuarray.empty(1, dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
     n = len(a)
     out = pycuda.gpuarray.sum(a, stream=stream,
                               allocator=gpu_utils.memory_pool.allocate)
