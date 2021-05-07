@@ -7,13 +7,10 @@ Created on 17.10.2014
 import numpy as np
 from scipy.constants import c, e  # unit e needed for long. emittance
 
-from PyHEADTAIL.cobra_functions import stats as cp
 from PyHEADTAIL.general import pmath as pm
 from PyHEADTAIL.general.element import Printing
 
 arange = np.arange
-mean = np.mean
-std = cp.std
 
 
 class Particles(Printing):
@@ -272,14 +269,19 @@ class Particles(Printing):
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         other_coords_n_momenta_dict = other.get_coords_n_momenta_dict()
 
-        result = Particles(macroparticlenumber=self.macroparticlenumber+other.macroparticlenumber,
-                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+        result = Particles(
+            macroparticlenumber=self.macroparticlenumber + other.macroparticlenumber,
+            particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+            mass=self.mass, circumference=self.circumference, gamma=self.gamma,
+            coords_n_momenta_dict={})
 
 
         for coord in list(self_coords_n_momenta_dict.keys()):
-            #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
-            result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
+            result.update(
+                {coord: np.concatenate(
+                    (self_coords_n_momenta_dict[coord].copy(),
+                     other_coords_n_momenta_dict[coord].copy()))}
+            )
 
         result.id = np.concatenate((self.id.copy(), other.id.copy()))
 
@@ -288,12 +290,13 @@ class Particles(Printing):
     def __radd__(self, other):
         if other==0:
             self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
-            result = Particles(macroparticlenumber=self.macroparticlenumber,
-                    particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
-                    mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
+            result = Particles(
+                macroparticlenumber=self.macroparticlenumber,
+                particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
+                mass=self.mass, circumference=self.circumference, gamma=self.gamma,
+                coords_n_momenta_dict={})
 
             for coord in list(self_coords_n_momenta_dict.keys()):
-                #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
                 result.update({coord: self_coords_n_momenta_dict[coord].copy()})
             result.id = self.id.copy()
         else:
@@ -306,50 +309,39 @@ class Particles(Printing):
     # kwargs are for passing stream=... in the gpu case
 
     def mean_x(self, **kwargs):
-        #return np.float(pm.mean(self.x))
         return pm.mean(self.x, **kwargs)
 
     def mean_xp(self, **kwargs):
-        #return np.float(pm.mean(self.xp))
         return pm.mean(self.xp, **kwargs)
 
     def mean_y(self, **kwargs):
-        #return np.float(pm.mean(self.y))
         return pm.mean(self.y, **kwargs)
 
     def mean_yp(self, **kwargs):
-        #return np.float(pm.mean(self.yp))
         return pm.mean(self.yp, **kwargs)
 
     def mean_z(self, **kwargs):
-        #return np.float(pm.mean(self.z))
         return pm.mean(self.z, **kwargs)
 
     def mean_dp(self, **kwargs):
-        #return np.float(pm.mean(self.dp))
         return pm.mean(self.dp, **kwargs)
 
     def sigma_x(self, **kwargs):
         return pm.std(self.x, **kwargs)
 
     def sigma_y(self, **kwargs):
-        #return np.float(pm.std(self.y))
         return pm.std(self.y, **kwargs)
 
     def sigma_z(self, **kwargs):
-        #return np.float(pm.std(self.z))
         return pm.std(self.z, **kwargs)
 
     def sigma_xp(self, **kwargs):
-        #return np.float(pm.std(self.xp))
         return pm.std(self.xp, **kwargs)
 
     def sigma_yp(self, **kwargs):
-        #return np.float(pm.std(self.yp))
         return pm.std(self.yp, **kwargs)
 
     def sigma_dp(self, **kwargs):
-        #return np.float(pm.std(self.dp))
         return pm.std(self.dp, **kwargs)
 
     def effective_normalized_emittance_x(self, **kwargs):
@@ -374,25 +366,25 @@ class Particles(Printing):
         return self.effective_normalized_emittance_z(**kwargs)
 
     def dispersion_x(self):
-        return cp.dispersion(self.x, self.dp)
+        return pm.dispersion(self.x, self.dp)
 
     def dispersion_y(self):
-        return cp.dispersion(self.y, self.dp)
+        return pm.dispersion(self.y, self.dp)
 
     def alpha_Twiss_x(self):
-        return cp.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
+        return pm.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
 
     def alpha_Twiss_y(self):
-        return cp.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
+        return pm.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
 
     def beta_Twiss_x(self):
-        return cp.get_beta(self.x, self.xp, getattr(self, 'dp', None))
+        return pm.get_beta(self.x, self.xp, getattr(self, 'dp', None))
 
     def beta_Twiss_y(self):
-        return cp.get_beta(self.y, self.yp, getattr(self, 'dp', None))
+        return pm.get_beta(self.y, self.yp, getattr(self, 'dp', None))
 
     def gamma_Twiss_x(self):
-        return cp.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
+        return pm.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
 
     def gamma_Twiss_y(self):
-        return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
+        return pm.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
