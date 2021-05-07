@@ -192,7 +192,7 @@ if has_pycuda:
         operation='double sigma11 = cov_u2[i]   - cov_u_dp[i] *cov_u_dp[i] / cov_dp2[i];'
                   'double sigma12 = cov_u_up[i] - cov_u_dp[i] *cov_up_dp[i]/ cov_dp2[i];'
                   'double sigma22 = cov_up2[i]  - cov_up_dp[i]*cov_up_dp[i]/ cov_dp2[i];'
-                  'out[i] = sqrt((1./(nn*nn+nn))*(sigma11 * sigma22 - sigma12*sigma12))',
+                  'out[i] = sqrt((1./((nn-1)*(nn-1)))*(sigma11 * sigma22 - sigma12*sigma12))',
         name='_emitt_disp',
     )
     def _emittance_dispersion(
@@ -208,7 +208,7 @@ if has_pycuda:
         arguments='double* out, double* cov_u2, double* cov_u_up, '
                   'double* cov_up2, double nn',
         operation=
-            'out[i] = sqrt((1./(nn*nn+nn)) * '
+            'out[i] = sqrt((1./((nn-1)*(nn-1))) * '
                      '(cov_u2[i] * cov_up2[i] - cov_u_up[i]*cov_u_up[i]))',
         name='_emitt_nodisp'
     )
@@ -511,8 +511,7 @@ def emittance_(u, up, dp):
             sigma11 -= cov_u_dp * cov_u_dp / cov_dp2
             sigma12 -= cov_u_dp * cov_up_dp / cov_dp2
             sigma22 -= cov_up_dp * cov_up_dp / cov_dp2
-    return pycuda.cumath.sqrt((1./(n*n+n))*(sigma11 * sigma22 - sigma12*sigma12))
-
+    return pycuda.cumath.sqrt(1./((n-1)*(n-1))*(sigma11 * sigma22 - sigma12*sigma12))
 
 def emittance(u, up, dp, stream=None):
     '''
