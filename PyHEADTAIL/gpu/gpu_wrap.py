@@ -445,14 +445,14 @@ def std(a, stream=None):
     _inplace_pow(res, 0.5, stream=stream)
     return res
 
-def emittance_reference(u, up, dp):
+def emittance_reference(u, up, dp=None):
     '''
     Compute the emittance of GPU arrays. Reference implementation, slow
     but readable
     Args:
         u coordinate array
         up conjugate momentum array
-        dp longitudinal momentum variation
+        dp longitudinal momentum variation (can be None)
     '''
     cov_u2 = covariance(u, u)
     cov_up2 = covariance(up, up)
@@ -481,7 +481,7 @@ def emittance_reference(u, up, dp):
     return np.sqrt(sigma11.get() * sigma22.get() - sigma12 * sigma12)
 
 
-def emittance_(u, up, dp):
+def emittance_(u, up, dp=None):
     '''
     Compute the emittance of GPU arrays. Check the algorithm above for
     a more readable version, this one has been 'optimized', e.g. mean->sum
@@ -489,7 +489,7 @@ def emittance_(u, up, dp):
     Args:
         u coordinate array
         up conjugate momentum array
-        dp longitudinal momentum variation
+        dp longitudinal momentum variation (can be None)
     '''
     n = len(u)
     mean_u = skcuda.misc.mean(u)
@@ -518,7 +518,7 @@ def emittance_(u, up, dp):
             sigma22 -= cov_up_dp * cov_up_dp / cov_dp2
     return pycuda.cumath.sqrt(1./((n-1)*(n-1))*(sigma11 * sigma22 - sigma12*sigma12))
 
-def emittance(u, up, dp, stream=None):
+def emittance(u, up, dp=None, stream=None):
     '''
     Compute the emittance of GPU arrays. Check the algorithm above for
     a more readable version, this one has been 'optimized', e.g. mean->sum
