@@ -396,23 +396,28 @@ def covariance_old(a, b):
     covariance = skcuda.misc.mean(x * y) * n / (n + 1)
     return covariance.get()
 
-def covariance(a,b, stream=None):
+def covariance(a, b, stream=None):
     '''Covariance (not covariance matrix)
     Args:
         a: pycuda.GPUArray
         b: pycuda.GPUArray
     '''
     n = len(a)
+    if n < 2:
+        return pycuda.gpuarray.zeros(1, dtype=np.float64,
+                                     allocator=gpu_utils.memory_pool.allocate)
     x = _empty_like(a)
     y = _empty_like(b)
-    mean_a = skcuda.misc.mean(a)
+    mean_a = mean(a, stream=stream)
     #x -= mean_a
     _sub_1dgpuarr(x, a, mean_a, stream=stream)
-    mean_b = skcuda.misc.mean(b)
+    mean_b = mean(b, stream=stream)
     #y -= mean_b
     _sub_1dgpuarr(y, b, mean_b, stream=stream)
-    covariance = skcuda.misc.mean(x * y) * (n / (n + 1))
-    return covariance
+    out = _multiply(x, y, stream=stream)
+    out = mean(out, stream=stream)
+    _mul_scalar(out=out, gpuarr=out, scalar=np.float64(n / (n - 1.)), stream=stream)
+    return out
 
 def mean(a, stream=None):
     '''Compute the mean of the gpuarray a
