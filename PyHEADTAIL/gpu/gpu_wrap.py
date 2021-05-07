@@ -567,6 +567,98 @@ def emittance(u, up, dp=None, stream=None):
     return out
 
 
+def dispersion(u, dp, stream=None):
+    '''Compute the statistical dispersion:
+    disp = <u*dp>/<dp**2>
+    Args:
+        u: coordinate array, typically x or y spatial coordinates
+        dp: longitudinal momentum offset array
+    '''
+    mean_dp2 = mean(_multiply(dp, dp, stream=stream), stream=stream)
+    if mean_dp2.get() > 0: # equiv to != 0 (dp^2 can never be <0)
+        mean_u_dp = mean(_multiply(u, dp, stream=stream), stream=stream)
+        return _divide(mean_u_dp, mean_dp2, stream=stream)
+    else:
+        return pycuda.gpuarray.zeros(1, dtype=float, allocator=gpu_utils.memory_pool.allocate)
+
+
+def get_alpha(u, up, dp=None, stream=None):
+    '''Compute the statistical Twiss alpha value.
+    If dp is None, the effective alpha is computed.
+    Args:
+        u: coordinate array, typically x or y spatial coordinates
+        up: momentum array, typically xp or yp momenta
+        dp: longitudinal momentum offset array
+    '''
+    cov_u_up = covariance(u, up, stream=None)
+    epsn = emittance(u, up, dp, stream=None)
+    include_dp = dp is not None
+    if include_dp:
+        cov_dp2 = covariance(dp, dp, stream=stream)
+        include_dp = cov_dp2.get() > 0
+    if include_dp:
+        cov_u_dp = covariance(u, dp, stream=stream)
+        cov_up_dp = covariance(up, dp, stream=stream)
+        tmp = _multiply(cov_u_dp, cov_up_dp, stream=stream)
+        offdiag = _divide(tmp, cov_dp2, stream=stream)
+        sigma12 = _subtract(offdiag, cov_u_up, stream=stream) # ! * (-1)
+    else:
+        _mul_scalar(out=cov_u_up, gpuarr=cov_u_up, scalar=np.float64(-1.), stream=stream)
+        sigma12 = cov_u_up
+
+    return _divide(sigma12, epsn, stream=stream)
+
+
+def get_beta(u, up, dp=None, stream=None):
+    '''Compute the statistical Twiss beta value.
+    If dp is None, the effective beta is computed.
+    Args:
+        u: coordinate array, typically x or y spatial coordinates
+        up: momentum array, typically xp or yp momenta
+        dp: longitudinal momentum offset array
+    '''
+    cov_u2 = covariance(u, u, stream=None)
+    epsn = emittance(u, up, dp, stream=None)
+    include_dp = dp is not None
+    if include_dp:
+        cov_dp2 = covariance(dp, dp, stream=stream)
+        include_dp = cov_dp2.get() > 0
+    if include_dp:
+        cov_u_dp = covariance(u, dp, stream=stream)
+        tmp = _multiply(cov_u_dp, cov_u_dp, stream=stream)
+        offdiag = _divide(tmp, cov_dp2, stream=stream)
+        sigma11 = _subtract(cov_u2, offdiag, stream=stream)
+    else:
+        sigma11 = cov_u2
+
+    return _divide(sigma11, epsn, stream=stream)
+
+
+def get_gamma(u, up, dp=None, stream=None):
+    '''Compute the statistical Twiss gamma value.
+    If dp is None, the effective gamma is computed.
+    Args:
+        u: coordinate array, typically x or y spatial coordinates
+        up: momentum array, typically xp or yp momenta
+        dp: longitudinal momentum offset array
+    '''
+    cov_up2 = covariance(up, up, stream=None)
+    epsn = emittance(u, up, dp, stream=None)
+    include_dp = dp is not None
+    if include_dp:
+        cov_dp2 = covariance(dp, dp, stream=stream)
+        include_dp = cov_dp2.get() > 0
+    if include_dp:
+        cov_up_dp = covariance(up, dp, stream=stream)
+        tmp = _multiply(cov_up_dp, cov_up_dp, stream=stream)
+        offdiag = _divide(tmp, cov_dp2, stream=stream)
+        sigma22 = _subtract(cov_up2, offdiag, stream=stream)
+    else:
+        sigma22 = cov_up2
+
+    return _divide(sigma22, epsn, stream=stream)
+
+
 def cumsum(array, dest=None):
     '''Return cumulative sum of 1-dimensional GPUArray data.
     Works for dtypes np.int32 and np.float64. Wrapper for thrust

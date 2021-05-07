@@ -366,25 +366,25 @@ class Particles(Printing):
         return self.effective_normalized_emittance_z(**kwargs)
 
     def dispersion_x(self):
-        return cp.dispersion(self.x, self.dp)
+        return pm.dispersion(self.x, self.dp)
 
     def dispersion_y(self):
-        return cp.dispersion(self.y, self.dp)
+        return pm.dispersion(self.y, self.dp)
 
     def alpha_Twiss_x(self):
-        return cp.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
+        return pm.get_alpha(self.x, self.xp, getattr(self, 'dp', None))
 
     def alpha_Twiss_y(self):
-        return cp.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
+        return pm.get_alpha(self.y, self.yp, getattr(self, 'dp', None))
 
     def beta_Twiss_x(self):
-        return cp.get_beta(self.x, self.xp, getattr(self, 'dp', None))
+        return pm.get_beta(self.x, self.xp, getattr(self, 'dp', None))
 
     def beta_Twiss_y(self):
-        return cp.get_beta(self.y, self.yp, getattr(self, 'dp', None))
+        return pm.get_beta(self.y, self.yp, getattr(self, 'dp', None))
 
     def gamma_Twiss_x(self):
-        return cp.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
+        return pm.get_gamma(self.x, self.xp, getattr(self, 'dp', None))
 
     def gamma_Twiss_y(self):
-        return cp.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
+        return pm.get_gamma(self.y, self.yp, getattr(self, 'dp', None))
