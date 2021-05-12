@@ -68,8 +68,6 @@ class LongSpaceCharge(Element):
         self.n_slice_sigma = n_slice_sigma
         self._gfactor = self._gfactor0
 
-
-    @clean_slices
     def track(self, beam):
         '''Add the longitudinal space charge contribution to the beam's
         dp kick.
