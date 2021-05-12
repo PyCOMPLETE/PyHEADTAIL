@@ -75,8 +75,9 @@ class LongSpaceCharge(Element):
         '''
         slices = beam.get_slices(self.slicer)
         lambda_prime = slices.lambda_prime_bins(sigma=self.n_slice_sigma)
+        lambda_prime_z = lambda_prime / slices.slice_widths[0]
         slice_kicks = (self._prefactor(slices) * self._gfactor(beam) *
-                       lambda_prime) * (self.length / (beam.beta * c))
+                       lambda_prime_z) * (self.length / (beam.beta * c))
 
         kicks = slices.convert_to_particles(slice_kicks)
         beam.dp -= kicks
