@@ -50,7 +50,7 @@ class LongSpaceCharge(Element):
     '''
     directSC = 0.67
 
-    def __init__(self, slicer, pipe_radius, length, n_slice_sigma=3, pipe_geometry='circular',
+    def __init__(self, slicer, pipe_radius, length, n_slice_sigma=3,
                  *args, **kwargs):
         '''Arguments:
         - pipe_radius is the the radius of the vacuum pipe in metres.
@@ -66,16 +66,8 @@ class LongSpaceCharge(Element):
         self.pipe_radius = pipe_radius
         self.length = length
         self.n_slice_sigma = n_slice_sigma
+        self._gfactor = self._gfactor0
 
-        if pipe_geometry == 'circular':
-            self._gfactor = self._gfactor0
-        elif pipe_geometry == 'rectangular':
-            self.pipe_height = kwargs.get('pipe_height')
-            self.pipe_width = kwargs.get('pipe_width')
-            if self.pipe_height == None or self.pipe_width == None:
-                print ("If pipe_geometry is rectangular supply pipe_height and pipe_width")
-
-            self._gfactor = self._gfactor0_rect
 
     @clean_slices
     def track(self, beam):
@@ -97,25 +89,14 @@ class LongSpaceCharge(Element):
                 (4.*np.pi*epsilon_0 * beam.gamma**2 * beam.p0))
 
     def _gfactor0(self, beam):
-        '''Geometry factor for circular vacuum pipe.'''
+        '''Geometry factor for Gaussian beam on-axis
+        in symmetric vacuum pipe.
+        '''
         # transverse beam size:
         # (sigx+sigz)/2 * sqrt(2) <<< formula is for uniform distribution,
         # corresponding Gaussian sigmae are sqrt(2) larger
         r_beam = (beam.sigma_x() + beam.sigma_y()) / np.sqrt(8.)
         return self.directSC + 2. * pm.log(self.pipe_radius / r_beam)
-
-
-    def _gfactor0_rect(self, beam):
-        '''Geometry factor for a round beam at the centre of a rectangular vacuum pipe
-          See K.Y. Ng, Part. Accel. 16, 63 (1984), 
-          L. Wang and Y. Li, Phys. Rev. ST Accel Beams 18, 024201 (2015)'''
-        # transverse beam size:
-        # (sigx+sigz)/2 * sqrt(2) <<< formula is for uniform distribution,
-        # corresponding Gaussian sigmae are sqrt(2) larger
-        r_beam = (beam.sigma_x() + beam.sigma_y()) / np.sqrt(8.)
-        coef = (2*self.pipe_height)/(np.pi*r_beam)
-        return self.directSC + 2. * pm.log(coef*np.tanh((np.pi*self.pipe_width)/(2*self.pipe_height)))
-
 
     def make_force(self, beam):
         '''Return the electric force field due to space charge
@@ -148,6 +129,33 @@ class LongSpaceCharge(Element):
             return (self._prefactor(beam) * gfac *
                     sliceset.lambda_z(z) * beam.p0)
         return potential
+
+
+class LongSpaceChargeRectPipe(LongSpaceCharge):
+    '''Longitudinal space charge with a gfactor computed for
+    a rectangular beam pipe.
+
+    See K.Y. Ng, Part. Accel. 16, 63 (1984),
+    L. Wang and Y. Li, Phys. Rev. ST Accel Beams 18, 024201 (2015)
+    '''
+    def __init__(self, slicer, pipe_width, pipe_height, length,
+                 n_slice_sigma=3, *args, **kwargs):
+        '''Assumes a rectangular beam pipe.
+        Arguments:
+        - pipe_width is the the width of the vacuum pipe in metres.
+        - pipe_height is the the height of the vacuum pipe in metres.
+        - length is an s interval (in metres) along which the SC force
+        is integrated. Usually you want to set this to circumference
+        in conjunction with the LongitudinalOneTurnMap RFSystems.
+        - n_slice_sigma indicates the number of slices taken as a
+        sigma for the Gaussian kernel that smoothens the line charge
+        density derivative (see SliceSet.lambda_prime_bins for more
+        info).
+        '''
+        pipe_radius = 2 * pipe_height / np.pi * np.tanh(
+            np.pi * pipe_width / (2 * pipe_height))
+        super().__init__(slicer, pipe_radius, length, n_slice_sigma,
+                         *args, **kwargs)
 
 
 class TransverseGaussianSpaceCharge(Element):
