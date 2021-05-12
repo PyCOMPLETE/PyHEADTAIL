@@ -152,7 +152,7 @@ class LongSpaceChargeRectPipe(LongSpaceCharge):
         '''
         pipe_radius = 2 * pipe_height / np.pi * np.tanh(
             np.pi * pipe_width / (2 * pipe_height))
-        super().__init__(slicer, pipe_radius, length, n_slice_sigma,
+        super().__init__(slicer, abs(pipe_radius), length, n_slice_sigma,
                          *args, **kwargs)
 
 
