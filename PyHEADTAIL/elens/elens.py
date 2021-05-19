@@ -11,12 +11,55 @@ import numpy as np
 from scipy.constants import c, epsilon_0, pi, m_e, m_p, e
 
 from scipy.interpolate import splrep, splev
+from scipy.integrate import quad
+from scipy.special import i0, i1
 from functools import wraps
 
 from PyHEADTAIL.general import pmath as pm
 from PyHEADTAIL.field_maps import efields_funcs as efields
+from PyHEADTAIL.trackers.detuners import DetunerCollection
 
-
+class ElectronLensDetuner(DetunerCollection):
+    def __init__(self, dQmax, r, beta_x, beta_y):
+        self.dQmax = dQmax
+        self.r = r
+        self.beta_x = beta_x
+        self.beta_y = beta_y
+        self.segment_detuners = []
+    def generate_segment_detuner(self, dmu_x, dmu_y, **kwargs):
+        dapp_xz = self.dQmax
+        dapp_yz = self.dQmax
+        dapp_xz *= dmu_x
+        dapp_yz *= dmu_y
+        detuner = ElectronLensSegmentDetuner(dapp_xz, dapp_yz, self.r, self.beta_x, self.beta_y)
+        self.segment_detuners.append(detuner)
+class ElectronLensSegmentDetuner(object):
+    def __init__(self, dapp_xz, dapp_yz, r, beta_x, beta_y):
+        self.dapp_xz = dapp_xz
+        self.dapp_yz = dapp_yz
+        self.beta_x = beta_x
+        self.beta_y = beta_y
+        self.r = r
+    
+    def detune(self, beam):
+        def _bessel_term(u, kx, ky):
+            return (i0(kx*u)-i1(kx*u))*i0(ky*u)*np.exp((kx+ky)*u)
+        Jx = 0.5*(1/self.beta_x*beam.x**2+self.beta_x*beam.xp**2)
+        Jy = 0.5*(1/self.beta_y*beam.x**2+self.beta_y*beam.yp**2)
+        ##proper implementation through integration
+        # Kx = Jx/beam.epsn_x()*self.r**2
+        # Ky = Jy/beam.epsn_y()*self.r**2
+        # K = tuple(zip(Kx, Ky))
+        # bessel_term_X = np.array([quad(_bessel_term, 0, 1, args=(kx, ky))[0] for (kx, ky) in K])
+        # bessel_term_Y = np.array([quad(_bessel_term, 0, 1, args=(ky, kx))[0] for (kx, ky) in K])
+        ## approximate formula from Burov
+        ax = np.sqrt(2.0*Jx/beam.epsn_x())
+        ay = np.sqrt(2.0*Jy/beam.epsn_y())
+        bessel_term_X = (192.0-11.0*ax-18.0*np.sqrt(ax*ay)+3.0*ax**2)/(192.0-11.0*ax-18.0*np.sqrt(ax*ay)+3.0*ax**2+36.0*ax**2+21.0*ay**2)
+        bessel_term_Y = (192.0-11.0*ay-18.0*np.sqrt(ax*ay)+3.0*ay**2)/(192.0-11.0*ay-18.0*np.sqrt(ax*ay)+3.0*ay**2+36.0*ay**2+21.0*ax**2)
+        dQx = self.dapp_xz*bessel_term_X
+        dQy = self.dapp_yz*bessel_term_Y
+        return dQx, dQy
 class ElectronLens(Element):
     '''
     Contains implemenation of electron lens generated electromagnetic field acting on a particle collection.
