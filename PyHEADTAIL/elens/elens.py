@@ -53,8 +53,8 @@ class ElectronLensSegmentDetuner(object):
         # bessel_term_X = np.array([quad(_bessel_term, 0, 1, args=(kx, ky))[0] for (kx, ky) in K])
         # bessel_term_Y = np.array([quad(_bessel_term, 0, 1, args=(ky, kx))[0] for (kx, ky) in K])
         ## approximate formula from Burov
-        ax = np.sqrt(2.0*Jx/beam.epsn_x())
-        ay = np.sqrt(2.0*Jy/beam.epsn_y())
+        ax = np.sqrt(2.0*Jx/(beam.epsn_x()/beam.betagamma))
+        ay = np.sqrt(2.0*Jy/(beam.epsn_y()/beam.betagamma))
         bessel_term_X = (192.0-11.0*ax-18.0*np.sqrt(ax*ay)+3.0*ax**2)/(192.0-11.0*ax-18.0*np.sqrt(ax*ay)+3.0*ax**2+36.0*ax**2+21.0*ay**2)
         bessel_term_Y = (192.0-11.0*ay-18.0*np.sqrt(ax*ay)+3.0*ay**2)/(192.0-11.0*ay-18.0*np.sqrt(ax*ay)+3.0*ay**2+36.0*ay**2+21.0*ax**2)
         dQx = self.dapp_xz*bessel_term_X
