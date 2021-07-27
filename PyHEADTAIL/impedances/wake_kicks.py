@@ -157,7 +157,7 @@ class ConstantWakeKickX(WakeKick):
         constant_kick = self._accumulate_source_signal(
             bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
-        p_idx = slice_set_list[0].particles_within_cuts
+        p_idx = slice_set_list[0].particles_within_cuts_slice
         s_idx = pm.take(slice_set_list[0].slice_index_of_particle, p_idx)
         bunch.xp[p_idx] += pm.take(constant_kick, s_idx)
 
@@ -177,7 +177,7 @@ class ConstantWakeKickY(WakeKick):
         constant_kick = self._accumulate_source_signal(
             bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
-        p_idx = slice_set_list[0].particles_within_cuts
+        p_idx = slice_set_list[0].particles_within_cuts_slice
         s_idx = pm.take(slice_set_list[0].slice_index_of_particle, p_idx)
         bunch.yp[p_idx] += pm.take(constant_kick, s_idx)
 
@@ -197,7 +197,7 @@ class ConstantWakeKickZ(WakeKick):
         constant_kick = self._accumulate_source_signal(
             bunch, times_list, slice_set_age_list, moments_list, betas_list)
 
-        p_idx = slice_set_list[0].particles_within_cuts
+        p_idx = slice_set_list[0].particles_within_cuts_slice
         s_idx = pm.take(slice_set_list[0].slice_index_of_particle, p_idx)
         bunch.dp[p_idx] += pm.take(constant_kick, s_idx)
 
