@@ -14,7 +14,6 @@ except ImportError:
     has_pycuda = False
     print('No PyCUDA installation found.')
 
-
 from test_slicing import TestSlicing
 from test_particles import TestParticles
 from test_generators import TestParticleGenerators
@@ -29,7 +28,7 @@ from test_gpu_interface import TestGPUInterface
 from test_dispatch import TestDispatch
 from test_monitor import TestMonitor
 
-#add your test classes here
+# add your test classes here
 test_list = [TestSlicing,
              TestParticles,
              TestParticleGenerators,
@@ -37,7 +36,7 @@ test_list = [TestSlicing,
              TestSimpleLongTracking,
              TestListProxy,
              TestDetuner,
-             TestAutoRun, #uncomment to run full test suite (~ 1 min)
+             TestAutoRun,  # uncomment to run full test suite (~ 1 min)
              TestTransverseTracking,
              TestCobra,
              TestGPUInterface,
