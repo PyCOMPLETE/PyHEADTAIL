@@ -18,7 +18,7 @@ endif
 
 errfff:
 	f2py -c PyHEADTAIL/general/errfff.f90 -m errfff
-	mv errfff.so PyHEADTAIL/general/
+	mv errfff*.so PyHEADTAIL/general/
 
 clean:
 	python setup.py build_ext --inplace cleanall
