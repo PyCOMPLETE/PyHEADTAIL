@@ -7,18 +7,26 @@
 
 import unittest
 import numpy as np
+import logging
 from scipy.constants import c, e, m_p
-from pycuda.autoinit import context
-from pycuda import gpuarray
-from pycuda import cumath
 
-import PyHEADTAIL.gpu
-from PyHEADTAIL.particles.particles import Particles
-from PyHEADTAIL.gpu.slicing import MeshSlicer
-from PyHEADTAIL.general.printers import AccumulatorPrinter
-from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
-from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
-from PyPIC.GPU.meshing import UniformMesh1D
+try:
+    from pycuda.autoinit import context
+    from pycuda import gpuarray
+    from pycuda import cumath
+except ImportError:
+    has_pycuda = False
+else:
+    has_pycuda = True
+
+if has_pycuda:
+    import PyHEADTAIL.gpu
+    from PyHEADTAIL.particles.particles import Particles
+    from PyHEADTAIL.gpu.slicing import MeshSlicer
+    from PyHEADTAIL.general.printers import AccumulatorPrinter
+    from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
+    from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
+    from PyPIC.GPU.meshing import UniformMesh1D
 
 def check_elements_equal(np_array1d):
     value = np_array1d[0]
@@ -30,6 +38,7 @@ def check_elements_equal(np_array1d):
 
 class TestSlicing(unittest.TestCase):
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def setUp(self):
         #beam parameters
         self.intensity = 1.234e9
@@ -52,9 +61,11 @@ class TestSlicing(unittest.TestCase):
         self.basic_slicer = MeshSlicer(self.mesh, context)
         self.basic_slice_set = self.basic_slicer.slice(self.bunch)
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def tearDown(self):
         pass
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_long_cuts(self):
         '''Tests whether the z_cuts are initialized correctly'''
         (cut_tail, cut_head) = self.basic_slicer.get_long_cuts(self.bunch)
@@ -73,6 +84,7 @@ class TestSlicing(unittest.TestCase):
     #     self.assertTrue(len(warnings.log) > 0,
     #                     'no warning generated when z_cut head < z_cut tail')
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_equality(self):
         '''Tests whether two slicers with the same config are equal
         in the sense of the == and != operator (calling __eq__, __ne__)
@@ -86,6 +98,7 @@ class TestSlicing(unittest.TestCase):
                          'comparing two uniform bin slicers with '+
                          'identical config using != returns True')
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_inequality(self):
         '''Tests whether two slicers with differing meshs are not equal
         in the sense of the == and != operator (calling __eq__, __ne__)
@@ -100,6 +113,7 @@ class TestSlicing(unittest.TestCase):
                          'comparing two uniform bin slicers with '+
                          'different config using == returns True')
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_sliceset_macroparticles(self):
         '''Tests whether the sum of all particles per slice
         is equal to the specified number of macroparticles when specifying
@@ -115,6 +129,7 @@ class TestSlicing(unittest.TestCase):
         self.assertEqual(self.macroparticlenumber, n_particles,
                          'the SliceSet lost/added some particles')
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def test_add_statistics(self):
         """ Tests whether any error gets thrown when calling the statistics
         functions of the slicer. Does not do any specific tests
@@ -154,6 +169,7 @@ class TestSlicing(unittest.TestCase):
     #    self.assertTrue(self.basic_slice_set.slice_positions.size ==
     #                    self.nslices, 'slice_positions has wrong dimension')
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def create_mesh(self, nslices=None, z_cuts=None):
         if nslices is None:
             nslices = self.nslices
@@ -164,6 +180,7 @@ class TestSlicing(unittest.TestCase):
                              nslices,
                              mathlib=cumath)
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def create_bunch(self, zmin=-1., zmax=1.):
         z = np.linspace(zmin, zmax, num=self.macroparticlenumber)
         y = np.copy(z)
@@ -180,6 +197,7 @@ class TestSlicing(unittest.TestCase):
             self.circumference, self.gamma, coords_n_momenta_dict
         )
 
+    @unittest.skipUnless(has_pycuda, 'pycuda not found')
     def create_bunch_with_params(self,alpha_x, beta_x, disp_x, gamma):
         np.random.seed(0)
         beta_y = beta_x
@@ -218,5 +236,7 @@ class TestSlicing(unittest.TestCase):
         bunch.x += disp_x * bunch.dp
         bunch.y += disp_y * bunch.dp
         return bunch
+
+
 if __name__ == '__main__':
     unittest.main()
