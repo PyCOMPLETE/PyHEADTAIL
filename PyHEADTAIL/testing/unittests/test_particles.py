@@ -122,7 +122,7 @@ class TestParticles(unittest.TestCase):
 
     def test_means(self):
         ''' Tests the mean() method of the Particle class '''
-        self.assertAlmostEquals(self.bunch.mean_xp(), np.mean(self.bunch.xp),
+        self.assertAlmostEqual(self.bunch.mean_xp(), np.mean(self.bunch.xp),
                                 places=5, msg='np.mean() and bunch.mean_xp() '
                                 'yield different results')
 
@@ -130,7 +130,7 @@ class TestParticles(unittest.TestCase):
         '''Test the sigma_z() method of the Particle class
         Only check the first 3 digits because the sample is small (2048)
         '''
-        self.assertAlmostEquals(self.bunch.sigma_z(), np.std(self.bunch.z),
+        self.assertAlmostEqual(self.bunch.sigma_z(), np.std(self.bunch.z),
                                 places=3, msg='np.std() and bunch.sigma_z() '
                                 'yield different results')
 
@@ -164,7 +164,7 @@ class TestParticles(unittest.TestCase):
         emittance for a transverse-only beam.
         '''
         beam_transverse = self.create_transverse_only_bunch()
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             beam_transverse.epsn_x(),
             beam_transverse.effective_normalized_emittance_x(),
             places = 5,
@@ -173,7 +173,7 @@ class TestParticles(unittest.TestCase):
             'for a transverse only beam.'
         )
 
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             beam_transverse.epsn_y(),
             beam_transverse.effective_normalized_emittance_y(),
             places = 5,
