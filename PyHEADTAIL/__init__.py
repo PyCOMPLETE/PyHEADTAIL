@@ -16,5 +16,7 @@ from . import trackers
 
 from ._version import __version__
 
+Particles = particles.Particles
+
 print('PyHEADTAIL v' + __version__)
 
