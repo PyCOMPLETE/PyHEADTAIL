@@ -46,7 +46,7 @@ class TestCobra(unittest.TestCase):
         """
         v_cobra = cf.cov(self.data1, self.data2)
         v_numpy = np.cov(self.data1, self.data2)[0,1]
-        self.assertAlmostEquals(v_cobra, v_numpy, places=self.tolerance,
+        self.assertAlmostEqual(v_cobra, v_numpy, places=self.tolerance,
                                 msg='cobra cov() yields a different result ' +
                                 'than numpy.cov()')
 
@@ -58,10 +58,10 @@ class TestCobra(unittest.TestCase):
         bunch = self.generate_gaussian6dBunch(1000000, 0, 0, 1, 1, 5, 100)
         eta_prime_x = cf.dispersion(bunch.xp, bunch.dp)
         weak_tol = 2
-        self.assertAlmostEquals(eta_prime_x, 0., places=weak_tol,
+        self.assertAlmostEqual(eta_prime_x, 0., places=weak_tol,
                                 msg='eta_prime_x is not zero but ' + str(eta_prime_x))
         eta_prime_y = cf.dispersion(bunch.yp, bunch.dp)
-        self.assertAlmostEquals(eta_prime_y, 0., places=weak_tol,
+        self.assertAlmostEqual(eta_prime_y, 0., places=weak_tol,
                                 msg='eta_prime_y is not zero but ' + str(eta_prime_y))
 
 
@@ -71,7 +71,7 @@ class TestCobra(unittest.TestCase):
         """
         d1 = np.random.normal(100, 2., self.n_samples)
         d2 = np.random.normal(200, 0.2, self.n_samples)
-        self.assertAlmostEquals(cf.cov(d1, d2), 0.0,
+        self.assertAlmostEqual(cf.cov(d1, d2), 0.0,
                                 places=self.tolerance,
                                 msg='cobra cov() of two uncorrelated ' +
                                 'Gaussians != 0')

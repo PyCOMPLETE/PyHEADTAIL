@@ -92,7 +92,7 @@ for i in range(n_turns):
     epsn_z[i]   = bunch.epsn_z()
     mean_dp[i]  = bunch.mean_dp()
 
-    if not (i+1)%10:
+    if not (i+1)%100:
         ax1.cla()
         ax2.cla()
         ax3.cla()

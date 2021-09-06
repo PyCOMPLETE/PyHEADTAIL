@@ -17,7 +17,7 @@ try:
     import pycuda.compiler
     import pycuda.driver as drv
     import pycuda.elementwise
-    import PyHEADTAIL.gpu.thrust_interface
+    from PyHEADTAIL.gpu import thrust_interface
 
     # if pycuda is there, try to compile things. If no context available,
     # throw error to tell the user that he should import pycuda.autoinit
@@ -90,6 +90,40 @@ if has_pycuda:
             b.gpudata, out.gpudata, a.mem_size)
         return out
 
+    def _subtract(a, b, out=None, stream=None):
+        '''Elementwise subtraction of two gpuarray specifying a stream
+        Required because gpuarray.__sub__ has no stream argument'''
+        if out is None:
+            out = _empty_like(a)
+        func = pycuda.elementwise.get_binary_op_kernel(a.dtype, b.dtype,
+            out.dtype, "-")
+        func.prepared_async_call(a._grid, a._block, stream, a.gpudata,
+            b.gpudata, out.gpudata, a.mem_size)
+        return out
+
+    def _add(a, b, out=None, stream=None):
+        '''Elementwise addition of two gpuarray specifying a stream
+        Required because gpuarray.__add__ has no stream argument'''
+        if out is None:
+            out = _empty_like(a)
+        func = pycuda.elementwise.get_binary_op_kernel(a.dtype, b.dtype,
+            out.dtype, "+")
+        func.prepared_async_call(a._grid, a._block, stream, a.gpudata,
+            b.gpudata, out.gpudata, a.mem_size)
+        return out
+
+    def _divide(a, b, out=None, stream=None):
+        '''Elementwise division of two gpuarray specifying a stream
+        Required because gpuarray.__div__ has no stream argument'''
+        if out is None:
+            out = _empty_like(a)
+        func = pycuda.elementwise.get_binary_op_kernel(a.dtype, b.dtype,
+            out.dtype, "/")
+        func.prepared_async_call(a._grid, a._block, stream, a.gpudata,
+            b.gpudata, out.gpudata, a.mem_size)
+        return out
+
+
     _arange_gpu_float64 = pycuda.elementwise.ElementwiseKernel(
         'double* out, double* start, const double* step',
         'const double s = step[0];'
@@ -158,7 +192,7 @@ if has_pycuda:
         operation='double sigma11 = cov_u2[i]   - cov_u_dp[i] *cov_u_dp[i] / cov_dp2[i];'
                   'double sigma12 = cov_u_up[i] - cov_u_dp[i] *cov_up_dp[i]/ cov_dp2[i];'
                   'double sigma22 = cov_up2[i]  - cov_up_dp[i]*cov_up_dp[i]/ cov_dp2[i];'
-                  'out[i] = sqrt((1./(nn*nn+nn))*(sigma11 * sigma22 - sigma12*sigma12))',
+                  'out[i] = sqrt((1./((nn-1)*(nn-1)))*(sigma11 * sigma22 - sigma12*sigma12))',
         name='_emitt_disp',
     )
     def _emittance_dispersion(
@@ -174,7 +208,7 @@ if has_pycuda:
         arguments='double* out, double* cov_u2, double* cov_u_up, '
                   'double* cov_up2, double nn',
         operation=
-            'out[i] = sqrt((1./(nn*nn+nn)) * '
+            'out[i] = sqrt((1./((nn-1)*(nn-1))) * '
                      '(cov_u2[i] * cov_up2[i] - cov_u_up[i]*cov_u_up[i]))',
         name='_emitt_nodisp'
     )
@@ -362,23 +396,28 @@ def covariance_old(a, b):
     covariance = skcuda.misc.mean(x * y) * n / (n + 1)
     return covariance.get()
 
-def covariance(a,b, stream=None):
+def covariance(a, b, stream=None):
     '''Covariance (not covariance matrix)
     Args:
         a: pycuda.GPUArray
         b: pycuda.GPUArray
     '''
     n = len(a)
+    if n < 2:
+        return pycuda.gpuarray.zeros(1, dtype=np.float64,
+                                     allocator=gpu_utils.memory_pool.allocate)
     x = _empty_like(a)
     y = _empty_like(b)
-    mean_a = skcuda.misc.mean(a)
+    mean_a = mean(a, stream=stream)
     #x -= mean_a
     _sub_1dgpuarr(x, a, mean_a, stream=stream)
-    mean_b = skcuda.misc.mean(b)
+    mean_b = mean(b, stream=stream)
     #y -= mean_b
     _sub_1dgpuarr(y, b, mean_b, stream=stream)
-    covariance = skcuda.misc.mean(x * y) * (n / (n + 1))
-    return covariance
+    out = _multiply(x, y, stream=stream)
+    out = mean(out, stream=stream)
+    _mul_scalar(out=out, gpuarr=out, scalar=np.float64(n / (n - 1.)), stream=stream)
+    return out
 
 def mean(a, stream=None):
     '''Compute the mean of the gpuarray a
@@ -386,7 +425,6 @@ def mean(a, stream=None):
     the stream (because gpuarray.__div__ does not have a stream
     argument).
     '''
-    #out = pycuda.gpuarray.empty(1, dtype=np.float64, allocator=gpu_utils.memory_pool.allocate)
     n = len(a)
     out = pycuda.gpuarray.sum(a, stream=stream,
                               allocator=gpu_utils.memory_pool.allocate)
@@ -407,14 +445,14 @@ def std(a, stream=None):
     _inplace_pow(res, 0.5, stream=stream)
     return res
 
-def emittance_reference(u, up, dp):
+def emittance_reference(u, up, dp=None):
     '''
     Compute the emittance of GPU arrays. Reference implementation, slow
     but readable
     Args:
         u coordinate array
         up conjugate momentum array
-        dp longitudinal momentum variation
+        dp longitudinal momentum variation (can be None)
     '''
     cov_u2 = covariance(u, u)
     cov_up2 = covariance(up, up)
@@ -443,7 +481,7 @@ def emittance_reference(u, up, dp):
     return np.sqrt(sigma11.get() * sigma22.get() - sigma12 * sigma12)
 
 
-def emittance_(u, up, dp):
+def emittance_(u, up, dp=None):
     '''
     Compute the emittance of GPU arrays. Check the algorithm above for
     a more readable version, this one has been 'optimized', e.g. mean->sum
@@ -451,7 +489,7 @@ def emittance_(u, up, dp):
     Args:
         u coordinate array
         up conjugate momentum array
-        dp longitudinal momentum variation
+        dp longitudinal momentum variation (can be None)
     '''
     n = len(u)
     mean_u = skcuda.misc.mean(u)
@@ -478,10 +516,9 @@ def emittance_(u, up, dp):
             sigma11 -= cov_u_dp * cov_u_dp / cov_dp2
             sigma12 -= cov_u_dp * cov_up_dp / cov_dp2
             sigma22 -= cov_up_dp * cov_up_dp / cov_dp2
-    return pycuda.cumath.sqrt((1./(n*n+n))*(sigma11 * sigma22 - sigma12*sigma12))
+    return pycuda.cumath.sqrt(1./((n-1)*(n-1))*(sigma11 * sigma22 - sigma12*sigma12))
 
-
-def emittance(u, up, dp, stream=None):
+def emittance(u, up, dp=None, stream=None):
     '''
     Compute the emittance of GPU arrays. Check the algorithm above for
     a more readable version, this one has been 'optimized', e.g. mean->sum
@@ -530,6 +567,98 @@ def emittance(u, up, dp, stream=None):
     return out
 
 
+def dispersion(u, dp, stream=None):
+    '''Compute the statistical dispersion:
+    disp = <u*dp>/<dp**2>
+    Args:
+        u: coordinate array, typically x or y spatial coordinates
+        dp: longitudinal momentum offset array
+    '''
+    mean_dp2 = mean(_multiply(dp, dp, stream=stream), stream=stream)
+    if mean_dp2.get() > 0: # equiv to != 0 (dp^2 can never be <0)
+        mean_u_dp = mean(_multiply(u, dp, stream=stream), stream=stream)
+        return _divide(mean_u_dp, mean_dp2, stream=stream)
+    else:
+        return pycuda.gpuarray.zeros(1, dtype=float, allocator=gpu_utils.memory_pool.allocate)
+
+
+def get_alpha(u, up, dp=None, stream=None):
+    '''Compute the statistical Twiss alpha value.
+    If dp is None, the effective alpha is computed.
+    Args:
+        u: coordinate array, typically x or y spatial coordinates
+        up: momentum array, typically xp or yp momenta
+        dp: longitudinal momentum offset array
+    '''
+    cov_u_up = covariance(u, up, stream=None)
+    epsn = emittance(u, up, dp, stream=None)
+    include_dp = dp is not None
+    if include_dp:
+        cov_dp2 = covariance(dp, dp, stream=stream)
+        include_dp = cov_dp2.get() > 0
+    if include_dp:
+        cov_u_dp = covariance(u, dp, stream=stream)
+        cov_up_dp = covariance(up, dp, stream=stream)
+        tmp = _multiply(cov_u_dp, cov_up_dp, stream=stream)
+        offdiag = _divide(tmp, cov_dp2, stream=stream)
+        sigma12 = _subtract(offdiag, cov_u_up, stream=stream) # ! * (-1)
+    else:
+        _mul_scalar(out=cov_u_up, gpuarr=cov_u_up, scalar=np.float64(-1.), stream=stream)
+        sigma12 = cov_u_up
+
+    return _divide(sigma12, epsn, stream=stream)
+
+
+def get_beta(u, up, dp=None, stream=None):
+    '''Compute the statistical Twiss beta value.
+    If dp is None, the effective beta is computed.
+    Args:
+        u: coordinate array, typically x or y spatial coordinates
+        up: momentum array, typically xp or yp momenta
+        dp: longitudinal momentum offset array
+    '''
+    cov_u2 = covariance(u, u, stream=None)
+    epsn = emittance(u, up, dp, stream=None)
+    include_dp = dp is not None
+    if include_dp:
+        cov_dp2 = covariance(dp, dp, stream=stream)
+        include_dp = cov_dp2.get() > 0
+    if include_dp:
+        cov_u_dp = covariance(u, dp, stream=stream)
+        tmp = _multiply(cov_u_dp, cov_u_dp, stream=stream)
+        offdiag = _divide(tmp, cov_dp2, stream=stream)
+        sigma11 = _subtract(cov_u2, offdiag, stream=stream)
+    else:
+        sigma11 = cov_u2
+
+    return _divide(sigma11, epsn, stream=stream)
+
+
+def get_gamma(u, up, dp=None, stream=None):
+    '''Compute the statistical Twiss gamma value.
+    If dp is None, the effective gamma is computed.
+    Args:
+        u: coordinate array, typically x or y spatial coordinates
+        up: momentum array, typically xp or yp momenta
+        dp: longitudinal momentum offset array
+    '''
+    cov_up2 = covariance(up, up, stream=None)
+    epsn = emittance(u, up, dp, stream=None)
+    include_dp = dp is not None
+    if include_dp:
+        cov_dp2 = covariance(dp, dp, stream=stream)
+        include_dp = cov_dp2.get() > 0
+    if include_dp:
+        cov_up_dp = covariance(up, dp, stream=stream)
+        tmp = _multiply(cov_up_dp, cov_up_dp, stream=stream)
+        offdiag = _divide(tmp, cov_dp2, stream=stream)
+        sigma22 = _subtract(cov_up2, offdiag, stream=stream)
+    else:
+        sigma22 = cov_up2
+
+    return _divide(sigma22, epsn, stream=stream)
+
+
 def cumsum(array, dest=None):
     '''Return cumulative sum of 1-dimensional GPUArray data.
     Works for dtypes np.int32 and np.float64. Wrapper for thrust
@@ -560,15 +689,16 @@ def argsort(to_sort):
     permutation = pycuda.gpuarray.empty(
         to_sort.shape, dtype=np.int32,
         allocator=gpu_utils.memory_pool.allocate)
-    if dtype.itemsize == 8 and dtype.kind is 'f':
+    if dtype.itemsize == 8 and dtype.kind == 'f':
         thrust.get_sort_perm_double(to_sort.copy(), permutation)
-    elif dtype.itemsize == 4 and dtype.kind is 'i':
+    elif dtype.itemsize == 4 and dtype.kind == 'i':
         thrust.get_sort_perm_int(to_sort.copy(), permutation)
+    elif dtype.itemsize == 8 and dtype.kind == 'i':
+        thrust.get_sort_perm_long(to_sort.copy(), permutation)
     else:
-        print(to_sort.dtype)
-        print(to_sort.dtype.itemsize)
-        print(to_sort.dtype.kind)
-        raise TypeError('Currently only float64 and int32 types can be sorted')
+        raise TypeError(
+            'Currently only float64, int64 and int32 types can '
+            'be sorted -- I encountered ' + str(to_sort.dtype))
     return permutation
 
 def searchsortedleft(array, values, dest_array=None):
@@ -590,23 +720,24 @@ def searchsortedright(array, values, dest_array=None):
 def apply_permutation(array, permutation):
     '''
     Permute the entries in array according to the permutation array.
-    Return a new (permuted) array which is equal to array[permutation]
+    Return a new (permuted) array which is equal to array[permutation].
     Args:
-        array gpuarray to be permuted. Either float64 or int32
+        array gpuarray to be permuted. Must be float64, int64 or int32
         permutation permutation array: must be np.int32 (or int32), is asserted
     '''
-    assert(permutation.dtype.itemsize == 4 and permutation.dtype.kind is 'i')
+    assert(permutation.dtype.itemsize == 4 and permutation.dtype.kind == 'i')
     tmp = _empty_like(array)
     dtype = array.dtype
-    if dtype.itemsize == 8 and dtype.kind is 'f':
+    if dtype.itemsize == 8 and dtype.kind == 'f':
         thrust.apply_sort_perm_double(array, tmp, permutation)
-    elif dtype.itemsize == 4 and dtype.kind is 'i':
+    elif dtype.itemsize == 4 and dtype.kind == 'i':
         thrust.apply_sort_perm_int(array, tmp, permutation)
+    elif dtype.itemsize == 8 and dtype.kind == 'i':
+        thrust.apply_sort_perm_long(array, tmp, permutation)
     else:
-        print(array.dtype)
-        print(array.dtype.itemsize)
-        print(array.dtype.kind)
-        raise TypeError('Currently only float64 and int32 types can be sorted')
+        raise TypeError(
+            'Currently only float64, int64 and int32 types can '
+            'be sorted -- I encountered ' + str(array.dtype))
     return tmp
 
 def particles_within_cuts(sliceset):
@@ -778,12 +909,14 @@ def sorted_emittance_per_slice(sliceset, u, up, dp=None, stream=None):
         cov_up_dp= sorted_cov_per_slice(sliceset, up, dp, stream=streams[4])
         cov_dp2 = sorted_cov_per_slice(sliceset, dp, dp, stream=streams[5])
         for s in streams:
-            s.synchronize()
+            if s: # could be None
+                s.synchronize()
         if not cov_dp2.get().any():
             include_dp = False
     else:
         for s in streams[:3]:
-            s.synchronize()
+            if s: # could be None
+                s.synchronize()
 
     if include_dp:
         _emitt_disp(out, cov_u2, cov_u_up, cov_up2,

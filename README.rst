@@ -1,19 +1,11 @@
-.. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/manual/badge.svg
-   :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
-
-.. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/build/badge.svg
-   :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
-
-.. image:: https://github.com/PyCOMPLETE/PyHEADTAIL/workflows/tests/badge.svg
-   :target: https://github.com/PyCOMPLETE/PyHEADTAIL/actions
    
 PyHEADTAIL
 ==========
 
-CERN PyHEADTAIL numerical n-body simulation code
-for simulating macro-particle beam dynamics with collective effects.
+CERN PyHEADTAIL macro-particle code
+for simulating beam dynamics in particle accelerators with collective effects.
 
-PyHEADTAIL is written in C and Python.
+PyHEADTAIL is written in Python with some C extensions, compiled with Cython.
 Currently, PyHEADTAIL is compatible with Python v3.6 or later.
 
 Installation for Users
@@ -65,8 +57,6 @@ And there you go, start using PyHEADTAIL!
     ...
 
     In [1]: import PyHEADTAIL
-
-    PyHEADTAIL v1.14.0
 
 For a single installation of PyHEADTAIL we recommended to add
 the PyHEADTAIL path to your PYTHONPATH.

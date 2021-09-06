@@ -1,9 +1,0 @@
-mkdir ../python3
-rm -rf ../python3/PyHEADTAIL
-cp -r ../PyHEADTAIL ../python3/PyHEADTAIL
-rm ../python3/PyHEADTAIL/*.so
-
-2to3 --output-dir=../python3/PyHEADTAIL -W -n ../PyHEADTAIL > 2to3.out
-
-#rm -rf ../python3/PyHEADTAIL/.git
-

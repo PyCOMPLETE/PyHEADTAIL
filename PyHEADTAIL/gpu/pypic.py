@@ -8,7 +8,6 @@ PyPIC can be found under https://github.com/PyCOMPLETE/PyPIC .
 '''
 
 from PyHEADTAIL.general import pmath as pm
-from pm import UnknownContextManagerError
 
 from PyPIC.GPU import pypic
 
@@ -17,12 +16,12 @@ def make_PyPIC(*args, **kwargs):
     Return PyPIC_GPU instance launched with args and kwargs if current
     context is on the GPU, otherwise return PyPIC instance.
     '''
-    if pm.device is 'CPU':
+    if pm.device == 'CPU':
         return pypic.PyPIC(*args, **kwargs)
-    elif pm.device is 'GPU':
+    elif pm.device == 'GPU':
         from pycuda.autoinit import context
         if 'context' not in kwargs:
             kwargs.update(context=context)
         return pypic.PyPIC_GPU(*args, **kwargs)
     else:
-        raise UnknownContextManagerError()
+        raise pm.UnknownContextManagerError()

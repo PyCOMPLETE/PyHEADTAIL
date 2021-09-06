@@ -244,7 +244,7 @@ class SliceSet(Printing):
         (i.e. the smoothened derivative of the n_macroparticles array
         times the macroparticle charge.)
         '''
-        if self.mode is 'uniform_charge':
+        if self.mode == 'uniform_charge':
             # self.warns('The line charge density derivative is zero up to ' +
             #            'numerical fluctuations w.r.t. bins because the ' +
             #            'charges have been distributed uniformly across ' +
@@ -461,7 +461,7 @@ class Slicer(Printing, metaclass=ABCMeta):
         for stat in statistics:
             if not hasattr(sliceset, stat):
                 stat_caller = getattr(self, '_' + stat)
-                if pm.device is 'GPU':
+                if pm.device == 'GPU':
                     st = next(gpu_utils.stream_pool)
                     values = stat_caller(sliceset, beam,
                                          stream=next(gpu_utils.stream_pool))

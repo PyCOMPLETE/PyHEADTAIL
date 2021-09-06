@@ -373,33 +373,39 @@ class Synchrotron(Element):
         Requires self.longitudinal_mode == 'non-linear'
         for the bucket.
         """
-        assert self.longitudinal_mode == "non-linear"
-        epsx_geo = epsn_x / self.betagamma
-        epsy_geo = epsn_y / self.betagamma
+        if self.longitudinal_mode == 'linear':
+            assert(sigma_z is not None)
+            bunch = self.generate_6D_Gaussian_bunch(n_macroparticles, intensity,
+                    epsn_x, epsn_y, sigma_z)
+        elif self.longitudinal_mode == "non-linear":
+            epsx_geo = epsn_x / self.betagamma
+            epsy_geo = epsn_y / self.betagamma
 
-        injection_optics = self.transverse_map.get_injection_optics()
+            injection_optics = self.transverse_map.get_injection_optics()
 
-        bunch = generators.ParticleGenerator(
-            macroparticlenumber=n_macroparticles,
-            intensity=intensity,
-            charge=self.charge,
-            mass=self.mass,
-            circumference=self.circumference,
-            gamma=self.gamma,
-            distribution_x=generators.gaussian2D(epsx_geo),
-            alpha_x=injection_optics["alpha_x"],
-            beta_x=injection_optics["beta_x"],
-            D_x=injection_optics["D_x"],
-            distribution_y=generators.gaussian2D(epsy_geo),
-            alpha_y=injection_optics["alpha_y"],
-            beta_y=injection_optics["beta_y"],
-            D_y=injection_optics["D_y"],
-            distribution_z=generators.RF_bucket_distribution(
-                self.longitudinal_map.get_bucket(gamma=self.gamma),
-                sigma_z=sigma_z,
-                epsn_z=epsn_z,
-            ),
-        ).generate()
+            bunch = generators.ParticleGenerator(
+                macroparticlenumber=n_macroparticles,
+                intensity=intensity,
+                charge=self.charge,
+                mass=self.mass,
+                circumference=self.circumference,
+                gamma=self.gamma,
+                distribution_x=generators.gaussian2D(epsx_geo),
+                alpha_x=injection_optics["alpha_x"],
+                beta_x=injection_optics["beta_x"],
+                D_x=injection_optics["D_x"],
+                distribution_y=generators.gaussian2D(epsy_geo),
+                alpha_y=injection_optics["alpha_y"],
+                beta_y=injection_optics["beta_y"],
+                D_y=injection_optics["D_y"],
+                distribution_z=generators.RF_bucket_distribution(
+                    self.longitudinal_map.get_bucket(gamma=self.gamma),
+                    sigma_z=sigma_z,
+                    epsn_z=epsn_z,
+                ),
+            ).generate()
+        else:
+            raise ValueError('Unknown longitudinal mode!')
 
         return bunch
 

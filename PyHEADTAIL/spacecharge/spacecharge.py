@@ -68,15 +68,15 @@ class LongSpaceCharge(Element):
         self.n_slice_sigma = n_slice_sigma
         self._gfactor = self._gfactor0
 
-    @clean_slices
     def track(self, beam):
         '''Add the longitudinal space charge contribution to the beam's
         dp kick.
         '''
         slices = beam.get_slices(self.slicer)
         lambda_prime = slices.lambda_prime_bins(sigma=self.n_slice_sigma)
+        lambda_prime_z = lambda_prime / slices.slice_widths[0]
         slice_kicks = (self._prefactor(slices) * self._gfactor(beam) *
-                       lambda_prime) * (self.length / (beam.beta * c))
+                       lambda_prime_z) * (self.length / (beam.beta * c))
 
         kicks = slices.convert_to_particles(slice_kicks)
         beam.dp -= kicks
@@ -87,7 +87,9 @@ class LongSpaceCharge(Element):
                 (4.*np.pi*epsilon_0 * beam.gamma**2 * beam.p0))
 
     def _gfactor0(self, beam):
-        '''Geometry factor for circular vacuum pipe.'''
+        '''Geometry factor for Gaussian beam on-axis
+        in symmetric vacuum pipe.
+        '''
         # transverse beam size:
         # (sigx+sigz)/2 * sqrt(2) <<< formula is for uniform distribution,
         # corresponding Gaussian sigmae are sqrt(2) larger
@@ -125,6 +127,33 @@ class LongSpaceCharge(Element):
             return (self._prefactor(beam) * gfac *
                     sliceset.lambda_z(z) * beam.p0)
         return potential
+
+
+class LongSpaceChargeRectPipe(LongSpaceCharge):
+    '''Longitudinal space charge with a gfactor computed for
+    a rectangular beam pipe.
+
+    See K.Y. Ng, Part. Accel. 16, 63 (1984),
+    L. Wang and Y. Li, Phys. Rev. ST Accel Beams 18, 024201 (2015)
+    '''
+    def __init__(self, slicer, pipe_width, pipe_height, length,
+                 n_slice_sigma=3, *args, **kwargs):
+        '''Assumes a rectangular beam pipe.
+        Arguments:
+        - pipe_width is the the width of the vacuum pipe in metres.
+        - pipe_height is the the height of the vacuum pipe in metres.
+        - length is an s interval (in metres) along which the SC force
+        is integrated. Usually you want to set this to circumference
+        in conjunction with the LongitudinalOneTurnMap RFSystems.
+        - n_slice_sigma indicates the number of slices taken as a
+        sigma for the Gaussian kernel that smoothens the line charge
+        density derivative (see SliceSet.lambda_prime_bins for more
+        info).
+        '''
+        pipe_radius = 2 * pipe_height / np.pi * np.tanh(
+            np.pi * pipe_width / (2 * pipe_height))
+        super().__init__(slicer, abs(pipe_radius), length, n_slice_sigma,
+                         *args, **kwargs)
 
 
 class TransverseGaussianSpaceCharge(Element):

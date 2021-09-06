@@ -143,7 +143,7 @@ class BunchMonitor(Monitor):
             # (macroparticlenumber) of the bunch.
             write_pos = self.i_steps % self.buffer_size
             try:
-                if pm.device is 'is_.2slowerwiththis':#'GPU':
+                if pm.device == 'is_.2slowerwiththis':#'GPU':
                     #val_bf[stat]
                     st = next(gpu_utils.stream_pool)
                     val_buf[stats] = evaluate_stats(stream=st)
@@ -449,13 +449,14 @@ class ParticleMonitor(Monitor):
         all_quantities = {}
         for quant in self.quantities_to_store:
             quant_values = getattr(bunch, quant)
-            if pm.device is 'GPU':
+            if pm.device == 'GPU':
                 stream = next(gpu_utils.stream_pool)
                 quant_values = quant_values.get_async(stream=stream)
             all_quantities[quant] = quant_values
-        if pm.device is 'GPU':
-            for stream in gpu_utils.streams:
-                stream.synchronize()
+        if pm.device == 'GPU':
+            if gpu_utils.use_streams:
+                for stream in gpu_utils.streams:
+                    stream.synchronize()
 
         if arrays_dict is not None:
             all_quantities.update(arrays_dict)
@@ -573,12 +574,13 @@ class CellMonitor(Monitor):
                      'yp': None, 'z': None, 'dp': None}
         for coord in ps_coords:
             ps_coords[coord] = getattr(bunch, coord)
-            if pm.device is 'GPU':
+            if pm.device == 'GPU':
                 stream = next(gpu_utils.stream_pool)
                 ps_coords[coord] = ps_coords[coord].get_async(stream=stream)
-        if pm.device is 'GPU':
-            for stream in gpu_utils.streams:
-                stream.synchronize()
+        if pm.device == 'GPU':
+            if gpu_utils.use_streams:
+                for stream in gpu_utils.streams:
+                    stream.synchronize()
 
         # TODO: calculate these cell stats on the GPU instead of the CPU!!!
         n_cl, x_cl, xp_cl, y_cl, yp_cl, z_cl, dp_cl = cp.calc_cell_stats(

@@ -36,6 +36,14 @@ void thrust_get_sort_perm_double(double* input_ptr, int length, int* perm_ptr)
   thrust::sort_by_key(thrust_ptr, thrust_ptr + length, indices);
 }
 
+void thrust_get_sort_perm_long(long* input_ptr, int length, int* perm_ptr)
+{
+  thrust::device_ptr<long> thrust_ptr(input_ptr);
+  thrust::device_ptr<int> indices(perm_ptr);
+  thrust::sequence(indices, indices + length);
+  thrust::sort_by_key(thrust_ptr, thrust_ptr + length, indices);
+}
+
 void thrust_get_sort_perm_int(int* input_ptr, int length, int* perm_ptr)
 {
   thrust::device_ptr<int> thrust_ptr(input_ptr);
@@ -48,6 +56,14 @@ void thrust_apply_sort_perm_double(double* input_ptr, int length, double* output
 {
   thrust::device_ptr<double> thrust_input_ptr(input_ptr);
   thrust::device_ptr<double> thrust_output_ptr(output_ptr);
+  thrust::device_ptr<int> indices(perm_ptr);
+  thrust::gather(indices, indices + length, thrust_input_ptr, thrust_output_ptr);
+}
+
+void thrust_apply_sort_perm_long(long* input_ptr, int length, long* output_ptr, int* perm_ptr)
+{
+  thrust::device_ptr<long> thrust_input_ptr(input_ptr);
+  thrust::device_ptr<long> thrust_output_ptr(output_ptr);
   thrust::device_ptr<int> indices(perm_ptr);
   thrust::gather(indices, indices + length, thrust_input_ptr, thrust_output_ptr);
 }

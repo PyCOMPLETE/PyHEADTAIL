@@ -197,7 +197,7 @@ class MeshSliceSet(def_slicing.SliceSet):
         (i.e. the smoothened derivative of the n_macroparticles array
         times the macroparticle charge.)
         '''
-        if self.mode is 'uniform_charge':
+        if self.mode == 'uniform_charge':
             # self.warns('The line charge density derivative is zero up to ' +
             #            'numerical fluctuations w.r.t. bins because the ' +
             #            'charges have been distributed uniformly across ' +
