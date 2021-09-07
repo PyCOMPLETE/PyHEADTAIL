@@ -93,7 +93,7 @@ def ensure_same_device(array):
 #     cos = cm_cos
 #     sincos = cm_sincos
 # except ImportError as e:
-#     # print ('\n' + e.message)
+#     # print ('\n' + str(e))
 #     # print ("Falling back to NumPy versions...\n")
 ### defaulting to NumPy sin/cos because Kevin's sincos interface
 ### results in VisibleDeprecationWarnings with the current transverse
