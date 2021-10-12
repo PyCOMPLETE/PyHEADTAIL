@@ -1,4 +1,4 @@
-from __future__ import division, print_function
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -81,7 +81,7 @@ def track_n_save(bunch, map_):
     mean_y = np.empty(n_turns)
     sigma_z = np.empty(n_turns)
     
-    for i in xrange(n_turns):
+    for i in range(n_turns):
         mean_x[i] = bunch.mean_x()
         mean_y[i] = bunch.mean_y()
         sigma_z[i] = bunch.sigma_z()
@@ -130,7 +130,7 @@ def track_n_show(bunch, slicer, map_woWakes, wake_field, case, show=False, savef
 
     xp_diff  = np.zeros(n_macroparticles)
 
-    for i in xrange(n_turns):
+    for i in range(n_turns):
         for m_ in map_woWakes:
             m_.track(bunch)
 

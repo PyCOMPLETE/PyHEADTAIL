@@ -9,8 +9,7 @@ from ..core import default_macros
 @date: 11/10/2017
 """
 
-class Multiplication(object):
-    __metaclass__ = ABCMeta
+class Multiplication(object, metaclass=ABCMeta):
     """ An abstract class which multiplies the input signal by an array. The multiplier array is produced by taking
         a slice property (determined by the input parameter 'seed') and passing it through the abstract method
         multiplication_function(seed).
@@ -74,7 +73,7 @@ class Multiplication(object):
             np.copyto(self._multiplier, ((parameters['bin_edges'][:,1]+parameters['bin_edges'][:,0])/2.))
         elif self._seed == 'normalized_bin_midpoint':
 
-            for i in xrange(parameters['n_segments']):
+            for i in range(parameters['n_segments']):
                 i_from = i * parameters['n_bins_per_segment']
                 i_to = (i + 1) * parameters['n_bins_per_segment']
 
@@ -107,7 +106,7 @@ class Multiplication(object):
 
         elif self._normalization == 'segment_sum':
             norm_coeff = np.ones(len(self._multiplier))
-            for i in xrange(parameters['n_segments']):
+            for i in range(parameters['n_segments']):
                 i_from = i*parameters['n_bins_per_segment']
                 i_to = (i+1)*parameters['n_bins_per_segment']
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]))
@@ -117,7 +116,7 @@ class Multiplication(object):
 
         elif self._normalization == 'segment_average':
             norm_coeff = np.ones(len(self._multiplier))
-            for i in xrange(parameters['n_segments']):
+            for i in range(parameters['n_segments']):
                 i_from = i*parameters['n_bins_per_segment']
                 i_to = (i+1)*parameters['n_bins_per_segment']
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]))/float(parameters['n_bins_per_segment'])
@@ -129,7 +128,7 @@ class Multiplication(object):
         elif self._normalization == 'segment_integral':
             bin_widths = parameters['bin_edges'][:,1] - parameters['bin_edges'][:,0]
             norm_coeff = np.ones(len(self._multiplier))
-            for i in xrange(parameters['n_segments']):
+            for i in range(parameters['n_segments']):
                 i_from = i*parameters['n_bins_per_segment']
                 i_to = (i+1)*parameters['n_bins_per_segment']
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]*bin_widths[i_from:i_to]))
@@ -139,7 +138,7 @@ class Multiplication(object):
 
         elif self._normalization == 'segment_min':
             norm_coeff = np.ones(len(self._multiplier))
-            for i in xrange(parameters['n_segments']):
+            for i in range(parameters['n_segments']):
                 i_from = i*parameters['n_bins_per_segment']
                 i_to = (i+1)*parameters['n_bins_per_segment']
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.min(self._multiplier[i_from:i_to]))
@@ -149,7 +148,7 @@ class Multiplication(object):
 
         elif self._normalization == 'segment_max':
             norm_coeff = np.ones(len(self._multiplier))
-            for i in xrange(parameters['n_segments']):
+            for i in range(parameters['n_segments']):
                 i_from = i*parameters['n_bins_per_segment']
                 i_to = (i+1)*parameters['n_bins_per_segment']
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.max(self._multiplier[i_from:i_to]))

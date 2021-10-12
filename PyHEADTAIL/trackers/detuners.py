@@ -20,7 +20,7 @@ the effect.
        an incoherent detuning.
 @copyright CERN
 """
-from __future__ import division
+
 
 import numpy as np
 from math import factorial
@@ -31,7 +31,7 @@ from abc import ABCMeta, abstractmethod
 # from collections import Iterable
 
 
-class SegmentDetuner(object):
+class SegmentDetuner(object, metaclass=ABCMeta):
     """Abstract base class for detuning elements and effects defined
     only for a segment of the accelerator ring (NB. The segment can also
     be given by the full circumference).
@@ -39,7 +39,6 @@ class SegmentDetuner(object):
     implement the detune(beam) method to describe the change in phase
     advance for each particle of the beam.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def detune(self, beam):
@@ -81,7 +80,7 @@ class ChromaticitySegment(SegmentDetuner):
         slower for low order polynomials.
         """
         order = len(Qp)
-        coeffs = [ Qp[i] / float(factorial(i+1)) for i in xrange(order) ]
+        coeffs = [ Qp[i] / float(factorial(i+1)) for i in range(order) ]
 
         if order == 1:
             def calc_detuning(dp):
@@ -152,7 +151,7 @@ class AmplitudeDetuningSegment(SegmentDetuner):
         return dQ_x, dQ_y
 
 
-class DetunerCollection(object):
+class DetunerCollection(object, metaclass=ABCMeta):
     """Abstract base class for a collection of SegmentDetuner objects
     (see above). A detuner collection object defines the detuning for
     one complete turn around the accelerator ring for the given
@@ -177,7 +176,6 @@ class DetunerCollection(object):
     be accessed via square brackets [i] where i is the index of the
     segment.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def generate_segment_detuner(self, dmu_x, dmu_y, **kwargs):

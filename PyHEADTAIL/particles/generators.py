@@ -4,7 +4,7 @@
 @brief module for generating & matching particle distributions
 '''
 
-from __future__ import division
+
 
 import numpy as np
 from scipy.constants import e, c
@@ -96,9 +96,9 @@ def transverse_linear_matcher(alpha, beta, dispersion=None):
             try:
                 space_coords += dispersion * getattr(beam, 'dp')
             except KeyError:
-                print ('Dispersion in the transverse phase space depends on' +
+                print(('Dispersion in the transverse phase space depends on' +
                        'dp, however no longitudinal phase space was specified. '+
-                       'No matching performed')
+                       'No matching performed'))
         setattr(beam, direction[0], space_coords)
         setattr(beam, direction[1], momentum_coords)
 

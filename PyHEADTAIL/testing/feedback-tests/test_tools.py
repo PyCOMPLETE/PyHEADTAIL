@@ -391,8 +391,8 @@ def particle_position_difference(ref_bunch,bunch):
     diff_y = np.sum((ref_bunch.y - bunch.y)**2)/float(len(ref_bunch.y))
     sum_y = np.sum((bunch.y)**2)/float(len(ref_bunch.y))
     
-    print('An average relative particle position difference in x-axis: ' + str(diff_x/sum_x))
-    print('An average relative particle position difference in y-axis: ' + str(diff_y/sum_y))
+    print(('An average relative particle position difference in x-axis: ' + str(diff_x/sum_x)))
+    print(('An average relative particle position difference in y-axis: ' + str(diff_y/sum_y)))
 
 
 def trace_difference(ref_tracker, tracker):

@@ -9,7 +9,7 @@ output streams.
 from abc import ABCMeta, abstractmethod
 
 
-class Printer(object):
+class Printer(object, metaclass=ABCMeta):
     '''
     A generic printer knows where to redirect text for print.
     Use Printer.prints(output) to print the output instead of
@@ -22,7 +22,6 @@ class Printer(object):
     a file or use different streams for errors, warnings and content
     related output etc.
     '''
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def prints(self, output):

@@ -199,7 +199,7 @@ class Particles(Printing):
         self_coords_n_momenta_dict = self.get_coords_n_momenta_dict()
         slice_object_list = []
 
-        for i_sl in xrange(slices.n_slices):
+        for i_sl in range(slices.n_slices):
 
             ix = slices.particle_indices_of_slice(i_sl)
             macroparticlenumber = len(ix)
@@ -208,7 +208,7 @@ class Particles(Printing):
                 particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                 mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
 
-            for coord in self_coords_n_momenta_dict.keys():
+            for coord in list(self_coords_n_momenta_dict.keys()):
                 slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
 
             slice_object.id[:] = self.id[ix]
@@ -226,7 +226,7 @@ class Particles(Printing):
                 slice_object = Particles(macroparticlenumber=len(ix),
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
                     mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
-                for coord in self_coords_n_momenta_dict.keys():
+                for coord in list(self_coords_n_momenta_dict.keys()):
                     slice_object.update({coord: self_coords_n_momenta_dict[coord][ix]})
                 slice_object.id[:] = self.id[ix]
                 slice_object.slice_info = 'unsliced'
@@ -248,12 +248,12 @@ class Particles(Printing):
         Attention: overwrites existing coordinate / momentum attributes.
         '''
         if any(len(v) != self.macroparticlenumber for v in
-               coords_n_momenta_dict.values()):
+               list(coords_n_momenta_dict.values())):
             raise ValueError("lengths of given phase space coordinate arrays" +
                              " do not coincide with self.macroparticlenumber.")
-        for coord, array in coords_n_momenta_dict.items():
+        for coord, array in list(coords_n_momenta_dict.items()):
             setattr(self, coord, array.copy())
-        self.coords_n_momenta.update(coords_n_momenta_dict.keys())
+        self.coords_n_momenta.update(list(coords_n_momenta_dict.keys()))
 
     def add(self, coords_n_momenta_dict):
         '''Add the coordinates and momenta with their according arrays
@@ -262,7 +262,7 @@ class Particles(Printing):
         coordinate or momentum attributes to be overwritten.
         '''
         if any(s in self.coords_n_momenta
-               for s in coords_n_momenta_dict.keys()):
+               for s in list(coords_n_momenta_dict.keys())):
             raise ValueError("One or more of the specified coordinates or" +
                              " momenta already exist and cannot be added." +
                              " Use self.update(...) for this purpose.")
@@ -284,7 +284,7 @@ class Particles(Printing):
             charge=self.charge, gamma=self.gamma, mass=self.mass,
             circumference=self.circumference,
             coords_n_momenta_dict={
-                coord: array[ix[i]] for coord, array in self.get_coords_n_momenta_dict().items()},
+                coord: array[ix[i]] for coord, array in list(self.get_coords_n_momenta_dict().items())},
             bucket_id=id) for i, id in enumerate(ids)]
 
         bunches_list = sorted(bunches_list,
@@ -295,7 +295,7 @@ class Particles(Printing):
     
     def split_to_views(self):
         if self._bunch_views is None:
-            print "I'm generating new views!"
+            print("I'm generating new views!")
             self._bunch_views = self.generate_views()
             
         return self._bunch_views
@@ -323,7 +323,7 @@ class Particles(Printing):
             charge=self.charge, gamma=self.gamma, mass=self.mass,
             circumference=self.circumference,
             coords_n_momenta_dict={
-                coord: np.array(array[i_from:i_to],copy=False) for coord, array in self.get_coords_n_momenta_dict().items()},
+                coord: np.array(array[i_from:i_to],copy=False) for coord, array in list(self.get_coords_n_momenta_dict().items())},
             bucket_id=np.array(self.bucket_id[i_from:i_to],copy=False), p_id=np.array(self.id[i_from:i_to],copy=False)))
 
         bunches_list = sorted(bunches_list,
@@ -367,7 +367,7 @@ class Particles(Printing):
             circumference=self.circumference,
             coords_n_momenta_dict={})
 
-        for coord in self_coords_n_momenta_dict.keys():
+        for coord in list(self_coords_n_momenta_dict.keys()):
             # setattr(result, coord, np.concatenate(
             #     (self_coords_n_momenta_dict[coord].copy(),
             #      other_coords_n_momenta_dict[coord].copy())))
@@ -393,7 +393,7 @@ class Particles(Printing):
                 circumference=self.circumference,
                 coords_n_momenta_dict={})
 
-            for coord in self_coords_n_momenta_dict.keys():
+            for coord in list(self_coords_n_momenta_dict.keys()):
                 # setattr(result, coord, np.concatenate(
                 #     (self_coords_n_momenta_dict[coord].copy(),
                 #      other_coords_n_momenta_dict[coord].copy())))

@@ -11,8 +11,7 @@ analog filters, which can be used in different signal processor implementations
 @date: 11/10/2017
 """
 
-class Addition(object):
-    __metaclass__ = ABCMeta
+class Addition(object, metaclass=ABCMeta):
     """ An abstract class which adds an array to the input signal. The addend array is produced by taking
         a slice property (determined by the input parameter 'seed') and passing it through the abstract method
         addend_function(seed).
@@ -77,7 +76,7 @@ class Addition(object):
             np.copyto(self._addend, ((parameters.bin_edges[:,1]+parameters.bin_edges[:,0])/2.))
         elif self._seed == 'normalized_bin_midpoint':
 
-            for i in xrange(parameters.n_segments):
+            for i in range(parameters.n_segments):
                 i_from = i * parameters.n_bins_per_segment
                 i_to = (i + 1) * parameters.n_bins_per_segment
 
@@ -110,7 +109,7 @@ class Addition(object):
 
         elif self._normalization == 'segment_sum':
             norm_coeff = np.ones(len(self._addend))
-            for i in xrange(parameters.n_segments):
+            for i in range(parameters.n_segments):
                 i_from = i*parameters.n_bins_per_segment
                 i_to = (i+1)*parameters.n_bins_per_segment
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]))
@@ -120,7 +119,7 @@ class Addition(object):
 
         elif self._normalization == 'segment_average':
             norm_coeff = np.ones(len(self._addend))
-            for i in xrange(parameters.n_segments):
+            for i in range(parameters.n_segments):
                 i_from = i*parameters.n_bins_per_segment
                 i_to = (i+1)*parameters.n_bins_per_segment
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]))/float(parameters.n_bins_per_segment)
@@ -132,7 +131,7 @@ class Addition(object):
         elif self._normalization == 'segment_integral':
             bin_widths = parameters.bin_edges[:,1] - parameters.bin_edges[:,0]
             norm_coeff = np.ones(len(self._addend))
-            for i in xrange(parameters.n_segments):
+            for i in range(parameters.n_segments):
                 i_from = i*parameters.n_bins_per_segment
                 i_to = (i+1)*parameters.n_bins_per_segment
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]*bin_widths[i_from:i_to]))
@@ -142,7 +141,7 @@ class Addition(object):
 
         elif self._normalization == 'segment_min':
             norm_coeff = np.ones(len(self._addend))
-            for i in xrange(parameters.n_segments):
+            for i in range(parameters.n_segments):
                 i_from = i*parameters.n_bins_per_segment
                 i_to = (i+1)*parameters.n_bins_per_segment
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.min(self._addend[i_from:i_to]))
@@ -152,7 +151,7 @@ class Addition(object):
 
         elif self._normalization == 'segment_max':
             norm_coeff = np.ones(len(self._addend))
-            for i in xrange(parameters.n_segments):
+            for i in range(parameters.n_segments):
                 i_from = i*parameters.n_bins_per_segment
                 i_to = (i+1)*parameters.n_bins_per_segment
                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.max(self._addend[i_from:i_to]))

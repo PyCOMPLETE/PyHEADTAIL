@@ -26,7 +26,7 @@ def deprecated(message):
                           'PyHEADTAIL release!'.format(name),
                           category=DeprecationWarning, stacklevel=2)
             warnings.simplefilter('default', DeprecationWarning)
-            print message
+            print(message)
             return func(*args, **kwargs)
         return deprecated_wrapper
     return deprecated_decorator
@@ -41,7 +41,7 @@ def memoize(function):
     @wraps(function)
     def evaluate(*args):
         signature = (args)
-        if not store.has_key(signature):
+        if signature not in store:
             store[signature] = function(*args)
         return store[signature]
     return evaluate

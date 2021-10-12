@@ -7,7 +7,7 @@
 @copyright CERN
 """
 
-from __future__ import division
+
 
 import numpy as np
 from scipy.constants import c
@@ -20,7 +20,7 @@ from PyHEADTAIL.general.element import Printing
 
 from PyHEADTAIL.mpi import mpi_data
 
-class WakeKick(Printing):
+class WakeKick(Printing, metaclass=ABCMeta):
     """Abstract base class for wake kick classes, like e.g. the DipoleWakeKickX.
 
     Provides the basic and universal methods to calculate magnitude and shape
@@ -39,8 +39,6 @@ class WakeKick(Printing):
     WakeKick class.
 
     """
-
-    __metaclass__ = ABCMeta
 
     def __init__(self, wake_function, slicer, n_turns_wake, *args, **kwargs):
         """Universal constructor for WakeKick objects. The slicer_mode is passed only

@@ -1,11 +1,12 @@
-import numpy as np
 import collections
-from PyHEADTAIL.mpi import mpi_data
-from core import get_processor_variables, process, Parameters
-from core import z_bins_to_bin_edges, append_bin_edges
-from processors.register import VectorSumCombiner, CosineSumCombiner
-from processors.register import HilbertCombiner, DummyCombiner
+import numpy as np
 from scipy.constants import c
+
+from PyHEADTAIL.mpi import mpi_data
+from .core import get_processor_variables, process, Parameters
+from .core import z_bins_to_bin_edges, append_bin_edges
+from .processors.register import VectorSumCombiner, CosineSumCombiner
+from .processors.register import HilbertCombiner, DummyCombiner
 """
     This file contains objecst, which can be used as transverse feedback
     systems in the one turn map in PyHEADTAIL. The signal processing in the
@@ -604,7 +605,7 @@ class Kicker(GenericOneTurnMapObject):
             If True, data from multiple bunches are gathered by using MPI
         """
 
-        if isinstance(combiner, (str,unicode)):
+        if isinstance(combiner, str):
             if combiner == 'vector_sum':
                 self._combiner_x = VectorSumCombiner(registers_x,
                                                      location_x, beta_x,

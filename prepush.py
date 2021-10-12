@@ -36,20 +36,20 @@ if __name__ == '__main__':
         ["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
 
     if branch == 'master' or branch == 'develop':
-        print ('\n' + 'X' * 66)
+        print(('\n' + 'X' * 66))
         print ('You are trying to push to the master or develop branch.')
         print ('Checking unit tests first...')
-        print ('X' * 66 + '\n')
+        print(('X' * 66 + '\n'))
 
         res = test_all()
         if res == 0:
-            print ('\n' + 'X' * 66)
+            print(('\n' + 'X' * 66))
             print ('Passed unit tests, proceeding.')
-            print ('X' * 66 + '\n')
+            print(('X' * 66 + '\n'))
         else:
-            print ('\n' + 'X' * 66)
+            print(('\n' + 'X' * 66))
             print ('Failed unit tests, fix them before comitting. Aborting.')
-            print ('X' * 66 + '\n')
+            print(('X' * 66 + '\n'))
         sys.exit(res)
     else:
         # if not on develop or master: continue

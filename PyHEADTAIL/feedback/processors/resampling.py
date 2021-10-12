@@ -123,21 +123,21 @@ class Resampler(object):
 
         bin_edges = None
 
-        for i in xrange(self._n_extras):
+        for i in range(self._n_extras):
             offset = start_mid - (self._n_extras-i)*segment_length
             if bin_edges is None:
                 bin_edges = np.copy(segment_bin_edges+offset)
             else:
                 bin_edges = append_bin_edges(bin_edges, segment_bin_edges+offset)
 
-        for i in xrange(n_sampled_sequencies):
+        for i in range(n_sampled_sequencies):
             offset = i*segment_length + start_mid
             if bin_edges is None:
                 bin_edges = np.copy(segment_bin_edges+offset)
             else:
                 bin_edges = append_bin_edges(bin_edges, segment_bin_edges+offset)
 
-        for i in xrange(self._n_extras):
+        for i in range(self._n_extras):
             offset = start_mid + (i+n_sampled_sequencies)*segment_length
             if bin_edges is None:
                 bin_edges = np.copy(segment_bin_edges+offset)
@@ -218,7 +218,7 @@ class Resampler(object):
 
             temp_edges = np.zeros((multiplier, 2))
 
-            for i in xrange(multiplier):
+            for i in range(multiplier):
                 temp_edges[i,0] = edges[0] + i * new_bin_width
                 temp_edges[i,1] = edges[0] + (i + 1) * new_bin_width
 
@@ -254,8 +254,8 @@ class Resampler(object):
         n_bins_per_segment = int(np.floor(original_n_bins_per_segment/multiplier))
         new_edges = None
 
-        for j in xrange(parameters['n_segments']):
-            for i in xrange(n_bins_per_segment):
+        for j in range(parameters['n_segments']):
+            for i in range(n_bins_per_segment):
                 first_edge = j * original_n_bins_per_segment + i * multiplier
                 last_edge = j * original_n_bins_per_segment + (i + 1) * multiplier -1
 
@@ -291,7 +291,7 @@ class Resampler(object):
         input_bin_mids = bin_mids(parameters['bin_edges'])
         output_bin_mids = bin_mids(self._output_parameters['bin_edges'])
 
-        for i in xrange(parameters['n_segments']):
+        for i in range(parameters['n_segments']):
             i_min = i * parameters['n_bins_per_segment']
             i_max = (i + 1) * parameters['n_bins_per_segment'] - 1
             segment_min_z = input_bin_mids[i_min]

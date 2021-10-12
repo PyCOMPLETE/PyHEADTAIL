@@ -12,7 +12,7 @@ The TPS class supports elementary operations such as +, -, /, *
 Functions such as sin, cos, exp, log etc are envisaged
 to be implemented in a later version.
 '''
-from __future__ import division
+
 
 import numpy as np
 

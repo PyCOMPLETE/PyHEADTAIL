@@ -2,7 +2,7 @@
 @date:   30/09/2015
 @author: Stefan Hegglin
 '''
-from __future__ import division
+
 
 import unittest
 import numpy as np
@@ -27,9 +27,9 @@ from PyHEADTAIL.particles.slicing import UniformBinSlicer
 class TestDispatch(unittest.TestCase):
     '''Test Class for the function dispatch functionality in general.pmath'''
     def setUp(self):
-        self.available_CPU = pm._CPU_numpy_func_dict.keys()
+        self.available_CPU = list(pm._CPU_numpy_func_dict.keys())
         if has_pycuda:
-            self.available_GPU = pm._GPU_func_dict.keys()
+            self.available_GPU = list(pm._GPU_func_dict.keys())
 
     def test_set_CPU(self):
         pm.update_active_dict(pm._CPU_numpy_func_dict)

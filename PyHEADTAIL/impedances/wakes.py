@@ -20,7 +20,7 @@ once they have been created).
 @copyright CERN
 """
 
-from __future__ import division
+
 
 import numpy as np
 from collections import deque
@@ -32,6 +32,7 @@ from PyHEADTAIL.impedances.wake_kicks import *
 from PyHEADTAIL.general.element import Element, Printing
 from PyHEADTAIL.general.decorators import deprecated
 from PyHEADTAIL.mpi import mpi_data
+from functools import reduce
 
 sin = np.sin
 cos = np.cos
@@ -419,7 +420,7 @@ class WakeField(Element):
 
         self.slice_set_deque.appendleft(
             np.reshape(register, (n_bunches_total, stride)))
-        print self.slice_set_deque[-1][:, 0]
+        print(self.slice_set_deque[-1][:, 0])
 
         for kick in self.wake_kicks:
             kick.apply(bunches_list, self.slice_set_deque)
@@ -440,7 +441,7 @@ class WakeField(Element):
         beam.dp[:] = beam_new.dp[:]
 
     def track(self, beam):
-        if isinstance(self._mpi, basestring):
+        if isinstance(self._mpi, str):
                 self._mpi_track_optimized(beam, self._mpi)
 
         elif self._mpi:
@@ -452,11 +453,10 @@ class WakeField(Element):
 # ==============================================================================
 # WAKE SOURCE BASE CLASS FOLLOWED BY COLLECTION OF DIFFERENT WAKE SOURCES
 # ==============================================================================
-class WakeSource(Printing):
+class WakeSource(Printing, metaclass=ABCMeta):
     """Abstract base class for wake sources, such as WakeTable,
     Resonator or ResistiveWall.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_wake_kicks(self, slicer_mode):
@@ -546,7 +546,7 @@ class WakeTable(WakeSource):
         """
         wake_kicks = []
 
-        for name, function in self.wake_type.items():
+        for name, function in list(self.wake_type.items()):
             if self._is_provided(name):
                 if name == 'longitudinal':
                     wake_function = self.function_longitudinal()
@@ -560,7 +560,7 @@ class WakeTable(WakeSource):
     def _is_provided(self, wake_component):
         """ Check whether wake_component is a valid name and available
         in wake table data. Return 'True' if yes and 'False' if no. """
-        if wake_component in self.wake_table.keys():
+        if wake_component in list(self.wake_table.keys()):
             return True
         else:
             # self.warns(wake_component + ' \n' +
@@ -1013,7 +1013,7 @@ def check_wake_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=Fal
         lgd += ['Bin edges']
     ax2.legend(lgd)
 
-    print '\n--> Resulting number of slices: {:g}'.format(len(ss))
+    print('\n--> Resulting number of slices: {:g}'.format(len(ss)))
 
     return ax1
 

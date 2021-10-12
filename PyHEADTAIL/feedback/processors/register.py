@@ -75,7 +75,7 @@ class Register(object):
 
         return self
 
-    def next(self):
+    def __next__(self):
         if self._n_iter_left < 1:
             raise StopIteration
 
@@ -127,9 +127,7 @@ class UncorrectedDelay(object):
 
 
 
-class Combiner(object):
-    __metaclass__ = ABCMeta
-
+class Combiner(object, metaclass=ABCMeta):
     def __init__(self, registers, target_location, target_beta=None,
                  additional_phase_advance=0., beta_conversion = '0_deg', **kwargs):
         """
@@ -359,7 +357,7 @@ class HilbertCombiner(Combiner):
 
         coefficients = np.zeros(self._n_taps)
 
-        for i in xrange(self._n_taps):
+        for i in range(self._n_taps):
             n = self._n_taps-i-1
             n -= self._n_taps/2
             h = 0.
@@ -518,7 +516,7 @@ class VectorSumCombiner(Combiner):
         if self._warning_printed == False:
             if (readings_phase_difference%(-1.*np.pi) > 0.2) or (readings_phase_difference%np.pi < 0.2):
                 self._warning_printed = True
-                print "WARNING: It is recommended that the angle between the readings is at least 12 deg"
+                print("WARNING: It is recommended that the angle between the readings is at least 12 deg")
 
         target_location_difference = target_location - signal_1_location
         if target_location_difference < 0.:
@@ -729,7 +727,7 @@ class TurnDelay(object):
         target_beta = parameters['beta']
         extra_phase = self._additional_phase_advance
 
-        if isinstance(self._combiner_type, (str,unicode)):
+        if isinstance(self._combiner_type, str):
             if self._combiner_type == 'vector_sum':
                 self._combiner = VectorSumCombiner(registers, target_location,
                                                    target_beta, extra_phase)

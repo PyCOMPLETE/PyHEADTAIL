@@ -2,7 +2,7 @@
 import numpy as np
 import copy
 # from mpi4py import MPI
-from MPI import MPI
+from .MPI import MPI
 
 def my_rank():
     """Returns the rank index of this processors.
@@ -678,7 +678,7 @@ class MpiGatherer(object):
 
         # calculates list indexes for the local bunches
         self._local_bunch_indexes = []
-        for i in xrange(self._n_local_bunches):
+        for i in range(self._n_local_bunches):
             idx = int(np.sum(self._bunch_distribution[:self.mpi_rank]) + i)
             self._local_bunch_indexes.append(idx)
 
@@ -722,7 +722,7 @@ class MpiGatherer(object):
                                           self._circumference,
                                           self._h_bunch)
 
-        for idx in xrange(self._n_bunches):
+        for idx in range(self._n_bunches):
             self.bunch_by_bunch_data.append(
                 BunchDataAccess(idx, int(self._id_list[idx]),
                                 self._raw_data,
@@ -861,7 +861,7 @@ class TotalDataAccess(object):
         self.id_list = id_list
 
         # determines bin edges for all the bunches
-        for i in xrange(n_bunches):
+        for i in range(n_bunches):
             if i in local_bunches:
                 self.local_data_locations.append((i * self._n_slices,
                                                   (i + 1) * self._n_slices))
@@ -881,7 +881,7 @@ class TotalDataAccess(object):
 
         for idx, variable in enumerate(self._variables):
             temp_data = np.zeros(self._data_length)
-            for bunch_idx in xrange(self._n_bunches):
+            for bunch_idx in range(self._n_bunches):
                 local_from = bunch_idx*self._n_slices
                 local_to = (bunch_idx+1)*self._n_slices
                 buffer_from = (bunch_idx*self._n_slices*self._n_variables +

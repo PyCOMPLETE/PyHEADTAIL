@@ -71,12 +71,11 @@ class Printing(object):
         self._warningprinter.prints("*** PyHEADTAIL WARNING! " + output)
 
 
-class Element(Printing):
+class Element(Printing, metaclass=ABCMeta):
     '''
     Abstract element as part of the tracking layout. Guarantees
     to fulfil its tracking contract via the method track(beam).
     '''
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def track(self, beam):

@@ -2,7 +2,7 @@
 @date:   16/03/2015
 @author: Stefan Hegglin
 '''
-from __future__ import division
+
 
 import unittest
 import numpy as np

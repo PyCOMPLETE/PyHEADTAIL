@@ -10,8 +10,6 @@ under aperture_cython.pyx for better performance.
          Michael Schenk
 '''
 
-from __future__ import division
-
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
@@ -24,14 +22,12 @@ def make_int32(array):
     return array.astype(np.int32)
 
 
-class Aperture(Element):
+class Aperture(Element, metaclass=ABCMeta):
     '''Abstract base class for Aperture elements. An aperture is
     generally defined as a condition on the phase space coordinates.
     Particles not fulfilling this condition are tagged as lost and
     are removed from the beam directly after.
     '''
-
-    __metaclass__ = ABCMeta
 
     @clean_slices
     def track(self, beam):

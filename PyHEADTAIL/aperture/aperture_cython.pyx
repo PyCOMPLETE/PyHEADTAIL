@@ -1,4 +1,3 @@
-from __future__ import division
 '''
 Aperture module to manage particle losses. An aperture is
 defined as a condition on the phase space coordinates. Particles

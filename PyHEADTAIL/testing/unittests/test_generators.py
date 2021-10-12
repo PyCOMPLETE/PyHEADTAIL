@@ -3,7 +3,7 @@
 @author: Stefan Hegglin
 Tests for generator
 '''
-from __future__ import division
+
 
 import unittest
 import numpy as np
@@ -70,7 +70,7 @@ class TestParticleGenerators(unittest.TestCase):
         self.assertEqual(self.beam.dp.size, self.nparticles,
                          'Updating the beam with new coordinates leads to' +
                          'faulty coordinates')
-        for n in xrange(self.nparticles):
+        for n in range(self.nparticles):
             self.assertAlmostEqual(x_copy[n], self.beam.x[n],
                 msg='Updating the beam with new coordinates invalidates' +
                 'existing coordinates')

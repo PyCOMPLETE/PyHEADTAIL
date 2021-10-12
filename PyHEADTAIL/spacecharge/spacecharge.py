@@ -3,7 +3,7 @@
 @date:    17/04/2015
 '''
 
-from __future__ import division
+
 
 import numpy as np
 from scipy.constants import c, epsilon_0, pi

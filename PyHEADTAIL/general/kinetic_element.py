@@ -4,9 +4,7 @@ import numpy as np
 from scipy.constants import c, m_p
 
 
-class KineticElement(object):
-    __metaclass__ = ABCMeta
-
+class KineticElement(object, metaclass=ABCMeta):
     def __init__(self):
         super(KineticElement, self).__init__()
 

@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import numpy as np
 from scipy.optimize import brentq
@@ -20,4 +20,4 @@ def extrema(x, y=None):
     zix = np.where(np.abs(np.diff(np.sign(np.diff(x)))) == 2)[0]
     return zix
     if not y:
-        print zix
+        print(zix)

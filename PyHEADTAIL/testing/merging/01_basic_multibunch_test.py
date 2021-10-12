@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import os
 import sys
@@ -111,7 +111,7 @@ if rank == 0:
     synthbunches2 = synthbunches.split()
     for b in synthbunches2:
         b.z -= b.bucket_id[0] * C / float(h_bunch)
-        print('b.mean_z(): ' + str(b.mean_z()))
+        print(('b.mean_z(): ' + str(b.mean_z())))
 
     synthbunches2 = sum(synthbunches2)
     slices = synthbunches2.get_slices(slicer_for_diagnostics,
@@ -141,7 +141,7 @@ if rank == 0:
     x_kick_list = []
     for j, bt in enumerate(bunches):
         signal = 0
-        for i, bs in zip(range(len(bunches))[::-1], bunches[::-1]):
+        for i, bs in zip(list(range(len(bunches)))[::-1], bunches[::-1]):
             # for i, bs in enumerate(bunches[::-1]):
             t_source = times_list[i]
             t_target = times_list[j]
@@ -165,7 +165,7 @@ monitorswitch = False
 delta_xp = np.zeros((n_turns, len(allbunches.xp)))
 delta_zz = np.zeros((n_turns, len(allbunches.xp)))
 if rank == 0:
-    print '\n--> Begin tracking...\n'
+    print('\n--> Begin tracking...\n')
 for i in range(n_turns):
 
     if rank == 0:
@@ -185,8 +185,8 @@ for i in range(n_turns):
 
     if rank == 0:
         t1 = time.clock()
-        print('Turn {:d}, {:g} ms, {:s}'.format(i, (t1 - t0) * 1e3, time.strftime(
-            "%d/%m/%Y %H:%M:%S", time.localtime())))
+        print(('Turn {:d}, {:g} ms, {:s}'.format(i, (t1 - t0) * 1e3, time.strftime(
+            "%d/%m/%Y %H:%M:%S", time.localtime()))))
 
 # PLOT RESULTS
 # ============
@@ -198,7 +198,7 @@ if rank == 0:
     bunches = sum(bunches, [])
     delta_xp = np.hstack(delta_xp)
     delta_zz = np.hstack(delta_zz)
-    print(delta_xp.shape, delta_zz.shape)
+    print((delta_xp.shape, delta_zz.shape))
 
     plt.close('all')
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(16, 9), sharex=True, tight_layout=False)

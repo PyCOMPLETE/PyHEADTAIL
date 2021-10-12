@@ -9,7 +9,7 @@ https://github.com/PyCOMPLETE/PyPIC .
 @date: 18.01.2016
 '''
 
-from __future__ import division
+
 
 import numpy as np
 
@@ -105,9 +105,9 @@ def create_mesh(mesh_origin, mesh_distances, mesh_size,
         raise ValueError('All arguments for the mesh need to have as '
                          'many entries as the mesh should have dimensions!')
     mesh_class = getattr(meshing, 'RectMesh{dim}D'.format(dim=dim))
-    return mesh_class(map(ensure_cpu, mesh_origin),
-                      map(ensure_cpu, mesh_distances),
-                      map(ensure_cpu, mesh_size),
+    return mesh_class(list(map(ensure_cpu, mesh_origin)),
+                      list(map(ensure_cpu, mesh_distances)),
+                      list(map(ensure_cpu, mesh_size)),
                       mathlib=pm)
 
 

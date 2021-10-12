@@ -39,7 +39,7 @@ class Average(object):
             output_signal = np.zeros(len(signal))
             ones = np.ones(n_slices_per_segment)
 
-            for i in xrange(n_segments):
+            for i in range(n_segments):
                 idx_from = i * n_slices_per_segment
                 idx_to = (i + 1) * n_slices_per_segment
                 np.copyto(output_signal[idx_from:idx_to], ones * np.mean(signal[idx_from:idx_to]))

@@ -1,4 +1,4 @@
-from __future__ import division, print_function
+
 
 from collections import OrderedDict
 
@@ -280,7 +280,7 @@ def evaluate_wake_kick(bunch, slicer, one_turn_map, wake_field, case, show=True,
 
     xp_diff = np.zeros(n_macroparticles)
 
-    for i in xrange(n_turns):
+    for i in range(n_turns):
         for m in one_turn_map:
             m.track(bunch)
 
@@ -354,7 +354,7 @@ def evaluate_wake_kick(bunch, slicer, one_turn_map, wake_field, case, show=True,
 def test_wake_kick(bunch, slicer, one_turn_map, wake_field, case):
     xp_diff = np.zeros(n_macroparticles)
 
-    for i in xrange(n_turns):
+    for i in range(n_turns):
         for m in one_turn_map:
             m.track(bunch)
 

@@ -9,10 +9,10 @@ The method is_symple() is provided to check for symplecticity
 of a given integration method -- it may be used generically
 for any integration method with the described signature.
 '''
-from __future__ import division
+
 
 import numpy as np
-import libTPSA
+from . import libTPSA
 
 def is_symple(integrator):
 	'''returns whether the given integrator is symplectic w.r.t. to a certain

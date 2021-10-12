@@ -9,7 +9,7 @@
 @copyright CERN
 '''
 
-from __future__ import division
+
 
 from abc import ABCMeta, abstractmethod
 import numpy as np
@@ -111,7 +111,7 @@ class SliceSet(Printing):
         self._pidx_begin = None
         self._pidx_end = None
 
-        for p_name, p_value in beam_parameters.iteritems():
+        for p_name, p_value in beam_parameters.items():
             if hasattr(self, p_name):
                 raise ValueError('SliceSet.' + p_name + ' already exists!' +
                                  'Do not overwrite existing SliceSet ' +
@@ -333,11 +333,10 @@ class SliceSet(Printing):
         return pm.slice_to_particles(self, slice_array, empty_particles)
 
 
-class Slicer(Printing):
+class Slicer(Printing, metaclass=ABCMeta):
     '''Slicer class that controls longitudinal binning of a beam.
     Factory for SliceSet objects.
     '''
-    __metaclass__ = ABCMeta
 
     @property
     def config(self):
@@ -695,7 +694,7 @@ class UniformChargeSlicer(Slicer):
         # slices. Must be integer. Distribute remaining particles randomly
         # among slices with indices 'rand_slice_i'.
         n_part_within_cuts = n_part - n_cut_tail - n_cut_head
-        rand_slice_i = sample(range(self.n_slices),
+        rand_slice_i = sample(list(range(self.n_slices)),
                               n_part_within_cuts % self.n_slices)
 
         n_part_per_slice = ((n_part_within_cuts // self.n_slices)
@@ -714,7 +713,7 @@ class UniformChargeSlicer(Slicer):
         z_bins[0], z_bins[-1] = z_cut_tail, z_cut_head
 
         slice_index_of_particle_sorted = -np.ones(n_part, dtype=np.int32)
-        for i in xrange(self.n_slices):
+        for i in range(self.n_slices):
             start, end = first_indices[i], first_indices[i+1]
             slice_index_of_particle_sorted[start:end] = i
 

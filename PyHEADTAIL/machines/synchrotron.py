@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import numpy as np
 from scipy.constants import c
@@ -157,7 +157,7 @@ class Synchrotron(Element):
 
             buckets_for_this_processor = mpi_data.my_tasks(sorted_filling_scheme)
 
-            print("*** I am rank {:d} - my buckets are {:s}".format(mpi_data.my_rank(), buckets_for_this_processor))
+            print(("*** I am rank {:d} - my buckets are {:s}".format(mpi_data.my_rank(), buckets_for_this_processor)))
 
             # uses a binary tree for merging the generated bunches
 
@@ -355,7 +355,7 @@ class Synchrotron(Element):
         self.transverse_map.n_segments = len(s)-1
 
         if name is None:
-            self.transverse_map.name = ['P_%d' % ip for ip in xrange(len(s)-1)]
+            self.transverse_map.name = ['P_%d' % ip for ip in range(len(s)-1)]
             self.transverse_map.name.append('end_ring')
         else:
             self.transverse_map.name = name

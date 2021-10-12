@@ -6,7 +6,7 @@ import scipy.integrate as integrate
 from scipy import linalg
 from .cython_hacks import cython_matrix_product
 from ..core import default_macros
-import abstract_filter_responses
+from . import abstract_filter_responses
 
 """Signal processors based on linear transformation.
 
@@ -14,8 +14,7 @@ import abstract_filter_responses
 @date: 11/10/2017
 """
 
-class LinearTransform(object):
-    __metaclass__ = ABCMeta
+class LinearTransform(object, metaclass=ABCMeta):
     """ An abstract class for signal processors which are based on linear transformation. The signal is processed by
         calculating a dot product of a transfer matrix and a signal. The transfer matrix is produced with an abstract
         method, namely response_function(*args), which returns an elements of the matrix (an effect of
@@ -93,7 +92,7 @@ class LinearTransform(object):
         elif self._mode == 'bunch_by_bunch':
             output_signal = np.zeros(len(signal))
 
-            for i in xrange(self._n_segments):
+            for i in range(self._n_segments):
                 idx_from = i * self._n_bins_per_segment
                 idx_to = (i+1) * self._n_bins_per_segment
                 np.copyto(output_signal[idx_from:idx_to],cython_matrix_product(self._matrix, signal[idx_from:idx_to]))
@@ -111,10 +110,10 @@ class LinearTransform(object):
 
     def print_matrix(self):
         for row in self._matrix:
-            print "[",
+            print("[", end=' ')
             for element in row:
-                print "{:6.3f}".format(element),
-            print "]"
+                print("{:6.3f}".format(element), end=' ')
+            print("]")
 
     def __generate_matrix(self,parameters, bin_edges, bin_midpoints):
 
@@ -217,8 +216,7 @@ class LinearTransformFromFile(LinearTransform):
             return np.interp(bin_mid - ref_bin_mid, self._data[:, 0], self._data[:, 1])
 
 
-class LinearTransformFilter(LinearTransform):
-    __metaclass__ = ABCMeta
+class LinearTransformFilter(LinearTransform, metaclass=ABCMeta):
     """ A general class for (analog) filters. Impulse response of the filter must be determined by overwriting
         the function raw_impulse_response.
 
@@ -273,7 +271,7 @@ class LinearTransformFilter(LinearTransform):
                 f_h = self._filter_normalization[1]
 
                 norm_coeff = 0.
-                for i in xrange(-1000,1000):
+                for i in range(-1000,1000):
                     x = float(i)* (1./f_h) * self._scaling
                     norm_coeff += self._impulse_response(x)
 

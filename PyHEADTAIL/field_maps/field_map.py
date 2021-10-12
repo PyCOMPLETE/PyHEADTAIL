@@ -15,7 +15,7 @@ PyPIC can be found under https://github.com/PyCOMPLETE/PyPIC .
 @date:    13.06.2017
 '''
 
-from __future__ import division, print_function
+
 
 from scipy.constants import c
 
@@ -82,7 +82,7 @@ class FieldMap(Element):
             poissonsolver=None,
             gradient=lambda *args, **kwargs: None,
             mesh=mesh)
-        self.fields = map(pm.ensure_same_device, fields)
+        self.fields = list(map(pm.ensure_same_device, fields))
         self.wrt_beam_centroid = wrt_beam_centroid
 
     def track(self, beam):
@@ -94,7 +94,7 @@ class FieldMap(Element):
                      beam.y - my,
                      beam.z - mz] # zip will cut to #fields
 
-        mesh_fields_and_mp_coords = zip(self.fields, mp_coords)
+        mesh_fields_and_mp_coords = list(zip(self.fields, mp_coords))
 
         # electric fields at each particle position in lab frame [V/m]
         part_fields = self.pypic.field_to_particles(*mesh_fields_and_mp_coords)
@@ -149,7 +149,7 @@ class FieldMapSliceWise(FieldMap):
         # require 2D!
         assert self.pypic.mesh.dimension == 2, \
             'mesh needs to be two-dimensional!'
-        assert all(map(lambda f: f.ndim == 2, self.fields)), \
+        assert all([f.ndim == 2 for f in self.fields]), \
             'transverse field components need to be two-dimensional arrays!'
         #
 
@@ -167,7 +167,7 @@ class FieldMapSliceWise(FieldMap):
         mp_coords = [beam.x - mx,
                      beam.y - my,
                      beam.z] # zip will cut to #fields
-        mesh_fields_and_mp_coords = zip(self.fields, mp_coords)
+        mesh_fields_and_mp_coords = list(zip(self.fields, mp_coords))
 
         # electric fields at each particle position in lab frame [V/m]
         part_fields = self.pypic.field_to_particles(*mesh_fields_and_mp_coords)
