@@ -17,7 +17,7 @@ try:
     import pycuda.compiler
     import pycuda.driver as drv
     import pycuda.elementwise
-    import PyHEADTAIL.gpu.thrust_interface
+    import PyHEADTAIL.gpu.thrust_interface as thrust_interface
 
     # if pycuda is there, try to compile things. If no context available,
     # throw error to tell the user that he should import pycuda.autoinit
