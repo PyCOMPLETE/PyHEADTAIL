@@ -8,7 +8,7 @@ PyPIC can be found under https://github.com/PyCOMPLETE/PyPIC .
 '''
 
 from PyHEADTAIL.general import pmath as pm
-from pm import UnknownContextManagerError
+from PyHEADTAIL.general.pmath import UnknownContextManagerError
 
 from PyPIC.GPU import pypic
 
