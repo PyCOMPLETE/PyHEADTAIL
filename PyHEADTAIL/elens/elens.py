@@ -6,10 +6,8 @@ from __future__ import division
 
 from PyHEADTAIL.general.element import Element
 from PyHEADTAIL.particles import slicing
-from PyHEADTAIL.particles.slicing import clean_slices
 import numpy as np
-from scipy.constants import c, epsilon_0, pi, m_e, m_p, e
-
+from scipy.constants import c, m_e, e, pi
 from scipy.interpolate import splrep, splev
 from functools import wraps
 
@@ -115,22 +113,22 @@ class ElectronLens(Element):
                 ) < absolute_threshold, ('The given bunch is not round')
         if dist == 'GS':
             I_e = e/bunch.charge*dQ_max * I_a * (bunch.mass / m_e) * (
-                4 * np.pi *
+                4 * pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
-                    1 + np.abs(beta_e) * bunch.beta)
+                    1 + pm.abs(beta_e) * bunch.beta)
         elif dist == 'WB':
             I_e =  e/bunch.charge*3 / 4 * dQ_max * I_a * (bunch.mass / m_e) * (
-                4 * np.pi *
+                4 * pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
-                    1 + np.abs(beta_e) * bunch.beta)
+                    1 + pm.abs(beta_e) * bunch.beta)
         elif dist == 'KV':
             I_e =  e/bunch.charge*4*dQ_max * I_a * (bunch.mass / m_e) * (
-                4 * np.pi *
+                4 * pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + np.abs(beta_e) * bunch.beta)
         elif dist == 'LN':
             I_e =  e/bunch.charge*4*dQ_max * I_a * (bunch.mass / m_e) * (
-                4 * np.pi *
+                4 * pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + np.abs(beta_e) * bunch.beta)
         else:
@@ -150,11 +148,10 @@ class ElectronLens(Element):
         '''
         '''
         if self.dist == 'GS':
-            # not m_p but bunch.mass() also the charge
             [
                 dQmax,
             ] =  bunch.charge/e*self.I_e / self.I_a * m_e / bunch.mass * self.L_e / (
-                4 * np.pi *
+                4 * pi *
                 bunch.epsn_x()) * (bunch.sigma_x() / self.sigma_x())**2 * (
                     1 + self.beta_e * bunch.beta) / (np.abs(self.beta_e) *
                                                      bunch.beta)
@@ -162,7 +159,7 @@ class ElectronLens(Element):
             [
                 dQmax,
             ] = bunch.charge/e*4 * self.I_e / self.I_a * m_e / bunch.mass * self.L_e / (
-                4 * np.pi * bunch.epsn_x()) * (1 / 3) * (
+                4 * pi * bunch.epsn_x()) * (1 / 3) * (
                     bunch.sigma_x() / self.sigma_x())**2 * (
                         1 + self.beta_e * bunch.beta) / (np.abs(self.beta_e) *
                                                          bunch.beta)
@@ -170,7 +167,7 @@ class ElectronLens(Element):
             [
                 dQmax,
             ] = bunch.charge/e*self.I_e / self.I_a * m_e / bunch.mass * self.L_e / (
-                4 * np.pi * bunch.epsn_x()) * (1 / 3) * (
+                4 * pi * bunch.epsn_x()) * (1 / 3) * (
                     bunch.sigma_x() / self.sigma_x())**2 * (
                         1 + self.beta_e * bunch.beta) / (np.abs(self.beta_e) *
                                                          bunch.beta)

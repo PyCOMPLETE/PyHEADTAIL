@@ -172,7 +172,6 @@ class RFQTransverseKick(RFQKick):
         """
         cos_term = (2. * e * self.v_2 / self.omega *
             pm.cos(self.omega / (beam.beta * c) * beam.z + self.phi_0))
-
         beam.xp += -beam.x * cos_term / beam.p0
         beam.yp += beam.y * cos_term / beam.p0
 

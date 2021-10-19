@@ -5,12 +5,13 @@
 '''
 
 
-
 import numpy as np
 from scipy.special import k0
 from scipy.constants import c, e
 
 from PyHEADTAIL.general.element import Element
+from PyHEADTAIL.general import pmath as pm
+
 
 class TransverseDamper(Element):
 
@@ -36,19 +37,19 @@ class TransverseDamper(Element):
                 assumed to be the same for both transverse planes,
                 otherwise use two instances of the TransverseDamper.
         '''
-        self.verbose=verbose
+        self.verbose = verbose
         if dampingrate_x and not dampingrate_y:
             self.gain_x = 2/dampingrate_x
             self.track = self.track_horizontal
-            if self.verbose==True:
+            if self.verbose == True:
                 self.prints('Damper in horizontal plane active')
         elif not dampingrate_x and dampingrate_y:
             self.gain_y = 2/dampingrate_y
             self.track = self.track_vertical
-            if self.verbose==True:
+            if self.verbose == True:
                 self.prints('Damper in vertical plane active')
         elif not dampingrate_x and not dampingrate_y:
-            if self.verbose==True:
+            if self.verbose == True:
                 self.prints('Dampers not active')
         else:
             self.gain_x = 2/dampingrate_x
@@ -64,6 +65,7 @@ class TransverseDamper(Element):
         self.phase_in_2pi = phase / 360. * 2*np.pi
         self.local_beta_function = local_beta_function
     # will be overwritten at initialisation
+
     def track(self, beam):
         pass
 
@@ -72,6 +74,103 @@ class TransverseDamper(Element):
         if self.local_beta_function:
             beam.xp -= (self.gain_x * np.cos(self.phase_in_2pi) *
                         beam.mean_x() / self.local_beta_function)
+
+    def track_vertical(self, beam):
+        beam.yp -= self.gain_y * np.sin(self.phase_in_2pi) * beam.mean_yp()
+        if self.local_beta_function:
+            beam.yp -= (self.gain_y * np.cos(self.phase_in_2pi) *
+                        beam.mean_y() / self.local_beta_function)
+
+    def track_all(self, beam):
+        beam.xp -= self.gain_x * np.sin(self.phase_in_2pi) * beam.mean_xp()
+        beam.yp -= self.gain_y * np.sin(self.phase_in_2pi) * beam.mean_yp()
+        if self.local_beta_function:
+            beam.xp -= (self.gain_x * np.cos(self.phase_in_2pi) *
+                        beam.mean_x() / self.local_beta_function)
+            beam.yp -= (self.gain_y * np.cos(self.phase_in_2pi) *
+                        beam.mean_y() / self.local_beta_function)
+
+    @classmethod
+    def horizontal(cls, dampingrate_x, *args, **kwargs):
+        return cls(dampingrate_x, 0, *args, **kwargs)
+
+    @classmethod
+    def vertical(cls, dampingrate_y, *args, **kwargs):
+        return cls(0, dampingrate_y, *args, **kwargs)
+
+
+class NonRigidTransverseDamper(Element):
+
+    def __init__(self, slicer, dampingrate_x, dampingrate_y, phase=90,
+                 local_beta_function=None, verbose=True, *args, **kwargs):
+        '''Ideal transverse damper with an in-place "measurement"
+        (transverse "pick-up") of the transverse dipole moment.
+        Note: a single bunch in the beam is assumed, i.e. this works on
+        the entire beam's moments.
+
+        Arguments:
+            - dampingrate_x, dampingrate_y: horizontal and vertical
+                damping rates in turns (e.g. 50 turns for a typical 2018
+                LHC ADT set-up)
+            - phase: phase of the damper kick in degrees with respect to
+                the transverse position "pick-up". The default value of
+                90 degrees corresponds to a typical resistive damper.
+            - local_beta_function: the optics beta function at the
+                transverse position "pick-up" (e.g. in the local place
+                of this Element). This is required if the damper is not
+                a purely resistive damper (or exciter), i.e. if the
+                phase is not 90 (or 270) degrees. The beta function is
+                assumed to be the same for both transverse planes,
+                otherwise use two instances of the TransverseDamper.
+        '''
+        self.verbose = verbose
+        self.slicer = slicer
+        if dampingrate_x and not dampingrate_y:
+            self.gain_x = 2/dampingrate_x
+            self.track = self.track_horizontal
+            if self.verbose == True:
+                self.prints('Damper in horizontal plane active')
+        elif not dampingrate_x and dampingrate_y:
+            self.gain_y = 2/dampingrate_y
+            self.track = self.track_vertical
+            if self.verbose == True:
+                self.prints('Damper in vertical plane active')
+        elif not dampingrate_x and not dampingrate_y:
+            if self.verbose == True:
+                self.prints('Dampers not active')
+        else:
+            self.gain_x = 2/dampingrate_x
+            self.gain_y = 2/dampingrate_y
+            self.track = self.track_all
+            if self.verbose == True:
+                self.prints('Dampers active')
+        if phase != 90 and phase != 270 and not local_beta_function:
+            raise TypeError(
+                'TransverseDamper: numeric local_beta_function value at '
+                'position of damper missing! (Required because of non-zero '
+                'reactive damper component.)')
+        self.phase_in_2pi = phase / 360. * 2*np.pi
+        self.local_beta_function = local_beta_function
+    # will be overwritten at initialisation
+
+    def track(self, beam):
+        pass
+
+    def track_horizontal(self, beam):
+        slices = beam.get_slices(
+            self.slicer, statistics=["mean_x", "mean_y", "mean_z"])
+        for s_i, (mean_x, mean_y, mean_z) in enumerate(zip(
+                slices.mean_x, slices.mean_y, slices.mean_z)):
+            p_id = slices.particle_indices_of_slice(s_i)
+            if len(p_id) == 0:
+                continue
+            kicks_x = -(self.gain_x*np.sin(self.phase_in_2pi) *
+                        beam.mean_xp())*np.sin(np.pi*mean_z/(3*beam.sigma_z()))
+            kicked_xp = pm.take(beam.xp, p_id) + kicks_x
+            pm.put(beam.xp, p_id, kicked_xp)
+            if self.local_beta_function:
+                beam.xp -= (self.gain_x * np.cos(self.phase_in_2pi) *
+                            beam.mean_x() / self.local_beta_function)*np.sin(np.pi*mean_z/(3*beam.sigma_z()))
 
     def track_vertical(self, beam):
         beam.yp -= self.gain_y * np.sin(self.phase_in_2pi) * beam.mean_yp()

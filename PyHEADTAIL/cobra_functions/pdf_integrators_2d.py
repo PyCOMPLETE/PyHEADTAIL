@@ -62,7 +62,7 @@ def compute_mean_quad(psi, ylimit_min, ylimit_max, xmin, xmax, direction='x'):
 
     M, error = dblquad(f, xmin, xmax, ylimit_min, ylimit_max)
 
-    return M/Q
+    return M/Q 
 
 def compute_var_quad(psi, ylimit_min, ylimit_max, xmin, xmax, direction='x'):
     '''Compute the second moment (variance) with respect to the x or

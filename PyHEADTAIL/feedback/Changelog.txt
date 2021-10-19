@@ -1,0 +1,5 @@
+# Changelog
+
+## v0.1.x -> v0.2.x
+    * almost completely rewritten
+    * significant API canges

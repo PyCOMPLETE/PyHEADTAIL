@@ -130,8 +130,8 @@ class RFBucketMatcher(Printing):
 
             if np.isnan(length): raise ValueError
 
-            # self.prints('... distance to target bunch length: ' +
-                        # '{:.4e}'.format(length-sigma))
+            self.prints('... distance to target bunch length: ' +
+                        '{:.4e}'.format(length-sigma))
 
             return length-sigma
 

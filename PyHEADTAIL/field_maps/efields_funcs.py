@@ -182,17 +182,17 @@ def _efieldn_wb(x, y, sigma_x, sigma_y):
     a = sigma_x*pm.sqrt(3)
     b = sigma_y*pm.sqrt(3)
     zs = x-1j*y
-    if x**2/(a)**2+y**2/(b)**2 <= 1:
-        chi = x/a+1j*y/b
-        omegs = b*x/a-1j*a*y/b
-        efield = 8.0*chi/(a+b) * \
-            (1.0-(2.0*zs+omegs)*chi/(3.0*(a+b)))
-    else:
-        zs = pm.abs(x)+1j*pm.abs(y)
-        sqrt_diff = pm.sqrt(zs**2-a**2+b**2)
-        first_term = 2.0*zs/(zs+sqrt_diff)
-        efield = 2.0/zs*first_term*(zs+2.0*sqrt_diff)/(3.0*zs)
-        efield = efield.real*pm.sign(x) - 1.0j*efield.imag*pm.sign(y)
+    # if x**2/(a)**2+y**2/(b)**2 <= 1:
+    chi = x/a+1j*y/b
+    omegs = b*x/a-1j*a*y/b
+    efield = 8.0*chi/(a+b) * \
+        (1.0-(2.0*zs+omegs)*chi/(3.0*(a+b)))
+    # else:
+        # zs = pm.abs(x)+1j*pm.abs(y)
+        # sqrt_diff = pm.sqrt(zs**2-a**2+b**2)
+        # first_term = 2.0*zs/(zs+sqrt_diff)
+        # efield = 2.0/zs*first_term*(zs+2.0*sqrt_diff)/(3.0*zs)
+        # efield = efield.real*pm.sign(x) - 1.0j*efield.imag*pm.sign(y)
     denom = 4.*np.pi*epsilon_0
     return efield.real/denom, efield.imag/denom
 

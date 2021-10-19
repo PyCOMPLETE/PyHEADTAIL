@@ -72,7 +72,6 @@ class ThinOctupole(Element):
         '''
         self.kL = k3l
         self.kL6 = k3l / 6.
-
     def track(self, beam):
         beam.xp -= self.kL6 * (beam.x*beam.x*beam.x - 3*beam.x*beam.y*beam.y)
         beam.yp -= self.kL6 * (beam.y*beam.y*beam.y - 3*beam.x*beam.x*beam.y)
