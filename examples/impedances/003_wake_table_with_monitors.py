@@ -7,11 +7,11 @@ from scipy.constants import c, e
 from scipy.stats import linregress
 from scipy.signal import hilbert
 
+from LHC import LHC
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 from PyHEADTAIL.impedances.wakes import WakeTable, WakeField
 from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor
-from LHC import LHC
 
 
 outputpath = './'  # outputpath relative to this file
@@ -29,13 +29,13 @@ Qp_y = -10.0
 i_oct = 5
 dampingrate = 0
 
-# injection
+# Injection
 machine_configuration = 'Injection'
 p0 = 450e9*e/c
 wakefile = ('wakes/wakeforhdtl_PyZbase_Allthemachine_450GeV'
             '_B1_LHC_inj_450GeV_B1.dat')
 
-# # flat-top
+# # Flat-top
 # machine_configuration = '6.5_TeV_collision'
 # p0 = 6.5e12*e/c
 # wakefile = ('wakes/wakeforhdtl_PyZbase_Allthemachine_6p5TeV'
@@ -72,10 +72,8 @@ slicer_for_wakefields = UniformBinSlicer(
     n_slices=500, z_cuts=(-3*sigma_z, 3*sigma_z))
 wake_table1 = WakeTable(wakefile,
                         ['time', 'dipole_x', 'dipole_y',
-                         # 'quadrupole_x', 'quadrupole_y',
                          'noquadrupole_x', 'noquadrupole_y',
                          'dipole_xy', 'dipole_yx',
-                         # 'nodipole_xy', 'nodipole_yx',
                          ])
 wake_field = WakeField(slicer_for_wakefields, wake_table1)
 
@@ -139,28 +137,16 @@ for i in range(n_turns):
     # track the beam around the machine for one turn:
     machine.track(bunch)
 
-    ex, ey, ez = bunch.epsn_x(), bunch.epsn_y(), bunch.epsn_z()
-    mx, my, mz = bunch.mean_x(), bunch.mean_y(), bunch.mean_z()
-
     x[i] = bunch.mean_x()
 
     # monitor the bunch and slice statistics (once per turn):
     bunchmonitor.dump(bunch)
     slicemonitor.dump(bunch)
 
-    # stop the tracking if not-a-number values:
-    if not all(np.isfinite(c) for c in [ex, ey, ez, mx, my, mz]):
-        print('*** STOPPING SIMULATION: non-finite bunch stats!')
-        break
-
-    # print status every 1000 turns:
-    if i % 1000 == 0:
+    # print status every 200 turns:
+    if i % 200 == 0:
         t1 = time.time()
-        print('Turn {:d}, emittances: ({:.3g}, {:.3g}, {:.3g}) '
-              '& centroids: ({:.3g}, {:.3g}, {:.3g})'
-              '{:g} ms, {:s}'.format(
-                  i, ex, ey, ez, mx, my, mz, (t1-t0)*1e3, time.strftime(
-                      "%d/%m/%Y %H:%M:%S", time.localtime())))
+        print('Turn {:d}/{:d}'.format(i, n_turns))
 
 print('\n*** Successfully completed!')
 
@@ -203,17 +189,17 @@ print(f"Growth rate {b*1e4:.2f} [10^-4/turn]")
 plt.title(f"LHC {p0/e*c*1e-9:.0f} GeV")
 plt.legend()
 plt.xlabel("Turn")
-plt.ylabel("x [$\sigma_x$]")
+plt.ylabel(r"Mean x [$\sigma_x$]")
 
 plt.figure(1)
-n_trace = 75
-for tt in range(n_trace):
-    plt.plot(z, slice_file['Slices']['mean_x'][:][:, -n_trace + tt]/sx,
+n_traces = 75
+for tt in range(n_traces):
+    plt.plot(z, slice_file['Slices']['mean_x'][:][:, -n_traces + tt]/sx,
              'k', alpha=0.4)
 
 plt.title(f"LHC {p0/e*c*1e-9:.0f} GeV")
 plt.xlabel("z [m]")
-plt.ylabel("x [$\sigma_x$]")
+plt.ylabel(r"x [$\sigma_x$]")
 
 plt.show()
 

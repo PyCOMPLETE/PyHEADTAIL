@@ -14,6 +14,7 @@ n_turns = 7000
 n_macroparticles = int(1e4)
 
 # Machine parameters
+machine_name = 'LHC'
 energy = 7e12  # [eV]
 rest_energy = m_p * c_light**2 / qe  # [eV]
 gamma = energy / rest_energy
@@ -38,17 +39,20 @@ circumference = 26658.883199999
 sigma_z = 1.2e-9 / 4.0 * c_light
 
 bunch_intensity = 2e11
-normemit = 1.8e-6
+epsn = 1.8e-6
 
 # Wake field
 n_slices_wakes = 200
 limit_z = 3 * sigma_z
 slicer_for_wakefields = UniformBinSlicer(n_slices_wakes,
                                          z_cuts=(-limit_z, limit_z))
+
 wakefile = ('wakes/wakeforhdtl_PyZbase_Allthemachine_7000GeV'
             '_B1_2021_TeleIndex1_wake.dat')
+
 waketable = WakeTable(wakefile, ['time', 'dipole_x', 'dipole_y',
                                  'quadrupole_x', 'quadrupole_y'])
+
 wake_field = WakeField(slicer_for_wakefields, waketable)
 
 # Damper
@@ -72,8 +76,6 @@ machine = Synchrotron(optics_mode='smooth', circumference=circumference,
                       app_x=detx_x * p0, app_y=detx_x * p0, app_xy=detx_y * p0,
                       alpha_mom_compaction=alpha_mom,
                       longitudinal_mode='linear', Q_s=Q_s,
-                      # longitudinal_mode='non-linear', h_RF=h_RF,
-                      # V_RF=V_RF,
                       dphi_RF=0.0, p_increment=0.0, p0=p0,
                       charge=qe, mass=m_p, RF_at='end_of_transverse')
 
@@ -83,13 +85,15 @@ machine.one_turn_map.append(damper)
 particles = machine.generate_6D_Gaussian_bunch_matched(
     n_macroparticles,
     intensity=bunch_intensity,
-    epsn_x=normemit,
-    epsn_y=normemit,
+    epsn_x=epsn,
+    epsn_y=epsn,
     sigma_z=sigma_z,
 )
 
 print("\n--> Bunch length and emittance: {:g} m, {:g} eVs.".format(
     particles.sigma_z(), particles.epsn_z()))
+
+sx = np.sqrt(epsn * beta_x / gamma / betar)
 
 # Array for saving
 x = np.zeros(n_turns, dtype=float)
@@ -106,17 +110,19 @@ turns = np.arange(n_turns)
 iMin = 1000
 iMax = n_turns - 1000
 
+# Plot results
 plt.figure(0)
 
-plt.plot(turns, x)
+plt.plot(turns, x/sx)
+
 ampl = np.abs(hilbert(x))
 b, a, r, p, stderr = linregress(turns[iMin:iMax], np.log(ampl[iMin:iMax]))
-plt.plot(turns, np.exp(a + b * turns), "--k", label=f"{1/b:.2f} turns")
+plt.plot(turns, np.exp(a + b * turns)/sx, "--k", label=f"{1/b:.2f} turns")
 print(f"Growth rate {b*1e4:.2f} [10^-4/turn]")
 
-plt.title("LHC 7 TeV")
+plt.title(f"{machine_name} {energy*1e-12:.0f} TeV")
 plt.legend()
 plt.xlabel("Turn")
-plt.ylabel("x")
+plt.ylabel(r"x [$\sigma_x$]")
 
 plt.show()
