@@ -17,8 +17,8 @@ macroparticlenumber = int(1e4)
 
 # Create machine
 machine_name = 'LHC'
-energy = 6.8e12
-p0 = energy * qe / c_light
+p0_eVperc = 6.8e12
+p0 = p0_eVperc * qe / c_light
 
 beta_x = 92.7
 beta_y = 93.2
@@ -127,7 +127,7 @@ ax2.set_xlim(-0.8, 0.8)
 ax2.set_ylim(-0.8, 0.8)
 ax2.legend()
 
-fig.suptitle(f"{machine_name} {energy*1e-12:.1f} TeV")
+fig.suptitle(f"{machine_name} {p0_eVperc*1e-12:.1f} TeV/c")
 fig.subplots_adjust(left=0.08, right=0.95, wspace=0.25)
 
 plt.show()

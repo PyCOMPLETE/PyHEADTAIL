@@ -17,8 +17,8 @@ def test_particle_monitor_and_aperture():
     macroparticlenumber = int(1e4)
 
     # Create machine
-    energy = 6.8e12
-    p0 = energy * qe / c_light
+    p0_eVperc = 6.8e12
+    p0 = p0_eVperc * qe / c_light
 
     beta_x = 92.7
     beta_y = 93.2

@@ -19,8 +19,8 @@ def test_damping_time():
     epsn_x = 2e-6   # normalised horizontal emittance
     epsn_y = 2e-6   # normalised vertical emittance
 
-    energy = 6.5e12
-    p0 = energy * qe / c_light
+    p0_eVperc = 6.5e12
+    p0 = p0_eVperc * qe / c_light
 
     beta_x = 92.7
     beta_y = 93.2
@@ -128,8 +128,8 @@ def test_damping_time_xy():
     epsn_x = 2e-6   # normalised horizontal emittance
     epsn_y = 2e-6   # normalised vertical emittance
 
-    energy = 6.5e12
-    p0 = energy * qe / c_light
+    p0_eVperc = 6.5e12
+    p0 = p0_eVperc * qe / c_light
 
     beta_x = 92.7
     beta_y = 93.2
