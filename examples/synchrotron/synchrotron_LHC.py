@@ -7,7 +7,8 @@ from LHC import LHC
 
 macroparticlenumber_track = 50000
 macroparticlenumber_optics = 2000000
-n_turns = 512*4
+
+n_turns = 2000
 
 epsn_x  = 2.5e-6
 epsn_y  = 3.5e-6
@@ -16,7 +17,7 @@ sigma_z = 0.05
 intensity = 1e11
 
 mode = 'smooth'
-#mode = 'non-smooth'
+# mode = 'non-smooth'
 
 if mode == 'smooth':
     machine = LHC(machine_configuration='Injection', n_segments=29, D_x=10)
@@ -43,6 +44,7 @@ beam_alpha_x = []
 beam_beta_x = []
 beam_alpha_y = []
 beam_beta_y = []
+
 for i_ele, m in enumerate(machine.one_turn_map):
     print('Element %d/%d'%(i_ele, len(machine.one_turn_map)))
     beam_alpha_x.append(bunch.alpha_Twiss_x())
@@ -91,8 +93,12 @@ beam_y = []
 beam_z = []
 sx, sy, sz = [], [], []
 epsx, epsy, epsz = [], [], []
+
 for i_turn in range(n_turns):
-    print('Turn %d/%d'%(i_turn, n_turns))
+
+    if i_turn % 100 == 0:
+        print('Turn %d/%d'%(i_turn, n_turns))
+
     machine.track(bunch)
 
     beam_x.append(bunch.mean_x())
@@ -106,24 +112,30 @@ for i_turn in range(n_turns):
     epsz.append(bunch.epsn_z())
 
 plt.figure(2, figsize=(16, 8), tight_layout=True)
+
 plt.subplot(2,3,1)
 plt.plot(beam_x)
 plt.ylabel('x [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+
 plt.subplot(2,3,2)
 plt.plot(beam_y)
 plt.ylabel('y [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+
 plt.subplot(2,3,3)
 plt.plot(beam_z)
 plt.ylabel('z [m]');plt.xlabel('Turn')
 plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+
 plt.subplot(2,3,4)
 plt.plot(np.fft.rfftfreq(len(beam_x), d=1.), np.abs(np.fft.rfft(beam_x)))
 plt.ylabel('Amplitude');plt.xlabel('Qx')
+
 plt.subplot(2,3,5)
 plt.plot(np.fft.rfftfreq(len(beam_y), d=1.), np.abs(np.fft.rfft(beam_y)))
 plt.ylabel('Amplitude');plt.xlabel('Qy')
+
 plt.subplot(2,3,6)
 plt.plot(np.fft.rfftfreq(len(beam_z), d=1.), np.abs(np.fft.rfft(beam_z)))
 plt.xlim(0, 0.1)
@@ -136,16 +148,19 @@ twax[0].plot(epsx, '-g', label=r'$\varepsilon_x$')
 axes[0].set_xlabel('Turns')
 axes[0].set_ylabel(r'$\sigma_x$')
 twax[0].set_ylabel(r'$\varepsilon_x$')
+
 axes[1].plot(sy, label=r'$\sigma_y$' )
 twax[1].plot(epsy, '-g', label=r'$\varepsilon_y$')
 axes[1].set_xlabel('Turns')
 axes[1].set_ylabel(r'$\sigma_y$')
 twax[1].set_ylabel(r'$\varepsilon_y$')
+
 axes[2].plot(sz, label=r'$\sigma_z$' )
 twax[2].plot(epsz, '-g', label=r'$\varepsilon_z$')
 axes[2].set_xlabel('Turns')
 axes[2].set_ylabel(r'$\sigma_z$')
 twax[2].set_ylabel(r'$\varepsilon_z$')
+
 axes[0].grid()
 axes[1].grid()
 axes[2].grid()
@@ -156,8 +171,8 @@ for ax in list(axes):
 for ax in list(twax): 
     ax.legend(loc='lower right',prop={'size':12})
     
-#~ plt.figure(100)
-#~ plt.plot(optics['s'][:],optics['beta_x'][:], '-o')
+# plt.figure(100)
+# plt.plot(optics['s'][:],optics['beta_x'][:], '-o')
 
 LHC_with_octupole_injection = LHC(machine_configuration='Injection', n_segments=5, octupole_knob = -1.5)
 print('450GeV:')
