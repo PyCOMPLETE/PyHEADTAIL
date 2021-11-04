@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
-from scipy.constants import e,c
+from scipy.constants import e, c
 
 from LHC import LHC
 
@@ -10,26 +9,16 @@ macroparticlenumber_optics = 2000000
 
 n_turns = 2000
 
-epsn_x  = 2.5e-6
-epsn_y  = 3.5e-6
+epsn_x = 2.5e-6
+epsn_y = 3.5e-6
 sigma_z = 0.05
 
 intensity = 1e11
 
-mode = 'smooth'
-# mode = 'non-smooth'
-
-if mode == 'smooth':
-    machine = LHC(machine_configuration='Injection', n_segments=29, D_x=10)
-elif mode == 'non-smooth':
-    with open('lhc_2015_80cm_optics.pkl') as fid:
-        optics = pickle.load(fid)
-    optics.pop('circumference')
-
-    machine = LHC(machine_configuration='Injection', optics_mode = 'non-smooth', V_RF=10e6,  **optics)
+machine = LHC(machine_configuration='Injection', n_segments=29, D_x=10)
 
 print('Create bunch for optics...')
-bunch   = machine.generate_6D_Gaussian_bunch_matched(
+bunch = machine.generate_6D_Gaussian_bunch_matched(
     macroparticlenumber_optics, intensity, epsn_x, epsn_y, sigma_z=sigma_z)
 print('Done.')
 
@@ -75,12 +64,6 @@ axes[1].grid('on')
 axes[1].set_ylabel('alpha_x, alpha_y')
 axes[1].set_xlabel('# point')
 
-if mode == 'non-smooth':
-    axes[0].plot(np.array(optics['beta_x']), 'xk')
-    axes[0].plot(np.array(optics['beta_y']), 'xk')
-    axes[1].plot(np.array(optics['alpha_x']), 'xk')
-    axes[1].plot(np.array(optics['alpha_y']), 'xk')
-
 plt.show()
 
 
@@ -113,33 +96,39 @@ for i_turn in range(n_turns):
 
 plt.figure(2, figsize=(16, 8), tight_layout=True)
 
-plt.subplot(2,3,1)
+plt.subplot(2, 3, 1)
 plt.plot(beam_x)
-plt.ylabel('x [m]');plt.xlabel('Turn')
-plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+plt.ylabel('x [m]')
+plt.xlabel('Turn')
+plt.gca().ticklabel_format(style='sci', scilimits=(0, 0), axis='y')
 
-plt.subplot(2,3,2)
+plt.subplot(2, 3, 2)
 plt.plot(beam_y)
-plt.ylabel('y [m]');plt.xlabel('Turn')
-plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+plt.ylabel('y [m]')
+plt.xlabel('Turn')
+plt.gca().ticklabel_format(style='sci', scilimits=(0, 0), axis='y')
 
-plt.subplot(2,3,3)
+plt.subplot(2, 3, 3)
 plt.plot(beam_z)
-plt.ylabel('z [m]');plt.xlabel('Turn')
-plt.gca().ticklabel_format(style='sci', scilimits=(0,0),axis='y')
+plt.ylabel('z [m]')
+plt.xlabel('Turn')
+plt.gca().ticklabel_format(style='sci', scilimits=(0, 0), axis='y')
 
-plt.subplot(2,3,4)
+plt.subplot(2, 3, 4)
 plt.plot(np.fft.rfftfreq(len(beam_x), d=1.), np.abs(np.fft.rfft(beam_x)))
-plt.ylabel('Amplitude');plt.xlabel('Qx')
+plt.ylabel('Amplitude')
+plt.xlabel('Qx')
 
-plt.subplot(2,3,5)
+plt.subplot(2, 3, 5)
 plt.plot(np.fft.rfftfreq(len(beam_y), d=1.), np.abs(np.fft.rfft(beam_y)))
-plt.ylabel('Amplitude');plt.xlabel('Qy')
+plt.ylabel('Amplitude')
+plt.xlabel('Qy')
 
-plt.subplot(2,3,6)
+plt.subplot(2, 3, 6)
 plt.plot(np.fft.rfftfreq(len(beam_z), d=1.), np.abs(np.fft.rfft(beam_z)))
 plt.xlim(0, 0.1)
-plt.ylabel('Amplitude');plt.xlabel('Qz')
+plt.ylabel('Amplitude')
+plt.xlabel('Qz')
 
 fig, axes = plt.subplots(3, figsize=(16, 8), tight_layout=True)
 twax = [plt.twinx(ax) for ax in axes]
@@ -165,22 +154,24 @@ axes[0].grid()
 axes[1].grid()
 axes[2].grid()
 for ax in list(axes)+list(twax): 
-    ax.ticklabel_format(useOffset=False, style='sci', scilimits=(0,0),axis='y')
+    ax.ticklabel_format(useOffset=False, style='sci', scilimits=(0, 0), axis='y')
 for ax in list(axes): 
-    ax.legend(loc='upper right',prop={'size':12})
+    ax.legend(loc='upper right', prop={'size': 12})
 for ax in list(twax): 
-    ax.legend(loc='lower right',prop={'size':12})
+    ax.legend(loc='lower right', prop={'size': 12})
     
 # plt.figure(100)
 # plt.plot(optics['s'][:],optics['beta_x'][:], '-o')
 
-LHC_with_octupole_injection = LHC(machine_configuration='Injection', n_segments=5, octupole_knob = -1.5)
+LHC_with_octupole_injection = LHC(machine_configuration='Injection',
+                                  n_segments=5, octupole_knob=-1.5)
 print('450GeV:')
 print('i_octupole_focusing =',LHC_with_octupole_injection.i_octupole_focusing)
 print('i_octupole_defocusing =',LHC_with_octupole_injection.i_octupole_defocusing)
 print('in the machine we get 19.557')
 print('  ')
-LHC_with_octupole_flattop = LHC(machine_configuration='Injection', n_segments=5, p0=6.5e12*e/c, octupole_knob = -2.9)
+LHC_with_octupole_flattop = LHC(machine_configuration='Injection',
+                                n_segments=5, p0=6.5e12*e/c, octupole_knob = -2.9)
 
 print('6.5TeV:')
 print('i_octupole_focusing =',LHC_with_octupole_flattop.i_octupole_focusing)
