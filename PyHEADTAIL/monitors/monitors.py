@@ -126,7 +126,7 @@ class BunchMonitor(Monitor):
             h5file.close()
         except Exception as err:
             self.warns('Problem occurred during Bunch monitor creation.')
-            self.warns(err.message)
+            self.warns(str(err))
             raise
 
     @decorators.synchronize_gpu_streams_after
@@ -300,7 +300,7 @@ class SliceMonitor(Monitor):
             h5file.close()
         except Exception as err:
             self.warns('Problem occurred during Slice monitor creation.')
-            self.warns(err.message)
+            self.warns(str(err))
             raise
 
     def _write_data_to_buffer(self, bunch):
@@ -428,7 +428,7 @@ class ParticleMonitor(Monitor):
             h5file.close()
         except Exception as err:
             self.warns('Problem occurred during Particle monitor creation.')
-            self.warns(err.message)
+            self.warns(str(err))
             raise
 
     def _write_data_to_file(self, bunch, arrays_dict):
@@ -562,7 +562,7 @@ class CellMonitor(Monitor):
             h5file.close()
         except Exception as err:
             self.warns('Problem occurred during Cell monitor creation.')
-            self.warns(err.message)
+            self.warns(str(err))
             raise
 
     def _write_data_to_buffer(self, bunch):
@@ -624,4 +624,4 @@ class CellMonitor(Monitor):
                     self.buffer_cell[stats][:,:,low_pos_in_buffer:]
             h5file.close()
         except Exception as err:
-            self.warns(err.message)
+            self.warns(str(err))
