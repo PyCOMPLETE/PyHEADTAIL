@@ -1,8 +1,10 @@
+import time
+
+from matplotlib import pyplot as plt
 import numpy as np
 from scipy.constants import c as c_light, e as qe, m_p
 from scipy.stats import linregress
 from scipy.signal import hilbert
-from matplotlib import pyplot as plt
 
 from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 from PyHEADTAIL.impedances.wakes import WakeTable, WakeField
@@ -99,12 +101,18 @@ sx = np.sqrt(epsn * beta_x / gamma / betar)
 x = np.zeros(n_turns, dtype=float)
 
 # Tracking loop
-print('\nTracking')
+print('\nTracking...')
 
+time_0 = time.time()
 for turn in range(n_turns):
+
+    if turn % 500 == 0:
+        print('Turn {:d}/{:d}'.format(turn, n_turns))
 
     machine.track(particles)
     x[turn] = particles.mean_x()
+
+print(f"Time for tracking: {time.time() - time_0} s")
 
 turns = np.arange(n_turns)
 iMin = 1000

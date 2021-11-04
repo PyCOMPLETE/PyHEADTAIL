@@ -80,6 +80,7 @@ detx_x = 1.4e5 * i_oct / 550.0
 detx_y = -1.0e5 * i_oct / 550.0
 
 # Create particles
+print("\nCreate particles")
 particles = generate_Gaussian6DTwiss(
     macroparticlenumber=n_macroparticles, intensity=bunch_intensity,
     charge=qe, mass=m_p, circumference=circumference, gamma=gamma,
@@ -87,15 +88,17 @@ particles = generate_Gaussian6DTwiss(
     epsn_x=normemit, epsn_y=normemit, epsn_z=emit_s,
 )
 
-print("\n--> Bunch length and emittance: {:g} m, {:g} eVs.".format(
+print("--> Bunch length and emittance: {:g} m, {:g} eVs.".format(
     particles.sigma_z(), particles.epsn_z()))
 
-print("x", particles.sigma_x(),
-      np.sqrt(normemit * beta_x / gamma / betar))
-print("y", particles.sigma_y(),
-      np.sqrt(normemit * beta_y / gamma / betar))
-print("z", particles.sigma_z(), sigma_z)
-print("delta", particles.sigma_dp(), sigma_delta)
+print(f"sigma x: from particles {particles.sigma_x():.3e}, "
+      f"expected {np.sqrt(normemit * beta_x / gamma / betar):.3e}")
+print(f"sigma y: from particles {particles.sigma_y():.3e}, "
+      f"expected {np.sqrt(normemit * beta_y / gamma / betar):.3e}")
+print(f"sigma z: from particles {particles.sigma_z():.3e}, "
+      f"expected {sigma_z:.3e}")
+print(f"delta: from particles {particles.sigma_dp():.3e}, "
+      f"expected {sigma_delta:.3e}")
 
 coords = {
     'x': particles.x, 'xp': particles.xp,
@@ -109,13 +112,6 @@ particles_sy = Particles(macroparticlenumber=particles.macroparticlenumber,
                          circumference=particles.circumference,
                          gamma=particles.gamma,
                          coords_n_momenta_dict=coords)
-
-print("x", particles_sy.sigma_x(),
-      np.sqrt(normemit * beta_x / gamma / betar))
-print("y", particles_sy.sigma_y(),
-      np.sqrt(normemit * beta_y / gamma / betar))
-print("z", particles_sy.sigma_z(), sigma_z)
-print("delta", particles_sy.sigma_dp(), sigma_delta)
 
 # Create segments
 chromatic_detuner = ChromaticitySegment(dQp_x=Qp_x, dQp_y=Qp_y)
@@ -154,7 +150,7 @@ machine.one_turn_map.append(wake_field)
 machine.one_turn_map.append(damper)
 
 # Tracking loop
-print('\nTracking')
+print('\nTracking...')
 x = np.zeros(nTurn, dtype=float)
 x_sy = np.zeros(nTurn, dtype=float)
 
@@ -174,8 +170,8 @@ for turn in range(nTurn):
     x_sy[turn] = np.average(particles_sy.x)
 
     if turn % 1000 == 0:
-        print(f"Turn {turn} - Segments: {time3-time0}s, "
-              f"Synchrotron {time5-time4}s")
+        print(f"Turn {turn} - Segments: {(time3-time0)*1e3:.2f} ms, "
+              f"Synchrotron {(time5-time4)*1e3:.2f} ms")
 
 # Plot results
 turns = np.arange(nTurn)
@@ -189,8 +185,9 @@ plt.plot(turns, x_sy, '--', label='Synchrotron')
 
 ampl = np.abs(hilbert(x))
 b, a, r, p, stderr = linregress(turns[iMin:iMax], np.log(ampl[iMin:iMax]))
-plt.plot(turns, np.exp(a + b * turns), "-.k", label=f"Rise time seg: {1/b:.0f} turns")
-print(f"Growth rate with segments {b*1e4:.2f} [10^-4/turn]")
+plt.plot(turns, np.exp(a + b * turns), "-.k",
+         label=f"Rise time seg: {1/b:.0f} turns")
+print(f"\nGrowth rate with segments {b*1e4:.2f} [10^-4/turn]")
 
 ampl = np.abs(hilbert(x_sy))
 b, a, r, p, stderr = linregress(turns[iMin:iMax], np.log(ampl[iMin:iMax]))
