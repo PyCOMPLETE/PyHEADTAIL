@@ -319,17 +319,18 @@ class WakeTable(WakeSource):
 
         time = convert_to_s * self.wake_table['time']
         wake_strength = -convert_to_V_per_Cm * self.wake_table[wake_component]
+        interpolation_function = interp1d(time, wake_strength)
 
         if (time[0] == 0) and (wake_strength[0] == 0):
             def wake(dt, *args, **kwargs):
                 dt = dt.clip(max=0)
-                return interp1d(time, wake_strength)(-dt)
+                return interpolation_function(-dt)
             self.prints(wake_component +
                   ' Assuming ultrarelativistic wake.')
 
         elif (time[0] < 0):
             def wake(dt, *args, **kwargs):
-                return interp1d(time, wake_strength)(-dt)
+                return interpolation_function(-dt)
             self.prints(wake_component +  ' Found low beta wake.')
 
         else:
@@ -355,9 +356,10 @@ class WakeTable(WakeSource):
 
         time = convert_to_s * self.wake_table['time']
         wake_strength = -convert_to_V_per_C * self.wake_table['longitudinal']
+        interpolation_function = interp1d(time, wake_strength)
 
         def wake(dt, *args, **kwargs):
-            wake_interpolated = interp1d(time, wake_strength)(-dt)
+            wake_interpolated = interpolation_function(-dt)
             if time[0] == 0:
                 # Beam loading theorem: Half value of wake strength at
                 # dt = 0.

@@ -222,7 +222,7 @@ class SpaceChargePIC_Adaptive25D(SpaceChargePIC):
             slices=beam.get_slices(self.slicer)
         )
 
-        if pm.device is not 'GPU':
+        if pm.device != 'GPU':
             raise NotImplementedError(
                 'Currently only implemented for GPU, sorry!')
 

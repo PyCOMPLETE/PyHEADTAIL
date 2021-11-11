@@ -171,7 +171,7 @@ class MeshSliceSet(def_slicing.SliceSet):
 
     def lambda_bins(self, sigma=1, smoothen=True):
         '''Line charge density with respect to bins along the slices.'''
-        if sigma is not 1:
+        if sigma != 1:
             raise NotImplementedError('Sigma != 1 for Gaussian smoothing not '
                                       'implemented yet! Check out the file '
                                       'smoothing_kernels.cu.')
@@ -206,7 +206,7 @@ class MeshSliceSet(def_slicing.SliceSet):
                                       'numerical fluctuations because the ' +
                                       'charges have been distributed ' +
                                       'uniformly across the slices.')
-        if sigma is not 1:
+        if sigma != 1:
             raise NotImplementedError('Sigma != 1 for Gaussian smoothing not '
                                       'implemented yet! Check out the file '
                                       'smoothing_kernels.cu.')
