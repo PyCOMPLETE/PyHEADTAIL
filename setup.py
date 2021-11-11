@@ -59,20 +59,6 @@ cy_ext = [
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("PyHEADTAIL.aperture.aperture_cython",
-              ["PyHEADTAIL/aperture/aperture_cython.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"]),
-    Extension("PyHEADTAIL.cobra_functions.c_sin_cos",
-              ["PyHEADTAIL/cobra_functions/c_sin_cos.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"],
-              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("PyHEADTAIL.cobra_functions.interp_sin_cos",
-              ["PyHEADTAIL/cobra_functions/interp_sin_cos.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"],
-              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
 ]
 
 setup(
