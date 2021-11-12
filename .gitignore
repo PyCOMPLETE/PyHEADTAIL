@@ -16,3 +16,4 @@ scripts/
 .DS_Store
 *.__afs*
 *.egg-info
+/.eggs/

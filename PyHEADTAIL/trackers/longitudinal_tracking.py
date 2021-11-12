@@ -21,8 +21,7 @@ from PyHEADTAIL.trackers.rf_bucket import RFBucket, attach_clean_buckets
 
 # @TODO
 # think about flexible design to separate numerical methods
-# and physical parameters (as before for the libintegrators.py)
-# while satisfying this design layout.
+# and physical parameters while satisfying this design layout.
 # currently: only Velocity Verlet algorithm hard coded in RFSystems
 
 

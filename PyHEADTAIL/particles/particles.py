@@ -193,7 +193,7 @@ class Particles(Printing):
             slice_object_list.append(slice_object)
 
         # handle unsliced
-        if include_non_sliced is not 'never':
+        if include_non_sliced != 'never':
             ix = slices.particles_outside_cuts
             if len(ix)>0 or include_non_sliced == 'always':
                 slice_object = Particles(macroparticlenumber=len(ix),

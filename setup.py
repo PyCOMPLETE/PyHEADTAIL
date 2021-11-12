@@ -3,24 +3,21 @@
 # thanks to Nick Foti for his cython skeleton, cf.
 # http://nfoti.github.io/a-creative-blog-name/posts/2013/02/07/cleaning-cython-build-files/
 
-import numpy as np
-from PyHEADTAIL._version import __version__
-
 import os, sys, subprocess
-
 from setuptools import setup, Extension, find_packages
+from pathlib import Path
+
+import numpy as np
 
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
-import platform
 
-if platform.system() is 'Darwin':
-    print("Info: since you are running Mac OS, you "
-          "may have to install with the following line:\n\n"
-          "$ CC=gcc-4.9 ./install\n"
-          "(or any equivalent version of gcc)")
-    input('Hit any key to continue...')
+version_file = Path(__file__).parent.absolute().joinpath('PyHEADTAIL/_version.py')
+dd = {}
+with open(version_file, 'r') as fp:
+    exec(fp.read(), dd)
+__version__ = dd['__version__']
 
 args = sys.argv[1:]
 # Make a `cleanall` rule to get rid of intermediate and library files
@@ -62,20 +59,6 @@ cy_ext = [
               include_dirs=[np.get_include()],
               library_dirs=[], libraries=["m"],
               extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("PyHEADTAIL.aperture.aperture_cython",
-              ["PyHEADTAIL/aperture/aperture_cython.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"]),
-    Extension("PyHEADTAIL.cobra_functions.c_sin_cos",
-              ["PyHEADTAIL/cobra_functions/c_sin_cos.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"],
-              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"]),
-    Extension("PyHEADTAIL.cobra_functions.interp_sin_cos",
-              ["PyHEADTAIL/cobra_functions/interp_sin_cos.pyx"],
-              include_dirs=[np.get_include()],
-              library_dirs=[], libraries=["m"],
-              extra_compile_args=["-fopenmp"], extra_link_args=["-fopenmp"])
 ]
 
 setup(
