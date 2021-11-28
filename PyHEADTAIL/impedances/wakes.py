@@ -359,12 +359,13 @@ class WakeTable(WakeSource):
         interpolation_function = interp1d(time, wake_strength)
 
         def wake(dt, *args, **kwargs):
-            wake_interpolated = interpolation_function(-dt)
             if time[0] == 0:
+                wake_interpolated = interpolation_function(-dt.clip(max=0))
                 # Beam loading theorem: Half value of wake strength at
                 # dt = 0.
                 return (np.sign(-dt) + 1.) / 2. * wake_interpolated
             elif time[0] < 0:
+                wake_interpolated = interpolation_function(-dt)
                 return wake_interpolated
             else:
                 raise ValueError('Longitudinal wake component does not meet' +
