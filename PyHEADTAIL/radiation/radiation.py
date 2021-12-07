@@ -14,7 +14,7 @@ from scipy.constants import c
 class SynchrotronRadiationTransverse(object):
     def __init__(self, eq_emit_x, eq_emit_y, damping_time_x_turns, damping_time_y_turns, beta_x, beta_y):
         '''
-        We are assuming no alpha, no dispersion, etc.
+        We are assuming no alpha, etc.
         '''
         #TRANSVERSE
         self.tau_x  = damping_time_x_turns #Damping time [turns]
@@ -35,9 +35,9 @@ class SynchrotronRadiationTransverse(object):
         bunch.yp += 2*sigma_yp*np.sqrt(1/self.tau_y)*np.random.normal(size=len(bunch.yp))
         
 class SynchrotronRadiationLongitudinal(object):
-    def __init__(self, eq_sig_dp, damping_time_z_turns, E_loss_eV):
+    def __init__(self, eq_sig_dp, damping_time_z_turns, E_loss_eV, D_x = None, D_y = None):
         '''
-        We are assuming no alpha, no dispersion, etc.
+        We are assuming no alpha, etc.
         '''
         
         #LONGITUDINAL
@@ -45,7 +45,27 @@ class SynchrotronRadiationLongitudinal(object):
         self.E_loss_eV = E_loss_eV         #Energy loss [eV]
         self.sigma_dpp0  = eq_sig_dp #Equilibrium momentum spread 
         
-    def track(self, bunch):
+        if D_x == None or D_y == None:
+            self.track = self.track_without_dispersion
+        else:
+            self.D_x = D_x
+            self.D_y = D_y
+            self.track = self.track_with_dispersion
+    
+    def track_with_dispersion(self,bunch):
+        ''' Subtract the dispersion before computing a new dp, then add
+        the dispersion using the new dp.
+        '''
+        #LONGITUDINAL
+        bunch.x -= self.D_x*bunch.dp
+        bunch.y -= self.D_y*bunch.dp
+        
+        self.track_without_dispersion(bunch)
+        
+        bunch.x += self.D_x*bunch.dp
+        bunch.y += self.D_y*bunch.dp
+        
+    def track_without_dispersion(self, bunch):
         
         #LONGITUDINAL
         bunch.dp -= 2*bunch.dp/self.tau_z
