@@ -53,7 +53,8 @@ class Synchrotron(Element):
         self._construct_longitudinal_map(
             longitudinal_mode=longitudinal_mode,
             Q_s=Q_s, alpha_mom_compaction=alpha_mom_compaction,
-            h_RF=h_RF, V_RF=V_RF, dphi_RF=dphi_RF, p_increment=p_increment,
+            h_RF=np.atleast_1d(h_RF), V_RF=np.atleast_1d(V_RF),
+            dphi_RF=np.atleast_1d(dphi_RF), p_increment=p_increment,
             RF_at=RF_at)
 
         # add longitudinal wrapper and buncher
@@ -103,6 +104,14 @@ class Synchrotron(Element):
     @property
     def Q_y(self):
         return np.atleast_1d(self.transverse_map.accQ_y)[-1]
+
+    @property
+    def beta_x(self):
+        return np.atleast_1d(self.transverse_map.beta_x)[-1]
+
+    @property
+    def beta_y(self):
+        return np.atleast_1d(self.transverse_map.beta_y)[-1]
 
     @property
     def Q_s(self):
@@ -157,7 +166,7 @@ class Synchrotron(Element):
 
             buckets_for_this_processor = mpi_data.my_tasks(sorted_filling_scheme)
 
-            print(("*** I am rank {:d} - my buckets are {:s}".format(mpi_data.my_rank(), buckets_for_this_processor)))
+            print(("*** I am rank {:d} - my buckets are {:s}".format(mpi_data.my_rank(), str(buckets_for_this_processor))))
 
             # uses a binary tree for merging the generated bunches
 
