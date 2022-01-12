@@ -25,6 +25,14 @@ class COMM(object):
         except ValueError:
             print('ValueError, doing nothing')
 
+    def Allreduce(self, input_buffer, output_list):
+        try:
+            output_list[0][:] = input_buffer[:]
+        except IndexError:
+            output_list[0] = input_buffer
+        except ValueError:
+            print('ValueError, doing nothing')
+
     def Bcast(self, all_data, root=0):
         pass
 
