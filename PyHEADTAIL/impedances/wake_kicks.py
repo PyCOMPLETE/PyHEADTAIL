@@ -739,9 +739,9 @@ class WakeKick(Printing, metaclass=ABCMeta):
             #   (practical limit probably between 100-1000 bunches for 100 slices per bunch,
             #    depending on the number of processors available)
 
-            self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
-                                                 bunch_list, local_bunch_indexes,
-                                                 optimization_method, moments)
+            return self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
+                                                     bunch_list, local_bunch_indexes,
+                                                     optimization_method, moments)
 
         elif optimization_method == 'circular_mpi_full_ring_fft':
             # Follows the idea from the previous solutions, but the convolution is calculated over
@@ -762,14 +762,14 @@ class WakeKick(Printing, metaclass=ABCMeta):
             #   use of the memory_optimized version for a small number of bunches in large accelerators
 
             return  self._accumulate_mpi_full_ring_fft('circular', all_slice_sets, local_slice_sets,
-                                                 bunch_list, local_bunch_indexes,
-                                                 optimization_method, moments)
+                                                       bunch_list, local_bunch_indexes,
+                                                       optimization_method, moments)
 
         elif optimization_method == 'linear_mpi_full_ring_fft':
 
             return  self._accumulate_mpi_full_ring_fft('linear',all_slice_sets, local_slice_sets,
-                                                 bunch_list, local_bunch_indexes,
-                                                 optimization_method, moments)
+                                                       bunch_list, local_bunch_indexes,
+                                                       optimization_method, moments)
         elif optimization_method == 'dummy':
             if not hasattr(self,'_dummy_values'):
                 self._dummy_values = []
@@ -918,7 +918,6 @@ class DipoleWakeKickX(WakeKick):
 
         dipole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
                                        local_slice_sets, optimization_method, self._moments)
-
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts

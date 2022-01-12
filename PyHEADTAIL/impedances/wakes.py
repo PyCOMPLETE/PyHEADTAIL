@@ -257,8 +257,7 @@ class WakeField(Element):
 
 
         for kick in self.wake_kicks:
-            kick.apply(self._mpi_gatherer.bunch_list, self.slice_set_deque,
-                       circumference=self.circumference, h_bunch=self.h_bunch)
+            kick.apply(self._mpi_gatherer.bunch_list, self.slice_set_deque)
 
         # At the end the superbunch must be rebunched. Without that the kicks
         # do not apply to the next turn
@@ -364,7 +363,7 @@ class WakeField(Element):
         mpi_data.share_numbers(1)
 
         for kick in self.wake_kicks:
-            kick.apply(bunch_list, all_slice_sets,local_slice_sets,
+            kick.apply(bunch_list, all_slice_sets, local_slice_sets,
                        local_bunch_indexes, optimization_method)
 
     def track_classic(self, beam):
