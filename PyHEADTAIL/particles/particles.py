@@ -782,7 +782,7 @@ class Particles(Printing):
 
         ix = [self.bucket_id == id for id in ids]
         bunches_list = [Particles(
-            macroparticlenumber=self.macroparticlenumber/len(ids),
+            macroparticlenumber=int(self.macroparticlenumber/len(ids)),
             particlenumber_per_mp=self.particlenumber_per_mp,
             charge=self.charge, gamma=self.gamma, mass=self.mass,
             circumference=self.circumference,
