@@ -1,8 +1,8 @@
 # from __future__ import print_function
 import numpy as np
 import copy
-# from mpi4py import MPI
-from .MPI import MPI
+from mpi4py import MPI
+# from .MPI import MPI
 
 def my_rank():
     """Returns the rank index of this processors.
