@@ -6,12 +6,16 @@
 
 
 
-import numpy as np
-from scipy.optimize import brentq, newton
-from scipy.integrate import fixed_quad
-from scipy.constants import e, c
-from functools import partial
 from abc import abstractmethod
+from functools import partial
+
+import numpy as np
+from scipy.integrate import fixed_quad
+
+from scipy.optimize import brentq, newton
+
+
+
 
 from PyHEADTAIL.cobra_functions import pdf_integrators_2d as integr
 from PyHEADTAIL.general.element import Printing
@@ -20,6 +24,7 @@ from PyHEADTAIL.general.element import Printing
 class RFBucketMatcher(Printing):
 
     integrationmethod = ['quad', 'cumtrapz'][0]
+
     def get_moment_integrators(self):
         '''Return moment integrators from
         cobra_functions.pdf_integrators_2d according to the chosen
@@ -78,8 +83,8 @@ class RFBucketMatcher(Printing):
         if epsn_z > epsn_max:
             self.warns('Given RMS emittance does not fit into bucket. '
                        'Using (maximum) full bucket emittance ' +
-                       str(epsn_max*0.99) + 'eV s instead.')
-            epsn_z = epsn_max*0.99
+                       str(epsn_max * 0.99) + 'eV s instead.')
+            epsn_z = epsn_max * 0.99
         self.prints('*** Maximum RMS emittance ' + str(epsn_max) + 'eV s.')
 
         def error_from_target_epsn(ec):
@@ -90,12 +95,12 @@ class RFBucketMatcher(Printing):
             if np.isnan(emittance): raise ValueError
 
             self.prints('... distance to target emittance: ' +
-                        '{:.2e}'.format(emittance-epsn_z))
+                        '{:.2e}'.format(emittance - epsn_z))
 
-            return emittance-epsn_z
+            return emittance - epsn_z
 
         try:
-            ec_bar = brentq(error_from_target_epsn, epsn_z/100, 2*epsn_max,
+            ec_bar = brentq(error_from_target_epsn, epsn_z / 100, 2 * epsn_max,
                             rtol=1e-5)
         except ValueError:
             self.warns(
@@ -118,8 +123,8 @@ class RFBucketMatcher(Printing):
         if sigma > sigma_max:
             self.warns('Given RMS bunch length does not fit into bucket. '
                        'Using (maximum) full bucket RMS bunch length ' +
-                       str(sigma_max*0.99) + 'm instead.')
-            sigma = sigma_max*0.99
+                       str(sigma_max * 0.99) + 'm instead.')
+            sigma = sigma_max * 0.99
         self.prints('*** Maximum RMS bunch length ' + str(sigma_max) + 'm.')
 
         def error_from_target_sigma(sc):
@@ -131,12 +136,12 @@ class RFBucketMatcher(Printing):
             if np.isnan(length): raise ValueError
 
             self.prints('... distance to target bunch length: ' +
-                        '{:.4e}'.format(length-sigma))
+                        '{:.4e}'.format(length - sigma))
 
-            return length-sigma
+            return length - sigma
 
         try:
-            sc_bar = brentq(error_from_target_sigma, sigma/100, 2*sigma_max,
+            sc_bar = brentq(error_from_target_sigma, sigma / 100, 2 * sigma_max,
                             rtol=1e-5)
         except ValueError:
             self.warns(
@@ -162,7 +167,7 @@ class RFBucketMatcher(Printing):
                           self.rfbucket.separatrix(xx))[0]
         L = np.array(L)
 
-        return 2*L
+        return 2 * L
 
     def generate(self, macroparticlenumber, cutting_margin=0):
         '''Generate a 2d phase space of n_particles particles randomly distributed
@@ -219,7 +224,7 @@ class RFBucketMatcher(Printing):
 
         var_x = var(self.psi, lambda x: -rfbucket.separatrix(x),
                     rfbucket.separatrix, z_left, z_right,
-                    direction='x') # x means z direction
+                    direction='x')  # x means z direction
 
         return np.sqrt(var_x)
 
@@ -232,8 +237,8 @@ class RFBucketMatcher(Printing):
             self.psi, lambda x: -rfbucket.separatrix(x),
             rfbucket.separatrix, z_left, z_right)
 
-        return (np.sqrt(var_x*var_y - cov_xy**2) *
-                4*np.pi*rfbucket.p0/np.abs(rfbucket.charge))
+        return (np.sqrt(var_x * var_y - cov_xy ** 2) *
+                4 * np.pi * rfbucket.p0 / np.abs(rfbucket.charge))
 
 
 class StationaryDistribution(object):
@@ -259,11 +264,13 @@ class StationaryDistribution(object):
         norm = self._psi(self.Hmax)
         return psi / norm
 
+
 class ThermalDistribution(StationaryDistribution):
     '''Thermal Boltzmann distribution \psi ~ \exp(-H/H0).
     For a quadratic harmonic oscillator Hamiltonian this gives the
     bi-Gaussian phase space distribution.
     '''
+
     def _psi(self, H):
         # convert from convex Hamiltonian
         # (SFP being the maximum and the separatrix having zero value)
@@ -272,6 +279,7 @@ class ThermalDistribution(StationaryDistribution):
         Hn = Hsep - H
         # f(Hn) - f(Hsep)
         return np.exp(-Hn / self.H0) - np.exp(-Hsep / self.H0)
+
 
 class QGaussianDistribution(StationaryDistribution):
     '''Specific Tsallis q-Gaussian distribution for q=3/5 for now,
@@ -285,8 +293,9 @@ class QGaussianDistribution(StationaryDistribution):
         # to conventional scale (zero-valued minimum at SFP)
         Hsep = self.Hcut + self.Hmax
         Hn = Hsep - H
-        dist = (1 - Hn / self.H0).clip(min=self.Hcut)**self.n
+        dist = (1 - Hn / self.H0).clip(min=self.Hcut) ** self.n
         return dist.clip(min=self.Hcut)
+
 
 class ParabolicDistribution(StationaryDistribution):
     '''The parabolic profile distribution is a specific case of the
@@ -295,6 +304,7 @@ class ParabolicDistribution(StationaryDistribution):
     For a quadratic harmonic oscillator Hamiltonian this distribution
     provides a parabolic line density.
     '''
+
     def _psi(self, H):
         # convert from convex Hamiltonian
         # (SFP being the maximum and the separatrix having zero value)
@@ -303,15 +313,17 @@ class ParabolicDistribution(StationaryDistribution):
         Hn = Hsep - H
         return np.sqrt((1 - Hn / self.H0).clip(min=self.Hcut))
 
+
 class WaterbagDistribution(StationaryDistribution):
     '''The waterbag distribution has a constant Hamiltonian distribution
     until a cutoff, \psi ~ \Theta(H - H0) with \Theta the Heaviside
     step function.
     '''
+
     def _psi(self, H):
         # convert from convex Hamiltonian
         # (SFP being the maximum and the separatrix having zero value)
         # to conventional scale (zero-valued minimum at SFP)
         Hsep = self.Hcut + self.Hmax
         Hn = Hsep - H
-        return np.piecewise(Hn, [Hn <= self.H0, Hn > self.H0], [1./self.H0, 0])
+        return np.piecewise(Hn, [Hn <= self.H0, Hn > self.H0], [1. / self.H0, 0])

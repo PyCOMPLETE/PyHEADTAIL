@@ -43,7 +43,7 @@ class TestMonitor(unittest.TestCase):
         mock = self.generate_mock_bunch()
         for i in range(self.n_turns):
             self.bunch_monitor.dump(mock)
-        bunchdata = hp.File(self.bunch_fn + '.h5')
+        bunchdata = hp.File(self.bunch_fn + '.h5', 'a')
         b = bunchdata['Bunch']
         self.assertTrue(np.allclose(b['mean_x'],
             np.arange(start=1, stop=self.n_turns+0.5)))
@@ -62,7 +62,7 @@ class TestMonitor(unittest.TestCase):
                 bunch_stats_to_store=['mean_x', 'macrop'])
         for i in range(self.n_turns):
             slice_monitor.dump(mock_bunch)
-        s = hp.File(self.s_fn + '.h5')
+        s = hp.File(self.s_fn + '.h5', 'a')
         sd = s['Slices']
         sb = s['Bunch']
         self.assertTrue(np.allclose(sb['mean_x'],
@@ -87,7 +87,7 @@ class TestMonitor(unittest.TestCase):
         )
         for i in range(self.n_turns):
             cell_monitor.dump(bunch)
-        s = hp.File(self.s_fn + '.h5')
+        s = hp.File(self.s_fn + '.h5', 'a')
         sc = s['Cells']
 
         # to be extended
@@ -102,6 +102,7 @@ class TestMonitor(unittest.TestCase):
             def __init__(self):
                 self.counter = np.zeros(3, dtype=np.int32) #1 for each of mean/std/...
                 self.macrop = 99
+                self.bucket_id = np.array([None])
 
             def mean_x(self):
                 self.counter[0] += 1
@@ -113,6 +114,9 @@ class TestMonitor(unittest.TestCase):
 
             def get_slices(self, slicer, **kwargs):
                 return slicer
+
+            def split_to_views(self):
+                return list([self])
 
         return Mock()
 

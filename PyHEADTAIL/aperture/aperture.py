@@ -11,7 +11,6 @@ under aperture_cython.pyx for better performance.
 '''
 
 
-
 import numpy as np
 from abc import ABCMeta, abstractmethod
 

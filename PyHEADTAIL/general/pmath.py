@@ -132,10 +132,16 @@ def _count_macroparticles_per_slice_cpu(sliceset):
         output)
     return output
 
-def _init_bunch_buffer(bunch_stats, buffer_size):
+def _init_bunch_buffer(local_bunch_ids, bunch_stats, buffer_size):
     buf = {}
-    for stats in bunch_stats:
-        buf[stats] = np.zeros(buffer_size)
+    if local_bunch_ids is not None:
+        for bid in local_bunch_ids:
+            buf[bid] = {}
+            for stats in bunch_stats:
+                buf[bid][stats] = np.zeros(buffer_size)
+    else:
+        for stats in bunch_stats:
+            buf[stats] = np.zeros(buffer_size)
     return buf
 
 def _init_slice_buffer(slice_stats, n_slices, buffer_size):
@@ -219,7 +225,7 @@ _CPU_numpy_func_dict = {
     'empty_like': np.empty_like,
     'ones': np.ones,
     'device': 'CPU',
-    'init_bunch_buffer': lambda bunch, bunch_stats, buffer_size: _init_bunch_buffer(bunch_stats, buffer_size),
+    'init_bunch_buffer': lambda local_bunch_ids, bunch_stats, buffer_size: _init_bunch_buffer(local_bunch_ids, bunch_stats, buffer_size),
     'init_slice_buffer': lambda slice_set, slice_stats, buffer_size: _init_slice_buffer(slice_stats, slice_set.n_slices, buffer_size),
     'searchsortedleft': _searchsortedleft,
     'searchsortedright': _searchsortedright,

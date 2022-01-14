@@ -95,15 +95,18 @@ class TestParticles(unittest.TestCase):
         getattr()/setattr() functions. Called by test_setters_getters()
         '''
         new_value = 0.9 * getattr(self.bunch, prop)
-        setattr(self.bunch, prop, new_value)
-        if isinstance(getattr(self.bunch, prop), np.ndarray):
-            self.assertTrue(np.allclose(getattr(self.bunch, prop), new_value),
-                            msg='getter/setter for property '
+        try:
+            setattr(self.bunch, prop, new_value)
+            if isinstance(getattr(self.bunch, prop), np.ndarray):
+                self.assertTrue(np.allclose(getattr(self.bunch, prop), new_value),
+                                msg='getter/setter for property '
                                 + prop + ' incorrect')
-        else:
-            self.assertAlmostEqual(getattr(self.bunch, prop), new_value,
-                                   msg='getter/setter for property '
+            else:
+                self.assertAlmostEqual(getattr(self.bunch, prop), new_value,
+                                       msg='getter/setter for property '
                                        + prop + ' incorrect')
+        except TypeError:
+            self.assertTrue(prop == 'id')
 
     def test_get_slices(self):
         '''Tests the get_slices() method on consistency after

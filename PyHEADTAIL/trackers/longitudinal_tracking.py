@@ -184,17 +184,17 @@ class Kick(LongitudinalMap):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp.
         '''
-        beam.x -= self.D_x*beam.dp
-        beam.y -= self.D_y*beam.dp
+        beam.x -= self.D_x * beam.dp
+        beam.y -= self.D_y * beam.dp
 
         self.track_without_dispersion(beam)
 
-        beam.x += self.D_x*beam.dp
-        beam.y += self.D_y*beam.dp
+        beam.x += self.D_x * beam.dp
+        beam.y += self.D_y * beam.dp
 
     def track_without_dispersion(self, beam):
-        amplitude = np.abs(beam.charge)*self.voltage / (beam.beta*c)
-        phi = (self.harmonic * (2*np.pi*beam.z/self.circumference)
+        amplitude = np.abs(beam.charge) * self.voltage / (beam.beta * c)
+        phi = (self.harmonic * (2 * np.pi * beam.z / self.circumference)
                + self.phi_offset + self._phi_lock)
 
         delta_p = beam.dp * beam.p0
@@ -463,6 +463,10 @@ class RFSystems(LongitudinalOneTurnMap):
         return self.get_bucket(charge=self.charge, mass=self.mass,
                                gamma=self.gamma).Q_s
 
+    @property
+    def beta_z(self):
+        return self.eta(dp=0, gamma=self.gamma) * self.circumference / (2 * np.pi * self.Q_s)
+
     def pop_kick(self, index):
         '''Remove a Kick instance from this RFSystems instance.
         Return the removed Kick instance.
@@ -589,9 +593,8 @@ class RFSystems(LongitudinalOneTurnMap):
         non_accelerating_kicks = (k for k in self._kicks if k is not acc)
 
         for kick in non_accelerating_kicks:
-            kick._phi_lock -= (kick.harmonic/acc.harmonic *
+            kick._phi_lock -= (kick.harmonic / acc.harmonic *
                                self.phi_s(gamma, charge))
-
 
     # --- INTERFACE CHANGE notifications to update users of previous versions
     # --- to use the right new methods
@@ -679,7 +682,7 @@ class LinearMap(LongitudinalOneTurnMap):
     \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
-    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0,
+    def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0, harmonics=1,
                  *args, **kwargs):
         '''Q_s is the synchrotron tune.
         D_x, D_y are the dispersions in horizontal and vertical direction.
@@ -708,6 +711,7 @@ class LinearMap(LongitudinalOneTurnMap):
         self.Q_s = Q_s
         self.D_x = D_x
         self.D_y = D_y
+        self.harmonics = harmonics
         if len(alpha_array) > 1:
             self.warns('The higher orders in the given alpha_array are ' +
                        'manifestly neglected.')
@@ -716,6 +720,9 @@ class LinearMap(LongitudinalOneTurnMap):
     @deprecated('--> Now becomes "Q_s"\n')
     def Qs(self):
         return self.Q_s
+
+    def beta_z(self, gamma):
+        return self.eta(dp=0, gamma=gamma) * self.circumference / (2 * np.pi * self.Q_s)
 
     def track(self, beam):
         try:
@@ -732,13 +739,13 @@ class LinearMap(LongitudinalOneTurnMap):
         ''' Subtract the dispersion before computing a new dp, then add
         the dispersion using the new dp.
         '''
-        beam.x -= self.D_x*beam.dp
-        beam.y -= self.D_y*beam.dp
+        beam.x -= self.D_x * beam.dp
+        beam.y -= self.D_y * beam.dp
 
         self.track_without_dispersion(beam)
 
-        beam.x += self.D_x*beam.dp
-        beam.y += self.D_y*beam.dp
+        beam.x += self.D_x * beam.dp
+        beam.y += self.D_y * beam.dp
 
     @clean_slices
     def track_without_dispersion(self, beam):
@@ -749,14 +756,20 @@ class LinearMap(LongitudinalOneTurnMap):
         cosdQ_s = np.cos(dQ_s)  # use np because dQ_s is always a scalar
         sindQ_s = np.sin(dQ_s)  # use np because dQ_s is always a scalar
 
-        z0 = beam.z
-        dp0 = beam.dp
-
         # self.eta(0, beam.gamma) is identical to using first order eta!
         longfac = self.eta(0, beam.gamma) * beam.beta * c / omega_s
 
+        # TODO: Hack in order to cope with modified behaviour of particle coordinate
+        # assignment via properties. The new behaviour is not pythonic - should remove
+        # particle views soon!
+        # z0 = beam.z
+        # dp0 = beam.dp
+        z0 = np.copy(beam.z)
+        dp0 = np.copy(beam.dp)
+
         beam.z = z0 * cosdQ_s - longfac * dp0 * sindQ_s
         beam.dp = dp0 * cosdQ_s + z0 / longfac * sindQ_s
+
 
 class RFBox(Drift):
     '''Represents longitudinal square well potential.
@@ -767,6 +780,7 @@ class RFBox(Drift):
 
     NB: dispersion subtraction not implemented yet!
     '''
+
     def __init__(self, z_left, z_right, alpha_array, length, shrinkage_p_increment=0):
         self.z_left = z_left
         self.z_right = z_right

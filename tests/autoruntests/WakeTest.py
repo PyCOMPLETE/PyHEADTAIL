@@ -288,7 +288,7 @@ def run():
     reson_circ2 = CircularResonator(R_shunt=1e6, frequency=1e9, Q=0.8)
     reson_circ3 = CircularResonator(R_shunt=5e6, frequency=1e6, Q=0.2)
 
-    wake_field = WakeField(uniform_bin_slicer, reson_circ, reson_circ2, reson_circ3)
+    wake_field = WakeField(uniform_bin_slicer, [reson_circ, reson_circ2, reson_circ3])
 
 
     trans_map = [ m for m in trans_map ]
@@ -402,7 +402,7 @@ def run():
                       printer=SilentPrinter(),
                       warningprinter=SilentPrinter())
 
-    wake_field = WakeField(uniform_bin_slicer, resis_circ, reson_para, table)
+    wake_field = WakeField(uniform_bin_slicer, [resis_circ, reson_para, table])
 
     trans_map = [ m for m in trans_map ]
     map_woWakes = trans_map + [long_map]

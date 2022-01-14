@@ -14,9 +14,9 @@ from PyHEADTAIL.particles.slicing import UniformBinSlicer
 def run():
 # HELPERS
     def read_all_data(bfile, sfile, pfile):
-        bunchdata = hp.File(bfile + '.h5')
-        slicedata = hp.File(sfile + '.h5')
-        particledata = hp.File(pfile + '.h5part')
+        bunchdata = hp.File(bfile + '.h5', 'r')
+        slicedata = hp.File(sfile + '.h5', 'r')
+        particledata = hp.File(pfile + '.h5part', 'r')
 
         # Bunchdata
         bdata = bunchdata['Bunch']
@@ -56,9 +56,9 @@ def run():
         particledata.close()
 
     def read_n_plot_data(bfile, sfile, pfile):
-        bunchdata = hp.File(bfile + '.h5')
-        slicedata = hp.File(sfile + '.h5')
-        particledata = hp.File(pfile + '.h5part')
+        bunchdata = hp.File(bfile + '.h5', 'r')
+        slicedata = hp.File(sfile + '.h5', 'r')
+        particledata = hp.File(pfile + '.h5part', 'r')
 
         fig = plt.figure(figsize=(16, 16))
         ax1 = fig.add_subplot(311)
