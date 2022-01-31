@@ -44,9 +44,9 @@ if CALL_ARGS.count("build_ext") > 0 and CALL_ARGS.count("--inplace") == 0:
     sys.argv.insert(sys.argv.index("build_ext") + 1, "--inplace")
 
 # Allow the user to install without openmp support (do we use it?), which helps a lot on macOS
-# Defaults to include openmp support, unless 'PYHT_SKIP_OPENMP' is explicitely set in the environment
-CYTHON_OPENMP_COMPILE_ARG = "" if os.environ["PYHT_SKIP_OPENMP"] else "-fopenmp"
-CYTHON_OPENMP_LINK_ARGS = "" if os.environ["PYHT_SKIP_OPENMP"] else "-fopenmp"
+# Defaults to include openmp support (not skip), unless 'PYHT_SKIP_OPENMP' is explicitely set in the environment
+CYTHON_OPENMP_COMPILE_ARG = "" if os.getenv("PYHT_SKIP_OPENMP", 0) else "-fopenmp"
+CYTHON_OPENMP_LINK_ARGS = "" if os.getenv("PYHT_SKIP_OPENMP", 0) else "-fopenmp"
 
 # Set up Cython extension and build
 CYTHON_OPTIONS = {
