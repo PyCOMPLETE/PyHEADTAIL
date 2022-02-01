@@ -79,7 +79,7 @@ PACKAGE_REQUIREMENTS = ["h5py", "numpy", "scipy", "cython"]
 
 # Final call to properly package
 setup(
-    name="no_openmp_PyHEADTAIL",
+    name="PyHEADTAIL",
     version=PACKAGE_METADATA["__version__"],
     description="CERN PyHEADTAIL numerical n-body simulation code "
     "for simulating macro-particle beam dynamics with collective effects.",
