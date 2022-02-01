@@ -21,15 +21,15 @@ import PyHEADTAIL
 Example scripts with basic usage can be found in the `examples` folder of this repository.
 
 <details>
-  <summary>Note: Use of OPENMP</summary>
+  <summary>Note: Use of OpenMP</summary>
 
-By default `PyHEADTAIL` extensions are compiled with `OPENMP` support.
-This can be especially troublesome for `macOS` users, as `OPENMP` support on the platform is possible but tricky.
+By default `PyHEADTAIL` extensions are compiled with `OpenMP` support.
+This can be especially troublesome for `macOS` users, as `OpenMP` support on the platform is possible but tricky.
 
-To simplify installation, one can disable the use `OPENMP` at compilation by simply setting the `PYHT_SKIP_OPENMP` environment variable before running the above installation command.
+To simplify installation, one can disable the use `OpenMP` at compilation by simply setting the `PYHT_USE_OPEN_MP` environment variable to `0` before running the above installation command.
 This is as simple as:
 ```bash
-export PYHT_SKIP_OPENMP=1
+export PYHT_USE_OPENMP=0
 ```
 </details>
 <br/>

@@ -43,8 +43,8 @@ if "cleanall" in CALL_ARGS:
 if CALL_ARGS.count("build_ext") > 0 and CALL_ARGS.count("--inplace") == 0:
     sys.argv.insert(sys.argv.index("build_ext") + 1, "--inplace")
 
-# Allow the user to install without openmp support (do we use it?), which helps a lot on macOS
-# Defaults to include openmp support (not skip), unless 'PYHT_SKIP_OPENMP=1' is explicitely set in the environment
+# Allow the user to install without OpenMP support (do we use it?), which helps for macOS installs
+# This defaults to include OpenMP at compile time unless 'PYHT_USE_OPENMP=0' is explicitely set by the user
 if os.getenv("PYHT_USE_OPENMP", "1") == "1":
     print("[OpenMP] - Enabling OpenMP support during compilation.")
     CYTHON_OPENMP_COMPILE_ARG = CYTHON_OPENMP_LINK_ARGS = "-fopenmp"
