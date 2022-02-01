@@ -79,7 +79,7 @@ PACKAGE_REQUIREMENTS = ["h5py", "numpy", "scipy", "cython"]
 
 # Final call to properly package
 setup(
-    name="PyHEADTAIL",
+    name="no_openmp_PyHEADTAIL",
     version=PACKAGE_METADATA["__version__"],
     description="CERN PyHEADTAIL numerical n-body simulation code "
     "for simulating macro-particle beam dynamics with collective effects.",
@@ -90,6 +90,7 @@ setup(
     maintainer_email="Adrian.Oeftiger@cern.ch",
     packages=find_packages(),
     long_description=long_description,
+    long_description_content_type="text/markdown",
     cmdclass={"build_ext": build_ext},
     ext_modules=cythonize(CYTHON_EXTENSION, **CYTHON_OPTIONS),
     include_package_data=True,  # make install include files declared in 'MANIFEST.in'
