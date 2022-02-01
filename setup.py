@@ -75,6 +75,8 @@ CYTHON_EXTENSION = [
     ),
 ]
 
+PACKAGE_REQUIREMENTS = ["h5py", "numpy", "scipy", "cython"]
+
 # Final call to properly package
 setup(
     name="PyHEADTAIL",
@@ -91,8 +93,8 @@ setup(
     cmdclass={"build_ext": build_ext},
     ext_modules=cythonize(CYTHON_EXTENSION, **CYTHON_OPTIONS),
     include_package_data=True,  # make install include files declared in 'MANIFEST.in'
-    install_requires=["h5py", "numpy", "scipy", "cython"],
-    setup_requires=["h5py", "numpy", "scipy", "cython"],
+    install_requires=PACKAGE_REQUIREMENTS,
+    setup_requires=PACKAGE_REQUIREMENTS,
 )
 
 # from numpy.distutils.core import setup, Extension
