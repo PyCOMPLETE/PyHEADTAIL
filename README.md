@@ -44,7 +44,7 @@ See the `Contributing` section below for instructions.
 
 ## Contributing
 
-For developers of `PyHEADTAIL`, we recommend an editable install from VCS.
+For developers of `PyHEADTAIL`, we recommend an [editable install][pip_editable] from VCS.
 
 **Note:** 
 
@@ -57,7 +57,7 @@ git clone https://github.com/PyCOMPLETE/PyHEADTAIL
 cd PyHEADTAIL
 ```
 
-2. Create an environment and get the necessary dependencies:
+2. Create an environment and get the necessary dependencies. With conda, this goes as:
 ```bash
 conda create -n pyheadtail -c conda-forge numpy scipy h5py cython
 conda activate pyheadtail
@@ -79,3 +79,5 @@ import PyHEADTAIL
 ## License
 
 This project is licensed under the `BSD-3 License` - see the [LICENSE](LICENSE.txt) file for details.
+
+[pip_editable]: https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs
