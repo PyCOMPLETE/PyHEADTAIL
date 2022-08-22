@@ -24,9 +24,9 @@ Example scripts with basic usage can be found in the `examples` folder of this r
   <summary>Note: Use of OpenMP</summary>
 
 By default `PyHEADTAIL` extensions are compiled with `OpenMP` support.
-This can be especially troublesome for `macOS` users, as `OpenMP` support on the platform is possible but tricky.
+This can be especially troublesome for `macOS` users, as `OpenMP` support on the platform is possible but quite tricky.
 
-To simplify installation, one can disable the use `OpenMP` at compilation by simply setting the `PYHT_USE_OPEN_MP` environment variable to `0` before running the above installation command.
+To simplify installation, one can disable the use of `OpenMP` at compilation by simply setting the `PYHT_USE_OPEN_MP` environment variable to `0` before running the above installation command.
 This is as simple as:
 ```bash
 export PYHT_USE_OPENMP=0
@@ -59,7 +59,7 @@ cd PyHEADTAIL
 
 2. Create an environment and get the necessary dependencies. With conda, this goes as:
 ```bash
-conda create -n pyheadtail -c conda-forge numpy scipy h5py cython
+conda create -n pyheadtail -c conda-forge numpy scipy h5py cython --yes
 conda activate pyheadtail
 ```
 
