@@ -9,8 +9,11 @@ from scipy.constants import c, e  # unit e needed for long. emittance
 
 from PyHEADTAIL.general import pmath as pm
 from PyHEADTAIL.general.element import Printing
+from PyHEADTAIL.cobra_functions import stats as cp
 
 arange = np.arange
+mean = np.mean
+std = cp.std
 
 class ParticlesView(Printing):
     '''Contains the basic properties of a particle ensemble with their generalized
