@@ -1,8 +1,12 @@
 # from __future__ import print_function
 import numpy as np
 import copy
-from mpi4py import MPI
-# from .MPI import MPI
+try:
+    from mpi4pyB import MPI
+    print('Using MPI!')
+except ImportError:
+    from .MPI import MPI
+    print('MPI not in use, mpi4py not found!')
 
 def my_rank():
     """Returns the rank index of this processors.
