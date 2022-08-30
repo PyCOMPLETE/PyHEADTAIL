@@ -65,6 +65,14 @@ cy_ext = [
               library_dirs=[], libraries=["m"])
 ]
 
+
+flag_mpi = "--mpi-parallel" in sys.argv
+setup_reqires ['h5py', 'numpy', 'scipy', 'cython']
+
+if "--mpi-parallel" in sys.argv:
+    setup_requires += ['mpi4py']
+
+
 setup(
     name='PyHEADTAIL',
     version=__version__,
@@ -80,12 +88,7 @@ setup(
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
     include_package_data=True,  # install files matched by MANIFEST.in
-    setup_requires=[
-        'h5py',
-        'numpy',
-        'scipy',
-        'cython',
-    ]
+    setup_requires=setup_requires
 )
 
 # from numpy.distutils.core import setup, Extension
