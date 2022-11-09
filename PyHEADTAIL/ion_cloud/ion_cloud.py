@@ -13,7 +13,10 @@ class BeamIonElement(Element):
     def __init__(self,  sig_check=True, dist='GS', monitor_on = True, L_sep = 0.85, n_macroparticles_max = int (1e3)):
         self.ion_beam = None
         self.dist = dist
-        self._efieldn = efields._efieldn_mit
+        if dist == 'GS':
+            self._efieldn = efields._efieldn_mit
+        elif dist == 'LN':
+            self._efieldn = efields._efieldn_linearized
         self.sig_check = sig_check
         self.L_sep = L_sep
         self.N_MACROPARTICLES = 50
