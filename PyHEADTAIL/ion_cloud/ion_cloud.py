@@ -39,12 +39,12 @@ class BeamIonElement(Element):
                                             gamma=1.0001,
                                             coords_n_momenta_dict=
                                             {
-                                            'x': pm.array([0, ]),
-                                            'xp': pm.array([0, ]),
-                                            'y': pm.array([0, ]),
-                                            'yp': pm.array([0, ]),
-                                            'z': pm.array([0, ]),
-                                            'dp': pm.array([0, ])
+                                            'x': [0, ],
+                                            'xp': [0, ],
+                                            'y': [0, ],
+                                            'yp': [0, ],
+                                            'z': [0, ],
+                                            'dp': [0, ]
                                             }
                                             )
     def track(self, electron_bunch):
