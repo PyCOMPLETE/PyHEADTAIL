@@ -543,10 +543,10 @@ def kv2D(r_u, r_up):
         Kapchinski-Vladimirski-type uniform distribution.
         '''
         rand = np.random.uniform(low=-0.5, high=0.5, size=n_particles)
-        u = np.sin(2 * np.pi * rand)
+        u = r_u*np.sin(2 * np.pi * rand)
         r = np.where(u > 1, 2 - u, u)
         sign = (-1)**np.random.randint(2, size=n_particles)
-        up = sign * np.sqrt(1. - r**2)
+        up = r_up*sign * np.sqrt(1. - r**2)
         return [u, up]
     return _kv2d
 
