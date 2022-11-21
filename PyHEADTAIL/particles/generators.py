@@ -542,11 +542,14 @@ def kv2D(r_u, r_up):
         '''Create a two-dimensional phase space (u, up)
         Kapchinski-Vladimirski-type uniform distribution.
         '''
-        rand = np.random.uniform(low=-0.5, high=0.5, size=n_particles)
-        u = r_u*np.sin(2 * np.pi * rand)
+        t = 2 * np.pi * np.random.uniform(low=-0.5, high=0.5, size=n_particles)
+        u = (np.random.uniform(low=0, high=1, size=n_particles) +
+             np.random.uniform(low=0, high=1, size=n_particles))
         r = np.where(u > 1, 2 - u, u)
-        sign = (-1)**np.random.randint(2, size=n_particles)
-        up = r_up*sign * np.sqrt(1. - r**2)
+        u = r_u * r * np.cos(t)
+        t = 2 * np.pi * np.random.uniform(low=-0.5, high=0.5, size=n_particles)
+        rp = np.sqrt(1. - r**2)
+        up = r_up * rp * np.cos(t)
         return [u, up]
     return _kv2d
 
