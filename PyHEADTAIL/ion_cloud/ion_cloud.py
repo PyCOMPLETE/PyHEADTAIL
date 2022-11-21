@@ -72,7 +72,7 @@ class BeamIonElement(Element):
                                                     distribution_y=generators.uniform2D(-2*electron_bunch.sigma_y(), 2*electron_bunch.sigma_y()),
                                                     alpha_y=ALPHA_Y_SMOOTH, beta_y=BETA_Y_SMOOTH,
                                                     distribution_z=generators.uniform2D(0, self.CIRCUMFERENCE/self.N_SEGMENTS),
-                                                    distribution_z=generators.uniform2D(0, self.CIRCUMFERENCE/self.N_SEGMENTS),
+                                                    # distribution_z=generators.uniform2D(0, self.CIRCUMFERENCE/self.N_SEGMENTS),
                                                     printer=SilentPrinter()
                                                     ).generate()
             new_particles.x[:] += electron_bunch.mean_x()
