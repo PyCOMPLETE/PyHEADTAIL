@@ -238,6 +238,8 @@ def add_sigma_check(efieldn, dist):
         efieldn_round = _efieldn_gauss_round
     elif dist == 'KV':
         efieldn_round = _efieldn_linearized
+    elif dist == 'LN':
+        efieldn_round = _efieldn_linearized
 
     @wraps(efieldn)
     def efieldn_checked(x, y, sig_x, sig_y, *args, **kwargs):
