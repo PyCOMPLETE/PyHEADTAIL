@@ -15,9 +15,9 @@ class BeamIonElement(Element):
         self.dist = dist
         if dist == 'GS':
             self._efieldn = efields._efieldn_mit
+            self.sig_check = sig_check
         elif dist == 'LN':
             self._efieldn = efields._efieldn_linearized
-        self.sig_check = sig_check
         self.L_sep = L_sep
         self.N_MACROPARTICLES = 50
         self.N_MACROPARTICLES_MAX = n_macroparticles_max
@@ -67,16 +67,14 @@ class BeamIonElement(Element):
                                                     gamma=1.0001,
                                                     mass=self.A*m_p,
                                                     circumference=self.CIRCUMFERENCE,
-                                                    distribution_x=generators.uniform2D(0, 3*electron_bunch.sigma_x()/electron_bunch.betagamma),
-                                                    alpha_x=0, beta_x=electron_bunch.beta_Twiss_x(),
-                                                    distribution_y=generators.uniform2D(0, 3*electron_bunch.sigma_y()/electron_bunch.betagamma),
-                                                    alpha_y=0, beta_y=electron_bunch.beta_Twiss_y(),
+                                                    distribution_x=generators.uniform2D(-2*electron_bunch.sigma_x(), 2*electron_bunch.sigma_x()),
+                                                    alpha_x=ALPHA_X_SMOOTH, beta_x=BETA_X_SMOOTH,
+                                                    distribution_y=generators.uniform2D(-2*electron_bunch.sigma_y(), 2*electron_bunch.sigma_y()),
+                                                    alpha_y=ALPHA_Y_SMOOTH, beta_y=BETA_Y_SMOOTH,
                                                     distribution_z=generators.uniform2D(0, self.CIRCUMFERENCE/self.N_SEGMENTS),
-                                                    # limit_n_rms_x=3., limit_n_rms_y=3.,
+                                                    distribution_z=generators.uniform2D(0, self.CIRCUMFERENCE/self.N_SEGMENTS),
                                                     printer=SilentPrinter()
                                                     ).generate()
-            new_particles.xp[:] = 0
-            new_particles.yp[:] = 0
             new_particles.x[:] += electron_bunch.mean_x()
             new_particles.y[:] += electron_bunch.mean_y()
             self.ion_beam+=new_particles
@@ -87,7 +85,7 @@ class BeamIonElement(Element):
                                     (electron_bunch.p0*electron_bunch.beta*c))
         prefactor_kick_electron_field = -(electron_bunch.intensity*
                                           electron_bunch.charge**2/
-                                         (self.ion_beam.p0*self.ion_beam.beta*c))
+                                         (c))
         p_id_electrons = electron_bunch.id-1
         p_id_ions = self.ion_beam.id-1
 #         if len(p_id_electrons) == 0:
@@ -122,12 +120,10 @@ class BeamIonElement(Element):
         pm.put(self.ion_beam.xp, p_id_ions, kicked_ions_xp)
         pm.put(self.ion_beam.yp, p_id_ions, kicked_ions_yp)
         #Drift for the ions in one bucket
-        drifted_ions_x = pm.take(self.ion_beam.xp, p_id_ions)*self.L_sep+pm.take(self.ion_beam.x, p_id_ions)
-        drifted_ions_y = pm.take(self.ion_beam.yp, p_id_ions)*self.L_sep+pm.take(self.ion_beam.y, p_id_ions)
+        drifted_ions_x = pm.take(self.ion_beam.xp, p_id_ions)*self.L_sep/(self.ion_beam.mass*c)+pm.take(self.ion_beam.x, p_id_ions)
+        drifted_ions_y = pm.take(self.ion_beam.yp, p_id_ions)*self.L_sep/(self.ion_beam.mass*c)+pm.take(self.ion_beam.y, p_id_ions)
         pm.put(self.ion_beam.x, p_id_ions, drifted_ions_x)
         pm.put(self.ion_beam.y, p_id_ions, drifted_ions_y)   
-    # def get_ion_beam(self):
-        # return self.ion_beam
     def get_efieldn(self, xr, yr, mean_x, mean_y, sig_x, sig_y):
             '''The charge-normalised electric field components of a
             two-dimensional Gaussian charge distribution according to
