@@ -212,7 +212,7 @@ def _efieldn_linearized(x, y, sig_x, sig_y):
     '''
     a = pm.sqrt(2)*sig_x
     b = pm.sqrt(2)*sig_y
-    amplitude  = 1./(2.*np.pi*epsilon_0*(a+b))
+    amplitude  = 1./(np.pi*epsilon_0*(a+b))
     return x/a * amplitude, y/b * amplitude
 
 def add_sigma_check(efieldn, dist):
