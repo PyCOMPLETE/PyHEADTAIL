@@ -16,3 +16,5 @@ scripts/
 .DS_Store
 *.__afs*
 *.egg-info
+2to3.out
+PyHEADTAIL/gpu/thrust.so
