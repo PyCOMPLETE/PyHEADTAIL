@@ -1,0 +1,707 @@
+--- ../PyHEADTAIL/setup.py	(original)
++++ ../PyHEADTAIL/setup.py	(refactored)
+@@ -20,7 +20,7 @@
+            "may have to install with the following line:\n\n"
+            "$ CC=gcc-4.9 ./install\n"
+            "(or any equivalent version of gcc)")
+-    input('Hit any key to continue...')
++    eval(input('Hit any key to continue...'))
+ 
+ 
+ args = sys.argv[1:]
+--- ../PyHEADTAIL/PyHEADTAIL/elens/elens.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/elens/elens.py	(refactored)
+@@ -2,7 +2,7 @@
+ @authors: Vadim Gubaidulin, Adrian Oeftiger
+ @date:    18.02.2020
+ '''
+-from __future__ import division
++
+ 
+ from PyHEADTAIL.general.element import Element
+ from PyHEADTAIL.particles import slicing
+--- ../PyHEADTAIL/PyHEADTAIL/feedback/feedback.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/feedback/feedback.py	(refactored)
+@@ -1,10 +1,10 @@
+ import numpy as np
+ import collections
+ from PyHEADTAIL.mpi import mpi_data
+-from core import get_processor_variables, process, Parameters
+-from core import z_bins_to_bin_edges, append_bin_edges
+-from processors.register import VectorSumCombiner, CosineSumCombiner
+-from processors.register import HilbertCombiner, DummyCombiner
++from .core import get_processor_variables, process, Parameters
++from .core import z_bins_to_bin_edges, append_bin_edges
++from .processors.register import VectorSumCombiner, CosineSumCombiner
++from .processors.register import HilbertCombiner, DummyCombiner
+ from scipy.constants import c
+ """
+     This file contains objecst, which can be used as transverse feedback
+@@ -609,7 +609,7 @@
+             If True, data from multiple bunches are gathered by using MPI
+         """
+ 
+-        if isinstance(combiner, (str,unicode)):
++        if isinstance(combiner, str):
+             if combiner == 'vector_sum':
+                 self._combiner_x = VectorSumCombiner(registers_x,
+                                                      location_x, beta_x,
+--- ../PyHEADTAIL/PyHEADTAIL/feedback/processors/addition.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/feedback/processors/addition.py	(refactored)
+@@ -11,8 +11,7 @@
+ @date: 11/10/2017
+ """
+ 
+-class Addition(object):
+-    __metaclass__ = ABCMeta
++class Addition(object, metaclass=ABCMeta):
+     """ An abstract class which adds an array to the input signal. The addend array is produced by taking
+         a slice property (determined by the input parameter 'seed') and passing it through the abstract method
+         addend_function(seed).
+@@ -77,7 +76,7 @@
+             np.copyto(self._addend, ((parameters.bin_edges[:,1]+parameters.bin_edges[:,0])/2.))
+         elif self._seed == 'normalized_bin_midpoint':
+ 
+-            for i in xrange(parameters.n_segments):
++            for i in range(parameters.n_segments):
+                 i_from = i * parameters.n_bins_per_segment
+                 i_to = (i + 1) * parameters.n_bins_per_segment
+ 
+@@ -110,7 +109,7 @@
+ 
+         elif self._normalization == 'segment_sum':
+             norm_coeff = np.ones(len(self._addend))
+-            for i in xrange(parameters.n_segments):
++            for i in range(parameters.n_segments):
+                 i_from = i*parameters.n_bins_per_segment
+                 i_to = (i+1)*parameters.n_bins_per_segment
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]))
+@@ -120,7 +119,7 @@
+ 
+         elif self._normalization == 'segment_average':
+             norm_coeff = np.ones(len(self._addend))
+-            for i in xrange(parameters.n_segments):
++            for i in range(parameters.n_segments):
+                 i_from = i*parameters.n_bins_per_segment
+                 i_to = (i+1)*parameters.n_bins_per_segment
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]))/float(parameters.n_bins_per_segment)
+@@ -132,7 +131,7 @@
+         elif self._normalization == 'segment_integral':
+             bin_widths = parameters.bin_edges[:,1] - parameters.bin_edges[:,0]
+             norm_coeff = np.ones(len(self._addend))
+-            for i in xrange(parameters.n_segments):
++            for i in range(parameters.n_segments):
+                 i_from = i*parameters.n_bins_per_segment
+                 i_to = (i+1)*parameters.n_bins_per_segment
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._addend[i_from:i_to]*bin_widths[i_from:i_to]))
+@@ -142,7 +141,7 @@
+ 
+         elif self._normalization == 'segment_min':
+             norm_coeff = np.ones(len(self._addend))
+-            for i in xrange(parameters.n_segments):
++            for i in range(parameters.n_segments):
+                 i_from = i*parameters.n_bins_per_segment
+                 i_to = (i+1)*parameters.n_bins_per_segment
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.min(self._addend[i_from:i_to]))
+@@ -152,7 +151,7 @@
+ 
+         elif self._normalization == 'segment_max':
+             norm_coeff = np.ones(len(self._addend))
+-            for i in xrange(parameters.n_segments):
++            for i in range(parameters.n_segments):
+                 i_from = i*parameters.n_bins_per_segment
+                 i_to = (i+1)*parameters.n_bins_per_segment
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.max(self._addend[i_from:i_to]))
+--- ../PyHEADTAIL/PyHEADTAIL/feedback/processors/convolution.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/feedback/processors/convolution.py	(refactored)
+@@ -6,7 +6,7 @@
+ from scipy.constants import pi
+ import scipy.integrate as integrate
+ from scipy.interpolate import UnivariateSpline
+-import abstract_filter_responses
++from . import abstract_filter_responses
+ 
+ """Signal processors based on convolution operation.
+ 
+@@ -14,9 +14,7 @@
+ @date: 11/10/2017
+ """
+ 
+-class Convolution(object):
+-    __metaclass__ = ABCMeta
+-
++class Convolution(object, metaclass=ABCMeta):
+     def __init__(self,**kwargs):
+ 
+         self._dashed_impulse_responses = None
+@@ -54,12 +52,12 @@
+ 
+         # List of impulses to the corresponding segments
+         self._impulses_to_segments = []
+-        for i in xrange(self._n_seg):
++        for i in range(self._n_seg):
+             self._impulses_to_segments.append([])
+ 
+         ref_points = []
+ 
+-        for i in xrange(self._n_seg):
++        for i in range(self._n_seg):
+             i_from = i*self._n_bins
+             i_to = (i+1)*self._n_bins
+ 
+@@ -126,7 +124,7 @@
+             # response is zero.
+             n_bins_per_segment = self._n_bins + 2*extra_bins
+ 
+-            for k in xrange(self._n_seg):
++            for k in range(self._n_seg):
+ 
+                 i_from = k * n_bins_per_segment
+                 i_to = (k+1) * n_bins_per_segment
+@@ -159,7 +157,7 @@
+             self._init_convolution(parameters)
+ 
+         # calculates the impulses caused by the segments
+-        for i in xrange(self._n_seg):
++        for i in range(self._n_seg):
+             i_from = i*self._n_bins
+             i_to = (i+1)*self._n_bins
+             np.copyto(self._impulses_from_segments[i][:len(self._dashed_impulse_responses[i])],
+@@ -168,7 +166,7 @@
+ 
+         # gathers the output signal
+         output_signal = np.zeros(len(signal))
+-        for i in xrange(self._n_seg):
++        for i in range(self._n_seg):
+ 
+             i_from = i*self._n_bins
+             i_to = (i+1)*self._n_bins
+@@ -294,7 +292,7 @@
+         bin_spacing = np.mean(impulse_ref_edges[:,1]-impulse_ref_edges[:,0])
+         impulse_values = np.zeros(len(impulse_bin_mids))
+ 
+-        for i in xrange(self._i_from,(self._i_to+1)):
++        for i in range(self._i_from,(self._i_to+1)):
+             copy_mid = i*self._spacing
+             copy_from = copy_mid - 0.5 * bin_spacing
+             copy_to = copy_mid + 0.5 * bin_spacing
+@@ -345,10 +343,8 @@
+ #        else:
+ #            raise ValueError('Unknown value in ConvolutionFromFile._calc_type')
+ 
+-class ConvolutionFilter(Convolution):
++class ConvolutionFilter(Convolution, metaclass=ABCMeta):
+     """ An abstract class for the filtes based on convolution."""
+-
+-    __metaclass__ = ABCMeta
+ 
+     def __init__(self,scaling, zero_bin_value=None, normalization=None,
+                  f_cutoff_2nd=None, **kwargs):
+@@ -400,7 +396,7 @@
+             ref_points = []
+             mids = bin_mids(impulse_ref_edges)
+             n_bins_per_segment = int(len(impulse)/n_segments)
+-            for i in xrange(n_segments):
++            for i in range(n_segments):
+                 i_from = i * n_bins_per_segment
+                 i_to = (i + 1) * n_bins_per_segment
+                 ref_points.append(np.mean(mids[i_from:i_to]))
+@@ -424,7 +420,7 @@
+                 f_h = self._normalization[1]
+ 
+                 norm_coeff = 0.
+-                for i in xrange(-1000,1000):
++                for i in range(-1000,1000):
+                     x = float(i)* (1./f_h) * self._scaling
+                     norm_coeff += self._impulse_response(x)
+                 #print norm_coeff
+--- ../PyHEADTAIL/PyHEADTAIL/feedback/processors/linear_transform.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/feedback/processors/linear_transform.py	(refactored)
+@@ -6,7 +6,7 @@
+ from scipy import linalg
+ from cython_hacks import cython_matrix_product
+ from ..core import default_macros
+-import abstract_filter_responses
++from . import abstract_filter_responses
+ 
+ """Signal processors based on linear transformation.
+ 
+@@ -14,8 +14,7 @@
+ @date: 11/10/2017
+ """
+ 
+-class LinearTransform(object):
+-    __metaclass__ = ABCMeta
++class LinearTransform(object, metaclass=ABCMeta):
+     """ An abstract class for signal processors which are based on linear transformation. The signal is processed by
+         calculating a dot product of a transfer matrix and a signal. The transfer matrix is produced with an abstract
+         method, namely response_function(*args), which returns an elements of the matrix (an effect of
+@@ -93,7 +92,7 @@
+         elif self._mode == 'bunch_by_bunch':
+             output_signal = np.zeros(len(signal))
+ 
+-            for i in xrange(self._n_segments):
++            for i in range(self._n_segments):
+                 idx_from = i * self._n_bins_per_segment
+                 idx_to = (i+1) * self._n_bins_per_segment
+                 np.copyto(output_signal[idx_from:idx_to],cython_matrix_product(self._matrix, signal[idx_from:idx_to]))
+@@ -111,10 +110,10 @@
+ 
+     def print_matrix(self):
+         for row in self._matrix:
+-            print "[",
++            print("[", end=' ')
+             for element in row:
+-                print "{:6.3f}".format(element),
+-            print "]"
++                print("{:6.3f}".format(element), end=' ')
++            print("]")
+ 
+     def __generate_matrix(self,parameters, bin_edges, bin_midpoints):
+ 
+@@ -217,8 +216,7 @@
+             return np.interp(bin_mid - ref_bin_mid, self._data[:, 0], self._data[:, 1])
+ 
+ 
+-class LinearTransformFilter(LinearTransform):
+-    __metaclass__ = ABCMeta
++class LinearTransformFilter(LinearTransform, metaclass=ABCMeta):
+     """ A general class for (analog) filters. Impulse response of the filter must be determined by overwriting
+         the function raw_impulse_response.
+ 
+@@ -273,7 +271,7 @@
+                 f_h = self._filter_normalization[1]
+ 
+                 norm_coeff = 0.
+-                for i in xrange(-1000,1000):
++                for i in range(-1000,1000):
+                     x = float(i)* (1./f_h) * self._scaling
+                     norm_coeff += self._impulse_response(x)
+ 
+--- ../PyHEADTAIL/PyHEADTAIL/feedback/processors/misc.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/feedback/processors/misc.py	(refactored)
+@@ -39,7 +39,7 @@
+             output_signal = np.zeros(len(signal))
+             ones = np.ones(n_slices_per_segment)
+ 
+-            for i in xrange(n_segments):
++            for i in range(n_segments):
+                 idx_from = i * n_slices_per_segment
+                 idx_to = (i + 1) * n_slices_per_segment
+                 np.copyto(output_signal[idx_from:idx_to], ones * np.mean(signal[idx_from:idx_to]))
+--- ../PyHEADTAIL/PyHEADTAIL/feedback/processors/multiplication.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/feedback/processors/multiplication.py	(refactored)
+@@ -9,8 +9,7 @@
+ @date: 11/10/2017
+ """
+ 
+-class Multiplication(object):
+-    __metaclass__ = ABCMeta
++class Multiplication(object, metaclass=ABCMeta):
+     """ An abstract class which multiplies the input signal by an array. The multiplier array is produced by taking
+         a slice property (determined by the input parameter 'seed') and passing it through the abstract method
+         multiplication_function(seed).
+@@ -74,7 +73,7 @@
+             np.copyto(self._multiplier, ((parameters['bin_edges'][:,1]+parameters['bin_edges'][:,0])/2.))
+         elif self._seed == 'normalized_bin_midpoint':
+ 
+-            for i in xrange(parameters['n_segments']):
++            for i in range(parameters['n_segments']):
+                 i_from = i * parameters['n_bins_per_segment']
+                 i_to = (i + 1) * parameters['n_bins_per_segment']
+ 
+@@ -107,7 +106,7 @@
+ 
+         elif self._normalization == 'segment_sum':
+             norm_coeff = np.ones(len(self._multiplier))
+-            for i in xrange(parameters['n_segments']):
++            for i in range(parameters['n_segments']):
+                 i_from = i*parameters['n_bins_per_segment']
+                 i_to = (i+1)*parameters['n_bins_per_segment']
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]))
+@@ -117,7 +116,7 @@
+ 
+         elif self._normalization == 'segment_average':
+             norm_coeff = np.ones(len(self._multiplier))
+-            for i in xrange(parameters['n_segments']):
++            for i in range(parameters['n_segments']):
+                 i_from = i*parameters['n_bins_per_segment']
+                 i_to = (i+1)*parameters['n_bins_per_segment']
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]))/float(parameters['n_bins_per_segment'])
+@@ -129,7 +128,7 @@
+         elif self._normalization == 'segment_integral':
+             bin_widths = parameters['bin_edges'][:,1] - parameters['bin_edges'][:,0]
+             norm_coeff = np.ones(len(self._multiplier))
+-            for i in xrange(parameters['n_segments']):
++            for i in range(parameters['n_segments']):
+                 i_from = i*parameters['n_bins_per_segment']
+                 i_to = (i+1)*parameters['n_bins_per_segment']
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.sum(self._multiplier[i_from:i_to]*bin_widths[i_from:i_to]))
+@@ -139,7 +138,7 @@
+ 
+         elif self._normalization == 'segment_min':
+             norm_coeff = np.ones(len(self._multiplier))
+-            for i in xrange(parameters['n_segments']):
++            for i in range(parameters['n_segments']):
+                 i_from = i*parameters['n_bins_per_segment']
+                 i_to = (i+1)*parameters['n_bins_per_segment']
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.min(self._multiplier[i_from:i_to]))
+@@ -149,7 +148,7 @@
+ 
+         elif self._normalization == 'segment_max':
+             norm_coeff = np.ones(len(self._multiplier))
+-            for i in xrange(parameters['n_segments']):
++            for i in range(parameters['n_segments']):
+                 i_from = i*parameters['n_bins_per_segment']
+                 i_to = (i+1)*parameters['n_bins_per_segment']
+                 norm_coeff[i_from:i_to] = norm_coeff[i_from:i_to]*float(np.max(self._multiplier[i_from:i_to]))
+--- ../PyHEADTAIL/PyHEADTAIL/feedback/processors/register.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/feedback/processors/register.py	(refactored)
+@@ -75,7 +75,7 @@
+ 
+         return self
+ 
+-    def next(self):
++    def __next__(self):
+         if self._n_iter_left < 1:
+             raise StopIteration
+ 
+@@ -127,9 +127,7 @@
+ 
+ 
+ 
+-class Combiner(object):
+-    __metaclass__ = ABCMeta
+-
++class Combiner(object, metaclass=ABCMeta):
+     def __init__(self, registers, target_location, target_beta=None,
+                  additional_phase_advance=0., beta_conversion = '0_deg', **kwargs):
+         """
+@@ -359,7 +357,7 @@
+ 
+         coefficients = np.zeros(self._n_taps)
+ 
+-        for i in xrange(self._n_taps):
++        for i in range(self._n_taps):
+             n = self._n_taps-i-1
+             n -= self._n_taps/2
+             h = 0.
+@@ -518,7 +516,7 @@
+         if self._warning_printed == False:
+             if (readings_phase_difference%(-1.*np.pi) > 0.2) or (readings_phase_difference%np.pi < 0.2):
+                 self._warning_printed = True
+-                print "WARNING: It is recommended that the angle between the readings is at least 12 deg"
++                print("WARNING: It is recommended that the angle between the readings is at least 12 deg")
+ 
+         target_location_difference = target_location - signal_1_location
+         if target_location_difference < 0.:
+@@ -729,7 +727,7 @@
+         target_beta = parameters['beta']
+         extra_phase = self._additional_phase_advance
+ 
+-        if isinstance(self._combiner_type, (str,unicode)):
++        if isinstance(self._combiner_type, str):
+             if self._combiner_type == 'vector_sum':
+                 self._combiner = VectorSumCombiner(registers, target_location,
+                                                    target_beta, extra_phase)
+--- ../PyHEADTAIL/PyHEADTAIL/feedback/processors/resampling.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/feedback/processors/resampling.py	(refactored)
+@@ -123,21 +123,21 @@
+ 
+         bin_edges = None
+ 
+-        for i in xrange(self._n_extras):
++        for i in range(self._n_extras):
+             offset = start_mid - (self._n_extras-i)*segment_length
+             if bin_edges is None:
+                 bin_edges = np.copy(segment_bin_edges+offset)
+             else:
+                 bin_edges = append_bin_edges(bin_edges, segment_bin_edges+offset)
+ 
+-        for i in xrange(n_sampled_sequencies):
++        for i in range(n_sampled_sequencies):
+             offset = i*segment_length + start_mid
+             if bin_edges is None:
+                 bin_edges = np.copy(segment_bin_edges+offset)
+             else:
+                 bin_edges = append_bin_edges(bin_edges, segment_bin_edges+offset)
+ 
+-        for i in xrange(self._n_extras):
++        for i in range(self._n_extras):
+             offset = start_mid + (i+n_sampled_sequencies)*segment_length
+             if bin_edges is None:
+                 bin_edges = np.copy(segment_bin_edges+offset)
+@@ -218,7 +218,7 @@
+ 
+             temp_edges = np.zeros((multiplier, 2))
+ 
+-            for i in xrange(multiplier):
++            for i in range(multiplier):
+                 temp_edges[i,0] = edges[0] + i * new_bin_width
+                 temp_edges[i,1] = edges[0] + (i + 1) * new_bin_width
+ 
+@@ -254,8 +254,8 @@
+         n_bins_per_segment = int(np.floor(original_n_bins_per_segment/multiplier))
+         new_edges = None
+ 
+-        for j in xrange(parameters['n_segments']):
+-            for i in xrange(n_bins_per_segment):
++        for j in range(parameters['n_segments']):
++            for i in range(n_bins_per_segment):
+                 first_edge = j * original_n_bins_per_segment + i * multiplier
+                 last_edge = j * original_n_bins_per_segment + (i + 1) * multiplier -1
+ 
+@@ -291,7 +291,7 @@
+         input_bin_mids = bin_mids(parameters['bin_edges'])
+         output_bin_mids = bin_mids(self._output_parameters['bin_edges'])
+ 
+-        for i in xrange(parameters['n_segments']):
++        for i in range(parameters['n_segments']):
+             i_min = i * parameters['n_bins_per_segment']
+             i_max = (i + 1) * parameters['n_bins_per_segment'] - 1
+             segment_min_z = input_bin_mids[i_min]
+--- ../PyHEADTAIL/PyHEADTAIL/field_maps/efields_funcs.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/field_maps/efields_funcs.py	(refactored)
+@@ -2,7 +2,7 @@
+ @authors: Vadim Gubaidulin, Adrian Oeftiger
+ @date:    18.02.2020
+ '''
+-from __future__ import division
++
+ 
+ from PyHEADTAIL.general.element import Element
+ from PyHEADTAIL.particles.slicing import clean_slices
+--- ../PyHEADTAIL/PyHEADTAIL/gpu/gpu_wrap.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/gpu/gpu_wrap.py	(refactored)
+@@ -565,9 +565,9 @@
+     elif dtype.itemsize == 4 and dtype.kind is 'i':
+         thrust.get_sort_perm_int(to_sort.copy(), permutation)
+     else:
+-        print(to_sort.dtype)
+-        print(to_sort.dtype.itemsize)
+-        print(to_sort.dtype.kind)
++        print((to_sort.dtype))
++        print((to_sort.dtype.itemsize))
++        print((to_sort.dtype.kind))
+         raise TypeError('Currently only float64 and int32 types can be sorted')
+     return permutation
+ 
+@@ -603,9 +603,9 @@
+     elif dtype.itemsize == 4 and dtype.kind is 'i':
+         thrust.apply_sort_perm_int(array, tmp, permutation)
+     else:
+-        print(array.dtype)
+-        print(array.dtype.itemsize)
+-        print(array.dtype.kind)
++        print((array.dtype))
++        print((array.dtype.itemsize))
++        print((array.dtype.kind))
+         raise TypeError('Currently only float64 and int32 types can be sorted')
+     return tmp
+ 
+--- ../PyHEADTAIL/PyHEADTAIL/impedances/wakes.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/impedances/wakes.py	(refactored)
+@@ -69,7 +69,7 @@
+         lgd += ['Bin edges']
+     ax2.legend(lgd)
+ 
+-    print('\n--> Resulting number of slices: {:g}'.format(len(ss)))
++    print(('\n--> Resulting number of slices: {:g}'.format(len(ss))))
+ 
+     return ax1
+ 
+--- ../PyHEADTAIL/PyHEADTAIL/particles/slicing.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/particles/slicing.py	(refactored)
+@@ -105,7 +105,7 @@
+         self._pidx_begin = None
+         self._pidx_end = None
+ 
+-        for p_name, p_value in beam_parameters.items():
++        for p_name, p_value in list(beam_parameters.items()):
+             if hasattr(self, p_name):
+                 raise ValueError('SliceSet.' + p_name + ' already exists!' +
+                                  'Do not overwrite existing SliceSet ' +
+--- ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_radiation_damping_time_and_equilibrum_values.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_radiation_damping_time_and_equilibrum_values.py	(refactored)
+@@ -58,7 +58,7 @@
+ sx, sy, sz, sdp = [], [], [], []
+ epsx, epsy, epsz = [], [], []
+ for i_turn in range(n_turns):
+-    print('Turn %d/%d'%(i_turn, n_turns))
++    print(('Turn %d/%d'%(i_turn, n_turns)))
+     machine.track(bunch)
+ 
+     beam_x.append(bunch.mean_x())
+--- ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_radiation_energy_loss.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_radiation_energy_loss.py	(refactored)
+@@ -41,6 +41,6 @@
+ SynchrotronRadiationLongitudinal.track(bunch)
+ dp_after = bunch.mean_dp()
+ 
+-print('Energy loss\nEvaluated :%.6e [eV]\nExpected :%.6e [eV]\nERROR :%.2f'%((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge),
+-		E_loss_eV,(E_loss_eV-((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge)))*100/E_loss_eV)+'%')
++print(('Energy loss\nEvaluated :%.6e [eV]\nExpected :%.6e [eV]\nERROR :%.2f'%((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge),
++		E_loss_eV,(E_loss_eV-((dp_before-dp_after)*machine.p0*c/np.abs(machine.charge)))*100/E_loss_eV)+'%'))
+ 
+--- ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_radiation_with_non_linear_bucket.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_radiation_with_non_linear_bucket.py	(refactored)
+@@ -79,7 +79,7 @@
+ for i in range(n_turns):
+ 
+     machine.track(bunch)
+-    print('Turn %d/%d'%(i, n_turns))
++    print(('Turn %d/%d'%(i, n_turns)))
+     sigma_x[i]  = bunch.sigma_x()
+     mean_x[i]   = bunch.mean_x()
+     epsn_x[i]   = bunch.epsn_x()
+--- ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_synchrotron_LHC.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_synchrotron_LHC.py	(refactored)
+@@ -44,7 +44,7 @@
+ beam_alpha_y = []
+ beam_beta_y = []
+ for i_ele, m in enumerate(machine.one_turn_map):
+-    print('Element %d/%d'%(i_ele, len(machine.one_turn_map)))
++    print(('Element %d/%d'%(i_ele, len(machine.one_turn_map))))
+     beam_alpha_x.append(bunch.alpha_Twiss_x())
+     beam_beta_x.append(bunch.beta_Twiss_x())
+     beam_alpha_y.append(bunch.alpha_Twiss_y())
+@@ -92,7 +92,7 @@
+ sx, sy, sz = [], [], []
+ epsx, epsy, epsz = [], [], []
+ for i_turn in range(n_turns):
+-    print('Turn %d/%d'%(i_turn, n_turns))
++    print(('Turn %d/%d'%(i_turn, n_turns)))
+     machine.track(bunch)
+ 
+     beam_x.append(bunch.mean_x())
+@@ -161,15 +161,15 @@
+ 
+ LHC_with_octupole_injection = LHC(machine_configuration='Injection', n_segments=5, octupole_knob = -1.5)
+ print('450GeV:')
+-print('i_octupole_focusing =',LHC_with_octupole_injection.i_octupole_focusing)
+-print('i_octupole_defocusing =',LHC_with_octupole_injection.i_octupole_defocusing)
++print(('i_octupole_focusing =',LHC_with_octupole_injection.i_octupole_focusing))
++print(('i_octupole_defocusing =',LHC_with_octupole_injection.i_octupole_defocusing))
+ print('in the machine we get 19.557')
+ print('  ')
+ LHC_with_octupole_flattop = LHC(machine_configuration='Injection', n_segments=5, p0=6.5e12*e/c, octupole_knob = -2.9)
+ 
+ print('6.5TeV:')
+-print('i_octupole_focusing =',LHC_with_octupole_flattop.i_octupole_focusing)
+-print('i_octupole_defocusing =',LHC_with_octupole_flattop.i_octupole_defocusing)
++print(('i_octupole_focusing =',LHC_with_octupole_flattop.i_octupole_focusing))
++print(('i_octupole_defocusing =',LHC_with_octupole_flattop.i_octupole_defocusing))
+ print('in the machine we get 546.146')
+ 
+ plt.show()
+--- ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_synchrotron_electrons_CLIC_DR.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/testing/script-tests/test_synchrotron_electrons_CLIC_DR.py	(refactored)
+@@ -36,7 +36,7 @@
+ beam_alpha_y = []
+ beam_beta_y = []
+ for i_ele, m in enumerate(machine.one_turn_map):
+-    print('Element %d/%d'%(i_ele, len(machine.one_turn_map)))
++    print(('Element %d/%d'%(i_ele, len(machine.one_turn_map))))
+     beam_alpha_x.append(bunch.alpha_Twiss_x())
+     beam_beta_x.append(bunch.beta_Twiss_x())
+     beam_alpha_y.append(bunch.alpha_Twiss_y())
+@@ -84,7 +84,7 @@
+ sx, sy, sz = [], [], []
+ epsx, epsy, epsz = [], [], []
+ for i_turn in range(n_turns):
+-    print('Turn %d/%d'%(i_turn, n_turns))
++    print(('Turn %d/%d'%(i_turn, n_turns)))
+     machine.track(bunch)
+ 
+     beam_x.append(bunch.mean_x())
+--- ../PyHEADTAIL/PyHEADTAIL/testing/unittests/test_cobra.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/testing/unittests/test_cobra.py	(refactored)
+@@ -46,7 +46,7 @@
+         """
+         v_cobra = cf.cov(self.data1, self.data2)
+         v_numpy = np.cov(self.data1, self.data2)[0,1]
+-        self.assertAlmostEquals(v_cobra, v_numpy, places=self.tolerance,
++        self.assertAlmostEqual(v_cobra, v_numpy, places=self.tolerance,
+                                 msg='cobra cov() yields a different result ' +
+                                 'than numpy.cov()')
+ 
+@@ -58,10 +58,10 @@
+         bunch = self.generate_gaussian6dBunch(1000000, 0, 0, 1, 1, 5, 100)
+         eta_prime_x = cf.dispersion(bunch.xp, bunch.dp)
+         weak_tol = 2
+-        self.assertAlmostEquals(eta_prime_x, 0., places=weak_tol,
++        self.assertAlmostEqual(eta_prime_x, 0., places=weak_tol,
+                                 msg='eta_prime_x is not zero but ' + str(eta_prime_x))
+         eta_prime_y = cf.dispersion(bunch.yp, bunch.dp)
+-        self.assertAlmostEquals(eta_prime_y, 0., places=weak_tol,
++        self.assertAlmostEqual(eta_prime_y, 0., places=weak_tol,
+                                 msg='eta_prime_y is not zero but ' + str(eta_prime_y))
+ 
+ 
+@@ -71,7 +71,7 @@
+         """
+         d1 = np.random.normal(100, 2., self.n_samples)
+         d2 = np.random.normal(200, 0.2, self.n_samples)
+-        self.assertAlmostEquals(cf.cov(d1, d2), 0.0,
++        self.assertAlmostEqual(cf.cov(d1, d2), 0.0,
+                                 places=self.tolerance,
+                                 msg='cobra cov() of two uncorrelated ' +
+                                 'Gaussians != 0')
+--- ../PyHEADTAIL/PyHEADTAIL/testing/unittests/test_particles.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/testing/unittests/test_particles.py	(refactored)
+@@ -122,7 +122,7 @@
+ 
+     def test_means(self):
+         ''' Tests the mean() method of the Particle class '''
+-        self.assertAlmostEquals(self.bunch.mean_xp(), np.mean(self.bunch.xp),
++        self.assertAlmostEqual(self.bunch.mean_xp(), np.mean(self.bunch.xp),
+                                 places=5, msg='np.mean() and bunch.mean_xp() '
+                                 'yield different results')
+ 
+@@ -130,7 +130,7 @@
+         '''Test the sigma_z() method of the Particle class
+         Only check the first 3 digits because the sample is small (2048)
+         '''
+-        self.assertAlmostEquals(self.bunch.sigma_z(), np.std(self.bunch.z),
++        self.assertAlmostEqual(self.bunch.sigma_z(), np.std(self.bunch.z),
+                                 places=3, msg='np.std() and bunch.sigma_z() '
+                                 'yield different results')
+ 
+@@ -164,7 +164,7 @@
+         emittance for a transverse-only beam.
+         '''
+         beam_transverse = self.create_transverse_only_bunch()
+-        self.assertAlmostEquals(
++        self.assertAlmostEqual(
+             beam_transverse.epsn_x(),
+             beam_transverse.effective_normalized_emittance_x(),
+             places = 5,
+@@ -173,7 +173,7 @@
+             'for a transverse only beam.'
+         )
+ 
+-        self.assertAlmostEquals(
++        self.assertAlmostEqual(
+             beam_transverse.epsn_y(),
+             beam_transverse.effective_normalized_emittance_y(),
+             places = 5,
+@@ -200,7 +200,7 @@
+             old[attr] = getattr(bunch, attr).copy()
+         bunch.sort_for('z')
+         new_idx = bunch.id - 1
+-        for attr, oldarray in old.items():
++        for attr, oldarray in list(old.items()):
+             self.assertTrue(np.all(oldarray[new_idx] == getattr(bunch, attr)),
+                             msg="beam.sort_for('z') should reorder all beam "
+                             "particle arrays, but beam." + str(attr) + " is "
+--- ../PyHEADTAIL/PyHEADTAIL/testing/unittests/autoruntests/SlicingTest.py	(original)
++++ ../PyHEADTAIL/PyHEADTAIL/testing/unittests/autoruntests/SlicingTest.py	(refactored)
+@@ -235,7 +235,7 @@
+ 
+     beam_parameters = slicer.extract_beam_parameters(bunch)
+ 
+-    for p_name, p_value in beam_parameters.items():
++    for p_name, p_value in list(beam_parameters.items()):
+         pass
+ 
+     # In[14]:
