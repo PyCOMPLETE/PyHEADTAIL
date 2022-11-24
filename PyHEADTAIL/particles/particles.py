@@ -276,12 +276,11 @@ class Particles(Printing):
                     particlenumber_per_mp=self.particlenumber_per_mp, charge=self.charge,
 					mass=self.mass, circumference=self.circumference, gamma=self.gamma, coords_n_momenta_dict={})
 
-
         for coord in list(self_coords_n_momenta_dict.keys()):
             #setattr(result, coord, np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy())))
             result.update({coord: np.concatenate((self_coords_n_momenta_dict[coord].copy(), other_coords_n_momenta_dict[coord].copy()))})
 
-        result.id = np.concatenate((self.id.copy(), other.id.copy()))
+        # result.id = np.concatenate((self.id.copy(), other.id.copy()))
 
         return result
 
