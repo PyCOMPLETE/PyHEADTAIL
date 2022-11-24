@@ -21,7 +21,7 @@ class BeamIonElement(Element):
         elif dist == 'LN':
             self._efieldn = efields._efieldn_linearized
         self.L_sep = L_sep
-        self.N_MACROPARTICLES = 50
+        self.N_MACROPARTICLES = 30
         self.N_MACROPARTICLES_MAX = n_macroparticles_max
         self.CIRCUMFERENCE = 354
         self.N_SEGMENTS = 500
@@ -90,8 +90,8 @@ class BeamIonElement(Element):
         prefactor_kick_electron_field = -(electron_bunch.intensity *
                                           electron_bunch.charge**2 /
                                           (c))
-        p_id_electrons = electron_bunch.id-1
-        p_id_ions = self.ion_beam.id-1
+        p_id_electrons = electron_bunch.id.copy()-1
+        p_id_ions = self.ion_beam.id.copy()-1
 #         if len(p_id_electrons) == 0:
 #                 continue
 # Electric field of ions
