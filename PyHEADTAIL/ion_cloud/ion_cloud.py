@@ -31,7 +31,7 @@ class BeamIonElement(Element):
             self.dist_func_z = generators.uniform2D
         else:
             print('Distribution given is not implemented')
-        self.set_aperture = True
+        self.set_aperture = set_aperture
         self.L_sep = L_sep
         self.N_MACROPARTICLES = 30
         self.N_MACROPARTICLES_MAX = n_macroparticles_max
