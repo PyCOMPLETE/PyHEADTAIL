@@ -127,14 +127,6 @@ class BeamIonElement(Element):
                                      self.ion_beam.charge*electron_bunch.charge*electron_bunch.gamma /
                                      (electron_bunch.p0*electron_bunch.beta*c))
         prefactor_kick_electron_field = -(electron_bunch.intensity *
-<<<<<<< HEAD
-                                          electron_bunch.charge**2 /
-                                          (c))
-        p_id_electrons = electron_bunch.id.copy()-1
-        p_id_ions = self.ion_beam.id.copy()-1
-#         if len(p_id_electrons) == 0:
-#                 continue
-=======
                                           electron_bunch.charge*self.ion_beam.charge /
                                           c)
 
@@ -146,7 +138,6 @@ class BeamIonElement(Element):
         p_id_ions = linspace(
             0, self.ion_beam.y.shape[0]-1, self.ion_beam.y.shape[0], dtype=int64)
 
->>>>>>> 4cfc4ba (Ion cloud with monitors for ions)
 # Electric field of ions
         en_ions_x, en_ions_y = self.get_efieldn(
             pm.take(electron_bunch.x, p_id_electrons),
