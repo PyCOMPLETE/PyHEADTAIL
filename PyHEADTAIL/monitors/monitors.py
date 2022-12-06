@@ -7,7 +7,6 @@
 """
 
 
-
 import h5py as hp
 import numpy as np
 import sys
@@ -42,6 +41,7 @@ class BunchMonitor(Monitor):
     operations to file. This also helps to avoid IO errors and loss of
     data when writing to a file that may become temporarily unavailable
     (e.g. if file is located on network) during the simulation. """
+
     def __init__(self, filename, n_steps, parameters_dict=None,
                  write_buffer_every=512, buffer_size=4096,
                  *args, **kwargs):
@@ -65,7 +65,7 @@ class BunchMonitor(Monitor):
         stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
-            'epsn_z', 'macroparticlenumber' ]
+            'epsn_z', 'macroparticlenumber']
         self.stats_to_store = kwargs.pop('stats_to_store', stats_to_store)
         self.filename = filename
         self.n_steps = n_steps
@@ -143,13 +143,15 @@ class BunchMonitor(Monitor):
             # (macroparticlenumber) of the bunch.
             write_pos = self.i_steps % self.buffer_size
             try:
-                if pm.device is 'is_.2slowerwiththis':#'GPU':
-                    #val_bf[stat]
+                if pm.device is 'is_.2slowerwiththis':  # 'GPU':
+                    # val_bf[stat]
                     st = next(gpu_utils.stream_pool)
                     val_buf[stats] = evaluate_stats(stream=st)
-                    p_write[stats] = int(self.buffer[stats].gpudata) + write_pos*self.buffer[stats].strides[0]
-                    sze = 8#val.nbytes
-                    gpu_utils.driver.memcpy_dtod_async(dest=p_write[stats], src=val_buf[stats].gpudata, size=sze, stream=st)
+                    p_write[stats] = int(
+                        self.buffer[stats].gpudata) + write_pos*self.buffer[stats].strides[0]
+                    sze = 8  # val.nbytes
+                    gpu_utils.driver.memcpy_dtod_async(
+                        dest=p_write[stats], src=val_buf[stats].gpudata, size=sze, stream=st)
                 else:
                     self.buffer[stats][write_pos] = evaluate_stats()
             except TypeError:
@@ -163,15 +165,15 @@ class BunchMonitor(Monitor):
         self.buffer is on the GPU, copy the data to buffer_tmp and write
         the result to the file."""
 
-        buffer_tmp = {} # always on CPU
+        buffer_tmp = {}  # always on CPU
         shift = - (self.i_steps + 1 % self.buffer_size)
         for stats in self.stats_to_store:
             try:
                 buffer_tmp[stats] = np.roll(self.buffer[stats].get(),
-                        shift=shift, axis=0)
+                                            shift=shift, axis=0)
             except:
                 buffer_tmp[stats] = np.roll(self.buffer[stats].copy(),
-                        shift=shift, axis=0)
+                                            shift=shift, axis=0)
         n_entries_in_buffer = min(self.i_steps+1, self.buffer_size)
         low_pos_in_buffer = self.buffer_size - n_entries_in_buffer
         low_pos_in_file = self.i_steps + 1 - n_entries_in_buffer
@@ -226,16 +228,16 @@ class SliceMonitor(Monitor):
         bunch_stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
-            'epsn_z', 'macroparticlenumber' ]
+            'epsn_z', 'macroparticlenumber']
         slice_stats_to_store = [
             'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
             'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y',
-            'epsn_z', 'n_macroparticles_per_slice' ]
+            'epsn_z', 'n_macroparticles_per_slice']
 
         self.bunch_stats_to_store = kwargs.pop('bunch_stats_to_store',
-                bunch_stats_to_store)
+                                               bunch_stats_to_store)
         self.slice_stats_to_store = kwargs.pop('slice_stats_to_store',
-                slice_stats_to_store)
+                                               slice_stats_to_store)
 
         self.filename = filename
         self.n_steps = n_steps
@@ -251,9 +253,9 @@ class SliceMonitor(Monitor):
 
     def _init_buffer(self, bunch, slice_set):
         self.buffer_bunch = pm.init_bunch_buffer(bunch,
-            self.bunch_stats_to_store, self.buffer_size)
+                                                 self.bunch_stats_to_store, self.buffer_size)
         self.buffer_slice = pm.init_slice_buffer(slice_set,
-            self.slice_stats_to_store, self.buffer_size)
+                                                 self.slice_stats_to_store, self.buffer_size)
 
     def dump(self, bunch):
         """ Evaluate the statistics like mean and standard deviation for
@@ -293,10 +295,10 @@ class SliceMonitor(Monitor):
 
             for stats in self.bunch_stats_to_store:
                 h5group_bunch.create_dataset(stats, shape=(self.n_steps,),
-                    compression='gzip', compression_opts=9)
+                                             compression='gzip', compression_opts=9)
             for stats in self.slice_stats_to_store:
                 h5group_slice.create_dataset(stats, shape=(self.slicer.n_slices,
-                    self.n_steps), compression='gzip', compression_opts=9)
+                                                           self.n_steps), compression='gzip', compression_opts=9)
             h5file.close()
         except Exception as err:
             self.warns('Problem occurred during Slice monitor creation.')
@@ -335,23 +337,23 @@ class SliceMonitor(Monitor):
         """ Write buffer contents to the HDF5 file. The file is opened
         and closed each time the buffer is written to file to prevent
         from loss of data in case of a crash. """
-        buffer_tmp_bunch = {} # always on CPU
+        buffer_tmp_bunch = {}  # always on CPU
         buffer_tmp_slice = {}
         shift = - (self.i_steps + 1 % self.buffer_size)
         for stats in self.bunch_stats_to_store:
             try:
                 buffer_tmp_bunch[stats] = np.roll(self.buffer_bunch[stats].get(),
-                        shift=shift, axis=0)
+                                                  shift=shift, axis=0)
             except:
                 buffer_tmp_bunch[stats] = np.roll(self.buffer_bunch[stats].copy(),
-                        shift=shift, axis=0)
+                                                  shift=shift, axis=0)
         for stats in self.slice_stats_to_store:
             try:
                 buffer_tmp_slice[stats] = np.roll(self.buffer_slice[stats].get(),
-                        shift=shift, axis=1)
+                                                  shift=shift, axis=1)
             except:
                 buffer_tmp_slice[stats] = np.roll(self.buffer_slice[stats].copy(),
-                        shift=shift, axis=1)
+                                                  shift=shift, axis=1)
 
         # Keep track of where to read from buffers and where to store
         # data in file.
@@ -370,11 +372,11 @@ class SliceMonitor(Monitor):
             for stats in self.bunch_stats_to_store:
                 h5group_bunch[stats][low_pos_in_file:up_pos_in_file] = \
                     buffer_tmp_bunch[stats][low_pos_in_buffer:]
-                    #self.buffer_bunch[stats][low_pos_in_buffer:]
+                # self.buffer_bunch[stats][low_pos_in_buffer:]
             for stats in self.slice_stats_to_store:
-                h5group_slice[stats][:,low_pos_in_file:up_pos_in_file] = \
-                    buffer_tmp_slice[stats][:,low_pos_in_buffer:]
-                    #self.buffer_slice[stats][:,low_pos_in_buffer:]
+                h5group_slice[stats][:, low_pos_in_file:up_pos_in_file] = \
+                    buffer_tmp_slice[stats][:, low_pos_in_buffer:]
+                # self.buffer_slice[stats][:,low_pos_in_buffer:]
             h5file.close()
         except IOError:
             self.warns('Slice monitor file is temporarily unavailable. \n')
@@ -401,7 +403,7 @@ class ParticleMonitor(Monitor):
           Optionally pass a list called quantities_to_store which
           specifies which members of the bunch will be called/stored.
         """
-        quantities_to_store = [ 'x', 'xp', 'y', 'yp', 'z', 'dp', 'id' ]
+        quantities_to_store = ['x', 'xp', 'y', 'yp', 'z', 'dp', 'id']
         self.quantities_to_store = kwargs.pop('quantities_to_store',
                                               quantities_to_store)
         self.filename = filename
@@ -421,6 +423,7 @@ class ParticleMonitor(Monitor):
         contents of the parameters_dict as metadata (attributes)
         to the file. Maximum file compression is activated. """
         try:
+            print(self.filename)
             h5file = hp.File(self.filename + '.h5part', 'w')
             if parameters_dict:
                 for key in parameters_dict:
@@ -443,7 +446,8 @@ class ParticleMonitor(Monitor):
         h5file = hp.File(self.filename + '.h5part', 'a')
         h5group = h5file.create_group('Step#' + str(self.i_steps))
         dims = (bunch.macroparticlenumber // self.stride,)
-        dims = list(bunch.get_coords_n_momenta_dict().values())[0][::self.stride].shape # more robust implementation
+        dims = list(bunch.get_coords_n_momenta_dict().values())[
+            0][::self.stride].shape  # more robust implementation
 
         # resorting_indices = np.argsort(bunch.id)[::self.stride]
         all_quantities = {}
@@ -463,7 +467,7 @@ class ParticleMonitor(Monitor):
         for quant in list(all_quantities.keys()):
             quant_values = all_quantities[quant]
             h5group.create_dataset(quant, shape=dims, compression='gzip',
-                compression_opts=9, dtype=quant_values.dtype)
+                                   compression_opts=9, dtype=quant_values.dtype)
             h5group[quant][:] = quant_values[::self.stride]
 
         h5file.close()
@@ -587,13 +591,13 @@ class CellMonitor(Monitor):
             self.beta_z, self.radial_cut, self.n_radial_slices,
             self.n_azimuthal_slices)
 
-        self.buffer_cell['mean_x'][:,:,0] = x_cl[:,:]
-        self.buffer_cell['mean_xp'][:,:,0] = xp_cl[:,:]
-        self.buffer_cell['mean_y'][:,:,0] = y_cl[:,:]
-        self.buffer_cell['mean_yp'][:,:,0] = yp_cl[:,:]
-        self.buffer_cell['mean_z'][:,:,0] = z_cl[:,:]
-        self.buffer_cell['mean_dp'][:,:,0] = dp_cl[:,:]
-        self.buffer_cell['macroparticlenumber'][:,:,0] = n_cl[:,:]
+        self.buffer_cell['mean_x'][:, :, 0] = x_cl[:, :]
+        self.buffer_cell['mean_xp'][:, :, 0] = xp_cl[:, :]
+        self.buffer_cell['mean_y'][:, :, 0] = y_cl[:, :]
+        self.buffer_cell['mean_yp'][:, :, 0] = yp_cl[:, :]
+        self.buffer_cell['mean_z'][:, :, 0] = z_cl[:, :]
+        self.buffer_cell['mean_dp'][:, :, 0] = dp_cl[:, :]
+        self.buffer_cell['macroparticlenumber'][:, :, 0] = n_cl[:, :]
 
         for stats in self.stats_to_store:
             self.buffer_cell[stats] = np.roll(
@@ -618,8 +622,8 @@ class CellMonitor(Monitor):
             h5group_cells = h5file['Cells']
 
             for stats in self.stats_to_store:
-                h5group_cells[stats][:,:,low_pos_in_file:up_pos_in_file] = \
-                    self.buffer_cell[stats][:,:,low_pos_in_buffer:]
+                h5group_cells[stats][:, :, low_pos_in_file:up_pos_in_file] = \
+                    self.buffer_cell[stats][:, :, low_pos_in_buffer:]
             h5file.close()
         except Exception as err:
             self.warns(err.message)

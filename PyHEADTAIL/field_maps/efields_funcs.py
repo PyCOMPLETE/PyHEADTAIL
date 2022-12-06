@@ -19,6 +19,7 @@ from PyHEADTAIL.general import pmath as pm
 def _sig_sqrt(sig_x, sig_y):
     return pm.sqrt(2 * (sig_x**2 - sig_y**2))
 
+
 def _efieldn_mit(x, y, sig_x, sig_y):
     '''The charge-normalised electric field components of a
     two-dimensional Gaussian charge distribution according to
@@ -40,6 +41,7 @@ def _efieldn_mit(x, y, sig_x, sig_y):
     denom = 2. * epsilon_0 * np.sqrt(pi) * sig_sqrt
     return (w1im - ex * w2im) / denom, (w1re - ex * w2re) / denom
 
+
 def _efieldn_mitmod(x, y, sig_x, sig_y):
     '''The charge-normalised electric field components of a
     two-dimensional Gaussian charge distribution according to
@@ -59,9 +61,10 @@ def _efieldn_mitmod(x, y, sig_x, sig_y):
     ex = pm.exp(-x*x / (2 * sig_x*sig_x) +
                 -y*y / (2 * sig_y*sig_y))
     w2 = pm._errfadd(x * sig_y/(sig_x*sig_sqrt) +
-                        y * sig_x/(sig_y*sig_sqrt) * 1j)
+                     y * sig_x/(sig_y*sig_sqrt) * 1j)
     val = (w1 - ex * w2) / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
     return val.imag, val.real
+
 
 def _efieldn_koelbig(x, y, sig_x, sig_y):
     '''The charge-normalised electric field components of a
@@ -78,27 +81,29 @@ def _efieldn_koelbig(x, y, sig_x, sig_y):
     # timing was ~3.35ms for same situation as _efieldn_mit
     if not pm._errf:
         raise ImportError('errfff cannot be imported for using ' +
-                            'TransverseSpaceCharge._efield_koelbig .' +
-                            'Did you call make (or f2py general/errfff.f)?')
+                          'TransverseSpaceCharge._efield_koelbig .' +
+                          'Did you call make (or f2py general/errfff.f)?')
     sig_sqrt = _sig_sqrt(sig_x, sig_y)
     w1re, w1im = pm._errf(x/sig_sqrt, y/sig_sqrt)
     ex = pm.exp(-x*x / (2 * sig_x*sig_x) +
                 -y*y / (2 * sig_y*sig_y))
     w2re, w2im = pm._errf(x * sig_y/(sig_x*sig_sqrt),
-                            y * sig_x/(sig_y*sig_sqrt))
+                          y * sig_x/(sig_y*sig_sqrt))
     pref = 1. / (2 * epsilon_0 * np.sqrt(pi) * sig_sqrt)
     return pref * (w1im - ex * w2im), pref * (w1re - ex * w2re)
 
+
 def wfun(z):
     '''FADDEEVA function as implemented in PyECLOUD, vectorised.'''
-    x=z.real
-    y=z.imag
+    x = z.real
+    y = z.imag
     if not pm._errf:
         raise ImportError('errfff cannot be imported for using ' +
-                            'TransverseSpaceCharge._efield_pyecloud .' +
-                            'Did you f2py errfff.f?')
-    wx,wy=pm._errf(x,y) # in PyECLOUD only pm._errf_f (not vectorised)
+                          'TransverseSpaceCharge._efield_pyecloud .' +
+                          'Did you f2py errfff.f?')
+    wx, wy = pm._errf(x, y)  # in PyECLOUD only pm._errf_f (not vectorised)
     return wx+1j*wy
+
 
 def _efieldn_pyecloud(xin, yin, sigmax, sigmay):
     '''The charge-normalised electric field components of a
@@ -109,30 +114,31 @@ def _efieldn_pyecloud(xin, yin, sigmax, sigmay):
 
     Effective copy of PyECLOUD.BassErsk.BassErsk implementation.
     '''
-    x=abs(xin);
-    y=abs(yin);
-    eps0=8.854187817620e-12;
-    if sigmax>sigmay:
-        S=np.sqrt(2*(sigmax*sigmax-sigmay*sigmay));
-        factBE=1/(2*eps0*np.sqrt(pi)*S);
-        etaBE=sigmay/sigmax*x+1j*sigmax/sigmay*y;
-        zetaBE=x+1j*y;
-        val=factBE*(wfun(zetaBE/S)-
-                    np.exp( -x*x/(2*sigmax*sigmax)-y*y/(2*sigmay*sigmay))*
-                    wfun(etaBE/S) );
-        Ex=abs(val.imag)*np.sign(xin);
-        Ey=abs(val.real)*np.sign(yin);
+    x = abs(xin)
+    y = abs(yin)
+    eps0 = 8.854187817620e-12
+    if sigmax > sigmay:
+        S = np.sqrt(2*(sigmax*sigmax-sigmay*sigmay))
+        factBE = 1/(2*eps0*np.sqrt(pi)*S)
+        etaBE = sigmay/sigmax*x+1j*sigmax/sigmay*y
+        zetaBE = x+1j*y
+        val = factBE*(wfun(zetaBE/S) -
+                      np.exp(-x*x/(2*sigmax*sigmax)-y*y/(2*sigmay*sigmay)) *
+                      wfun(etaBE/S))
+        Ex = abs(val.imag)*np.sign(xin)
+        Ey = abs(val.real)*np.sign(yin)
     else:
-        S=np.sqrt(2*(sigmay*sigmay-sigmax*sigmax));
-        factBE=1/(2*eps0*np.sqrt(pi)*S);
-        etaBE=sigmax/sigmay*y+1j*sigmay/sigmax*x;
-        yetaBE=y+1j*x;
-        val=factBE*(wfun(yetaBE/S)-
-                    np.exp( -y*y/(2*sigmay*sigmay)-x*x/(2*sigmax*sigmax))*
-                    wfun(etaBE/S) );
-        Ey=abs(val.imag)*np.sign(yin);
-        Ex=abs(val.real)*np.sign(xin);
+        S = np.sqrt(2*(sigmay*sigmay-sigmax*sigmax))
+        factBE = 1/(2*eps0*np.sqrt(pi)*S)
+        etaBE = sigmax/sigmay*y+1j*sigmay/sigmax*x
+        yetaBE = y+1j*x
+        val = factBE*(wfun(yetaBE/S) -
+                      np.exp(-y*y/(2*sigmay*sigmay)-x*x/(2*sigmax*sigmax)) *
+                      wfun(etaBE/S))
+        Ey = abs(val.imag)*np.sign(yin)
+        Ex = abs(val.real)*np.sign(xin)
     return Ex, Ey
+
 
 @np.vectorize
 def _efieldn_kv_a(x, y, sigma_x, sigma_y):
@@ -177,6 +183,7 @@ def _efieldn_kv_b(x, y, sigma_x, sigma_y):
     denom = 4*np.pi*epsilon_0
     return efield_x/denom, efield_y/denom
 
+
 @np.vectorize
 def _efieldn_wb(x, y, sigma_x, sigma_y):
     a = sigma_x*pm.sqrt(3)
@@ -188,11 +195,11 @@ def _efieldn_wb(x, y, sigma_x, sigma_y):
     efield = 8.0*chi/(a+b) * \
         (1.0-(2.0*zs+omegs)*chi/(3.0*(a+b)))
     # else:
-        # zs = pm.abs(x)+1j*pm.abs(y)
-        # sqrt_diff = pm.sqrt(zs**2-a**2+b**2)
-        # first_term = 2.0*zs/(zs+sqrt_diff)
-        # efield = 2.0/zs*first_term*(zs+2.0*sqrt_diff)/(3.0*zs)
-        # efield = efield.real*pm.sign(x) - 1.0j*efield.imag*pm.sign(y)
+    # zs = pm.abs(x)+1j*pm.abs(y)
+    # sqrt_diff = pm.sqrt(zs**2-a**2+b**2)
+    # first_term = 2.0*zs/(zs+sqrt_diff)
+    # efield = 2.0/zs*first_term*(zs+2.0*sqrt_diff)/(3.0*zs)
+    # efield = efield.real*pm.sign(x) - 1.0j*efield.imag*pm.sign(y)
     denom = 4.*np.pi*epsilon_0
     return efield.real/denom, efield.imag/denom
 
@@ -206,14 +213,16 @@ def _efieldn_gauss_round(x, y, sig_x, sig_y):
     amplitude = (1 - pm.exp(-r2/(2*sig_r*sig_r))) / (2*pi*epsilon_0 * r2)
     return x * amplitude, y * amplitude
 
+
 def _efieldn_linearized(x, y, sig_x, sig_y):
     '''
     Returns linearized field
     '''
     a = pm.sqrt(2)*sig_x
     b = pm.sqrt(2)*sig_y
-    amplitude  = 1./(np.pi*epsilon_0*(a+b))
+    amplitude = 1./(np.pi*epsilon_0*(a+b))
     return x/a * amplitude, y/b * amplitude
+
 
 def add_sigma_check(efieldn, dist):
     '''Wrapper for a normalised electric field function.
