@@ -15,7 +15,13 @@ N_TURNS = 1000
 
 
 class BeamIonElement(Element):
-    def __init__(self,  sig_check=True, dist_ions='GS', monitor_name=None, particle_monitor=False, L_sep=0.85, n_macroparticles_max=int(1e3), set_aperture=True):
+    def __init__(self,  sig_check=True,
+                 dist_ions='GS',
+                 monitor_name=None,
+                 particle_monitor=False,
+                 L_sep=0.85,
+                 n_macroparticles_max=int(1e3),
+                 set_aperture=True):
         self.ion_beam = None
         self.dist = dist_ions
         if self.dist == 'GS':
@@ -129,11 +135,12 @@ class BeamIonElement(Element):
         prefactor_kick_electron_field = -(electron_bunch.intensity *
                                           electron_bunch.charge*self.ion_beam.charge /
                                           c)
-
+        apt_xy = aperture.EllipticalApertureXY(
+            x_aper=5*electron_bunch.sigma_x(), y_aper=5*electron_bunch.sigma_y())
         if self.set_aperture == True:
-            apt_xy = aperture.EllipticalApertureXY(
-                x_aper=5*electron_bunch.sigma_x(), y_aper=5*electron_bunch.sigma_y())
             apt_xy.track(self.ion_beam)
+        else:
+            pass
         p_id_electrons = electron_bunch.id-1
         p_id_ions = linspace(
             0, self.ion_beam.y.shape[0]-1, self.ion_beam.y.shape[0], dtype=int64)
