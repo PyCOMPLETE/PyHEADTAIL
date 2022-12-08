@@ -24,17 +24,16 @@ class BeamIonElement(Element):
                  set_aperture=True):
         self.ion_beam = None
         self.dist = dist_ions
+        self.dist_func_z = generators.uniform2D
         if self.dist == 'GS':
             self._efieldn = efields._efieldn_mit
             self.sig_check = sig_check
             self.dist_func_x = generators.gaussian2D_asymmetrical
             self.dist_func_y = generators.gaussian2D_asymmetrical
-            self.dist_func_z = generators.gaussian2D_asymmetrical
         elif self.dist == 'LN':
             self._efieldn = efields._efieldn_linearized
             self.dist_func_x = generators.uniform2D
             self.dist_func_y = generators.uniform2D
-            self.dist_func_z = generators.uniform2D
         else:
             print('Distribution given is not implemented')
         self.set_aperture = set_aperture
@@ -101,13 +100,14 @@ class BeamIonElement(Element):
         '''
         ION_INTENSITY_PER_ELECTRON_BUNCH = electron_bunch.intensity * \
             self.sigma_i*self.n_g*self.L_SEG
+        assert (self.dist in ['LN', 'GS']), (
+            'The implementation for required distribution {:} is not found'.format(self.dist))
         if self.dist == 'LN':
             a_x, b_x = -2*electron_bunch.sigma_x(), 2*electron_bunch.sigma_x()
             a_y, b_y = -2*electron_bunch.sigma_y(), 2*electron_bunch.sigma_y()
         elif self.dist == 'GS':
             a_x, b_x = electron_bunch.sigma_x(), electron_bunch.sigma_xp()
             a_y, b_y = electron_bunch.sigma_y(), electron_bunch.sigma_yp()
-
         if self.ion_beam.macroparticlenumber < self.N_MACROPARTICLES_MAX:
             new_particles = generators.ParticleGenerator(
                 macroparticlenumber=self.N_MACROPARTICLES,
@@ -120,18 +120,20 @@ class BeamIonElement(Element):
                 distribution_y=self.dist_func_y(a_y, b_y),
                 distribution_z=self.dist_func_z(
                     0, self.L_SEG),
+                limit_n_rms_x=3.,
+                limit_n_rms_y=3.,
                 printer=SilentPrinter()
             ).generate()
             new_particles.x[:] += electron_bunch.mean_x()
             new_particles.y[:] += electron_bunch.mean_y()
-            new_particles.xp[:] += 0
-            new_particles.yp[:] += 0
+            new_particles.xp[:] = 0
+            new_particles.yp[:] = 0
             self.ion_beam += new_particles
         else:
             self.ion_beam.intensity += ION_INTENSITY_PER_ELECTRON_BUNCH
         prefactor_kick_ion_field = -(self.ion_beam.intensity *
                                      self.ion_beam.charge*electron_bunch.charge*electron_bunch.gamma /
-                                     (electron_bunch.p0*electron_bunch.beta*c))
+                                     (electron_bunch.p0*electron_bunch.beta*c))*self.L_SEG/self.L_sep
         prefactor_kick_electron_field = -(electron_bunch.intensity *
                                           electron_bunch.charge*self.ion_beam.charge /
                                           c)
@@ -139,12 +141,11 @@ class BeamIonElement(Element):
             x_aper=5*electron_bunch.sigma_x(), y_aper=5*electron_bunch.sigma_y())
         if self.set_aperture == True:
             apt_xy.track(self.ion_beam)
-        else:
-            pass
+        # else:
+        # pass
         p_id_electrons = electron_bunch.id-1
         p_id_ions = linspace(
             0, self.ion_beam.y.shape[0]-1, self.ion_beam.y.shape[0], dtype=int64)
-
 # Electric field of ions
         en_ions_x, en_ions_y = self.get_efieldn(
             pm.take(electron_bunch.x, p_id_electrons),
@@ -162,11 +163,11 @@ class BeamIonElement(Element):
         kicks_electrons_y = en_ions_y * prefactor_kick_ion_field
         kicks_ions_x = en_electrons_x * prefactor_kick_electron_field
         kicks_ions_y = en_electrons_y * prefactor_kick_electron_field
-
         kicked_electrons_xp = pm.take(
             electron_bunch.xp, p_id_electrons) + kicks_electrons_x
         kicked_electrons_yp = pm.take(
             electron_bunch.yp, p_id_electrons) + kicks_electrons_y
+        # print(kicks_electrons_y)
 
         kicked_ions_xp = pm.take(self.ion_beam.xp, p_id_ions) + kicks_ions_x
         kicked_ions_yp = pm.take(self.ion_beam.yp, p_id_ions) + kicks_ions_y
@@ -181,7 +182,6 @@ class BeamIonElement(Element):
             (self.ion_beam.mass*c)+pm.take(self.ion_beam.x, p_id_ions)
         drifted_ions_y = pm.take(self.ion_beam.yp, p_id_ions)*self.L_sep / \
             (self.ion_beam.mass*c)+pm.take(self.ion_beam.y, p_id_ions)
-
         pm.put(self.ion_beam.x, p_id_ions, drifted_ions_x)
         pm.put(self.ion_beam.y, p_id_ions, drifted_ions_y)
         self.ions_monitor.dump(self.ion_beam)
