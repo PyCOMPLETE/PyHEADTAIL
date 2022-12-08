@@ -17,6 +17,7 @@ from PyHEADTAIL.general import pmath as pm
 from PyHEADTAIL.field_maps import efields_funcs as efields
 from PyHEADTAIL.trackers.detuners import DetunerCollection
 
+
 class ElectronLensDetuner(DetunerCollection):
     def __init__(self, dQmax, r, beta_x, beta_y):
         self.dQmax = dQmax
@@ -24,13 +25,17 @@ class ElectronLensDetuner(DetunerCollection):
         self.beta_x = beta_x
         self.beta_y = beta_y
         self.segment_detuners = []
+
     def generate_segment_detuner(self, dmu_x, dmu_y, **kwargs):
         dapp_xz = self.dQmax
         dapp_yz = self.dQmax
         dapp_xz *= dmu_x
         dapp_yz *= dmu_y
-        detuner = ElectronLensSegmentDetuner(dapp_xz, dapp_yz, self.r, self.beta_x, self.beta_y)
+        detuner = ElectronLensSegmentDetuner(
+            dapp_xz, dapp_yz, self.r, self.beta_x, self.beta_y)
         self.segment_detuners.append(detuner)
+
+
 class ElectronLensSegmentDetuner(object):
     def __init__(self, dapp_xz, dapp_yz, r, beta_x, beta_y):
         self.dapp_xz = dapp_xz
@@ -38,26 +43,30 @@ class ElectronLensSegmentDetuner(object):
         self.beta_x = beta_x
         self.beta_y = beta_y
         self.r = r
-    
+
     def detune(self, beam):
         def _bessel_term(u, kx, ky):
             return (i0(kx*u)-i1(kx*u))*i0(ky*u)*np.exp((kx+ky)*u)
         Jx = 0.5*(1/self.beta_x*beam.x**2+self.beta_x*beam.xp**2)
         Jy = 0.5*(1/self.beta_y*beam.x**2+self.beta_y*beam.yp**2)
-        ##proper implementation through integration
+        # proper implementation through integration
         # Kx = Jx/beam.epsn_x()*self.r**2
         # Ky = Jy/beam.epsn_y()*self.r**2
         # K = tuple(zip(Kx, Ky))
         # bessel_term_X = np.array([quad(_bessel_term, 0, 1, args=(kx, ky))[0] for (kx, ky) in K])
         # bessel_term_Y = np.array([quad(_bessel_term, 0, 1, args=(ky, kx))[0] for (kx, ky) in K])
-        ## approximate formula from Burov
+        # approximate formula from Burov
         ax = np.sqrt(2.0*Jx/(beam.epsn_x()/beam.betagamma))
         ay = np.sqrt(2.0*Jy/(beam.epsn_y()/beam.betagamma))
-        bessel_term_X = (192.0-11.0*ax-18.0*np.sqrt(ax*ay)+3.0*ax**2)/(192.0-11.0*ax-18.0*np.sqrt(ax*ay)+3.0*ax**2+36.0*ax**2+21.0*ay**2)
-        bessel_term_Y = (192.0-11.0*ay-18.0*np.sqrt(ax*ay)+3.0*ay**2)/(192.0-11.0*ay-18.0*np.sqrt(ax*ay)+3.0*ay**2+36.0*ay**2+21.0*ax**2)
+        bessel_term_X = (192.0-11.0*ax-18.0*np.sqrt(ax*ay)+3.0*ax**2) / \
+            (192.0-11.0*ax-18.0*np.sqrt(ax*ay)+3.0*ax**2+36.0*ax**2+21.0*ay**2)
+        bessel_term_Y = (192.0-11.0*ay-18.0*np.sqrt(ax*ay)+3.0*ay**2) / \
+            (192.0-11.0*ay-18.0*np.sqrt(ax*ay)+3.0*ay**2+36.0*ay**2+21.0*ax**2)
         dQx = self.dapp_xz*bessel_term_X
         dQy = self.dapp_yz*bessel_term_Y
         return dQx, dQy
+
+
 class ElectronLens(Element):
     '''
     Contains implemenation of electron lens generated electromagnetic field acting on a particle collection.
@@ -90,7 +99,7 @@ class ElectronLens(Element):
                  sigma_y,
                  beta_e,
                  dist,
-                 offset_x=0, 
+                 offset_x=0,
                  offset_y=0,
                  sig_check=True):
         '''Arguments:
@@ -133,7 +142,7 @@ class ElectronLens(Element):
             if sig_check:
                 self._efieldn = efields.add_sigma_check(
                     self._efieldn, self.dist)
-        elif self.dist=='LN':
+        elif self.dist == 'LN':
             self._efieldn = efields._efieldn_linearized
 
     @classmethod
@@ -160,17 +169,17 @@ class ElectronLens(Element):
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + pm.abs(beta_e) * bunch.beta)
         elif dist == 'WB':
-            I_e =  e/bunch.charge*3 / 4 * dQ_max * I_a * (bunch.mass / m_e) * (
+            I_e = e/bunch.charge*3 / 4 * dQ_max * I_a * (bunch.mass / m_e) * (
                 4 * pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + pm.abs(beta_e) * bunch.beta)
         elif dist == 'KV':
-            I_e =  e/bunch.charge*4*dQ_max * I_a * (bunch.mass / m_e) * (
+            I_e = e/bunch.charge*4*dQ_max * I_a * (bunch.mass / m_e) * (
                 4 * pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + np.abs(beta_e) * bunch.beta)
         elif dist == 'LN':
-            I_e =  e/bunch.charge*4*dQ_max * I_a * (bunch.mass / m_e) * (
+            I_e = e/bunch.charge*4*dQ_max * I_a * (bunch.mass / m_e) * (
                 4 * pi *
                 bunch.epsn_x()) / L_e * ratio**2 * beta_e * bunch.beta / (
                     1 + np.abs(beta_e) * bunch.beta)
@@ -193,7 +202,7 @@ class ElectronLens(Element):
         if self.dist == 'GS':
             [
                 dQmax,
-            ] =  bunch.charge/e*self.I_e / self.I_a * m_e / bunch.mass * self.L_e / (
+            ] = bunch.charge/e*self.I_e / self.I_a * m_e / bunch.mass * self.L_e / (
                 4 * pi *
                 bunch.epsn_x()) * (bunch.sigma_x() / self.sigma_x())**2 * (
                     1 + self.beta_e * bunch.beta) / (np.abs(self.beta_e) *
@@ -235,7 +244,8 @@ class ElectronLens(Element):
             Nlambda_i = I_i / (self.beta_e * c)
             # Offset for an electron lens
             en_x, en_y = self.get_efieldn(pm.take(bunch.x, p_id),
-                                          pm.take(bunch.y, p_id), (self.offset_x), (self.offset_y),
+                                          pm.take(
+                                              bunch.y, p_id), (self.offset_x), (self.offset_y),
                                           self.sigma_x, self.sigma_y)
             kicks_x = (en_x * Nlambda_i) * prefactor
             kicks_y = (en_y * Nlambda_i) * prefactor
