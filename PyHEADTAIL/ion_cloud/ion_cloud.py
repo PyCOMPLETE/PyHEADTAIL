@@ -21,7 +21,11 @@ class BeamIonElement(Element):
                  particle_monitor=False,
                  L_sep=0.85,
                  n_macroparticles_max=int(1e3),
-                 set_aperture=True):
+                 set_aperture=True,
+                 n_segments=500,
+                 circumference=354,
+                 n_steps=None
+                 ):
         self.ion_beam = None
         self.dist = dist_ions
         self.dist_func_z = generators.uniform2D
@@ -40,8 +44,8 @@ class BeamIonElement(Element):
         self.L_sep = L_sep
         self.N_MACROPARTICLES = 30
         self.N_MACROPARTICLES_MAX = n_macroparticles_max
-        self.CIRCUMFERENCE = 354
-        self.N_SEGMENTS = 500
+        self.CIRCUMFERENCE = circumference
+        self.N_SEGMENTS = n_segments
         self.L_SEG = self.CIRCUMFERENCE/self.N_SEGMENTS
         if sig_check:
             self._efieldn = efields.add_sigma_check(
@@ -49,6 +53,7 @@ class BeamIonElement(Element):
         self.n_g = 2.4e13  # (m**-3)
         self.sigma_i = 1.8e-22  # (m**2)
         self.A = 28
+        self.n_steps = n_steps
         self.charge_state = 1
         self.ion_beam = particles.Particles(
             macroparticlenumber=1,
@@ -75,7 +80,7 @@ class BeamIonElement(Element):
         elif monitor_name is not None:
             self.monitor_name = monitor_name
             self.ions_monitor = BunchMonitor(monitor_name,
-                                             n_steps=H_RF*N_TURNS,
+                                             n_steps=self.n_steps,
                                              parameters_dict=None,
                                              write_buffer_every=50,
                                              buffer_size=100,
@@ -100,6 +105,7 @@ class BeamIonElement(Element):
         '''
         ION_INTENSITY_PER_ELECTRON_BUNCH = electron_bunch.intensity * \
             self.sigma_i*self.n_g*self.L_SEG
+        self.N_MACROPARTICLES = int(ION_INTENSITY_PER_ELECTRON_BUNCH)
         assert (self.dist in ['LN', 'GS']), (
             'The implementation for required distribution {:} is not found'.format(self.dist))
         if self.dist == 'LN':
