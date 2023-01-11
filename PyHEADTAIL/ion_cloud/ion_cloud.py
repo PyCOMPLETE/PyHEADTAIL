@@ -162,7 +162,8 @@ class BeamIonElement(Element):
             self.ion_beam += new_particles
         else:
             self.ion_beam.intensity += ION_INTENSITY_PER_ELECTRON_BUNCH
-        self.ions_monitor.dump(self.ion_beam)
+        if self.ions_monitor is not None:
+            self.ions_monitor.dump(self.ion_beam)
         prefactor_kick_ion_field = -(self.ion_beam.intensity *
                                      self.ion_beam.charge*electron_bunch.charge /
                                      (electron_bunch.p0*electron_bunch.beta*c))*self.L_SEG/self.L_sep
