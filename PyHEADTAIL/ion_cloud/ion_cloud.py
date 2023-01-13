@@ -28,7 +28,6 @@ class BeamIonElement(Element):
                  interaction_model='weak-weak'
                  ):
         self.ion_beam = None
-        self.dist = dist_ions
         self.dist_func_z = generators.uniform2D
         if self.dist == 'GS':
             self._efieldn = efields._efieldn_mit
@@ -41,13 +40,7 @@ class BeamIonElement(Element):
             self.dist_func_y = generators.uniform2D
         else:
             print('Distribution given is not implemented')
-        self.interaction_model = interaction_model
-        self.set_aperture = set_aperture
-        self.L_sep = L_sep
         self.N_MACROPARTICLES = 30
-        self.N_MACROPARTICLES_MAX = n_macroparticles_max
-        self.CIRCUMFERENCE = circumference
-        self.N_SEGMENTS = n_segments
         self.L_SEG = self.CIRCUMFERENCE/self.N_SEGMENTS
         if sig_check:
             self._efieldn = efields.add_sigma_check(
@@ -55,7 +48,6 @@ class BeamIonElement(Element):
         self.n_g = 2.4e13  # (m**-3)
         self.sigma_i = 1.8e-22  # (m**2)
         self.A = 28
-        self.n_steps = n_steps
         self.charge_state = 1
         self.ion_beam = particles.Particles(
             macroparticlenumber=1,
