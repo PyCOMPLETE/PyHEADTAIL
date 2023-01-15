@@ -15,36 +15,62 @@ N_TURNS = 1000
 
 
 class BeamIonElement(Element):
+    '''
+    It has various attributes and methods that allow to initialize the ion beam properties,
+    create an instance of `Particles` class which represent the ion beam, 
+    create an instance of `BunchMonitor` or `ParticleMonitor` classes to monitor the ion beam,
+    and track the interaction between the electron bunch and the ion beam.
+
+    Attributes:
+        ion_beam (Particles): An instance of `Particles` class that represents the ion beam
+        dist (str): The distribution of ions in the beam (default is 'GS')
+        dist_func_z (func): A function that generates the z distribution of ions
+        _efieldn (func): A function that generates the electric field of the electron bunch
+        sig_check (bool): A boolean to specify if sigma check for the electron field is activated
+        dist_func_x (func): A function that generates the x distribution of ions
+        dist_func_y (func): A function that generates the y distribution of ions
+        interaction_model (str): A string that sets the interaction model between the electron and the ion bunches
+        set_aperture (bool): A boolean to specify if the aperture should be set
+        L_sep (float): A scalar value that gives the distance between the electron and the ion bunches
+        N_MACROPARTICLES (int): The number of macroparticles in the ion beam
+        N_MACROPARTICLES_MAX (int): The maximum number of macroparticles in the ion beam
+        CIRCUMFERENCE (float): The circumference of the ion beam
+        N_SEGMENTS (int): The number of segments for the ion beam
+        L_SEG (float): The length of each segment of the ion beam
+        n_g (float): The residual gas density in the vacuum chamber
+        sigma_i (float): Ionization cross-section of ions
+        A (float): The mass number of the ions
+        n_steps (int): The number of tracking steps for the monitor
+        charge_state (int): The charge state of the ions
+        ions_monitor (Union[BunchMonitor, ParticleMonitor, None]): An instance of `BunchMonitor` or `ParticleMonitor`
+            classes that monitor the ion beam
+    '''
+
     def __init__(self,  sig_check=True,
                  dist_ions='GS',
                  monitor_name=None,
-                 particle_monitor=False,
+                 use_particle_monitor=False,
                  L_sep=0.85,
                  n_macroparticles_max=int(1e3),
                  set_aperture=True,
                  n_segments=500,
-                 circumference=354,
+                 ring_circumference=354,
                  n_steps=None,
                  interaction_model='weak-weak'
                  ):
-        self.ion_beam = None
-        self.dist_func_z = generators.uniform2D
-        if self.dist == 'GS':
-            self._efieldn = efields._efieldn_mit
-            self.sig_check = sig_check
-            self.dist_func_x = generators.gaussian2D_asymmetrical
-            self.dist_func_y = generators.gaussian2D_asymmetrical
-        elif self.dist == 'LN':
-            self._efieldn = efields._efieldn_linearized
-            self.dist_func_x = generators.uniform2D
-            self.dist_func_y = generators.uniform2D
-        else:
-            print('Distribution given is not implemented')
+        self.use_particle_monitor = use_particle_monitor
+        self.dist=dist_ions
+        self.monitor_name=monitor_name
+        self.L_sep = L_sep
+        self.N_MACROPARTICLES_MAX = n_macroparticles_max
+        self.set_aperture = set_aperture
+        self.n_segments = n_segments
+        self.ring_circumference = ring_circumference
+        self.n_steps = n_steps
+        self.interaction_model = interaction_model
+        self._set_distribution_for_particle_generation()
         self.N_MACROPARTICLES = 30
-        self.L_SEG = self.CIRCUMFERENCE/self.N_SEGMENTS
-        if sig_check:
-            self._efieldn = efields.add_sigma_check(
-                self._efieldn, self.dist)
+        self.L_SEG = self.ring_circumference/self.n_segments
         self.n_g = 2.4e13  # (m**-3)
         self.sigma_i = 1.8e-22  # (m**2)
         self.A = 28
@@ -54,7 +80,7 @@ class BeamIonElement(Element):
             particlenumber_per_mp=1,
             charge=self.charge_state*e,
             mass=self.A*m_p,
-            circumference=self.CIRCUMFERENCE,
+            circumference=self.ring_circumference,
             gamma=1.0001,
             coords_n_momenta_dict={
                 'x': [0, ],
@@ -65,26 +91,113 @@ class BeamIonElement(Element):
                 'dp': [0, ]
             }
         )
-        if particle_monitor:
-            self.particle_monitor = particle_monitor
-            self.ions_monitor = ParticleMonitor(monitor_name,
-                                                stride=1,
-                                                parameters_dict=None
-                                                )
-        elif monitor_name is not None:
-            self.monitor_name = monitor_name
-            self.ions_monitor = BunchMonitor(monitor_name,
-                                             n_steps=self.n_steps,
-                                             parameters_dict=None,
-                                             write_buffer_every=50,
-                                             buffer_size=100,
-                                             )
+        self._add_monitors()
+
+    def _set_distribution_for_particle_generation(self):
+        self.dist_func_z = generators.uniform2D
+        if self.dist == 'GS':
+            self._efieldn = efields._efieldn_mit
+            self.dist_func_x = generators.gaussian2D_asymmetrical
+            self.dist_func_y = generators.gaussian2D_asymmetrical
+        elif self.dist == 'LN':
+            self._efieldn = efields._efieldn_linearized
+            self.dist_func_x = generators.uniform2D
+            self.dist_func_y = generators.uniform2D
+        else:
+            print('Distribution given is not implemented')
+        self._efieldn = efields.add_sigma_check(
+            self._efieldn, self.dist)
+
+    def _add_monitors(self):
+        if self.monitor_name is not None:
+            if self.use_particle_monitor:
+                self.ions_monitor = ParticleMonitor(self.monitor_name,
+                                                    stride=1,
+                                                    parameters_dict=None
+                                                    )
+            else:
+                self.ions_monitor = BunchMonitor(self.monitor_name,
+                                                 n_steps=self.n_steps,
+                                                 parameters_dict=None,
+                                                 write_buffer_every=50,
+                                                 buffer_size=100,
+                                                 )
         else:
             self.ions_monitor = None
 
     def get_ion_beam(self):
+        """
+        A method to access the ion beam object
+        """
         return self.ion_beam
+    def clear_ions(self):
+        self.ion_beam = self.ion_beam = particles.Particles(
+            macroparticlenumber=1,
+            particlenumber_per_mp=1,
+            charge=self.charge_state*e,
+            mass=self.A*m_p,
+            circumference=self.ring_circumference,
+            gamma=1.0001,
+            coords_n_momenta_dict={
+                'x': [0, ],
+                'xp': [0, ],
+                'y': [0, ],
+                'yp': [0, ],
+                'z': [0, ],
+                'dp': [0, ]
+            })
 
+    def _generate_ions(self, electron_bunch):
+        assert (self.dist in ['LN', 'GS']), (
+            'The implementation for required distribution {:} is not found'.format(self.dist))
+        if self.dist == 'LN':
+            a_x, b_x = -2*electron_bunch.sigma_x(), 2*electron_bunch.sigma_x()
+            a_y, b_y = -2*electron_bunch.sigma_y(), 2*electron_bunch.sigma_y()
+        elif self.dist == 'GS':
+            a_x, b_x = electron_bunch.sigma_x(), electron_bunch.sigma_xp()
+            a_y, b_y = electron_bunch.sigma_y(), electron_bunch.sigma_yp()
+        new_particles = generators.ParticleGenerator(
+            macroparticlenumber=self.N_MACROPARTICLES//2,
+            intensity=self.ION_INTENSITY_PER_ELECTRON_BUNCH//2,
+            charge=self.charge_state*e,
+            gamma=1.0001,
+            mass=self.A*m_p,
+            circumference=self.ring_circumference,
+            distribution_x=self.dist_func_x(a_x, b_x),
+            distribution_y=self.dist_func_y(a_y, b_y),
+            distribution_z=self.dist_func_z(
+                0, self.L_SEG),
+            limit_n_rms_x=3.,
+            limit_n_rms_y=3.,
+            printer=SilentPrinter()
+        ).generate()
+        new_particles_twin = particles.Particles(
+            macroparticlenumber=self.N_MACROPARTICLES//2,
+            particlenumber_per_mp=self.ION_INTENSITY_PER_ELECTRON_BUNCH/self.N_MACROPARTICLES,
+            charge=self.charge_state*e,
+            gamma=1.0001,
+            mass=self.A*m_p,
+            circumference=self.ring_circumference,
+            coords_n_momenta_dict={
+                'x': -new_particles.x,
+                'xp': -new_particles.xp,
+                'y': -new_particles.y,
+                'yp': -new_particles.yp,
+                'z': -new_particles.z,
+                'dp': -new_particles.dp
+            },
+            printer=SilentPrinter()
+        )
+        new_particles += new_particles_twin
+        # Apply initial conditions
+        new_particles.x[:] += electron_bunch.mean_x()
+        new_particles.y[:] += electron_bunch.mean_y()
+        new_particles.xp[:] = 0
+        new_particles.yp[:] = 0
+        self.ion_beam += new_particles
+        self.ions_aperture = aperture.EllipticalApertureXY(
+            x_aper=5*electron_bunch.sigma_x(),
+            y_aper=5*electron_bunch.sigma_y())
     def track(self, electron_bunch):
         '''Tracking method to track an interaction between an electron bunch
         and an ion beam (2D electromagnetic field).
@@ -96,80 +209,35 @@ class BeamIonElement(Element):
         Tian, S. K.; Wang, N. (2018). Ion instability in the HEPS storage ring.
         FLS 2018 - Proceedings of the 60th ICFA Advanced Beam Dynamics Workshop on Future Light Sources,
         34–38. https://doi.org/10.18429/JACoW-FLS2018-TUA2WB04
-        '''
-        ION_INTENSITY_PER_ELECTRON_BUNCH = electron_bunch.intensity * \
+    '''
+        self.ION_INTENSITY_PER_ELECTRON_BUNCH = electron_bunch.intensity * \
             self.sigma_i*self.n_g*self.L_SEG
         self.N_MACROPARTICLES = 50  # int(ION_INTENSITY_PER_ELECTRON_BUNCH)
         assert (self.dist in ['LN', 'GS']), (
             'The implementation for required distribution {:} is not found'.format(self.dist))
-        if self.dist == 'LN':
-            a_x, b_x = -2*electron_bunch.sigma_x(), 2*electron_bunch.sigma_x()
-            a_y, b_y = -2*electron_bunch.sigma_y(), 2*electron_bunch.sigma_y()
-        elif self.dist == 'GS':
-            a_x, b_x = electron_bunch.sigma_x(), electron_bunch.sigma_xp()
-            a_y, b_y = electron_bunch.sigma_y(), electron_bunch.sigma_yp()
         '''
         Particles are generated in pairs -x, -y and +x, +y to avoid numerical noise.
         The idea came from Blaskiewicz, M. (2019) https://doi.org/10.18429/JACoW-NAPAC2019-TUPLM11
         '''
         if self.ion_beam.macroparticlenumber < self.N_MACROPARTICLES_MAX:
-            new_particles = generators.ParticleGenerator(
-                macroparticlenumber=self.N_MACROPARTICLES//2,
-                intensity=ION_INTENSITY_PER_ELECTRON_BUNCH//2,
-                charge=self.charge_state*e,
-                gamma=1.0001,
-                mass=self.A*m_p,
-                circumference=self.CIRCUMFERENCE,
-                distribution_x=self.dist_func_x(a_x, b_x),
-                distribution_y=self.dist_func_y(a_y, b_y),
-                distribution_z=self.dist_func_z(
-                    0, self.L_SEG),
-                limit_n_rms_x=3.,
-                limit_n_rms_y=3.,
-                printer=SilentPrinter()
-            ).generate()
-            new_particles_twin = particles.Particles(
-                macroparticlenumber=self.N_MACROPARTICLES//2,
-                particlenumber_per_mp=ION_INTENSITY_PER_ELECTRON_BUNCH/self.N_MACROPARTICLES,
-                charge=self.charge_state*e,
-                gamma=1.0001,
-                mass=self.A*m_p,
-                circumference=self.CIRCUMFERENCE,
-                coords_n_momenta_dict={
-                    'x': -new_particles.x,
-                    'xp': -new_particles.xp,
-                    'y': -new_particles.y,
-                    'yp': -new_particles.yp,
-                    'z': -new_particles.z,
-                    'dp': -new_particles.dp
-                },
-                printer=SilentPrinter()
-            )
-            new_particles += new_particles_twin
-            # Initial conditions
-            new_particles.x[:] += electron_bunch.mean_x()
-            new_particles.y[:] += electron_bunch.mean_y()
-            new_particles.xp[:] = 0
-            new_particles.yp[:] = 0
-            self.ion_beam += new_particles
+            self._generate_ions(electron_bunch)
         else:
-            self.ion_beam.intensity += ION_INTENSITY_PER_ELECTRON_BUNCH
+            self.ion_beam.intensity += self.ION_INTENSITY_PER_ELECTRON_BUNCH
+
+        if self.set_aperture == True:
+            self.ions_aperture.track(self.ion_beam)
+        else:
+            pass
+
         if self.ions_monitor is not None:
             self.ions_monitor.dump(self.ion_beam)
+
         prefactor_kick_ion_field = -(self.ion_beam.intensity *
                                      self.ion_beam.charge*electron_bunch.charge /
                                      (electron_bunch.p0*electron_bunch.beta*c))*self.L_SEG/self.L_sep
         prefactor_kick_electron_field = -(electron_bunch.intensity *
                                           electron_bunch.charge*self.ion_beam.charge /
                                           (self.ion_beam.mass*c**2))
-        # Clearing ions that are far away
-        apt_xy = aperture.EllipticalApertureXY(
-            x_aper=5*electron_bunch.sigma_x(),
-            y_aper=5*electron_bunch.sigma_y())
-        if self.set_aperture == True:
-            apt_xy.track(self.ion_beam)
-        else:
-            pass
         p_id_electrons = electron_bunch.id-1
         p_id_ions = linspace(
             0, self.ion_beam.y.shape[0]-1, self.ion_beam.y.shape[0], dtype=int64)
