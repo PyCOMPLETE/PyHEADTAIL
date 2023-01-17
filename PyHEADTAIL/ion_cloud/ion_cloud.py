@@ -174,7 +174,7 @@ class BeamIonElement(Element):
             distribution_x=self.dist_func_x(a_x, b_x),
             distribution_y=self.dist_func_y(a_y, b_y),
             distribution_z=self.dist_func_z(
-                0, self.L_SEG),
+                -self.L_SEG/2, self.L_SEG/2),
             limit_n_rms_x=3.,
             limit_n_rms_y=3.,
             printer=SilentPrinter()
@@ -278,7 +278,7 @@ class BeamIonElement(Element):
 
         prefactor_kick_ion_field = -(self.ion_beam.intensity *
                                      self.ion_beam.charge*electron_bunch.charge /
-                                     (electron_bunch.p0*electron_bunch.beta*c))*self.L_SEG/self.L_sep
+                                     (electron_bunch.p0*electron_bunch.beta*c))
         prefactor_kick_electron_field = -(electron_bunch.intensity *
                                           electron_bunch.charge*self.ion_beam.charge /
                                           (self.ion_beam.mass*c**2))
