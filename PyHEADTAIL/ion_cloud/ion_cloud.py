@@ -7,6 +7,9 @@ from PyHEADTAIL.monitors.monitors import BunchMonitor, ParticleMonitor
 from PyHEADTAIL.particles import particles, generators
 from scipy.constants import m_p, e, c
 from numpy import linspace, int64
+import PyPIC.geom_impact_ellip as ell
+import PyPIC.FFT_OpenBoundary as PIC_FFT
+
 
 H_RF = 416
 CIRCUMFERENCE = 354
@@ -59,8 +62,8 @@ class BeamIonElement(Element):
                  interaction_model='weak-weak'
                  ):
         self.use_particle_monitor = use_particle_monitor
-        self.dist=dist_ions
-        self.monitor_name=monitor_name
+        self.dist = dist_ions
+        self.monitor_name = monitor_name
         self.L_sep = L_sep
         self.N_MACROPARTICLES_MAX = n_macroparticles_max
         self.set_aperture = set_aperture
@@ -130,6 +133,7 @@ class BeamIonElement(Element):
         A method to access the ion beam object
         """
         return self.ion_beam
+
     def clear_ions(self):
         self.ion_beam = self.ion_beam = particles.Particles(
             macroparticlenumber=1,
@@ -148,6 +152,10 @@ class BeamIonElement(Element):
             })
 
     def _generate_ions(self, electron_bunch):
+        '''
+        Particles are generated in pairs -x, -y and +x, +y to avoid numerical noise.
+        The idea came from Blaskiewicz, M. (2019) https://doi.org/10.18429/JACoW-NAPAC2019-TUPLM11
+        '''
         assert (self.dist in ['LN', 'GS']), (
             'The implementation for required distribution {:} is not found'.format(self.dist))
         if self.dist == 'LN':
@@ -198,6 +206,50 @@ class BeamIonElement(Element):
         self.ions_aperture = aperture.EllipticalApertureXY(
             x_aper=5*electron_bunch.sigma_x(),
             y_aper=5*electron_bunch.sigma_y())
+
+    def track_ions_in_drift(self, p_id_ions):
+        drifted_ions_x = pm.take(
+            self.ion_beam.xp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.x, p_id_ions)
+        drifted_ions_y = pm.take(
+            self.ion_beam.yp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.y, p_id_ions)
+        pm.put(self.ion_beam.x, p_id_ions, drifted_ions_x)
+        pm.put(self.ion_beam.y, p_id_ions, drifted_ions_y)
+
+    def get_updated_ion_positions(self, electron_bunch):
+        pass
+
+    def _get_efields(self, first_beam, second_beam, p_id_first_beam, interaction_model='weak'):
+        assert (interaction_model in ['weak', 'strong', 'PIC']), ((
+            'The implementation for required beam-ion interaction model {:} is not implemented'.format(self, interaction_model)))
+        if interaction_model == 'weak':
+            en_x, en_y = self.get_efieldn(
+                pm.take(first_beam.x, p_id_first_beam),
+                pm.take(first_beam.y, p_id_first_beam),
+                second_beam.mean_x(), second_beam.mean_y(),
+                second_beam.sigma_x(), second_beam.sigma_y())
+        elif interaction_model == 'strong':
+            en_x, en_y = self.get_efieldn(
+                first_beam.mean_x(),
+                first_beam.mean_y(),
+                second_beam.mean_x(), second_beam.mean_y(),
+                second_beam.sigma_x(), second_beam.sigma_y())
+        if interaction_model == 'PIC':
+            qe = 1.602176565e-19
+            eps0 = 8.8541878176e-12
+            Dx = 0.1*second_beam.sigma_x()
+            Dy = 0.1*second_beam.sigma_y()
+            x_aper = 10*second_beam.sigma_x()
+            y_aper = 10*second_beam.sigma_y()
+            chamber = ell.ellip_cham_geom_object(x_aper=x_aper, y_aper=y_aper)
+            picFFT = PIC_FFT.FFT_OpenBoundary(
+                x_aper=chamber.x_aper, y_aper=chamber.y_aper, dx=Dx, dy=Dy, fftlib='pyfftw')
+            nel_part = 0*second_beam.x+1.
+            picFFT.scatter(second_beam.x, second_beam.y, nel_part)
+            picFFT.solve()
+            en_x, en_y = picFFT.gather(
+                first_beam.x, first_beam.y)/second_beam.x.shape[0]
+        return en_x, en_y
+
     def track(self, electron_bunch):
         '''Tracking method to track an interaction between an electron bunch
         and an ion beam (2D electromagnetic field).
@@ -212,13 +264,7 @@ class BeamIonElement(Element):
     '''
         self.ION_INTENSITY_PER_ELECTRON_BUNCH = electron_bunch.intensity * \
             self.sigma_i*self.n_g*self.L_SEG
-        self.N_MACROPARTICLES = 50  # int(ION_INTENSITY_PER_ELECTRON_BUNCH)
-        assert (self.dist in ['LN', 'GS']), (
-            'The implementation for required distribution {:} is not found'.format(self.dist))
-        '''
-        Particles are generated in pairs -x, -y and +x, +y to avoid numerical noise.
-        The idea came from Blaskiewicz, M. (2019) https://doi.org/10.18429/JACoW-NAPAC2019-TUPLM11
-        '''
+
         if self.ion_beam.macroparticlenumber < self.N_MACROPARTICLES_MAX:
             self._generate_ions(electron_bunch)
         else:
@@ -226,8 +272,6 @@ class BeamIonElement(Element):
 
         if self.set_aperture == True:
             self.ions_aperture.track(self.ion_beam)
-        else:
-            pass
 
         if self.ions_monitor is not None:
             self.ions_monitor.dump(self.ion_beam)
@@ -241,48 +285,15 @@ class BeamIonElement(Element):
         p_id_electrons = electron_bunch.id-1
         p_id_ions = linspace(
             0, self.ion_beam.y.shape[0]-1, self.ion_beam.y.shape[0], dtype=int64)
-# Electric field of ions
-        if self.interaction_model == 'weak-weak':
-            en_ions_x, en_ions_y = self.get_efieldn(
-                pm.take(electron_bunch.x, p_id_electrons),
-                pm.take(electron_bunch.y, p_id_electrons),
-                self.ion_beam.mean_x(), self.ion_beam.mean_y(),
-                self.ion_beam.sigma_x(), self.ion_beam.sigma_y())
-# Electric field of electrons
-            en_electrons_x, en_electrons_y = self.get_efieldn(
-                pm.take(self.ion_beam.x, p_id_ions),
-                pm.take(self.ion_beam.y, p_id_ions),
-                electron_bunch.mean_x(),  electron_bunch.mean_y(),
-                electron_bunch.sigma_x(), electron_bunch.sigma_y()
-            )
-        elif self.interaction_model == 'weak-strong':
-            en_ions_x, en_ions_y = self.get_efieldn(
-                electron_bunch.mean_x(),
-                electron_bunch.mean_y(),
-                self.ion_beam.mean_x(), self.ion_beam.mean_y(),
-                self.ion_beam.sigma_x(), self.ion_beam.sigma_y())
-# Electric field of electrons
-            en_electrons_x, en_electrons_y = self.get_efieldn(
-                pm.take(self.ion_beam.x, p_id_ions),
-                pm.take(self.ion_beam.y, p_id_ions),
-                electron_bunch.mean_x(),  electron_bunch.mean_y(),
-                electron_bunch.sigma_x(), electron_bunch.sigma_y()
-            )
-        elif self.interaction_model == 'strong-strong':
-            en_ions_x, en_ions_y = self.get_efieldn(
-                electron_bunch.mean_x(),
-                electron_bunch.mean_y(),
-                self.ion_beam.mean_x(), self.ion_beam.mean_y(),
-                self.ion_beam.sigma_x(), self.ion_beam.sigma_y())
-# Electric field of electrons
-            en_electrons_x, en_electrons_y = self.get_efieldn(
-                self.ion_beam.mean_x(),
-                self.ion_beam.mean_x(),
-                electron_bunch.mean_x(),  electron_bunch.mean_y(),
-                electron_bunch.sigma_x(), electron_bunch.sigma_y()
-            )
-        else:
-            pass
+        en_ions_x, en_ions_y = self._get_efields(first_beam=electron_bunch,
+                                                 second_beam=self.ion_beam,
+                                                 p_id_first_beam=p_id_electrons,
+                                                 interaction_model='weak')
+        en_electrons_x, en_electrons_y = self._get_efields(first_beam=self.ion_beam,
+                                                           second_beam=electron_bunch,
+                                                           p_id_first_beam=p_id_ions,
+                                                           interaction_model='weak')
+
         kicks_electrons_x = en_ions_x * prefactor_kick_ion_field
         kicks_electrons_y = en_ions_y * prefactor_kick_ion_field
         kicks_ions_x = en_electrons_x * prefactor_kick_electron_field
@@ -301,12 +312,13 @@ class BeamIonElement(Element):
         pm.put(self.ion_beam.xp, p_id_ions, kicked_ions_xp)
         pm.put(self.ion_beam.yp, p_id_ions, kicked_ions_yp)
         # Drift for the ions in one bucket
-        drifted_ions_x = pm.take(
-            self.ion_beam.xp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.x, p_id_ions)
-        drifted_ions_y = pm.take(
-            self.ion_beam.yp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.y, p_id_ions)
-        pm.put(self.ion_beam.x, p_id_ions, drifted_ions_x)
-        pm.put(self.ion_beam.y, p_id_ions, drifted_ions_y)
+        # drifted_ions_x = pm.take(
+        #     self.ion_beam.xp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.x, p_id_ions)
+        # drifted_ions_y = pm.take(
+        #     self.ion_beam.yp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.y, p_id_ions)
+        # pm.put(self.ion_beam.x, p_id_ions, drifted_ions_x)
+        # pm.put(self.ion_beam.y, p_id_ions, drifted_ions_y)
+        self.track_ions_in_drift(p_id_ions)
 
     def get_efieldn(self, xr, yr, mean_x, mean_y, sig_x, sig_y):
         '''The charge-normalised electric field components of a
