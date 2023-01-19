@@ -26,6 +26,7 @@ import numpy as np
 from collections import deque
 from scipy.constants import c, physical_constants
 from scipy.interpolate import interp1d
+from scipy.integrate import quad
 from abc import ABCMeta, abstractmethod
 
 from PyHEADTAIL.impedances.wake_kicks import *
@@ -169,7 +170,7 @@ class WakeTable(WakeSource):
     data from a table. """
 
     def __init__(self, wake_file, wake_file_columns, n_turns_wake=1,
-                 *args, **kwargs):
+                 method='interpolated', *args, **kwargs):
         """ Load data from the wake_file and store them in a dictionary
         self.wake_table. Keys are the names specified by the user in
         wake_file_columns and describe the names of the wake field
@@ -177,24 +178,20 @@ class WakeTable(WakeSource):
         given by the corresponding data read from the table. The
         nomenclature of the wake components must be strictly obeyed.
         Valid names for wake components are:
-
         'constant_x', 'constant_y', 'dipole_x', 'dipole_y', 'dipole_xy',
         'dipole_yx', 'quadrupole_x', 'quadrupole_y', 'quadrupole_xy',
         'quadrupole_yx', 'longitudinal'.
-
         The order of wake_file_columns is relevant and must correspond
         to the one in the wake_file. There is no way to check this here
         and it is in the responsibility of the user to ensure it is
         correct. Two checks made here are whether the length of
         wake_file_columns corresponds to the number of columns in the
         wake_file and whether a column 'time' is specified.
-
         The units and signs of the wake table data are assumed to follow
         the HEADTAIL conventions, i.e.
           time: [ns]
           transverse wake components: [V/pC/mm]
           longitudinal wake component: [V/pC].
-
         The parameter 'n_turns_wake' defines how many turns are
         considered for the multiturn wakes. It is 1 by default, i.e.
         multiturn wakes are off. """
@@ -216,6 +213,78 @@ class WakeTable(WakeSource):
 
         self.n_turns_wake = n_turns_wake
 
+        if 'beta' in kwargs.keys():
+            self.beta = kwargs['beta']
+        else:
+            self.beta = 1
+            print("Relativistic beta not specified for integrated"
+                  " wakefield method, assumed to be equal to 1"
+                 if method == 'integrated' else '')
+
+        if (method == 'integrated') & ('slicer' in kwargs.keys()):
+            self.method = method
+            self.slicer = kwargs['slicer']
+        else:
+            self.method = 'interpolated'
+            print("Slicer not specified for integrated wakefield"
+                  " method, switch to interpolated method"
+                 if method == 'integrated' else '')
+
+
+    def integrate_wake_table_component(self, wake_component):
+        """ Integrate a wake table component over a
+        bin slicing defined by the slicer object. Integrated wake is
+        used by the "integrated wake" method. """
+        convert_to_s = 1e-9
+        convert_to_V_per_Cm = 1e15
+
+        z_bins = np.linspace(2*self.slicer.z_cuts[0], 2*self.slicer.z_cuts[1], 
+                                2*self.slicer.n_slices+1, endpoint=True)
+        z_centers = z_bins[:-1] + np.diff(z_bins)/2
+        dt_bins = z_bins / (self.beta*c)
+        dt_centers = z_centers / (self.beta*c)
+
+        wake_time = convert_to_s * self.wake_table['time']
+        wake_strength = -convert_to_V_per_Cm * self.wake_table[wake_component]
+        wake_table_function = interp1d(wake_time, wake_strength)
+
+        if (wake_time[0] == 0) and (wake_strength[0] == 0):
+            def wake_table_function(dt):
+                dt = np.clip(dt, a_min=0, a_max=None)
+                return interp1d(wake_time, wake_strength)(dt)
+
+            integrated_bins = []
+            for i, time_bins in enumerate(dt_bins[:-1]):
+                integrated_bins.append(quad(wake_table_function, dt_bins[i], dt_bins[i+1], 
+                                            limit=200)[0]/(dt_bins[i+1] - dt_bins[i]))            
+
+            interpolation_function = interp1d(dt_centers, integrated_bins)            
+            def wake(dt, *args, **kwargs):
+                return interpolation_function(-dt)
+            self.prints(wake_component +
+                  ' Assuming ultrarelativistic wake.')
+
+        elif (wake_time[0] < 0):
+            def wake_table_function(dt):
+                return interp1d(wake_time, wake_strength)(dt)
+
+            integrated_bins = []
+            for i, time_bins in enumerate(dt_bins[:-1]):
+                integrated_bins.append(quad(wake_table_function, dt_bins[i], dt_bins[i+1], 
+                                            limit=200)[0]/(dt_bins[i+1] - dt_bins[i]))
+
+            interpolation_function = interp1d(dt_centers, integrated_bins)
+            def wake(dt, *args, **kwargs):
+                return interpolation_function(-dt)
+            self.prints(wake_component +  ' Found low beta wake.')
+
+        else:
+            raise ValueError(wake_component +
+                             ' does not meet requirements.')
+
+        return wake
+
+
     def get_wake_kicks(self, slicer):
         """ Factory method. Creates instances of the appropriate
         WakeKick objects for all the wake components provided by the
@@ -227,57 +296,81 @@ class WakeTable(WakeSource):
         if self._is_provided('constant_x'):
             wake_function = self.function_transverse('constant_x')
             wake_kicks.append(ConstantWakeKickX(
-                wake_function, slicer, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake, self.wake_table))
 
         if self._is_provided('constant_y'):
             wake_function = self.function_transverse('constant_y')
             wake_kicks.append(ConstantWakeKickY(
-                wake_function, slicer, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake, self.wake_table))
 
         if self._is_provided('longitudinal'):
             wake_function = self.function_longitudinal()
             wake_kicks.append(ConstantWakeKickZ(
-                wake_function, slicer, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake, self.wake_table))
 
         # Dipolar wake kicks.
         if self._is_provided('dipole_x'):
-            wake_function = self.function_transverse('dipole_x')
+            if self.method == 'interpolated':
+                wake_function = self.function_transverse('dipole_x')
+            elif self.method == 'integrated':
+                wake_function = self.integrate_wake_table_component('dipole_x')
             wake_kicks.append(DipoleWakeKickX(
-                wake_function, slicer, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake, self.wake_table))
 
         if self._is_provided('dipole_y'):
-            wake_function = self.function_transverse('dipole_y')
+            if self.method == 'interpolated':
+                wake_function = self.function_transverse('dipole_y')
+            elif self.method == 'integrated':
+                wake_function = self.integrate_wake_table_component('dipole_y')
             wake_kicks.append(DipoleWakeKickY(
-                wake_function, slicer, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake, self.wake_table))
 
         if self._is_provided('dipole_xy'):
-            wake_function = self.function_transverse('dipole_xy')
+            if self.method == 'interpolated':
+                wake_function = self.function_transverse('dipole_xy')
+            elif self.method == 'integrated':
+                wake_function = self.integrate_wake_table_component('dipole_xy')
             wake_kicks.append(DipoleWakeKickXY(
-                wake_function, slicer, self.n_turns_wake))
+                wake_function, slicer, self.n_turns_wake, self.wake_table))
 
         if self._is_provided('dipole_yx'):
-            wake_function = self.function_transverse('dipole_yx')
+            if self.method == 'interpolated':
+                wake_function = self.function_transverse('dipole_yx')
+            elif self.method == 'integrated':
+                wake_function = self.integrate_wake_table_component('dipole_yx')
             wake_kicks.append(DipoleWakeKickYX(
                 wake_function, slicer, self.n_turns_wake))
 
         # Quadrupolar wake kicks.
         if self._is_provided('quadrupole_x'):
-            wake_function = self.function_transverse('quadrupole_x')
+            if self.method == 'interpolated':
+                wake_function = self.function_transverse('quadrupole_x')
+            elif self.method == 'integrated':
+                wake_function = self.integrate_wake_table_component('quadrupole_x')
             wake_kicks.append(QuadrupoleWakeKickX(
                 wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('quadrupole_y'):
-            wake_function = self.function_transverse('quadrupole_y')
+            if self.method == 'interpolated':
+                wake_function = self.function_transverse('quadrupole_y')
+            elif self.method == 'integrated':
+                wake_function = self.integrate_wake_table_component('quadrupole_y')            
             wake_kicks.append(QuadrupoleWakeKickY(
                 wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('quadrupole_xy'):
-            wake_function = self.function_transverse('quadrupole_xy')
-            self.kicks.append(QuadrupoleWakeKickXY(
+            if self.method == 'interpolated':
+                wake_function = self.function_transverse('quadrupole_xy')
+            elif self.method == 'integrated':
+                wake_function = self.integrate_wake_table_component('quadrupole_xy')        
+            wake_kicks.append(QuadrupoleWakeKickXY(
                 wake_function, slicer, self.n_turns_wake))
 
         if self._is_provided('quadrupole_yx'):
-            wake_function = self.function_transverse('quadrupole_yx')
+            if self.method == 'interpolated':
+                wake_function = self.function_transverse('quadrupole_yx')
+            elif self.method == 'integrated':
+                wake_function = self.integrate_wake_table_component('quadrupole_yx')            
             wake_kicks.append(QuadrupoleWakeKickYX(
                 wake_function, slicer, self.n_turns_wake))
 
@@ -336,6 +429,7 @@ class WakeTable(WakeSource):
         else:
             raise ValueError(wake_component +
                              ' does not meet requirements.')
+
         return wake
 
     def function_longitudinal(self):
