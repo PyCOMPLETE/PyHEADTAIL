@@ -32,7 +32,6 @@ from PyHEADTAIL.impedances.wakes import CircularResonator
 from PyHEADTAIL.impedances.wakes import (
     ParallelHorizontalPlatesResonator as ParallelPlatesResonator)
 from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
-from PyHEADTAIL.feedback.widebandfeedback import Pickup, Kicker
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor
 from PyHEADTAIL.rfq.rfq import RFQLongitudinalKick, RFQTransverseKick
@@ -291,20 +290,6 @@ class TestGPUInterface(unittest.TestCase):
         damp = TransverseDamper(dampingrate_x, dampingrate_y, printer=SilentPrinter())
         self.assertTrue(self._track_cpu_gpu([damp], bunch_cpu, bunch_gpu),
             'Tracking TransverseDamper CPU/GPU differs')
-
-    def _test_widebandfeedback(self):
-        '''
-        !!!!! Wiedeband feedback not ready yet! Skip test
-        Track trough a Kicker (class in widebandfeedback)
-        '''
-        bunch_cpu = self.create_all1_bunch()
-        bunch_gpu = self.create_all1_bunch()
-        slices = bunch_cpu.get_slices(UniformBinSlicer(n_slices=5, n_sigma_z=0))
-        pickup = Pickup(slices)
-        kicker = Kicker(pickup)
-        self.assertTrue(self._track_cpu_gpu([kicker], bunch_cpu, bunch_gpu),
-            'Tracking widebandfeedback CPU/GPU differs. Check if reslicing ' +
-            'needed and test is wrong!')
 
     @unittest.skipUnless(has_PyCERNmachines, 'No PyCERNmachines.')
     def test_SPS_nonlinear(self):
