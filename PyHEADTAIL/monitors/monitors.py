@@ -6,13 +6,17 @@
 @copyright CERN
 """
 
-
-
-from mpi4py import MPI
 import h5py as hp
 import numpy as np
 import sys
 from abc import ABCMeta, abstractmethod
+
+try:
+    from mpi4py import MPI
+    print('Using MPI!')
+except ImportError:
+    from PyHEADTAIL.mpi.MPI import MPI
+    print('MPI not in use, mpi4py not found!')
 
 from PyHEADTAIL.general.element import Printing
 from PyHEADTAIL.general import pmath as pm
@@ -72,6 +76,8 @@ class BunchMonitor(Monitor):
         self.n_steps = n_steps
         self.i_steps = 0
         self.mpi = mpi
+        if mpi and ('mpi4py' not in sys.modules):
+            raise ValueError('Parallel IO (mpi=True) cannot be used without mpi4py')
         self.filling_scheme = filling_scheme
         self.local_bunch_ids = []
 
@@ -169,7 +175,7 @@ class BunchMonitor(Monitor):
                 # (macroparticlenumber) of the bunch.
                 write_pos = self.i_steps % self.buffer_size
                 try:
-                    if pm.device is 'is_.2slowerwiththis':#'GPU':
+                    if pm.device == 'is_.2slowerwiththis':#'GPU':
                         raise NotImplementedError('This is not compatible with the multibunch buffer structure (3d array)')
                         #val_bf[stat]
                         st = next(gpu_utils.stream_pool)
