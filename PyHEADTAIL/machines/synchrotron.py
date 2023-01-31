@@ -421,8 +421,17 @@ class Synchrotron(Element):
         for the bucket.
         '''
 
-        bunch = self.generate_6D_Gaussian_bunch(n_macroparticles, intensity, epsn_x, epsn_y,
-            sigma_z=sigma_z, epsn_z=epsn_z, matched=True, filling_scheme=filling_scheme)
+        if self.longitudinal_mode == 'linear':
+            assert(sigma_z is not None)
+            bunch = self.generate_6D_Gaussian_bunch(n_macroparticles, intensity, epsn_x, epsn_y,
+                                                    sigma_z=sigma_z, epsn_z=epsn_z, matched=False,
+                                                    filling_scheme=filling_scheme)
+        elif self.longitudinal_mode == "non-linear":
+            bunch = self.generate_6D_Gaussian_bunch(n_macroparticles, intensity, epsn_x, epsn_y,
+                                                    sigma_z=sigma_z, epsn_z=epsn_z, matched=True,
+                                                    filling_scheme=filling_scheme)
+        else:
+            raise ValueError('Unknown longitudinal mode!')
 
         return bunch
 
