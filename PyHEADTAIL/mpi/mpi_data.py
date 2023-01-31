@@ -2,7 +2,7 @@
 import numpy as np
 import copy
 try:
-    from mpi4pyB import MPI
+    from mpi4py import MPI
     print('Using MPI!')
 except ImportError:
     from .MPI import MPI
