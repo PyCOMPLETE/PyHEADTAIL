@@ -190,30 +190,11 @@ class WakeField(Element):
                 # print ("\n\n--> age and beta: {:g}, {:g}".format(beta, 0))
                 # print ("\n\n--> age and beta: {:g}, {:g}".format(b[0][0], b[1][0]))
 
-        # # Fills wake register - little trick here to include
-        # # local_bunch_indexes that will be used in wake kicks.apply. Makes
-        # # deque no longer convertible into an ndarray. Needs to be poped later.
-        # assert(self.slicer == self._mpi_gatherer._slicer)
-        # n_bunches_total = self._mpi_gatherer.n_bunches
-        # n_slices = self.slicer.n_slices
-        # self.slice_set_deque.appendleft(
-        #     [self._mpi_gatherer.total_data.age,
-        #      self._mpi_gatherer.total_data.beta,
-        #      self._mpi_gatherer.total_data.t_centers,
-        #      self._mpi_gatherer.total_data.n_macroparticles_per_slice,
-        #      self._mpi_gatherer.total_data.mean_x,
-        #      self._mpi_gatherer.total_data.mean_y,
-        #      self._mpi_gatherer.local_bunch_indexes]
-        #     )
-        # for i, v in enumerate(self.slice_set_deque[0][:-1]):
-        #     self.slice_set_deque[0][i] = np.reshape(
-        #         v, (n_bunches_total, n_slices))
-
         # Fills wake register -
         slice_set_list = []
         n_bunches_total = len(bunches_list)
         n_slices = self.slicer.n_slices
-        if self.slicer.config[3] is not None:
+        if self.slicer.config[3] is not None: # slicer.z_cuts
             # In this case, we need to bring bunches back to zero
             for i, b in enumerate(bunches_list):
                 z_delay = b.mean_z()
@@ -240,13 +221,6 @@ class WakeField(Element):
         for kick in self.wake_kicks:
             kick.apply(bunches_list, self.slice_set_deque)
 
-        beam_new = sum(bunches_list)
-        beam.update({'x': beam_new.x,
-                     'y': beam_new.y,
-                     'z': beam_new.z,
-                     'xp': beam_new.xp,
-                     'yp': beam_new.yp,
-                     'dp': beam_new.dp})
 
     def _mpi_track(self, beam):
 
