@@ -278,7 +278,6 @@ class BeamIonElement(Element):
 
         if self.ions_monitor is not None:
             self.ions_monitor.dump(self.ion_beam)
-
         prefactor_kick_ion_field = -(self.ion_beam.intensity *
                                      self.ion_beam.charge*electron_bunch.charge /
                                      (electron_bunch.p0*electron_bunch.beta*c))
@@ -311,7 +310,6 @@ class BeamIonElement(Element):
             electron_bunch.xp, p_id_electrons) + kicks_electrons_x
         kicked_electrons_yp = pm.take(
             electron_bunch.yp, p_id_electrons) + kicks_electrons_y
-
         kicked_ions_xp = pm.take(self.ion_beam.xp, p_id_ions) + kicks_ions_x
         kicked_ions_yp = pm.take(self.ion_beam.yp, p_id_ions) + kicks_ions_y
 
@@ -320,13 +318,7 @@ class BeamIonElement(Element):
 
         pm.put(self.ion_beam.xp, p_id_ions, kicked_ions_xp)
         pm.put(self.ion_beam.yp, p_id_ions, kicked_ions_yp)
-        # Drift for the ions in one bucket
-        # drifted_ions_x = pm.take(
-        #     self.ion_beam.xp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.x, p_id_ions)
-        # drifted_ions_y = pm.take(
-        #     self.ion_beam.yp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.y, p_id_ions)
-        # pm.put(self.ion_beam.x, p_id_ions, drifted_ions_x)
-        # pm.put(self.ion_beam.y, p_id_ions, drifted_ions_y)
+
         self.track_ions_in_drift(p_id_ions)
 
     def get_efieldn(self, xr, yr, mean_x, mean_y, sig_x, sig_y):
