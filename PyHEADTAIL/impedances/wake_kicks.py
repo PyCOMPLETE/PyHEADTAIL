@@ -918,6 +918,8 @@ class DipoleWakeKickX(WakeKick):
 
         dipole_kick = self._compute_kick(all_slice_sets, bunch_list, local_bunch_indexes,
                                        local_slice_sets, optimization_method, self._moments)
+        self._last_dipole_kick = dipole_kick
+
         for i, b in enumerate(bunch_list):
             s = b.get_slices(self.slicer)
             p_idx = s.particles_within_cuts

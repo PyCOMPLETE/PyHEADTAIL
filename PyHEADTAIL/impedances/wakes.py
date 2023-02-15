@@ -190,11 +190,12 @@ class WakeField(Element):
                 # print ("\n\n--> age and beta: {:g}, {:g}".format(beta, 0))
                 # print ("\n\n--> age and beta: {:g}, {:g}".format(b[0][0], b[1][0]))
 
+        force_absolute = hasattr(self.slicer, 'force_absolute') and self.slicer.force_absolute
         # Fills wake register -
         slice_set_list = []
         n_bunches_total = len(bunches_list)
         n_slices = self.slicer.n_slices
-        if self.slicer.config[3] is not None: # slicer.z_cuts
+        if self.slicer.config[3] is not None and not force_absolute: # slicer.z_cuts
             # In this case, we need to bring bunches back to zero
             for i, b in enumerate(bunches_list):
                 z_delay = b.mean_z()
