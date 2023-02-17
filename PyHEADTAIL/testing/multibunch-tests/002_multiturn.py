@@ -152,14 +152,29 @@ ax00.plot(beam.z[::skip], beam.x[::skip], '.')
 x_at_wake_allbunches = []
 xp_before_wake_allbunches = []
 xp_after_wake_allbunches = []
+slice_set_before_wake_allbunches = []
+slice_set_after_wake_allbunches = []
 
 x_at_wake_beam = []
 xp_before_wake_beam = []
 xp_after_wake_beam = []
+slice_set_before_wake_beam = []
+slice_set_after_wake_beam = []
+
 
 n_turns = 3
 color_list = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
 for i_turn in range(n_turns):
+
+    allbunches.clean_slices()
+    slice_set_before_wake_allbunches.append(allbunches.get_slices(slicer,
+                        statistics=['mean_x', 'mean_xp', 'mean_y', 'mean_yp']))
+    allbunches.clean_slices()
+
+    beam.clean_slices()
+    slice_set_before_wake_beam.append(beam.get_slices(slicer_full_beam,
+                        statistics=['mean_x', 'mean_xp', 'mean_y', 'mean_yp']))
+    beam.clean_slices()
 
     x_at_wake_allbunches.append(allbunches.x.copy())
     xp_before_wake_allbunches.append(allbunches.xp.copy())
@@ -170,34 +185,44 @@ for i_turn in range(n_turns):
     wake_field.track(allbunches)
     wake_field_full_beam.track(beam)
 
+    allbunches.clean_slices()
+    slice_set_after_wake_allbunches.append(allbunches.get_slices(slicer,
+                        statistics=['mean_x', 'mean_xp', 'mean_y', 'mean_yp']))
+    allbunches.clean_slices()
+
+    beam.clean_slices()
+    slice_set_after_wake_beam.append(beam.get_slices(slicer_full_beam,
+                        statistics=['mean_x', 'mean_xp', 'mean_y', 'mean_yp']))
+    beam.clean_slices()
+
     xp_after_wake_allbunches.append(allbunches.xp.copy())
     xp_after_wake_beam.append(beam.xp.copy())
 
     transverse_map.track(allbunches)
     transverse_map.track(beam)
 
-    ax00.plot(beam._slice_sets[slicer_full_beam].z_centers, beam._slice_sets[slicer_full_beam].mean_x, 'o')
 
-    #ax01.plot(beam._slice_sets[slicer_full_beam].z_centers, wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0], 'x')
 
     ax01.plot(z_all[::skip],
               xp_after_wake_allbunches[-1][::skip] - xp_before_wake_allbunches[-1][::skip],
               '.', label=f'MB turn {i_turn}', color=color_list[i_turn])
     ax01.plot(beam.z[::skip], xp_after_wake_beam[-1][::skip] - xp_before_wake_beam[-1][::skip],
-              'x', label=f'SB turn {i_turn}', color=color_list[i_turn])
+              '.', label=f'SB turn {i_turn}', color=color_list[i_turn])
+
+    ax01.plot(
+        slice_set_after_wake_beam[-1].z_centers,
+        slice_set_after_wake_beam[-1].mean_xp - slice_set_before_wake_beam[-1].mean_xp,
+        'x', color=color_list[i_turn])
 
 ax01.legend()
 
 plt.show()
 
-sdfkjn
 
-wake_function_x = wake_field_full_beam.wake_kicks[0].wake_function
-
-z_centers = beam._slice_sets[slicer_full_beam].z_centers
+z_centers = slice_set_before_wake_beam[0].z_centers
 dz = z_centers[1] - z_centers[0]
 
-dxp_ref = wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0]
+dxp_ref = slice_set_after_wake_beam[0].mean_xp - slice_set_before_wake_beam[0].mean_xp
 z_ref = z_centers
 
 z_centers_time_sorted = z_centers[::-1]
@@ -208,8 +233,8 @@ z_centers_time_sorted = z_centers[::-1]
 
 # Wake formula
 p0_SI = machine.p0
-mean_x_slice = beam._slice_sets[slicer_full_beam].mean_x
-num_charges_slice = beam._slice_sets[slicer_full_beam].charge_per_slice/e
+mean_x_slice = slice_set_before_wake_beam[0].mean_x
+num_charges_slice = slice_set_before_wake_beam[0].charge_per_slice/e
 
 n_wake = len(z_centers) + 100
 z_wake = np.arange(0, -(n_wake)*dz, -dz)[::-1] # HEADTAIL order (time reversed)
