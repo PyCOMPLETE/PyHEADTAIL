@@ -1,4 +1,3 @@
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -73,7 +72,7 @@ bucket_length = machine.circumference / h_RF
 z_all = -allbunches.bucket_id * bucket_length + allbunches.z
 
 amplitude = 1e-3
-wavelength = 0.5
+wavelength = 2
 allbunches.x = amplitude * np.sin(2 * np.pi * z_all / wavelength)
 allbunches.xp *= 0
 
@@ -156,21 +155,6 @@ for i_turn in range(n_turns):
     wake_field.track(allbunches)
     wake_field_full_beam.track(beam)
 
-    # slicing:
-    # allbunches._bunch_views[0]._slice_sets[slicer].mean_x
-    # allbunches._bunch_views[0]._slice_sets[slicer].charge_per_slice/allbunches._bunch_views[0]._slice_sets[slicer].charge
-
-    # slice_set_deque:
-    # slice_deque = wake_field.slice_set_deque
-    # deque_age = slice_deque[0][0]
-    # deque_beta = slice_deque[0][1]
-    # deque_t_center = slice_deque[0][2]
-    # deque_mp_per_slice = slice_deque[0][3]
-    # deque_mean_x = slice_deque[0][4]
-    # deque_mean_y = slice_deque[0][5]
-    # deque_i_bunch = slice_deque[0][6]
-
-    # ax00.plot(allbunches._bunch_views[0]._slice_sets[slicer].mean_x/c*1e9, allbunches._bunch_views[0]._slice_sets[slicer].mean_x, '.')
     ax00.plot(beam._slice_sets[slicer_full_beam].z_centers, beam._slice_sets[slicer_full_beam].mean_x, 'o')
 
     ax01.plot(z_all[::skip], allbunches.xp[::skip], '.', label=f'MB turn {i_turn}')
@@ -183,58 +167,43 @@ wake_function_x = wake_field_full_beam.wake_kicks[0].wake_function
 
 z_centers = beam._slice_sets[slicer_full_beam].z_centers
 dz = z_centers[1] - z_centers[0]
-n_wake = 300
-z_wake = np.arange(0, n_wake*dz, dz)
-z_wake -= np.max(z_wake) # So that z_wake[-1] = 0
 
-wake_array = -wake_function_x(z_wake/beam.beta/c, beta=beam.beta)
-wake_array = np.concatenate((wake_array, 0*wake_array[:-1]))
+dxp_ref = wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0]
+z_ref = z_centers
 
+# Wake formula
+p0_SI = machine.p0
 mean_x_slice = beam._slice_sets[slicer_full_beam].mean_x
 num_charges_slice = beam._slice_sets[slicer_full_beam].charge_per_slice/e
 
-dxp = np.convolve(mean_x_slice * num_charges_slice, wake_array, mode='valid')
-dxp *= np.max(beam.xp)/np.max(dxp)
+n_wake = 300
+z_wake = np.arange(0, -(n_wake)*dz, -dz)[::-1] # HEADTAIL order (time reversed)
+assert len(z_wake) == n_wake
 
-# Wake formula
 R_s = wakes.R_shunt
 Q = wakes.Q
 f_r = wakes.frequency
 omega_r = 2 * np.pi * f_r
 alpha_t = omega_r / (2 * Q)
 omega_bar = np.sqrt(omega_r**2 - alpha_t**2)
-W_r = R_s * omega_r**2 / (Q * omega_bar) * np.exp(alpha_t * z_wake / c) * np.sin(omega_bar * z_wake / c)
-# W_r = np.concatenate((W_r, 0*W_r[:-1]))
+W_r = (R_s * omega_r**2 / (Q * omega_bar) * np.exp(alpha_t * z_wake / c)
+      * np.sin(omega_bar * z_wake / c))# Wake definition
+W_scaled = -e**2 / (p0_SI * c) * W_r # Put all constants in front of the wake
 
-p0_SI = machine.p0
-dxp_r = -e**2 / (p0_SI * c) * scipy.signal.fftconvolve(mean_x_slice * num_charges_slice, W_r, mode='full')#[-len(z_centers):]
+dip_moment_slice = num_charges_slice * mean_x_slice
 
-fig1, ax10 = plt.subplots(1, 1)
-# ax10.plot(z_wake, wake_array)
+dxp = np.convolve(dip_moment_slice, W_scaled, mode='full')
 
-# ax01.plot(z_centers, dxp[::-1], 'x')
-z_dxp = np.arange(0, len(dxp)) * dz
-# ax10.plot(z_centers, wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0])
-# ax10.plot(z_centers, dxp, '--')
-# ax10.plot(z_centers, dxp_r, ':')
-ax10.plot(wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0])
-ax10.plot(dxp, '--')
-ax10.plot(dxp_r, ':')
-
-# Convolution tests
-x = np.arange(5)
-v = np.zeros(7)
-v[0] = 1
-
-res_full = np.convolve(x, v)
-res_valid = np.convolve(x, v, 'valid')
-res_same = np.convolve(x, v, 'same')
+# Keep only the last n_centers points
+dxp = dxp[-len(z_centers):]
 
 
-fig2, ax20 = plt.subplots(1, 1)
-ax20.plot(res_full, 'x-', label='full')
-ax20.plot(res_valid, 'o-', label='valid')
-ax20.plot(res_same, '.-', label='same')
+fig1, ax11 = plt.subplots(1, 1)
+plt.plot(z_ref, dxp_ref, label='reference')
+plt.plot(z_centers, dxp, '--', label='convolution')
+
+
+plt.legend()
+
 
 plt.show()
-
