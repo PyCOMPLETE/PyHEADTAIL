@@ -16,7 +16,7 @@ from PyHEADTAIL.machines.synchrotron import Synchrotron
 # Machine settings
 n_turns = 300
 
-n_macroparticles = 100000 # per bunch 
+n_macroparticles = 100000 # per bunch
 intensity = 2.3e11
 
 alpha = 53.86**-2
@@ -54,12 +54,10 @@ machine = Synchrotron(
 
 # Filling scheme
 
-filling_scheme = [] # A list of filled buckets
-for i in range(3):
-    for j in range(24):
-        filling_scheme.append(i*28+j)
+bunch_spacing_buckets = 5
+n_bunches = 3
+filling_scheme = [i*bunch_spacing_buckets for i in range(n_bunches)]
 
-filling_scheme = [0, 4]
 # Initialise beam
 allbunches = machine.generate_6D_Gaussian_bunch(n_macroparticles, intensity,
                                                 epsn_x, epsn_y, sigma_z=sigma_z,
@@ -149,6 +147,7 @@ skip = 10
 ax00.plot(z_all[::skip], allbunches.x[::skip], '.')
 ax00.plot(beam.z[::skip], beam.x[::skip], '.')
 
+
 n_turns = 1
 for i_turn in range(n_turns):
 
@@ -200,6 +199,8 @@ fig10 = plt.figure(10)
 ax10 = fig10.add_subplot(111)
 
 ax10.plot(z_wake, W_scaled, label='Wake')
+ax10.set_xlabel('z [m]')
+ax10.set_ylabel('W(z)')
 
 # Compute dipole moments
 dip_moment_slice = num_charges_slice * mean_x_slice
@@ -234,19 +235,47 @@ from numpy.fft import fft, ifft
 
 len_fft = len(W_scaled)+len(dip_moment_slice)-1
 
-# Pad time-sorted arrays to the same length
-W_scaled_time_sorted_padded = np.pad(
-    W_scaled_time_sorted, (0, len_fft - len(W_scaled_time_sorted)), 'constant')
-dip_moment_slice_time_sorted_padded = np.pad(
-    dip_moment_slice_time_sorted, (0, len_fft - len(dip_moment_slice_time_sorted)), 'constant')
-
 dxp_fft_time_sorted = ifft(
-    fft(W_scaled_time_sorted_padded) * fft(dip_moment_slice_time_sorted_padded)).real
+    fft(W_scaled_time_sorted, n=len_fft)
+    * fft(dip_moment_slice_time_sorted, n=len_fft)).real
 # Keep only the first n_centers points
 dxp_fft_time_sorted = dxp_fft_time_sorted[:len(z_centers)]
 
 # Back to HEADTAIL order
 dxp_fft = dxp_fft_time_sorted[::-1]
+
+#######################
+# Chopped convolution #
+#######################
+
+K_period = n_slices * bunch_spacing_buckets
+L_preserve = 1 * n_slices
+#L_preserve = 2 * n_slices
+
+n_periods = len(W_scaled_time_sorted) // K_period
+
+WWc = np.zeros_like(W_scaled_time_sorted)
+WW = W_scaled_time_sorted
+for ii in range(n_periods+1):
+    WWc[ii*K_period:ii*K_period+L_preserve] = WW[ii*K_period:ii*K_period+L_preserve]
+
+W_scaled_time_sorted_chopped = WWc
+
+ax10.plot(z_wake, W_scaled_time_sorted_chopped[::-1], label='Wake chopped')
+
+len_fft = len(W_scaled_time_sorted_chopped)+len(dip_moment_slice)-1
+
+dxp_fft_time_sorted = ifft(
+    fft(W_scaled_time_sorted_chopped, n=len_fft)
+    * fft(dip_moment_slice_time_sorted, n=len_fft)).real
+# Keep only the first n_centers points
+dxp_fft_time_sorted_chopped = dxp_fft_time_sorted[:len(z_centers)]
+
+# Back to HEADTAIL order
+dxp_chopped = dxp_fft_time_sorted_chopped[::-1]
+
+
+# Plot results
 
 fig2 = plt.figure(2, figsize=(6.4*1.4, 4.8*1.4))
 ax21 = fig2.add_subplot(311)
@@ -255,13 +284,16 @@ ax23 = fig2.add_subplot(313, sharex=ax21)
 
 ax21.plot(z_centers, num_charges_slice, label='num. charges')
 ax21.set_ylabel('Number of charges per slice')
+ax22.plot(z_centers, amplitude * np.sin(2 * np.pi * z_centers / wavelength), '--')
 ax22.plot(z_centers, mean_x_slice, label='mean x')
+
 ax22.set_ylabel('Mean x per slice')
 
 ax23.plot(z_ref, dxp_ref, label='ref.')
 ax23.plot(z_centers, dxp, '--', label='conv.')
 ax23.plot(z_centers, dxp_time_sorted, '--', label='conv. t-sorted')
 ax23.plot(z_centers, dxp_fft, '--', label='conv. fft')
+ax23.plot(z_centers, dxp_chopped, '--', label='conv. chopped')
 ax23.set_ylabel('Dipole kick per slice')
 ax23.set_xlabel('z [m]')
 
