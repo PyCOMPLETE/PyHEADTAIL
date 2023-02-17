@@ -59,7 +59,7 @@ for i in range(3):
     for j in range(24):
         filling_scheme.append(i*28+j)
 
-filling_scheme = [0, 1]
+filling_scheme = [0, 4]
 # Initialise beam
 allbunches = machine.generate_6D_Gaussian_bunch(n_macroparticles, intensity,
                                                 epsn_x, epsn_y, sigma_z=sigma_z,
@@ -171,14 +171,19 @@ dz = z_centers[1] - z_centers[0]
 dxp_ref = wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0]
 z_ref = z_centers
 
+##############
+# Build wake #
+##############
+
 # Wake formula
 p0_SI = machine.p0
 mean_x_slice = beam._slice_sets[slicer_full_beam].mean_x
 num_charges_slice = beam._slice_sets[slicer_full_beam].charge_per_slice/e
 
-n_wake = 300
+n_wake = len(z_centers) + 100
 z_wake = np.arange(0, -(n_wake)*dz, -dz)[::-1] # HEADTAIL order (time reversed)
 assert len(z_wake) == n_wake
+
 
 R_s = wakes.R_shunt
 Q = wakes.Q
@@ -190,6 +195,13 @@ W_r = (R_s * omega_r**2 / (Q * omega_bar) * np.exp(alpha_t * z_wake / c)
       * np.sin(omega_bar * z_wake / c))# Wake definition
 W_scaled = -e**2 / (p0_SI * c) * W_r # Put all constants in front of the wake
 
+# Plot wakes
+fig10 = plt.figure(10)
+ax10 = fig10.add_subplot(111)
+
+ax10.plot(z_wake, W_scaled, label='Wake')
+
+# Compute dipole moments
 dip_moment_slice = num_charges_slice * mean_x_slice
 
 ###################################
@@ -236,15 +248,26 @@ dxp_fft_time_sorted = dxp_fft_time_sorted[:len(z_centers)]
 # Back to HEADTAIL order
 dxp_fft = dxp_fft_time_sorted[::-1]
 
+fig2 = plt.figure(2, figsize=(6.4*1.4, 4.8*1.4))
+ax21 = fig2.add_subplot(311)
+ax22 = fig2.add_subplot(312, sharex=ax21)
+ax23 = fig2.add_subplot(313, sharex=ax21)
 
-fig1, ax11 = plt.subplots(1, 1)
-plt.plot(z_ref, dxp_ref, label='reference')
-plt.plot(z_centers, dxp, '--', label='convolution')
-plt.plot(z_centers, dxp_time_sorted, '--', label='convolution time sorted')
-plt.plot(z_centers, dxp_fft, '--', label='convolution fft')
+ax21.plot(z_centers, num_charges_slice, label='num. charges')
+ax21.set_ylabel('Number of charges per slice')
+ax22.plot(z_centers, mean_x_slice, label='mean x')
+ax22.set_ylabel('Mean x per slice')
+
+ax23.plot(z_ref, dxp_ref, label='ref.')
+ax23.plot(z_centers, dxp, '--', label='conv.')
+ax23.plot(z_centers, dxp_time_sorted, '--', label='conv. t-sorted')
+ax23.plot(z_centers, dxp_fft, '--', label='conv. fft')
+ax23.set_ylabel('Dipole kick per slice')
+ax23.set_xlabel('z [m]')
 
 
-plt.legend()
-
+# Put legend outside of the plot
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+plt.subplots_adjust(right=0.75, hspace=0.3)
 
 plt.show()
