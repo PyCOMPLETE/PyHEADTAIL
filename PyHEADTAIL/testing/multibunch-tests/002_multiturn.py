@@ -23,15 +23,15 @@ alpha = 53.86**-2
 
 p0 = 7000e9 * e / c
 
-accQ_x = 62.31
-accQ_y = 60.32
+accQ_x = 0.31
+accQ_y = 0.32
 Q_s = 2.1e-3
 chroma = 0
 
 circumference = 26658.883 / 35640 * 20
 
-beta_x = circumference / (2.*np.pi*accQ_x)
-beta_y = circumference / (2.*np.pi*accQ_y)
+beta_x = 100 #circumference / (2.*np.pi*accQ_x)
+beta_y = 100 #circumference / (2.*np.pi*accQ_y)
 
 h_RF = 20
 h_bunch = 20
@@ -51,6 +51,7 @@ machine = Synchrotron(
         h_RF=np.atleast_1d(h_RF), p0=p0,
         charge=e, mass=m_p, wrap_z=False, Q_s=Q_s)
 
+transverse_map = machine.transverse_map.segment_maps[0]
 
 # Filling scheme
 
@@ -147,13 +148,24 @@ skip = 10
 ax00.plot(z_all[::skip], allbunches.x[::skip], '.')
 ax00.plot(beam.z[::skip], beam.x[::skip], '.')
 
+x_at_wake_allbunches = []
+xp_before_wake_allbunches = []
+xp_after_wake_allbunches = []
+x_at_wake_beam = []
+xp_before_wake_beam = []
+xp_after_wake_beam = []
 
 n_turns = 3
 for i_turn in range(n_turns):
 
+    
+
     wake_field.track(allbunches)
     wake_field_full_beam.track(beam)
 
+    transverse_map.track(allbunches)
+    transverse_map.track(beam)
+    
     ax00.plot(beam._slice_sets[slicer_full_beam].z_centers, beam._slice_sets[slicer_full_beam].mean_x, 'o')
 
     ax01.plot(z_all[::skip], allbunches.xp[::skip], '.', label=f'MB turn {i_turn}')
@@ -161,6 +173,10 @@ for i_turn in range(n_turns):
     ax01.plot(beam._slice_sets[slicer_full_beam].z_centers, wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0], 'x')
 
 ax01.legend()
+
+plt.show()
+
+sdfkjn
 
 wake_function_x = wake_field_full_beam.wake_kicks[0].wake_function
 
