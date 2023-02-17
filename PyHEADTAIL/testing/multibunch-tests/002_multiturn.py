@@ -129,7 +129,8 @@ n_buckets_slicer = max(filling_scheme) + 2
 n_buckets_slicer = max(filling_scheme) + 1
 
 slicer_full_beam = UniformBinSlicer(n_buckets_slicer * slicer.n_slices,
-                                    z_cuts=((0.5 - n_buckets_slicer)*bucket_length, 0.5*bucket_length))
+                                    z_cuts=((0.5 - n_buckets_slicer)*bucket_length, 0.5*bucket_length),
+                                    circumference=machine.circumference, h_bunch=h_bunch)
 slicer_full_beam.force_absolute = True
 
 wakes_full_beam = CircularResonator(R_shunt=wakes.R_shunt, frequency=wakes.frequency, Q=wakes.Q, n_turns_wake=wakes.n_turns_wake)
@@ -151,26 +152,39 @@ ax00.plot(beam.z[::skip], beam.x[::skip], '.')
 x_at_wake_allbunches = []
 xp_before_wake_allbunches = []
 xp_after_wake_allbunches = []
+
 x_at_wake_beam = []
 xp_before_wake_beam = []
 xp_after_wake_beam = []
 
 n_turns = 3
+color_list = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
 for i_turn in range(n_turns):
 
-    
+    x_at_wake_allbunches.append(allbunches.x.copy())
+    xp_before_wake_allbunches.append(allbunches.xp.copy())
+
+    x_at_wake_beam.append(beam.x.copy())
+    xp_before_wake_beam.append(beam.xp.copy())
 
     wake_field.track(allbunches)
     wake_field_full_beam.track(beam)
 
+    xp_after_wake_allbunches.append(allbunches.xp.copy())
+    xp_after_wake_beam.append(beam.xp.copy())
+
     transverse_map.track(allbunches)
     transverse_map.track(beam)
-    
+
     ax00.plot(beam._slice_sets[slicer_full_beam].z_centers, beam._slice_sets[slicer_full_beam].mean_x, 'o')
 
-    ax01.plot(z_all[::skip], allbunches.xp[::skip], '.', label=f'MB turn {i_turn}')
-    ax01.plot(beam.z[::skip], beam.xp[::skip], '.', label=f'SB turn {i_turn}')
-    ax01.plot(beam._slice_sets[slicer_full_beam].z_centers, wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0], 'x')
+    #ax01.plot(beam._slice_sets[slicer_full_beam].z_centers, wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0], 'x')
+
+    ax01.plot(z_all[::skip],
+              xp_after_wake_allbunches[-1][::skip] - xp_before_wake_allbunches[-1][::skip],
+              '.', label=f'MB turn {i_turn}', color=color_list[i_turn])
+    ax01.plot(beam.z[::skip], xp_after_wake_beam[-1][::skip] - xp_before_wake_beam[-1][::skip],
+              'x', label=f'SB turn {i_turn}', color=color_list[i_turn])
 
 ax01.legend()
 
