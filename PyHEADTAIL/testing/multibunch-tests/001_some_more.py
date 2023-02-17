@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from scipy.constants import c, e, m_p
-import scipy
+from scipy.signal import fftconvolve
 import time
 
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -192,15 +192,56 @@ W_scaled = -e**2 / (p0_SI * c) * W_r # Put all constants in front of the wake
 
 dip_moment_slice = num_charges_slice * mean_x_slice
 
-dxp = np.convolve(dip_moment_slice, W_scaled, mode='full')
-
+###################################
+# Convolution with HEADTAIL order #
+###################################
+dxp = fftconvolve(dip_moment_slice, W_scaled, mode='full')
 # Keep only the last n_centers points
 dxp = dxp[-len(z_centers):]
+
+######################################
+# Convolution with time sorted order #
+######################################
+
+W_scaled_time_sorted = W_scaled[::-1]
+dip_moment_slice_time_sorted = dip_moment_slice[::-1]
+
+dxp_time_sorted = np.convolve(
+    dip_moment_slice_time_sorted, W_scaled_time_sorted, mode='full')
+# Keep only the first n_centers points
+dxp_time_sorted = dxp_time_sorted[:len(z_centers)]
+
+# Back to HEADTAIL order
+dxp_time_sorted = dxp_time_sorted[::-1]
+
+########################
+# Convolution with FFT #
+########################
+
+from numpy.fft import fft, ifft
+
+len_fft = len(W_scaled)+len(dip_moment_slice)-1
+
+# Pad time-sorted arrays to the same length
+W_scaled_time_sorted_padded = np.pad(
+    W_scaled_time_sorted, (0, len_fft - len(W_scaled_time_sorted)), 'constant')
+dip_moment_slice_time_sorted_padded = np.pad(
+    dip_moment_slice_time_sorted, (0, len_fft - len(dip_moment_slice_time_sorted)), 'constant')
+
+dxp_fft_time_sorted = ifft(
+    fft(W_scaled_time_sorted_padded) * fft(dip_moment_slice_time_sorted_padded)).real
+# Keep only the first n_centers points
+dxp_fft_time_sorted = dxp_fft_time_sorted[:len(z_centers)]
+
+# Back to HEADTAIL order
+dxp_fft = dxp_fft_time_sorted[::-1]
 
 
 fig1, ax11 = plt.subplots(1, 1)
 plt.plot(z_ref, dxp_ref, label='reference')
 plt.plot(z_centers, dxp, '--', label='convolution')
+plt.plot(z_centers, dxp_time_sorted, '--', label='convolution time sorted')
+plt.plot(z_centers, dxp_fft, '--', label='convolution fft')
 
 
 plt.legend()
