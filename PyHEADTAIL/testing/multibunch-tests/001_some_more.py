@@ -113,7 +113,7 @@ L = 100000.
 sigma = 1. / 7.88e-10
 
 # wakes = CircularResistiveWall(b, L, sigma, b/c, beta_beam=machine.beta)
-wakes = CircularResonator(R_shunt=135e6, frequency=1.97e9*0.6, Q=31000/1000, n_turns_wake=n_turns_wake)
+wakes = CircularResonator(R_shunt=135e6, frequency=1.97e9*0.6, Q=31000/100, n_turns_wake=n_turns_wake)
 
 # mpi_settings = 'circular_mpi_full_ring_fft'
 # wake_field = WakeField(slicer, wakes, mpi=mpi_settings, Q_x=accQ_x, Q_y=accQ_y, beta_x=beta_x, beta_y=beta_y)
@@ -170,6 +170,8 @@ dz = z_centers[1] - z_centers[0]
 dxp_ref = wake_field_full_beam.wake_kicks[0]._last_dipole_kick[0]
 z_ref = z_centers
 
+z_centers_time_sorted = z_centers[::-1]
+
 ##############
 # Build wake #
 ##############
@@ -182,6 +184,8 @@ num_charges_slice = beam._slice_sets[slicer_full_beam].charge_per_slice/e
 n_wake = len(z_centers) + 100
 z_wake = np.arange(0, -(n_wake)*dz, -dz)[::-1] # HEADTAIL order (time reversed)
 assert len(z_wake) == n_wake
+
+z_wake_time_sorted = z_wake[::-1]
 
 
 R_s = wakes.R_shunt
@@ -245,23 +249,52 @@ dxp_fft_time_sorted = dxp_fft_time_sorted[:len(z_centers)]
 dxp_fft = dxp_fft_time_sorted[::-1]
 
 #######################
-# Chopped convolution #
+# Chopped and compressed convolution #
 #######################
 
 K_period = n_slices * bunch_spacing_buckets
-L_preserve = 1 * n_slices
-#L_preserve = 2 * n_slices
+L_preserve = n_slices
+
 
 n_periods = len(W_scaled_time_sorted) // K_period
 
-WWc = np.zeros_like(W_scaled_time_sorted)
+WWchop = np.zeros_like(W_scaled_time_sorted)
+WW_compressed = []
 WW = W_scaled_time_sorted
+dip_moments_compressed_time_sorted = []
+z_centers_compressed_time_sorted = []
+z_wake_time_sorted_compressed = []
 for ii in range(n_periods+1):
-    WWc[ii*K_period:ii*K_period+L_preserve] = WW[ii*K_period:ii*K_period+L_preserve]
+    # part_preserve = slice(ii*K_period - (L_preserve - 1),
+    #                       ii*K_period + L_preserve)
+    start_preserve = ii*K_period - L_preserve + 1
+    if start_preserve < 0:
+        start_preserve = 0
+    end_preserve = ii*K_period + L_preserve
+    if end_preserve > len(W_scaled_time_sorted):
+        end_preserve = len(W_scaled_time_sorted)
+    part_preserve = slice(start_preserve, end_preserve)
+    WWchop[part_preserve] = WW[part_preserve]
 
-W_scaled_time_sorted_chopped = WWc
+    WW_compressed.append(WW[part_preserve])
+    z_wake_time_sorted_compressed.append(z_wake_time_sorted[part_preserve])
+
+    dip_moments_compressed_time_sorted.append(
+            dip_moment_slice_time_sorted[part_preserve])
+    z_centers_compressed_time_sorted.append(z_centers_time_sorted[part_preserve])
+
+
+
+W_scaled_time_sorted_chopped = WWchop
+W_scaled_time_sorted_compressed = np.concatenate(WW_compressed)
+z_wake_time_sorted_compressed = np.concatenate(z_wake_time_sorted_compressed)
+
+dip_moments_compressed_time_sorted = np.concatenate(dip_moments_compressed_time_sorted)
+z_centers_compressed_time_sorted = np.concatenate(z_centers_compressed_time_sorted)
 
 ax10.plot(z_wake, W_scaled_time_sorted_chopped[::-1], label='Wake chopped')
+ax10.plot(z_wake_time_sorted_compressed, W_scaled_time_sorted_compressed, label='Wake compressed')
+
 
 len_fft = len(W_scaled_time_sorted_chopped)+len(dip_moment_slice)-1
 
@@ -274,6 +307,22 @@ dxp_fft_time_sorted_chopped = dxp_fft_time_sorted[:len(z_centers)]
 # Back to HEADTAIL order
 dxp_chopped = dxp_fft_time_sorted_chopped[::-1]
 
+###################
+# Compressed mode #
+###################
+
+len_fft_compressed = len(W_scaled_time_sorted_compressed)+len(dip_moments_compressed_time_sorted)-1
+
+dxp_fft_compressed_time_sorted = ifft(
+    fft(W_scaled_time_sorted_compressed, n=len_fft_compressed)
+    * fft(dip_moments_compressed_time_sorted, n=len_fft_compressed)).real
+
+# Keep only the first n_centers_compressed points
+dxp_fft_compressed_time_sorted = dxp_fft_compressed_time_sorted[:len(z_centers_compressed_time_sorted)]
+
+# Back to HEADTAIL order
+dxp_compressed = dxp_fft_compressed_time_sorted[::-1]
+z_centers_compressed = z_centers_compressed_time_sorted[::-1]
 
 # Plot results
 
@@ -294,6 +343,7 @@ ax23.plot(z_centers, dxp, '--', label='conv.')
 ax23.plot(z_centers, dxp_time_sorted, '--', label='conv. t-sorted')
 ax23.plot(z_centers, dxp_fft, '--', label='conv. fft')
 ax23.plot(z_centers, dxp_chopped, '--', label='conv. chopped')
+ax23.plot(z_centers_compressed, dxp_compressed, '--', label='conv. compressed')
 ax23.set_ylabel('Dipole kick per slice')
 ax23.set_xlabel('z [m]')
 
