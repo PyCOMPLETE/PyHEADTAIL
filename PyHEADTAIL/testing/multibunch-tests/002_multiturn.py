@@ -238,9 +238,10 @@ num_charges_slice = slice_set_before_wake_beam[0].charge_per_slice/e
 
 n_wake = len(z_centers) + 100
 z_wake = np.arange(0, -(n_wake)*dz, -dz)[::-1] # HEADTAIL order (time reversed)
-assert len(z_wake) == n_wake
+assert np.max(np.abs(z_wake)) < machine.circumference
+z_wake_mt = np.array(
+    [z_wake - i_turn * machine.circumference for i_turn in range(n_turns)])
 
-z_wake_time_sorted = z_wake[::-1]
 
 
 R_s = wakes.R_shunt
@@ -249,17 +250,20 @@ f_r = wakes.frequency
 omega_r = 2 * np.pi * f_r
 alpha_t = omega_r / (2 * Q)
 omega_bar = np.sqrt(omega_r**2 - alpha_t**2)
-W_r = (R_s * omega_r**2 / (Q * omega_bar) * np.exp(alpha_t * z_wake / c)
-      * np.sin(omega_bar * z_wake / c))# Wake definition
-W_scaled = -e**2 / (p0_SI * c) * W_r # Put all constants in front of the wake
+Wmt_r = (R_s * omega_r**2 / (Q * omega_bar) * np.exp(alpha_t * z_wake_mt / c)
+      * np.sin(omega_bar * z_wake_mt / c))# Wake definition
+Wmt_scaled = -e**2 / (p0_SI * c) * Wmt_r # Put all constants in front of the wake
 
 # Plot wakes
 fig10 = plt.figure(10)
 ax10 = fig10.add_subplot(111)
 
-ax10.plot(z_wake, W_scaled, label='Wake')
+ax10.plot(z_wake_mt.T, Wmt_scaled.T, label='Wake')
 ax10.set_xlabel('z [m]')
 ax10.set_ylabel('W(z)')
+
+plt.show()
+prrrrs
 
 # Compute dipole moments
 dip_moment_slice = num_charges_slice * mean_x_slice
