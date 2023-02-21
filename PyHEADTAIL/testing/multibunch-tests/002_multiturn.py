@@ -202,6 +202,8 @@ for i_turn in range(n_turns):
     transverse_map.track(beam)
 
 
+    ax00.plot(slice_set_after_wake_beam[-1].z_centers,
+              slice_set_after_wake_beam[-1].mean_x, 'x', color=color_list[i_turn])
 
     ax01.plot(z_all[::skip],
               xp_after_wake_allbunches[-1][::skip] - xp_before_wake_allbunches[-1][::skip],
@@ -240,7 +242,7 @@ n_wake = len(z_centers) + 100
 z_wake = np.arange(0, -(n_wake)*dz, -dz)[::-1] # HEADTAIL order (time reversed)
 assert np.max(np.abs(z_wake)) < machine.circumference
 z_wake_mt = np.array(
-    [z_wake - i_turn * machine.circumference for i_turn in range(n_turns)])
+    [z_wake - i_turn * machine.circumference for i_turn in range(n_turns)][::-1])
 
 
 
@@ -262,153 +264,97 @@ ax10.plot(z_wake_mt.T, Wmt_scaled.T, label='Wake')
 ax10.set_xlabel('z [m]')
 ax10.set_ylabel('W(z)')
 
-plt.show()
-prrrrs
+num_charges_slice = np.zeros(shape=(n_turns_wake, len(z_centers)), dtype=float)
+mean_x_slice = np.zeros(shape=(n_turns_wake, len(z_centers)), dtype=float)
 
-# Compute dipole moments
+for i_turn in range(n_turns_wake):
+    num_charges_slice[i_turn] = slice_set_before_wake_beam[i_turn].charge_per_slice/e
+    mean_x_slice[i_turn] = slice_set_before_wake_beam[i_turn].mean_x
+
 dip_moment_slice = num_charges_slice * mean_x_slice
 
-###################################
-# Convolution with HEADTAIL order #
-###################################
-dxp = fftconvolve(dip_moment_slice, W_scaled, mode='full')
-# Keep only the last n_centers points
-dxp = dxp[-len(z_centers):]
 
-######################################
-# Convolution with time sorted order #
-######################################
+Wmt_scaled_time_sorted = Wmt_scaled[:, ::-1]
+dip_moment_slice_time_sorted = dip_moment_slice[:, ::-1]
 
-W_scaled_time_sorted = W_scaled[::-1]
-dip_moment_slice_time_sorted = dip_moment_slice[::-1]
-
-dxp_time_sorted = np.convolve(
-    dip_moment_slice_time_sorted, W_scaled_time_sorted, mode='full')
-# Keep only the first n_centers points
-dxp_time_sorted = dxp_time_sorted[:len(z_centers)]
-
-# Back to HEADTAIL order
-dxp_time_sorted = dxp_time_sorted[::-1]
-
-########################
-# Convolution with FFT #
-########################
+# Convolution
 
 from numpy.fft import fft, ifft
 
-len_fft = len(W_scaled)+len(dip_moment_slice)-1
+len_fft = len(Wmt_scaled_time_sorted[0, :])+len(dip_moment_slice_time_sorted[0, :])-1
+W_transf = fft(Wmt_scaled_time_sorted, n=len_fft, axis=1)
 
 dxp_fft_time_sorted = ifft(
-    fft(W_scaled_time_sorted, n=len_fft)
-    * fft(dip_moment_slice_time_sorted, n=len_fft)).real
+    W_transf *
+    fft(dip_moment_slice_time_sorted, n=len_fft, axis = 1),
+    axis=1).real
 # Keep only the first n_centers points
-dxp_fft_time_sorted = dxp_fft_time_sorted[:len(z_centers)]
+dxp_fft_time_sorted = dxp_fft_time_sorted[:,:len(z_centers)]
 
 # Back to HEADTAIL order
-dxp_fft = dxp_fft_time_sorted[::-1]
+dxp_fft = dxp_fft_time_sorted[:, ::-1]
+
+plt.show()
+
+prrrrr
 
 #######################
 # Chopped and compressed convolution #
 #######################
 
+z_wake_mt_time_sorted = z_wake_mt[:, ::-1]
+
 K_period = n_slices * bunch_spacing_buckets
 L_preserve = n_slices
 
+n_periods = len(Wmt_scaled_time_sorted[0,:]) // K_period
 
-n_periods = len(W_scaled_time_sorted) // K_period
-
-WWchop = np.zeros_like(W_scaled_time_sorted)
 WW_compressed = []
-WW = W_scaled_time_sorted
+WW = Wmt_scaled_time_sorted
 dip_moments_compressed_time_sorted = []
 z_centers_compressed_time_sorted = []
-z_wake_time_sorted_compressed = []
+z_wake_compressed_time_sorted = []
 for ii in range(n_periods+1):
-    # part_preserve = slice(ii*K_period - (L_preserve - 1),
-    #                       ii*K_period + L_preserve)
     start_preserve = ii*K_period - L_preserve + 1
     if start_preserve < 0:
         start_preserve = 0
     end_preserve = ii*K_period + L_preserve
-    if end_preserve > len(W_scaled_time_sorted):
-        end_preserve = len(W_scaled_time_sorted)
+    if end_preserve > len(WW[0,:]):
+        end_preserve = len(WW[0,:])
     part_preserve = slice(start_preserve, end_preserve)
-    WWchop[part_preserve] = WW[part_preserve]
 
-    WW_compressed.append(WW[part_preserve])
-    z_wake_time_sorted_compressed.append(z_wake_time_sorted[part_preserve])
+    WW_compressed.append(WW[:, part_preserve])
+    z_wake_compressed_time_sorted.append(z_wake_mt_time_sorted[:, part_preserve])
 
     dip_moments_compressed_time_sorted.append(
-            dip_moment_slice_time_sorted[part_preserve])
-    z_centers_compressed_time_sorted.append(z_centers_time_sorted[part_preserve])
+        dip_moment_slice_time_sorted[:, part_preserve])
+    z_centers_compressed_time_sorted.append(
+        z_centers_time_sorted[part_preserve])
 
+WW_compressed = np.concatenate(WW_compressed, axis=1)
+z_wake_compressed_time_sorted = np.concatenate(
+    z_wake_compressed_time_sorted, axis=1)
+dip_moments_compressed_time_sorted = np.concatenate(
+    dip_moments_compressed_time_sorted, axis=1)
+z_centers_compressed_time_sorted = np.concatenate(
+    z_centers_compressed_time_sorted)
 
+# FFT size
+len_fft = len(WW_compressed[0, :])+len(dip_moment_slice_time_sorted[0, :])-1
 
-W_scaled_time_sorted_chopped = WWchop
-W_scaled_time_sorted_compressed = np.concatenate(WW_compressed)
-z_wake_time_sorted_compressed = np.concatenate(z_wake_time_sorted_compressed)
+# FFT convolution
+WW_fft = np.fft.rfft(WW_compressed, n=len_fft, axis=1)
+dip_moments_fft = np.fft.rfft(dip_moments_compressed_time_sorted, n=len_fft, axis=1)
 
-dip_moments_compressed_time_sorted = np.concatenate(dip_moments_compressed_time_sorted)
-z_centers_compressed_time_sorted = np.concatenate(z_centers_compressed_time_sorted)
-
-ax10.plot(z_wake, W_scaled_time_sorted_chopped[::-1], label='Wake chopped')
-ax10.plot(z_wake_time_sorted_compressed, W_scaled_time_sorted_compressed, label='Wake compressed')
-
-
-len_fft = len(W_scaled_time_sorted_chopped)+len(dip_moment_slice)-1
-
-dxp_fft_time_sorted = ifft(
-    fft(W_scaled_time_sorted_chopped, n=len_fft)
-    * fft(dip_moment_slice_time_sorted, n=len_fft)).real
-# Keep only the first n_centers points
-dxp_fft_time_sorted_chopped = dxp_fft_time_sorted[:len(z_centers)]
-
-# Back to HEADTAIL order
-dxp_chopped = dxp_fft_time_sorted_chopped[::-1]
-
-###################
-# Compressed mode #
-###################
-
-len_fft_compressed = len(W_scaled_time_sorted_compressed)+len(dip_moments_compressed_time_sorted)-1
-
-dxp_fft_compressed_time_sorted = ifft(
-    fft(W_scaled_time_sorted_compressed, n=len_fft_compressed)
-    * fft(dip_moments_compressed_time_sorted, n=len_fft_compressed)).real
+dxp_compressed_time_sorted = np.fft.irfft(WW_fft * dip_moments_fft, axis=1)
 
 # Keep only the first n_centers_compressed points
-dxp_fft_compressed_time_sorted = dxp_fft_compressed_time_sorted[:len(z_centers_compressed_time_sorted)]
+dxp_compressed_time_sorted = dxp_compressed_time_sorted[
+                :, :len(z_centers_compressed_time_sorted)]
 
-# Back to HEADTAIL order
-dxp_compressed = dxp_fft_compressed_time_sorted[::-1]
-z_centers_compressed = z_centers_compressed_time_sorted[::-1]
-
-# Plot results
-
-fig2 = plt.figure(2, figsize=(6.4*1.4, 4.8*1.4))
-ax21 = fig2.add_subplot(311)
-ax22 = fig2.add_subplot(312, sharex=ax21)
-ax23 = fig2.add_subplot(313, sharex=ax21)
-
-ax21.plot(z_centers, num_charges_slice, label='num. charges')
-ax21.set_ylabel('Number of charges per slice')
-ax22.plot(z_centers, amplitude * np.sin(2 * np.pi * z_centers / wavelength), '--')
-ax22.plot(z_centers, mean_x_slice, label='mean x')
-
-ax22.set_ylabel('Mean x per slice')
-
-ax23.plot(z_ref, dxp_ref, label='ref.')
-ax23.plot(z_centers, dxp, '--', label='conv.')
-ax23.plot(z_centers, dxp_time_sorted, '--', label='conv. t-sorted')
-ax23.plot(z_centers, dxp_fft, '--', label='conv. fft')
-ax23.plot(z_centers, dxp_chopped, '--', label='conv. chopped')
-ax23.plot(z_centers_compressed, dxp_compressed, '--', label='conv. compressed')
-ax23.set_ylabel('Dipole kick per slice')
-ax23.set_xlabel('z [m]')
-
-
-# Put legend outside of the plot
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-plt.subplots_adjust(right=0.75, hspace=0.3)
+# Plot
+plt.figure(100)
+plt.plot(z_centers_compressed_time_sorted,
+         np.sum(dxp_compressed_time_sorted, axis=0), '.')
 
 plt.show()
