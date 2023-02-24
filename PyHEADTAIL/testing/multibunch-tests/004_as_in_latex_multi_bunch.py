@@ -320,11 +320,16 @@ G_hat = fft(G_aux)
 rho_hat = fft(rho_aux)
 
 phase_term = 1
-phase_term = (np.exp(-1j * 2 * np.pi * np.arange(M_aux) * 1 / 2)
+phase_term = (np.exp(-1j * 2 * np.pi * np.arange(M_aux) * N_S * N_aux / M_aux)
                 * np.exp(-1j * 2 * np.pi * np.arange(M_aux) * (N_1) / M_aux))
 phi_hat = G_hat * rho_hat * phase_term
 
 phi_aux = ifft(phi_hat).real
+
+phi_target_matrix = np.zeros((N_T, N_2))
+for ii in range(N_T):
+    phi_target_matrix[ii, :] = phi_aux[ii*N_aux:ii*N_aux+N_2]
+
 
 # Plot results
 
@@ -344,7 +349,8 @@ ax23.plot(z_ref, dxp_ref, label='ref.')
 ax23.plot(z_centers, dxp, '--', label='conv.')
 ax23.plot(z_centers, dxp_time_sorted, '--', label='conv. t-sorted')
 ax23.plot(z_centers, dxp_fft, '--', label='conv. fft')
-ax23.plot(z_aux, phi_aux, '.', label='conv. latex')
+# ax23.plot(z_aux, phi_aux, '.', label='conv. latex')
+ax23.plot(z_target_matrix.T, phi_target_matrix.T, '-r',lw=3, label='conv. latex')
 ax23.set_ylabel('Dipole kick per slice')
 ax23.set_xlabel('z [m]')
 
