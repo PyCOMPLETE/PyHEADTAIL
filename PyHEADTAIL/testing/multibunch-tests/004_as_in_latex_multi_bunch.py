@@ -83,8 +83,8 @@ for b_id in bucket_id_set:
     z_std = np.std(allbunches.z[mask])
     mask_tails = mask & (np.abs(allbunches.z - z_centroid) > z_std)
     allbunches.x[mask_tails] = 0
-    # if b_id != 5:
-    #      allbunches.x[mask] = 0
+    if b_id != 0:
+         allbunches.x[mask] = 0
 
 beam = Particles(macroparticlenumber=allbunches.macroparticlenumber,
                  particlenumber_per_mp=allbunches.particlenumber_per_mp,
@@ -114,7 +114,7 @@ L = 100000.
 sigma = 1. / 7.88e-10
 
 # wakes = CircularResistiveWall(b, L, sigma, b/c, beta_beam=machine.beta)
-wakes = CircularResonator(R_shunt=135e6, frequency=1.97e9*0.6, Q=31000/100, n_turns_wake=n_turns_wake)
+wakes = CircularResonator(R_shunt=135e6, frequency=1.97e9*0.6, Q=31000/10000, n_turns_wake=n_turns_wake)
 
 # mpi_settings = 'circular_mpi_full_ring_fft'
 # wake_field = WakeField(slicer, wakes, mpi=mpi_settings, Q_x=accQ_x, Q_y=accQ_y, beta_x=beta_x, beta_y=beta_y)
@@ -253,6 +253,9 @@ dxp_fft = dxp_fft_time_sorted[::-1]
 # As in latex one bunch #
 #########################
 
+# DEEEEEEEBUUUUUUG
+n_bunches = 1
+
 z_source_matrix = np.zeros((n_bunches, n_slices))
 dipole_moment_matrix = np.zeros((n_bunches, n_slices))
 
@@ -276,8 +279,8 @@ z_b = z_source_matrix[0, -1] + dz
 z_c = z_a
 z_d = z_b
 
-PP = z_source_matrix[0, 0] - z_source_matrix[1, 0]
-AA = -2
+PP = 5 * bucket_length
+AA = 0
 BB = 1
 CC = AA
 DD = BB
@@ -292,8 +295,8 @@ N_aux = N_1 + N_2
 
 M_aux = N_aux * (N_S + N_T)
 
-z_wake_abcd_matrix = np.zeros((N_S + N_T, N_aux))
-for ll in range(CC-BB, DD-AA):
+z_wake_abcd_matrix = np.zeros((N_S + N_T-1, N_aux))
+for ll in range(CC-BB+1, DD-AA):
     z_wake_abcd_matrix[ll, :] = np.arange(
         z_c - z_b, z_d - z_a, dz) + ll * PP
 W_r_abcd_matrix = (
@@ -308,7 +311,7 @@ G_aux = np.zeros(M_aux)
 rho_aux = np.zeros(M_aux)
 z_aux = np.zeros(M_aux)
 
-for ii in range(N_S + N_T):
+for ii in range(N_S + N_T-1):
     G_aux[ii*N_aux:(ii+1)*N_aux] = G_segm[ii, :]
 
 for ii in range(N_S):
@@ -318,8 +321,7 @@ for ii in range(N_S):
 G_hat = fft(G_aux)
 rho_hat = fft(rho_aux)
 
-phase_term = np.exp(-1j * 2 * np.pi * np.arange(M_aux) * N_S * N_aux / M_aux)
-
+phase_term = (np.exp(-1j * 2 * np.pi * np.arange(M_aux) * (N_S * N_aux + N_1)/ M_aux))
 phi_hat = G_hat * rho_hat * phase_term
 
 phi_aux = ifft(phi_hat).real
