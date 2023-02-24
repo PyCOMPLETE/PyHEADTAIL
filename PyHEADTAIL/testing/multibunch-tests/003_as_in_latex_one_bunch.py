@@ -248,9 +248,9 @@ dxp_fft_time_sorted = dxp_fft_time_sorted[:len(z_centers)]
 # Back to HEADTAIL order
 dxp_fft = dxp_fft_time_sorted[::-1]
 
-###############
-# As in latex #
-###############
+#########################
+# As in latex one bunch #
+#########################
 
 i_bucket_source = 5
 i_bucket_target = 5
