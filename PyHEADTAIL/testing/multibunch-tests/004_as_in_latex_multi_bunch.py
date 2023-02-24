@@ -322,7 +322,6 @@ rho_hat = fft(rho_aux)
 phase_term = 1
 phase_term = (np.exp(-1j * 2 * np.pi * np.arange(M_aux) * 1 / 2)
                 * np.exp(-1j * 2 * np.pi * np.arange(M_aux) * (N_1) / M_aux))
-#phase_term = (np.exp(-1j * 2 * np.pi * np.arange(M_aux) * -(N_1)/ M_aux))
 phi_hat = G_hat * rho_hat * phase_term
 
 phi_aux = ifft(phi_hat).real
