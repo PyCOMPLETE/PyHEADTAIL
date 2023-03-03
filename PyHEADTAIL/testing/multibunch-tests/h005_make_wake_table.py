@@ -273,8 +273,11 @@ W_r_wt = (R_s * omega_r**2 / (Q * omega_bar) * np.exp(alpha_t * z_wt / c) * np.s
 W_scaled_wt = -e**2 / (p0_SI * c) * W_r_wt
 
 # Save to file
-t_wt = -z_wt[::-1]/beam.beta/c * 1e9
-w_wt = W_r_wt[::-1]
+
+t_wt = -z_wt[::-1]/beam.beta/c * 1e9  # t in ns
+
+wake_factor = (-(beam.charge)**2 / (beam.mass * beam.gamma * (beam.beta * c)**2) * beam.particlenumber_per_mp)
+w_wt = W_scaled_wt[::-1] / wake_factor # W without the wake factor
 
 wt = np.column_stack((t_wt, w_wt))
 np.savetxt('Wake_table.txt', wt)
