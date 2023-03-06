@@ -340,10 +340,13 @@ for ii in range(N_S):
 
 rho_hat_mt = fft(rho_aux_mt, axis=0)
 phi_hat_mt = G_hat_dephased_mt * rho_hat_mt
+phi_hat_total_mt = np.sum(phi_hat_mt, axis=1)
 
-phi_aux_mt = ifft(phi_hat_mt, axis=0).real
+phi_total_aux_mt = ifft(phi_hat_total_mt).real
 
-phi_total_aux_mt = np.sum(phi_aux_mt, axis=1)
+# phi_total_aux_mt = np.sum(phi_aux_mt, axis=1)
+
+
 phi_target_matrix_mt = np.zeros((N_T, N_2))
 for ii in range(N_T):
     phi_target_matrix_mt[ii, :] = phi_total_aux_mt[ii*N_aux:ii*N_aux+N_2]
