@@ -62,6 +62,7 @@ allbunches = machine.generate_6D_Gaussian_bunch(n_macroparticles, intensity,
                                                 matched=False)
 
 bucket_id_set = list(set(allbunches.bucket_id))
+bucket_id_set.sort()
 
 bucket_length = machine.circumference / h_RF
 z_all = -allbunches.bucket_id * bucket_length + allbunches.z
@@ -166,13 +167,23 @@ xp_after_wake_beam = []
 slice_set_before_wake_beam = []
 slice_set_after_wake_beam = []
 
-n_turns = 1
+n_turns = 3
+store_charge_per_mp = allbunches.charge_per_mp
+store_particlenumber_per_mp = allbunches.particlenumber_per_mp
 
 z_source_matrix_multiturn = np.zeros((n_bunches, n_slices, n_turns))
 dipole_moment_matrix_multiturn = np.zeros((n_bunches, n_slices, n_turns))
 
 color_list = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
 for i_turn in range(n_turns):
+
+    needs_restore = False
+    x_beam_before_wake = beam.x.copy()
+    x_allbunches_before_wake = allbunches.x.copy()
+    # if i_turn == 1:
+    #     beam.x[:] = 0
+    #     allbunches.x[:] = 0
+    #     needs_restore = True
 
     allbunches.clean_slices()
     slice_set_before_wake_allbunches.append(allbunches.get_slices(slicer,
@@ -205,6 +216,10 @@ for i_turn in range(n_turns):
 
     xp_after_wake_allbunches.append(allbunches.xp.copy())
     xp_after_wake_beam.append(beam.xp.copy())
+
+    if needs_restore:
+        beam.x[:] = x_beam_before_wake
+        allbunches.x[:] = x_allbunches_before_wake
 
     transverse_map.track(allbunches)
     transverse_map.track(beam)
@@ -310,10 +325,11 @@ for i_turn in range(n_turns):
     for ii in range(N_T):
         phi_target_matrix[ii, :] = phi_aux[ii*N_aux:ii*N_aux+N_2]
 
-    phi_target_matrix_multiturn[:, :, i_turn] = phi_target_matrix
+    phi_target_matrix_multiturn[:, :, i_turn] = phi_target_matrix.real
 
 phi_matrix_tot = np.sum(phi_target_matrix_multiturn, axis=2)
 
-ax01.plot(z_source_matrix.T, phi_target_matrix.T, '-r',lw=3, label='conv. latex')
+ax01.plot(z_source_matrix.T, phi_matrix_tot.T, '-',
+          color=color_list[n_turns-1], lw=3, label='conv. latex')
 
 plt.show()
