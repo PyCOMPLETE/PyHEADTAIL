@@ -248,9 +248,8 @@ class BeamIonElement(Element):
             picFFT.solve()
             en_x, en_y = picFFT.gather(
                 first_beam.x, first_beam.y)
-            en_x /= second_beam.x.shape[0]
-            en_y /= second_beam.x.shape[0]
-
+            en_x /= qe*second_beam.x.shape[0]
+            en_y /= qe*second_beam.x.shape[0]
         return en_x, en_y
 
     def track(self, electron_bunch):
