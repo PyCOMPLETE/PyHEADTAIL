@@ -257,6 +257,7 @@ z_source_matrix_multiturn = z_source_matrix_multiturn[:, :, ::-1] # last turn on
 dipole_moment_matrix_multiturn = dipole_moment_matrix_multiturn[:, :, ::-1] # last turn on top
 
 dz = z_centers[1] - z_centers[0]
+G_hat_dephased_mt = []
 
 phi_target_matrix_multiturn = np.zeros((n_bunches, n_slices, n_turns))
 
@@ -318,6 +319,7 @@ for i_turn in range(n_turns):
     phase_term = np.exp(1j * 2 * np.pi * np.arange(M_aux)
                         * ((N_S - 1)* N_aux + N_1) / ((N_S + N_T - 1)* N_aux))
     phi_hat = G_hat * rho_hat * phase_term
+    G_hat_dephased_mt.append(G_hat * phase_term)
 
     phi_aux = ifft(phi_hat).real
 
@@ -328,8 +330,30 @@ for i_turn in range(n_turns):
     phi_target_matrix_multiturn[:, :, i_turn] = phi_target_matrix.real
 
 phi_matrix_tot = np.sum(phi_target_matrix_multiturn, axis=2)
+G_hat_dephased_mt = np.array(G_hat_dephased_mt).T
+
+
+rho_aux_mt = np.zeros((M_aux, n_turns))
+
+for ii in range(N_S):
+    rho_aux_mt[ii*N_aux:(ii)*N_aux+N_1, :] = dipole_moment_matrix_multiturn[ii, :, :]
+
+rho_hat_mt = fft(rho_aux_mt, axis=0)
+phi_hat_mt = G_hat_dephased_mt * rho_hat_mt
+
+phi_aux_mt = ifft(phi_hat_mt, axis=0).real
+
+phi_total_aux_mt = np.sum(phi_aux_mt, axis=1)
+phi_target_matrix_mt = np.zeros((N_T, N_2))
+for ii in range(N_T):
+    phi_target_matrix_mt[ii, :] = phi_total_aux_mt[ii*N_aux:ii*N_aux+N_2]
+
+
 
 ax01.plot(z_source_matrix.T, phi_matrix_tot.T, '-',
           color=color_list[n_turns-1], lw=3, label='conv. latex')
+
+ax01.plot(z_source_matrix.T, phi_target_matrix_mt.T, 'x-',
+            color=color_list[n_turns-1], lw=3, alpha=0.5)
 
 plt.show()
