@@ -249,9 +249,9 @@ dxp_fft_time_sorted = dxp_fft_time_sorted[:len(z_centers)]
 # Back to HEADTAIL order
 dxp_fft = dxp_fft_time_sorted[::-1]
 
-#########################
-# As in latex one bunch #
-#########################
+###############
+# As in latex #
+###############
 
 z_source_matrix = np.zeros((n_bunches, n_slices))
 dipole_moment_matrix = np.zeros((n_bunches, n_slices))
@@ -291,9 +291,9 @@ N_2 = z_target_matrix.shape[1]
 
 N_aux = N_1 + N_2
 
-M_aux = N_aux * (N_S + N_T)
+M_aux = N_aux * (N_S + N_T - 1)
 
-z_wake_abcd_matrix = np.zeros((N_S + N_T-1, N_aux))
+z_wake_abcd_matrix = np.zeros((N_S + N_T - 1, N_aux))
 for ii, ll in enumerate(range(CC-BB+1, DD-AA)):
     z_wake_abcd_matrix[ii, :] = np.arange(
         z_c - z_b, z_d - z_a, dz) + ll * PP
@@ -319,9 +319,11 @@ for ii in range(N_S):
 G_hat = fft(G_aux)
 rho_hat = fft(rho_aux)
 
-phase_term = 1
-phase_term = (np.exp(-1j * 2 * np.pi * np.arange(M_aux) * N_S * N_aux / M_aux)
-                * np.exp(-1j * 2 * np.pi * np.arange(M_aux) * (N_1) / M_aux))
+# phase_term = 1
+# phase_term = (np.exp(-1j * 2 * np.pi * np.arange(M_aux) * N_S * N_aux / M_aux)
+#                 * np.exp(-1j * 2 * np.pi * np.arange(M_aux) * (N_1) / M_aux))
+phase_term = np.exp(1j * 2 * np.pi * np.arange(M_aux)
+                    * ((N_S - 1)* N_aux + N_1) / ((N_S + N_T - 1)* N_aux))
 phi_hat = G_hat * rho_hat * phase_term
 
 phi_aux = ifft(phi_hat).real
