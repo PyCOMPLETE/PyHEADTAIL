@@ -187,27 +187,6 @@ class WakeField(Element):
             for j, bunchbybunch in enumerate(beta):
                 age = self.circumference/(bunchbybunch[0]*c)
                 turnbyturn[0][j] += age
-                # print ("\n\n--> age and beta: {:g}, {:g}".format(beta, 0))
-                # print ("\n\n--> age and beta: {:g}, {:g}".format(b[0][0], b[1][0]))
-
-        # # Fills wake register - little trick here to include
-        # # local_bunch_indexes that will be used in wake kicks.apply. Makes
-        # # deque no longer convertible into an ndarray. Needs to be poped later.
-        # assert(self.slicer == self._mpi_gatherer._slicer)
-        # n_bunches_total = self._mpi_gatherer.n_bunches
-        # n_slices = self.slicer.n_slices
-        # self.slice_set_deque.appendleft(
-        #     [self._mpi_gatherer.total_data.age,
-        #      self._mpi_gatherer.total_data.beta,
-        #      self._mpi_gatherer.total_data.t_centers,
-        #      self._mpi_gatherer.total_data.n_macroparticles_per_slice,
-        #      self._mpi_gatherer.total_data.mean_x,
-        #      self._mpi_gatherer.total_data.mean_y,
-        #      self._mpi_gatherer.local_bunch_indexes]
-        #     )
-        # for i, v in enumerate(self.slice_set_deque[0][:-1]):
-        #     self.slice_set_deque[0][i] = np.reshape(
-        #         v, (n_bunches_total, n_slices))
 
         # Fills wake register -
         slice_set_list = []
@@ -240,13 +219,6 @@ class WakeField(Element):
         for kick in self.wake_kicks:
             kick.apply(bunches_list, self.slice_set_deque)
 
-        beam_new = sum(bunches_list)
-        beam.update({'x': beam_new.x,
-                     'y': beam_new.y,
-                     'z': beam_new.z,
-                     'xp': beam_new.xp,
-                     'yp': beam_new.yp,
-                     'dp': beam_new.dp})
 
     def _mpi_track(self, beam):
 
@@ -264,8 +236,6 @@ class WakeField(Element):
             for j, bunchbybunch in enumerate(beta):
                 age = self.circumference/(bunchbybunch[0]*c)
                 turnbyturn[0][j] += age
-                # print ("\n\n--> age and beta: {:g}, {:g}".format(beta, 0))
-                # print ("\n\n--> age and beta: {:g}, {:g}".format(b[0][0], b[1][0]))
 
         # Fills wake register - little trick here to include
         # local_bunch_indexes that will be used in wake kicks.apply. Makes
@@ -286,64 +256,12 @@ class WakeField(Element):
             self.slice_set_deque[0][i] = np.reshape(
                 v, (n_bunches_total, n_slices))
 
-        # if self._mpi_gatherer.mpi_rank == 0:
-        #     print(self._mpi_gatherer.total_data.t_centers)
-        # print(len(self.slice_set_deque[0]))
-        # print(self.slice_set_deque[0][1].shape)
-        # print(self._mpi_gatherer.total_data.beta)
-        # wurstel
-
-
         for kick in self.wake_kicks:
             kick.apply(self._mpi_gatherer.bunch_list, self.slice_set_deque)
 
         # At the end the superbunch must be rebunched. Without that the kicks
         # do not apply to the next turn
         self._mpi_gatherer.rebunch(beam)
-
-        # signal_x = np.array([])
-        # signal_y = np.array([])
-
-        # # slice set data from all bunches in all processors can be found from under mpi_gatherer.total_data object
-        # if self._axis == 'divergence':
-        #     signal_x = np.array([s for s in self._mpi_gatherer.total_data.mean_xp])
-        #     signal_y = np.array([s for s in self._mpi_gatherer.total_data.mean_yp])
-
-        # elif self._axis == 'displacement':
-        #     signal_x = np.array([s for s in self._mpi_gatherer.total_data.mean_x])
-        #     signal_y = np.array([s for s in self._mpi_gatherer.total_data.mean_y])
-
-
-        # # the object mpi_gatherer.total_data can be used as a normal slice_set object expect that bin_set is slightly different
-        # for processor in self._processors_x:
-        #     signal_x = processor.process(signal_x,self._mpi_gatherer.total_data, None, mpi = True)
-
-        # for processor in self._processors_y:
-        #     signal_y = processor.process(signal_y,self._mpi_gatherer.total_data, None, mpi = True)
-
-        # # mpi_gatherer.gather(...) splits the superbunch, so it is efficient to use same bunch list
-        # for i, b in enumerate(self._mpi_gatherer.bunch_list):
-
-        #     # the slice set data from all bunches in all processors pass the signal processors. Here, the correction
-        #     # signals for the bunches tracked in this processors are picked by using indexes found from
-        #     # mpi_gatherer.total_data.local_data_locations
-        #     idx_from = self._mpi_gatherer.total_data.local_data_locations[i][0]
-        #     idx_to = self._mpi_gatherer.total_data.local_data_locations[i][1]
-
-        #     correction_x = self._gain_x*signal_x[idx_from:idx_to]
-        #     correction_y = self._gain_y*signal_y[idx_from:idx_to]
-
-        #     # mpi_gatherer has also slice set list, which can be used for applying the kicks
-        #     p_idx = self._mpi_gatherer.slice_set_list[i].particles_within_cuts
-        #     s_idx = self._mpi_gatherer.slice_set_list[i].slice_index_of_particle.take(p_idx)
-
-        #     if self._axis == 'divergence':
-        #         b.xp[p_idx] -= correction_x[s_idx]
-        #         b.yp[p_idx] -= correction_y[s_idx]
-
-        #     elif self._axis == 'displacement':
-        #         b.x[p_idx] -= correction_x[s_idx]
-        #         b.y[p_idx] -= correction_y[s_idx]
 
 
     def _mpi_track_optimized(self, beam, optimization_method):
@@ -403,79 +321,6 @@ class WakeField(Element):
         for kick in self.wake_kicks:
             kick.apply(bunch_list, all_slice_sets, local_slice_sets,
                        local_bunch_indexes, optimization_method)
-
-    def track_classic(self, beam):
-        """Update macroparticle momenta according to wake kick.
-
-        First, splits up beam into a set of bunches which can be individually
-        sliced. Extracts slice data and send all slice data to the register on
-        master.
-
-
-        The function iterates through all bunches in the list and calls the
-        WakeKick.apply(bunch, slice_set) method of each of the WakeKick objects
-        stored in self.wake_kicks. A slice_set is necessary to perform this
-        operation. It is requested from the bunch (instance of the Particles
-        class) using the Particles.get_slices(self.slicer) method, where
-        self.slicer is the instance of the Slicer class used for this
-        particluar WakeField object. A slice_set is returned according to the
-        self.slicer configuration. The statistics mean_x and mean_y are
-        requested to be calculated and saved in the SliceSet instance, too,
-        s.t. the first moments x, y can be calculated by the WakeKick
-        instances.
-
-        Args:
-
-            bunches: A bunch/beam or a list of bunches.
-
-        """
-        n_slices = self.slicer.n_slices
-        stride = 2 + 4*n_slices
-
-        bunches_list = beam.split_to_views()
-        n_bunches_counts = self.comm.allgather(len(bunches_list))
-        n_bunches_offsets = np.cumsum(n_bunches_counts)
-        n_bunches_total = sum(n_bunches_counts)
-
-        slice_data = self._get_slice_data(bunches_list)
-        slice_data_counts = self.comm.allgather(len(slice_data))
-        slice_data_offsets = np.insert(
-            np.cumsum(slice_data_counts), 0, 0)[:-1]
-
-        # The register is assembled and now sent to all processors
-        register = np.zeros((stride * n_bunches_total))
-        self.comm.Allgatherv(
-            [slice_data, len(slice_data), MPI.DOUBLE],
-            [register, slice_data_counts, slice_data_offsets, MPI.DOUBLE])
-
-        # Update ages of bunches in slice_set_deque
-        for i, t in enumerate(self.slice_set_deque):
-            for j, b in enumerate(t):
-                beta = b[1]
-                age = self.circumference/(beta*c)
-                b[0] += age
-
-        self.slice_set_deque.appendleft(
-            np.reshape(register, (n_bunches_total, stride)))
-        print(self.slice_set_deque[-1][:, 0])
-
-        for kick in self.wake_kicks:
-            kick.apply(bunches_list, self.slice_set_deque)
-
-        # Here, we need to put the values back into the reference!
-        beam_new = sum(bunches_list)
-        # beam.update({'x': beam_new.x,
-        #              'y': beam_new.y,
-        #              'z': beam_new.z,
-        #              'xp': beam_new.xp,
-        #              'yp': beam_new.yp,
-        #              'dp': beam_new.dp
-        beam.x[:] = beam_new.x[:]
-        beam.xp[:] = beam_new.xp[:]
-        beam.y[:] = beam_new.y[:]
-        beam.yp[:] = beam_new.yp[:]
-        beam.z[:] = beam_new.z[:]
-        beam.dp[:] = beam_new.dp[:]
 
     def track(self, beam):
         if isinstance(self._mpi, str):
