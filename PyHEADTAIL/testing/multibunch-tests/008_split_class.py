@@ -28,6 +28,7 @@ wf = Wakefield(
     num_periods=4, # This is N_S
     num_turns=3,
     circumference=100.,
+    _flatten=True
 )
 
 assert wf.moments_data.data.shape == (4, 3, 70)

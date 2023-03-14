@@ -47,11 +47,6 @@ class CompressedProfile:
 
         self.num_turns = num_turns
 
-        self._BB = 1 # B in the paper
-                     # (for now we assume that B=0 is the first bunch in time
-                     # and the last one in zeta)
-        self._AA = self._BB - self._N_S
-
         self._N_aux = self._N_1 + self._N_2 # N_aux in the paper
 
         # Compute M_aux
