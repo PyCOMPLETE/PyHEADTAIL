@@ -37,30 +37,13 @@ assert wf._N_1 == 5
 assert wf._N_S == 4
 assert wf._z_P == 10
 
-charge_test_0 = np.linspace(-1, 1, 5)
-charge_test_1 = np.linspace(-2, 2, 5)
-charge_test_2 = np.linspace(-3, 3, 5)
 
-wf.set_moments(
-    i_source=0,
-    i_turn=1,
-    moments={'num_particles': charge_test_0,
-             'x': 2 * charge_test_0}
-)
 
-wf.set_moments(
-    i_source=1,
-    i_turn=1,
-    moments={'num_particles': charge_test_1,
-                'x': 2 * charge_test_1,}
-)
-
-wf.set_moments(
-    i_source=2,
-    i_turn=1,
-    moments={'num_particles': charge_test_2,
-                'x': 2 * charge_test_2}
-)
+for i_source in range(3):
+    wf.set_moments(
+        i_source=i_source,
+        i_turn=1,
+        moments={'num_particles': np.linspace(-1, 1, 5) * (i_source + 1)})
 
 
 z_profile, num_particles_profile = wf.get_moment_profile('num_particles', 1)
@@ -85,26 +68,12 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.plot(z_profile, num_particles_profile, '.')
 
-wf.set_moments(
-    i_source=0,
-    i_turn=0,
-    moments={'num_particles': charge_test_0,
-             'x': 2 * charge_test_0}
-)
+for i_source in range(3):
+    wf.set_moments(
+        i_source=i_source,
+        i_turn=0,
+        moments={'num_particles': np.linspace(-1, 1, 5) * (i_source + 1)})
 
-wf.set_moments(
-    i_source=1,
-    i_turn=0,
-    moments={'num_particles': charge_test_1,
-                'x': 2 * charge_test_1,}
-)
-
-wf.set_moments(
-    i_source=2,
-    i_turn=0,
-    moments={'num_particles': charge_test_2,
-                'x': 2 * charge_test_2}
-)
 
 wf._compute_convolution(moment_names='num_particles')
 
