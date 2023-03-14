@@ -25,22 +25,26 @@ accQ_y = 0.32
 Q_s = 2.1e-3
 chroma = 0
 
-h_RF = 600
-h_bunch = h_RF
 
-circumference = 26658.883 / 35640 * h_RF
 
+# h_RF = 600
+# bunch_spacing_buckets = 5
+# n_bunches = 110
+# n_slices = 250
+# plot_on = False
+
+h_RF = 20
 bunch_spacing_buckets = 5
-n_bunches = 110
-
-n_slices = 250
-plot_on = False
+n_bunches = 3
+n_slices = 100
+plot_on = True
 
 
 beta_x = 100 #circumference / (2.*np.pi*accQ_x)
 beta_y = 100 #circumference / (2.*np.pi*accQ_y)
 
-
+h_bunch = h_RF
+circumference = 26658.883 / 35640 * h_RF
 
 epsn_x = 2e-6
 epsn_y = 2e-6
