@@ -25,15 +25,17 @@ accQ_y = 0.32
 Q_s = 2.1e-3
 chroma = 0
 
-h_RF = 300
+h_RF = 600
 h_bunch = h_RF
 
 circumference = 26658.883 / 35640 * h_RF
 
 bunch_spacing_buckets = 5
-n_bunches = 50
+n_bunches = 110
 
-n_slices = 100
+n_slices = 250
+plot_on = False
+
 
 beta_x = 100 #circumference / (2.*np.pi*accQ_x)
 beta_y = 100 #circumference / (2.*np.pi*accQ_y)
@@ -58,7 +60,6 @@ machine = Synchrotron(
 transverse_map = machine.transverse_map.segment_maps[0]
 
 # Filling scheme
-
 
 filling_scheme = [i*bunch_spacing_buckets for i in range(n_bunches)]
 
@@ -156,12 +157,13 @@ wake_field_full_beam = WakeField(slicer_full_beam, wakes_full_beam, mpi=False)
 
 plt.close('all')
 
-fig0, (ax00, ax01) = plt.subplots(2, 1)
-ax01.sharex(ax00)
+if plot_on:
+    fig0, (ax00, ax01) = plt.subplots(2, 1)
+    ax01.sharex(ax00)
 
-skip = 10
-ax00.plot(z_all[::skip], allbunches.x[::skip], '.')
-ax00.plot(beam.z[::skip], beam.x[::skip], '.')
+    skip = 10
+    ax00.plot(z_all[::skip], allbunches.x[::skip], '.')
+    ax00.plot(beam.z[::skip], beam.x[::skip], '.')
 
 x_at_wake_allbunches = []
 xp_before_wake_allbunches = []
@@ -243,6 +245,8 @@ for i_turn in range(n_turns):
         i_z_bunch_center = np.argmin(np.abs(z_centers - (-i_bucket * bucket_length)))
 
         i_z_a_bunch = i_z_bunch_center - n_slices//2
+        if i_z_a_bunch == -1: # Rounding error
+            i_z_a_bunch = 0
 
         dipole_moment_matrix_multiturn[i_bunch, :, i_turn] = dip_moment_slice[
                                             i_z_a_bunch : i_z_a_bunch+n_slices]
@@ -250,16 +254,18 @@ for i_turn in range(n_turns):
         z_source_matrix_multiturn[i_bunch, :, i_turn] = z_centers[
                                         i_z_a_bunch : i_z_a_bunch+n_slices]
 
-    ax00.plot(slice_set_after_wake_beam[-1].z_centers,
-              slice_set_after_wake_beam[-1].mean_x, '-', color=color_list[i_turn],
-              label=f"turn {i_turn}")
+    if plot_on:
+        ax00.plot(slice_set_after_wake_beam[-1].z_centers,
+                slice_set_after_wake_beam[-1].mean_x, '-', color=color_list[i_turn],
+                label=f"turn {i_turn}")
 
-    ax01.plot(
-        slice_set_after_wake_beam[-1].z_centers,
-        slice_set_after_wake_beam[-1].mean_xp - slice_set_before_wake_beam[-1].mean_xp,
-        '-', color=color_list[i_turn], label=f"turn {i_turn}")
+        ax01.plot(
+            slice_set_after_wake_beam[-1].z_centers,
+            slice_set_after_wake_beam[-1].mean_xp - slice_set_before_wake_beam[-1].mean_xp,
+            '-', color=color_list[i_turn], label=f"turn {i_turn}")
 
-ax00.legend()
+if plot_on:
+    ax00.legend()
 
 z_source_matrix_multiturn = z_source_matrix_multiturn[:, :, ::-1] # last turn on top
 dipole_moment_matrix_multiturn = dipole_moment_matrix_multiturn[:, :, ::-1] # last turn on top
@@ -303,11 +309,12 @@ for i_turn in range(1, n_turns_wake):
 
 res_profile_scaled = res_profile * (-e**2 / (p0_SI * c))
 
-plt.figure(200)
-plt.plot(wf.z_wake.T, wf.G_aux.T * (-e**2 / (p0_SI * c)), alpha=0.5)
+if plot_on:
+    plt.figure(200)
+    plt.plot(wf.z_wake.T, wf.G_aux.T * (-e**2 / (p0_SI * c)), alpha=0.5)
 
-ax01.plot(z_profile, res_profile_scaled, 'bx')
-
+    ax01.plot(z_profile, res_profile_scaled, 'bx')
+print(f'Circumference occupancy {n_bunches * bunch_spacing_buckets/h_RF*100:.2f} %')
 print(f'T pyht ({mpi_settings}) {wake_field.wake_kicks[0].time_last_accumulate * 1e3:.2f} ms')
 print(f'T xheadtail {dt_xht_sec * 1e3:.2f} ms')
 plt.show()
