@@ -75,8 +75,6 @@ for i_source in range(3):
         moments={'num_particles': np.linspace(-1, 1, 5) * (i_source + 1)})
 
 
-wf._compute_convolution(moment_names='num_particles')
-
 plt.show()
 
 

@@ -36,18 +36,10 @@ class Wakefield:
                 circumference=circumference)
 
         # Build wake matrix
-        z_c = self._z_a # For wakefield, z_c = z_a
-        z_d = self._z_b # For wakefield, z_d = z_b
-        self.z_wake = np.zeros((self.num_turns, self._M_aux))
-        for tt in range(self.num_turns):
-            z_a_turn = self._z_a + tt * self.circumference
-            z_b_turn = self._z_b + tt * self.circumference
-            temp_z = np.arange(
-                z_c - z_b_turn, z_d - z_a_turn + self.dz/10, self.dz)[:-1]
-            for ii, ll in enumerate(range(
-                                self._CC - self._BB + 1, self._DD - self._AA)):
-                self.z_wake[tt, ii*self._N_aux:(ii+1)*self._N_aux] = (
-                                                    temp_z + ll * self._z_P)
+        self.z_wake = _build_z_wake(self._z_a, self._z_b, self.num_turns,
+                    self._N_aux, self._M_aux,
+                    self.circumference, self.dz, self._AA, self._BB, self._CC,
+                    self._DD, self._z_P)
 
         self.G_aux = self.function(self.z_wake)
 
@@ -237,3 +229,18 @@ class TempResonatorFunction:
                * np.exp(alpha_t * z / clight)
                 * np.sin(omega_bar * z / clight))# Wake definition
         return res
+
+def _build_z_wake(z_a, z_b, num_turns, N_aux, M_aux, circumference, dz,
+                 AA, BB, CC, DD, z_P):
+    z_c = z_a # For wakefield, z_c = z_a
+    z_d = z_b # For wakefield, z_d = z_b
+    z_wake = np.zeros((num_turns, M_aux))
+    for tt in range(num_turns):
+        z_a_turn = z_a + tt * circumference
+        z_b_turn = z_b + tt * circumference
+        temp_z = np.arange(
+            z_c - z_b_turn, z_d - z_a_turn + dz/10, dz)[:-1]
+        for ii, ll in enumerate(range(
+                            CC - BB + 1, DD - AA)):
+            z_wake[tt, ii*N_aux:(ii+1)*N_aux] = temp_z + ll * z_P
+    return z_wake
