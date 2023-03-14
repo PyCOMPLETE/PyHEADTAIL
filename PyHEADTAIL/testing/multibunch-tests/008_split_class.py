@@ -13,7 +13,6 @@ class DeltaFunction:
 
 
 
-
 rf_bucket_length = 1
 
 # Quadrupolar wakefield

@@ -256,115 +256,45 @@ ax00.legend()
 z_source_matrix_multiturn = z_source_matrix_multiturn[:, :, ::-1] # last turn on top
 dipole_moment_matrix_multiturn = dipole_moment_matrix_multiturn[:, :, ::-1] # last turn on top
 
-dz = z_centers[1] - z_centers[0]
-G_hat_dephased_mt = []
+from wakefield import Wakefield, TempResonatorFunction
 
-phi_target_matrix_multiturn = np.zeros((n_bunches, n_slices, n_turns))
+wf = Wakefield(
+    source_moments=['num_particles', 'x'],
+    kick=None,
+    scale_kick=None, # The kick is scaled by position of the particle for quadrupolar, would be None for dipolar
+    function=TempResonatorFunction(R_shunt=wakes.R_shunt, frequency=wakes.frequency, Q=wakes.Q),
+    z_slice_range=(-0.5*bucket_length, 0.5*bucket_length), # These are [a, b] in the paper
+    slicer=None, # alternatively, a slicer can be used
+    num_slices=n_slices, # Per bunch, this is N_1 in the paper
+    z_period=bunch_spacing_buckets*bucket_length, # This is P in the paper
+    num_periods=n_bunches, # This is N_S
+    num_turns=n_turns_wake,
+    circumference=circumference,
+)
 
-for i_turn in range(n_turns):
+for i_turn in range(n_turns_wake):
+    for i_bunch in range(n_bunches):
+        mom = dipole_moment_matrix_multiturn[::-1,:,:][i_bunch, :, i_turn]
+        wf.moments_data.set_moments(moments={
+            'x': mom,
+            'num_particles': np.ones_like(mom),
+            },
+        i_turn=i_turn, i_source=i_bunch)
 
-    z_source_matrix = z_source_matrix_multiturn[:, :, i_turn]
-    dipole_moment_matrix = dipole_moment_matrix_multiturn[:, :, i_turn]
+wf._compute_convolution(moment_names=['x', 'num_particles'])
 
-    z_a = z_source_matrix[0, 0] + i_turn * circumference
-    z_b = z_source_matrix[0, -1] + dz + i_turn * circumference
-    z_c = z_source_matrix[0, 0]
-    z_d = z_source_matrix[0, -1] + dz
+z_profile, res_profile = wf.get_moment_profile(moment_name='result', i_turn=0)
 
-    PP = 5 * bucket_length
-    AA = -2
-    BB = 1
-    CC = AA
-    DD = BB
+for i_turn in range(1, n_turns_wake):
+    zz, rr = wf.get_moment_profile(moment_name='result', i_turn=i_turn)
+    res_profile += rr
 
-    N_S = BB - AA
-    N_T = DD - CC
+res_profile_scaled = res_profile * (-e**2 / (p0_SI * c))
 
-    N_1 = z_source_matrix.shape[1]
-    N_2 = z_source_matrix.shape[1]
+plt.figure(200)
+plt.plot(wf.z_wake.T, wf.G_aux.T * (-e**2 / (p0_SI * c)), alpha=0.5)
 
-    N_aux = N_1 + N_2
-
-    M_aux = N_aux * (N_S + N_T - 1)
-
-    z_wake_abcd_matrix = np.zeros((N_S + N_T - 1, N_aux))
-    for ii, ll in enumerate(range(CC-BB+1, DD-AA)):
-        z_wake_abcd_matrix[ii, :] = np.arange(
-            z_c - z_b, z_d - z_a, dz) + ll * PP
-    W_r_abcd_matrix = (
-        R_s * omega_r**2 / (Q * omega_bar) * np.exp(alpha_t * z_wake_abcd_matrix / c)
-        * np.sin(omega_bar * z_wake_abcd_matrix / c))# Wake definition
-    W_r_abcd_matrix[z_wake_abcd_matrix > 0] = 0
-    W_scaled_abcd_matrix = -e**2 / (p0_SI * c) * W_r_abcd_matrix # Put all constants in front of the wake
-
-    G_segm = W_scaled_abcd_matrix
-
-    G_aux = np.zeros(M_aux)
-    rho_aux = np.zeros(M_aux)
-    z_aux = np.zeros(M_aux)
-
-    for ii in range(N_S + N_T - 1):
-        G_aux[ii*N_aux:(ii+1)*N_aux] = G_segm[ii, :]
-
-    for ii in range(N_S):
-        rho_aux[ii*N_aux:(ii)*N_aux+N_1] = dipole_moment_matrix[ii, :]
-        z_aux[ii*N_aux:(ii)*N_aux+N_1] = z_source_matrix[ii, :]
-
-    G_hat = fft(G_aux)
-    rho_hat = fft(rho_aux)
-
-    # phase_term = 1
-    # phase_term = (np.exp(-1j * 2 * np.pi * np.arange(M_aux) * N_S * N_aux / M_aux)
-    #                 * np.exp(-1j * 2 * np.pi * np.arange(M_aux) * (N_1) / M_aux))
-    phase_term = np.exp(1j * 2 * np.pi * np.arange(M_aux)
-                        * ((N_S - 1)* N_aux + N_1) / ((N_S + N_T - 1)* N_aux))
-    phi_hat = G_hat * rho_hat * phase_term
-    G_hat_dephased_mt.append(G_hat * phase_term)
-
-    phi_aux = ifft(phi_hat).real
-
-    phi_target_matrix = np.zeros((N_T, N_2))
-    for ii in range(N_T):
-        phi_target_matrix[ii, :] = phi_aux[ii*N_aux:ii*N_aux+N_2]
-
-    phi_target_matrix_multiturn[:, :, i_turn] = phi_target_matrix.real
-
-phi_matrix_tot = np.sum(phi_target_matrix_multiturn, axis=2)
-G_hat_dephased_mt = np.array(G_hat_dephased_mt).T
-
-
-rho_aux_mt = np.zeros((M_aux, n_turns))
-
-for ii in range(N_S):
-    rho_aux_mt[ii*N_aux:(ii)*N_aux+N_1, :] = dipole_moment_matrix_multiturn[ii, :, :]
-
-rho_hat_mt = fft(rho_aux_mt, axis=0)
-phi_hat_mt = G_hat_dephased_mt * rho_hat_mt
-phi_hat_total_mt = np.sum(phi_hat_mt, axis=1)
-
-phi_total_aux_mt = ifft(phi_hat_total_mt).real
-
-# phi_total_aux_mt = np.sum(phi_aux_mt, axis=1)
-
-
-phi_target_matrix_mt = np.zeros((N_T, N_2))
-for ii in range(N_T):
-    phi_target_matrix_mt[ii, :] = phi_total_aux_mt[ii*N_aux:ii*N_aux+N_2]
-
-
-
-ax01.plot(z_source_matrix.T, phi_matrix_tot.T, '-',
-          color=color_list[n_turns-1], lw=3, label='conv. latex')
-
-ax01.plot(z_source_matrix.T, phi_target_matrix_mt.T, 'x-',
-            color=color_list[n_turns-1], lw=3, alpha=0.5)
-
-# Plot wakes
-fig10 = plt.figure(10)
-ax10 = fig10.add_subplot(111)
-
-ax10.plot(z_wake_abcd_matrix.T, W_scaled_abcd_matrix.T, label='Wake')
-ax10.set_xlabel('z [m]')
-ax10.set_ylabel('W(z)')
+ax01.plot(z_profile, res_profile_scaled, 'bx')
 
 plt.show()
+

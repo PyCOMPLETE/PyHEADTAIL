@@ -1,6 +1,8 @@
 import numpy as np
 from compressed_profile import CompressedProfile
 
+from scipy.constants import c as clight
+
 class Wakefield:
 
     def __init__(self,
@@ -40,7 +42,8 @@ class Wakefield:
         for tt in range(self.num_turns):
             z_a_turn = self._z_a + tt * self.circumference
             z_b_turn = self._z_b + tt * self.circumference
-            temp_z = np.arange(z_c - z_b_turn, z_d - z_a_turn, self.dz)
+            temp_z = np.arange(
+                z_c - z_b_turn, z_d - z_a_turn + self.dz/10, self.dz)[:-1]
             for ii, ll in enumerate(range(
                                 self._CC - self._BB + 1, self._DD - self._AA)):
                 self.z_wake[tt, ii*self._N_aux:(ii+1)*self._N_aux] = (
@@ -214,3 +217,23 @@ class Wakefield:
                 kick_per_particle *= nn
 
         getattr(particles, self.kick)[:] += kick_per_particle
+
+
+class TempResonatorFunction:
+    def __init__(self, R_shunt, frequency, Q):
+        self.R_shunt = R_shunt
+        self.frequency = frequency
+        self.Q = Q
+
+    def __call__(self, z):
+        R_s = self.R_shunt
+        Q = self.Q
+        f_r = self.frequency
+        omega_r = 2 * np.pi * f_r
+        alpha_t = omega_r / (2 * Q)
+        omega_bar = np.sqrt(omega_r**2 - alpha_t**2)
+
+        res = (z < 0) * (R_s * omega_r**2 / (Q * omega_bar)
+               * np.exp(alpha_t * z / clight)
+                * np.sin(omega_bar * z / clight))# Wake definition
+        return res
