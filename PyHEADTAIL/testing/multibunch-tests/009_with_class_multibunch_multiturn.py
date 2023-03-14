@@ -10,7 +10,8 @@ from PyHEADTAIL.machines.synchrotron import Synchrotron
 
 
 # Machine settings
-n_turns = 300
+
+n_turns_wake = 3
 
 n_macroparticles = 100000 # per bunch
 intensity = 2.3e11
@@ -24,7 +25,7 @@ accQ_y = 0.32
 Q_s = 2.1e-3
 chroma = 0
 
-h_RF = 1000
+h_RF = 300
 h_bunch = h_RF
 
 circumference = 26658.883 / 35640 * h_RF
@@ -107,7 +108,7 @@ beam = Particles(macroparticlenumber=allbunches.macroparticlenumber,
 slicer = UniformBinSlicer(n_slices, z_cuts=(-0.5*bucket_length, 0.5*bucket_length),
                           circumference=machine.circumference, h_bunch=h_bunch)
 
-n_turns_wake = 3
+
 
 # pipe radius [m]
 b = 13.2e-3
@@ -132,7 +133,8 @@ p0_SI = machine.p0
 
 
 mpi_settings = False
-# mpi_settings = 'memory_optimized'
+mpi_settings = 'memory_optimized'
+mpi_settings = 'linear_mpi_full_ring_fft'
 wake_field = WakeField(slicer, wakes, mpi=mpi_settings)
 
 # Wake full beam
@@ -173,7 +175,7 @@ xp_after_wake_beam = []
 slice_set_before_wake_beam = []
 slice_set_after_wake_beam = []
 
-n_turns = 3
+n_turns = n_turns_wake
 store_charge_per_mp = allbunches.charge_per_mp
 store_particlenumber_per_mp = allbunches.particlenumber_per_mp
 
@@ -306,5 +308,7 @@ plt.plot(wf.z_wake.T, wf.G_aux.T * (-e**2 / (p0_SI * c)), alpha=0.5)
 
 ax01.plot(z_profile, res_profile_scaled, 'bx')
 
+print(f'T pyht ({mpi_settings}) {wake_field.wake_kicks[0].time_last_accumulate * 1e3:.2f} ms')
+print(f'T xheadtail {dt_xht_sec * 1e3:.2f} ms')
 plt.show()
 

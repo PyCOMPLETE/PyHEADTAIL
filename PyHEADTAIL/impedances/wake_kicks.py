@@ -723,6 +723,9 @@ class WakeKick(Printing, metaclass=ABCMeta):
                               bunch_list, local_bunch_indexes,
                               optimization_method, moments='zero'):
 
+        import time
+        t0  = time.perf_counter()
+
         if optimization_method == 'memory_optimized':
             # Similar to the loop_minimized version, but wake functions for each source bunch are not
             # keep in memory, but they are reconstructed during accumulation from precalculated
@@ -738,10 +741,13 @@ class WakeKick(Printing, metaclass=ABCMeta):
             #   - a maximum number of simulated bunces is limited by the computing power
             #   (practical limit probably between 100-1000 bunches for 100 slices per bunch,
             #    depending on the number of processors available)
-
-            return self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
+            res = self._accumulate_memory_optimized(all_slice_sets, local_slice_sets,
                                                      bunch_list, local_bunch_indexes,
                                                      optimization_method, moments)
+            t1 = time.perf_counter()
+            print('using memory optimized')
+            self.time_last_accumulate = t1-t0
+            return res
 
         elif optimization_method == 'circular_mpi_full_ring_fft':
             # Follows the idea from the previous solutions, but the convolution is calculated over
@@ -760,26 +766,34 @@ class WakeKick(Printing, metaclass=ABCMeta):
             # Drawbacks:
             #   - calculation time does not depend on the number of bunches, which prefers
             #   use of the memory_optimized version for a small number of bunches in large accelerators
-
-            return  self._accumulate_mpi_full_ring_fft('circular', all_slice_sets, local_slice_sets,
+            res = self._accumulate_mpi_full_ring_fft('circular', all_slice_sets, local_slice_sets,
                                                        bunch_list, local_bunch_indexes,
                                                        optimization_method, moments)
+            t1 = time.perf_counter()
+            self.time_last_accumulate = t1-t0
+            return res
 
         elif optimization_method == 'linear_mpi_full_ring_fft':
-
-            return  self._accumulate_mpi_full_ring_fft('linear',all_slice_sets, local_slice_sets,
+            res = self._accumulate_mpi_full_ring_fft('linear',all_slice_sets, local_slice_sets,
                                                        bunch_list, local_bunch_indexes,
                                                        optimization_method, moments)
+            t1 = time.perf_counter()
+            print('Using linear mpi full ring fft')
+            self.time_last_accumulate = t1-t0
+            return res
         elif optimization_method == 'dummy':
             if not hasattr(self,'_dummy_values'):
                 self._dummy_values = []
                 n_slices = len(local_slice_sets[0].mean_x)
                 for i in range(len(local_slice_sets)):
                     self._dummy_values.append(np.zeros(n_slices))
-
+            t1 = time.perf_counter()
+            self.time_last_accumulate = t1-t0
             return  self._dummy_values
         else:
             raise ValueError('Unknown optimization method')
+
+
 
     def calculate_field(self, all_slice_sets, local_slice_sets,
                               bunch_list, local_bunch_indexes,
