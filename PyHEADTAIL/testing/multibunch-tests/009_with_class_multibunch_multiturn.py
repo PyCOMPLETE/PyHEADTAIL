@@ -24,13 +24,20 @@ accQ_y = 0.32
 Q_s = 2.1e-3
 chroma = 0
 
-circumference = 26658.883 / 35640 * 20
+h_RF = 1000
+h_bunch = h_RF
+
+circumference = 26658.883 / 35640 * h_RF
+
+bunch_spacing_buckets = 5
+n_bunches = 50
+
+n_slices = 100
 
 beta_x = 100 #circumference / (2.*np.pi*accQ_x)
 beta_y = 100 #circumference / (2.*np.pi*accQ_y)
 
-h_RF = 20
-h_bunch = 20
+
 
 epsn_x = 2e-6
 epsn_y = 2e-6
@@ -51,8 +58,7 @@ transverse_map = machine.transverse_map.segment_maps[0]
 
 # Filling scheme
 
-bunch_spacing_buckets = 5
-n_bunches = 3
+
 filling_scheme = [i*bunch_spacing_buckets for i in range(n_bunches)]
 
 # Initialise beam
@@ -97,7 +103,7 @@ beam = Particles(macroparticlenumber=allbunches.macroparticlenumber,
 
 # Initialise wakes
 
-n_slices = 100
+
 slicer = UniformBinSlicer(n_slices, z_cuts=(-0.5*bucket_length, 0.5*bucket_length),
                           circumference=machine.circumference, h_bunch=h_bunch)
 
@@ -281,7 +287,11 @@ for i_turn in range(n_turns_wake):
             },
         i_turn=i_turn, i_source=i_bunch)
 
+import time
+t0 = time.perf_counter()
 wf._compute_convolution(moment_names=['x', 'num_particles'])
+t1 = time.perf_counter()
+dt_xht_sec = t1 - t0
 
 z_profile, res_profile = wf.get_moment_profile(moment_name='result', i_turn=0)
 
