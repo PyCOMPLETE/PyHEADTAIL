@@ -1,5 +1,17 @@
 import numpy as np
 
+class DeltaFunction:
+
+    def __init__(self, tol_z):
+        self.delta_z = tol_z
+
+    def __call__(self, z):
+        return np.exp(z) * (z < 0)
+        #return np.float64(np.abs(z) < self.delta_z)
+
+
+
+
 class Wakefield:
 
     def __init__(self,
@@ -19,13 +31,22 @@ class Wakefield:
         if i_period_range is not None:
             raise NotImplementedError('i_period_range is not implemented yet')
 
+        self.function = function
+
         self.dz = (z_slice_range[1] - z_slice_range[0]) / num_slices # h in the paper
-        self._a = z_slice_range[0]
+        self._z_a = z_slice_range[0]
+        self._z_b = z_slice_range[1]
+        self.circumference = circumference
 
         self._N_1 = num_slices # N_1 in the
-        self._P = z_period # P in the paper
+        self._z_P = z_period # P in the paper
         self._N_S = num_periods # N_S in the paper
         self.num_turns = num_turns
+
+        self._BB = 1 # B in the paper
+                     # (for now we assume that B=0 is the first bunch in time
+                     # and the last one in zeta)
+        self._AA = self._BB - self._N_S
 
         self._N_aux = self._N_1 + self._N_2 # N_aux in the paper
 
@@ -36,9 +57,22 @@ class Wakefield:
         self.moments_data = np.zeros(
             (len(source_moments), self.num_turns, self._M_aux), dtype=np.float64)
 
+        # Build wake matrix
+        z_c = self._z_a # For wakefield, z_c = z_a
+        z_d = self._z_b # For wakefield, z_d = z_b
+        self.z_wake = np.zeros((self.num_turns, self._M_aux))
+        for tt in range(self.num_turns):
+            z_a_turn = self._z_a + tt * self.circumference
+            z_b_turn = self._z_b + tt * self.circumference
+            temp_z = np.arange(z_c - z_b_turn, z_d - z_a_turn, self.dz)
+            for ii, ll in enumerate(range(
+                                self._CC - self._BB + 1, self._DD - self._AA)):
+                self.z_wake[tt, ii*self._N_aux:(ii+1)*self._N_aux] = (
+                                                    temp_z + ll * self._z_P)
+
+        self.G_aux = self.function(self.z_wake)
+
         self._G_hat = 'TODO'
-        self.scale_kick = scale_kick
-        self.function = function
 
     @property
     def num_slices(self):
@@ -50,15 +84,24 @@ class Wakefield:
 
     @property
     def z_period(self):
-        return self._P
+        return self._z_P
 
     @property
     def _N_2(self):
-        return self._N_1 # For the wakefiled, N_1 = N_2
+        return self._N_1 # For the wakefield, N_1 = N_2
 
     @property
     def _N_T(self):
-        return self._N_S # For the wakefiled, N_S = N_T
+        return self._N_S # For the wakefield, N_S = N_T
+
+    @property
+    def _CC(self):
+        return self._AA # For the wakefield, A = C
+
+    @property
+    def _DD(self):
+        return self._BB # For the wakefield, B = D
+
 
     def set_moments(self, i_source, i_turn, moments):
 
@@ -125,8 +168,8 @@ class Wakefield:
             i_start_out = (self._N_S - (i_source + 1)) * self._N_1
             i_end_out = i_start_out + self._N_1
             z_out[i_start_out:i_end_out] = (
-                self._a + self.dz / 2
-                - i_source * self._P + self.dz * np.arange(self._N_1))
+                self._z_a + self.dz / 2
+                - i_source * self._z_P + self.dz * np.arange(self._N_1))
 
             i_start_in_moments_data = self._M_aux - (i_source + 1) * self._N_aux
             i_end_in_moments_data = i_start_in_moments_data + self._N_1
@@ -161,17 +204,8 @@ class Wakefield:
 
         getattr(particles, self.kick)[:] += kick_per_particle
 
-class ResonatorFunction:
-    def __init__(self, Rs, Qs, f0):
-        self.Rs = Rs
-        self.Qs = Qs
-        self.f0 = f0
 
-    def __call__(self, t):
-        res = 0
-        return res
 
-circumference = 26658.8832
 rf_bucket_length = 1
 
 # Quadrupolar wakefield
@@ -179,15 +213,22 @@ wf = Wakefield(
     source_moments=['num_particles', 'x'],
     kick='x',
     scale_kick=[3.4, 'x'], # The kick is scaled by position of the particle for quadrupolar, would be None for dipolar
-    function=ResonatorFunction(Rs=3, Qs=4, f0=5),
+    function=DeltaFunction(tol_z=1e-12),
     z_slice_range=[-rf_bucket_length/2, rf_bucket_length/2], # These are [a, b] in the paper
     slicer=None, # alternatively, a slicer can be used
     num_slices=5, # Per bunch, this is N_1 in the paper
     z_period=10, # This is P in the paper
     num_periods=4, # This is N_S
     num_turns=3,
-    circumference=circumference,
+    circumference=100.,
 )
+
+assert wf.moments_data.shape == (2, 3, 70)
+assert wf._M_aux == 70
+assert wf._N_aux == 10
+assert wf._N_1 == 5
+assert wf._N_S == 4
+assert wf._z_P == 10
 
 charge_test_0 = np.linspace(-1, 1, 5)
 charge_test_1 = np.linspace(-2, 2, 5)
