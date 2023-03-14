@@ -34,7 +34,7 @@ class Wakefield:
 
         self.moments_names = source_moments
         self.moments_data = np.zeros(
-            (self._M_aux, self.num_turns, len(source_moments)), dtype=np.float64)
+            (len(source_moments), self.num_turns, self._M_aux), dtype=np.float64)
 
         self._G_hat = 'TODO'
         self.scale_kick = scale_kick
@@ -94,9 +94,9 @@ class Wakefield:
             i_start_in_moments_data = self._M_aux - (i_source + 1) * self._N_aux
             i_end_in_moments_data = i_start_in_moments_data + self._N_1
 
-            self.moments_data[
-                i_start_in_moments_data:i_end_in_moments_data,
-                i_turn, i_moment] = vv
+            self.moments_data[i_moment, i_turn,
+                              i_start_in_moments_data:i_end_in_moments_data,
+                             ] = vv
 
     def get_moment_profile(self, moment_name, i_turn):
 
@@ -131,8 +131,9 @@ class Wakefield:
             i_start_in_moments_data = self._M_aux - (i_source + 1) * self._N_aux
             i_end_in_moments_data = i_start_in_moments_data + self._N_1
             moment_out[i_start_out:i_end_out] = (
-                self.moments_data[i_start_in_moments_data:i_end_in_moments_data,
-                                    i_turn, i_moment])
+                self.moments_data[i_moment, i_turn,
+                                  i_start_in_moments_data:i_end_in_moments_data,
+                                  ])
 
         return z_out, moment_out
 
@@ -175,7 +176,7 @@ rf_bucket_length = 1
 
 # Quadrupolar wakefield
 wf = Wakefield(
-    source_moments=['num_particles', 'x', 'y'],
+    source_moments=['num_particles', 'x'],
     kick='x',
     scale_kick=[3.4, 'x'], # The kick is scaled by position of the particle for quadrupolar, would be None for dipolar
     function=ResonatorFunction(Rs=3, Qs=4, f0=5),
@@ -196,24 +197,21 @@ wf.set_moments(
     i_source=0,
     i_turn=1,
     moments={'num_particles': charge_test_0,
-             'x': 2 * charge_test_0,
-             'y': 3 * charge_test_0}
+             'x': 2 * charge_test_0}
 )
 
 wf.set_moments(
     i_source=1,
     i_turn=1,
     moments={'num_particles': charge_test_1,
-                'x': 2 * charge_test_1,
-                'y': 3 * charge_test_1}
+                'x': 2 * charge_test_1,}
 )
 
 wf.set_moments(
     i_source=2,
     i_turn=1,
     moments={'num_particles': charge_test_2,
-                'x': 2 * charge_test_2,
-                'y': 3 * charge_test_2}
+                'x': 2 * charge_test_2}
 )
 
 
