@@ -35,6 +35,11 @@ class Wakefield:
                 num_turns=num_turns,
                 circumference=circumference)
 
+        self._BB = 1 # B in the paper
+                     # (for now we assume that B=0 is the first bunch in time
+                     # and the last one in zeta)
+        self._AA = self._BB - self._N_S
+
         # Build wake matrix
         self.z_wake = _build_z_wake(self._z_a, self._z_b, self.num_turns,
                     self._N_aux, self._M_aux,
@@ -97,14 +102,6 @@ class Wakefield:
     @property
     def _M_aux(self):
         return self.moments_data._M_aux
-
-    @property
-    def _AA(self):
-        return self.moments_data._AA
-
-    @property
-    def _BB(self):
-        return self.moments_data._BB
 
     @property
     def _z_a(self):
