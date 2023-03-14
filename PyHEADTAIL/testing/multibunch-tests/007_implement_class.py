@@ -6,8 +6,8 @@ class DeltaFunction:
         self.delta_z = tol_z
 
     def __call__(self, z):
-        return np.exp(z) * (z < 0)
-        #return np.float64(np.abs(z) < self.delta_z)
+        #return np.exp(z) * (z < 0)
+        return np.float64(np.abs(z) < self.delta_z)
 
 
 
@@ -72,7 +72,11 @@ class Wakefield:
 
         self.G_aux = self.function(self.z_wake)
 
-        self._G_hat = 'TODO'
+        phase_term = np.exp(1j * 2 * np.pi * np.arange(self._M_aux)
+                        * ((self._N_S - 1)* self._N_aux + self._N_1)
+                           / ((self._N_S + self._N_T - 1) * self._N_aux))
+
+        self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
 
     @property
     def num_slices(self):
