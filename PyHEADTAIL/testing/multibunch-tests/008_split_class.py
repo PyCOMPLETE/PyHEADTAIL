@@ -18,7 +18,7 @@ rf_bucket_length = 1
 
 # Quadrupolar wakefield
 wf = Wakefield(
-    source_moments=['num_particles', 'x'],
+    source_moments=['num_particles', 'x', 'y'],
     kick='x',
     scale_kick=[3.4, 'x'], # The kick is scaled by position of the particle for quadrupolar, would be None for dipolar
     function=DeltaFunction(tol_z=1e-12),
@@ -31,7 +31,7 @@ wf = Wakefield(
     circumference=100.,
 )
 
-assert wf.moments_data.shape == (2, 3, 70)
+assert wf.moments_data.data.shape == (4, 3, 70)
 assert wf._M_aux == 70
 assert wf._N_aux == 10
 assert wf._N_1 == 5
@@ -66,6 +66,8 @@ wf.set_moments(
 
 z_profile, num_particles_profile = wf.get_moment_profile('num_particles', 1)
 
+
+
 assert np.allclose(z_profile,
     [-30.4, -30.2, -30. , -29.8, -29.6,
      -20.4, -20.2, -20. , -19.8, -19.6,
@@ -83,6 +85,29 @@ assert np.allclose(num_particles_profile,
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.plot(z_profile, num_particles_profile, '.')
+
+wf.set_moments(
+    i_source=0,
+    i_turn=0,
+    moments={'num_particles': charge_test_0,
+             'x': 2 * charge_test_0}
+)
+
+wf.set_moments(
+    i_source=1,
+    i_turn=0,
+    moments={'num_particles': charge_test_1,
+                'x': 2 * charge_test_1,}
+)
+
+wf.set_moments(
+    i_source=2,
+    i_turn=0,
+    moments={'num_particles': charge_test_2,
+                'x': 2 * charge_test_2}
+)
+
+wf._compute_convolution(moment_names='num_particles')
 
 plt.show()
 

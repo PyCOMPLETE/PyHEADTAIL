@@ -22,8 +22,8 @@ class Wakefield:
 
         self.function = function
 
-        self.compressed_profile = CompressedProfile(
-                moments=source_moments,
+        self.moments_data = CompressedProfile(
+                moments=source_moments + ['result'],
                 z_slice_range=z_slice_range,
                 num_slices=num_slices,
                 slicer=slicer,
@@ -54,6 +54,22 @@ class Wakefield:
 
         self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
 
+    def _compute_convolution(self, moment_names):
+
+        if isinstance(moment_names, str):
+            moment_names = [moment_names]
+
+        rho_aux = np.ones((self.num_turns, self._M_aux), dtype=np.float64)
+
+        for nn in moment_names:
+            rho_aux *= self.moments_data[nn]
+
+        rho_hat = np.fft.fft(rho_aux, axis=1)
+        res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
+
+        self.moments_data['result'] = res.real
+
+
     @property
     def _CC(self):
         return self._AA # For wakefield, CC = AA
@@ -65,75 +81,71 @@ class Wakefield:
     # Parameters from CompressedProfile
     @property
     def _N_1(self):
-        return self.compressed_profile._N_1
+        return self.moments_data._N_1
 
     @property
     def _N_2(self):
-        return self.compressed_profile._N_2
+        return self.moments_data._N_2
 
     @property
     def _N_S(self):
-        return self.compressed_profile._N_S
+        return self.moments_data._N_S
 
     @property
     def _N_T(self):
-        return self.compressed_profile._N_T
+        return self.moments_data._N_T
 
     @property
     def _N_aux(self):
-        return self.compressed_profile._N_aux
+        return self.moments_data._N_aux
 
     @property
     def _M_aux(self):
-        return self.compressed_profile._M_aux
+        return self.moments_data._M_aux
 
     @property
     def _AA(self):
-        return self.compressed_profile._AA
+        return self.moments_data._AA
 
     @property
     def _BB(self):
-        return self.compressed_profile._BB
+        return self.moments_data._BB
 
     @property
     def _z_a(self):
-        return self.compressed_profile._z_a
+        return self.moments_data._z_a
 
     @property
     def _z_b(self):
-        return self.compressed_profile._z_b
+        return self.moments_data._z_b
 
     @property
     def z_period(self):
-        return self.compressed_profile.z_period
+        return self.moments_data.z_period
 
     @property
     def _z_P(self):
-        return self.compressed_profile._z_P
+        return self.moments_data._z_P
 
     @property
     def circumference(self):
-        return self.compressed_profile.circumference
+        return self.moments_data.circumference
 
     @property
     def dz(self):
-        return self.compressed_profile.dz
+        return self.moments_data.dz
 
     @property
     def num_slices(self):
-        return self.compressed_profile.num_slices
+        return self.moments_data.num_slices
 
     @property
     def num_periods(self):
-        return self.compressed_profile.num_periods
+        return self.moments_data.num_periods
 
     @property
     def num_turns(self):
-        return self.compressed_profile.num_turns
-
-    @property
-    def moments_data(self):
-        return self.compressed_profile.moments_data
+        return self.moments_data.num_turns
 
 
     def set_moments(self, i_source, i_turn, moments):
@@ -152,7 +164,7 @@ class Wakefield:
 
         """
 
-        self.compressed_profile.set_moments(i_source, i_turn, moments)
+        self.moments_data.set_moments(i_source, i_turn, moments)
 
     def get_moment_profile(self, moment_name, i_turn):
 
@@ -174,7 +186,7 @@ class Wakefield:
             The moment profile
         '''
 
-        z_out, moment_out = self.compressed_profile.get_moment_profile(
+        z_out, moment_out = self.moments_data.get_moment_profile(
                 moment_name, i_turn)
 
         return z_out, moment_out

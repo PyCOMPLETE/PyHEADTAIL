@@ -58,8 +58,18 @@ class CompressedProfile:
         self._M_aux = (self._N_S + self._N_T - 1) * self._N_aux # M_aux in the paper
 
         self.moments_names = moments
-        self.moments_data = np.zeros(
+        self.data = np.zeros(
             (len(moments), self.num_turns, self._M_aux), dtype=np.float64)
+
+    def __getitem__(self, key):
+        assert isinstance(key, str), ('other modes not supported yet')
+        assert key in self.moments_names, (
+            f'Moment {key} not in defined moments_names')
+        i_moment = self.moments_names.index(key)
+        return self.data[i_moment]
+
+    def __setitem__(self, key, value):
+        self[key][:] = value
 
     @property
     def num_slices(self):
@@ -107,7 +117,7 @@ class CompressedProfile:
             i_start_in_moments_data = self._M_aux - (i_source + 1) * self._N_aux
             i_end_in_moments_data = i_start_in_moments_data + self._N_1
 
-            self.moments_data[i_moment, i_turn,
+            self.data[i_moment, i_turn,
                               i_start_in_moments_data:i_end_in_moments_data,
                              ] = vv
 
@@ -144,7 +154,7 @@ class CompressedProfile:
             i_start_in_moments_data = self._M_aux - (i_source + 1) * self._N_aux
             i_end_in_moments_data = i_start_in_moments_data + self._N_1
             moment_out[i_start_out:i_end_out] = (
-                self.moments_data[i_moment, i_turn,
+                self.data[i_moment, i_turn,
                                   i_start_in_moments_data:i_end_in_moments_data,
                                   ])
 
