@@ -28,7 +28,7 @@ wf = Wakefield(
     num_periods=4, # This is N_S
     num_turns=3,
     circumference=100.,
-    _flatten=True
+    _flatten=False
 )
 
 assert wf.moments_data.data.shape == (4, 3, 70)
@@ -74,7 +74,7 @@ for i_source in range(3):
         i_source=i_source,
         i_turn=0,
         moments={'num_particles': np.linspace(-1, 1, 5) * (i_source + 1)})
-
+plt.plot(*wf.get_moment_profile('result', 0), '.')
 
 plt.show()
 

@@ -39,7 +39,7 @@ class Wakefield:
                 num_periods=num_periods,
                 num_turns=num_turns,
                 circumference=circumference,
-                )
+                _flatten=_flatten)
 
         if not _flatten:
             self._BB = 1 # B in the paper
@@ -56,22 +56,24 @@ class Wakefield:
                         * ((self._N_S - 1)* self._N_aux + self._N_1)
                            / self._M_aux)
         else:
-            self._BB = 1 # B in the paper
+            self._N_S_flatten = self._N_S * self.num_turns
+            self._N_T_flatten = self._N_S_flatten
+            self._M_aux_flatten = (self._N_S_flatten + self._N_T_flatten - 1) * self._N_aux
+            self._BB_flatten = 1 # B in the paper
                         # (for now we assume that B=0 is the first bunch in time
                         # and the last one in zeta)
-            self._AA = self._BB - self._N_S * self.num_turns
+            self._AA_flatten = self._BB_flatten - self._N_S_flatten
+            self._CC_flatten = self._AA_flatten # For wakefield, CC = AA
+            self._DD_flatten = self._BB_flatten # For wakefield, DD = BB
             self.z_wake = _build_z_wake(z_a=self._z_a, z_b=self._z_b, num_turns=1,
-                        N_aux=self._N_aux, M_aux=self.num_turns*self._M_aux,
+                        N_aux=self._N_aux, M_aux=self._M_aux_flatten,
                         circumference=0, dz=self.dz,
-                        AA=self._AA, BB=self._BB, CC=self._CC,
-                        DD=self._DD, z_P=self._z_P)
-            N_S_flatten = self._N_S * self.num_turns
-            N_T_flatten = self._N_T
-            M_aux_flatten = (N_S_flatten + N_T_flatten - 1)
+                        AA=self._AA_flatten, BB=self._BB_flatten,
+                        CC=self._CC_flatten, DD=self._DD_flatten, z_P=self._z_P)
             phase_term = np.exp(1j * 2 * np.pi
-                        * np.arange(self.num_turns*M_aux_flatten)
-                        * ((N_S_flatten - 1) * self._N_aux + self._N_1)
-                           / (M_aux_flatten))
+                        * np.arange(self._M_aux_flatten)
+                        * ((self._N_S_flatten - 1) * self._N_aux + self._N_1)
+                           / (self._M_aux_flatten))
 
         self.G_aux = self.function(self.z_wake)
 
