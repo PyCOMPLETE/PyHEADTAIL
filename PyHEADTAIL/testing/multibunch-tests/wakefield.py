@@ -93,7 +93,7 @@ class Wakefield:
             rho_hat = np.fft.fft(rho_aux, axis=1)
             res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
         else:
-            rho_hat = np.fft.fft(rho_aux.flatten())
+            rho_hat = np.fft.fft(rho_aux.flatten()[-len(self._G_hat_dephased):])
             res = np.fft.ifft(rho_hat * self._G_hat_dephased)
             res = res.reshape(rho_aux.shape)
 
