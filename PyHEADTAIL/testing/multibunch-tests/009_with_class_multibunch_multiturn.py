@@ -285,9 +285,11 @@ wf = Wakefield(
     slicer=None, # alternatively, a slicer can be used
     num_slices=n_slices, # Per bunch, this is N_1 in the paper
     z_period=bunch_spacing_buckets*bucket_length, # This is P in the paper
+    #num_periods=h_RF//bunch_spacing_buckets, # n_bunches, # This is N_S
     num_periods=n_bunches, # This is N_S
     num_turns=n_turns_wake,
     circumference=circumference,
+    _flatten=False,
 )
 
 for i_turn in range(n_turns_wake):
@@ -306,10 +308,6 @@ t1 = time.perf_counter()
 dt_xht_sec = t1 - t0
 
 z_profile, res_profile = wf.get_moment_profile(moment_name='result', i_turn=0)
-
-for i_turn in range(1, n_turns_wake):
-    zz, rr = wf.get_moment_profile(moment_name='result', i_turn=i_turn)
-    res_profile += rr
 
 res_profile_scaled = res_profile * (-e**2 / (p0_SI * c))
 

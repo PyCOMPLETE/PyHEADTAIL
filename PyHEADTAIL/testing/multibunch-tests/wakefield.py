@@ -78,7 +78,7 @@ class Wakefield:
 
         self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
 
-    def _compute_convolution(self, moment_names):
+    def _compute_convolution(self, moment_names, accumulate=True):
 
         if isinstance(moment_names, str):
             moment_names = [moment_names]
@@ -104,7 +104,10 @@ class Wakefield:
             res = rho_aux * 0
             for tt in range(self.num_turns):
                 res[tt, :] = res_flatten[0, tt*self._M_aux + self._N_aux:
-                        (tt+1)*self._M_aux+ self._N_aux]
+                        (tt+1)*self._M_aux+ self._N_aux].real
+        if accumulate:
+            res[0, :] += np.sum(rho_aux, axis=0)
+            res[1:, :] = 0
 
         self.moments_data['result'] = res.real
 
