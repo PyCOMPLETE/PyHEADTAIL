@@ -14,7 +14,6 @@ class CompressedProfile:
                 num_targets=None,
                 num_slices_target=None,
                 circumference=None,
-                _flatten=True
                 ):
 
         if i_period_range is not None:
@@ -25,7 +24,6 @@ class CompressedProfile:
                 'circumference must be specified if num_turns > 1')
 
         self.circumference = circumference
-        self._flatten = _flatten
 
         assert slicer is None, 'slicer is not implemented yet'
 
@@ -53,9 +51,6 @@ class CompressedProfile:
 
         # Compute M_aux
         self._M_aux = (self._N_S + self._N_T - 1) * self._N_aux # M_aux in the paper
-
-        if self._flatten:
-            self._M_aux = (self._N_S + self._N_T) * self._N_aux
 
         self.moments_names = moments
         self.data = np.zeros(

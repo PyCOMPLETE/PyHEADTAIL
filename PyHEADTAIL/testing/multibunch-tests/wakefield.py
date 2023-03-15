@@ -38,8 +38,7 @@ class Wakefield:
                 i_period_range=i_period_range,
                 num_periods=num_periods,
                 num_turns=num_turns,
-                circumference=circumference,
-                _flatten=_flatten)
+                circumference=circumference)
 
         if not _flatten:
             self._BB = 1 # B in the paper
@@ -93,9 +92,19 @@ class Wakefield:
             rho_hat = np.fft.fft(rho_aux, axis=1)
             res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
         else:
-            rho_hat = np.fft.fft(rho_aux.flatten()[-len(self._G_hat_dephased):])
-            res = np.fft.ifft(rho_hat * self._G_hat_dephased)
-            res = res.reshape(rho_aux.shape)
+            rho_aux_flatten = np.zeros(shape=self._G_hat_dephased.shape,
+                                       dtype=np.float64)
+
+            for tt in range(self.num_turns):
+                rho_aux_flatten[0, tt*self._M_aux + self._N_aux:
+                        (tt+1)*self._M_aux+ self._N_aux] = rho_aux[tt, :]
+
+            rho_hat = np.fft.fft(rho_aux_flatten, axis=1)
+            res_flatten = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
+            res = rho_aux * 0
+            for tt in range(self.num_turns):
+                res[tt, :] = res_flatten[0, tt*self._M_aux + self._N_aux:
+                        (tt+1)*self._M_aux+ self._N_aux]
 
         self.moments_data['result'] = res.real
 
