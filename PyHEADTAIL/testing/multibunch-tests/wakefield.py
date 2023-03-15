@@ -37,7 +37,7 @@ class Wakefield:
                 num_periods=num_periods,
                 num_turns=num_turns,
                 circumference=circumference)
-        
+
         if not _flatten:
 
             self._N_aux = self.moments_data._N_aux
@@ -68,26 +68,65 @@ class Wakefield:
         else:
             self._N_S_flatten = self.moments_data._N_S * self.num_turns
             self._N_T_flatten = self._N_S_flatten
+            self._N_aux = self.moments_data._N_aux
             self._M_aux_flatten = ((self._N_S_flatten + self._N_T_flatten - 1)
                                    * self._N_aux)
+            self._BB_flatten = 1 # B in the paper
+            # (for now we assume that B=0 is the first bunch in time
+            # and the last one in zeta)
+            self._AA_flatten = self._BB_flatten - self._N_S_flatten
+            self._CC_flatten = self._AA_flatten
+            self._DD_flatten = self._BB_flatten
 
+            # Build wake matrix
+            self.z_wake = _build_z_wake(self._z_a, self._z_b,
+                        1, # num_turns
+                        self._N_aux, self._M_aux_flatten,
+                        0, # circumference
+                        self.dz,
+                        self._AA_flatten, self._BB_flatten,
+                        self._CC_flatten, self._DD_flatten, self._z_P)
+            self.G_aux = self.function(self.z_wake)
 
-            self._N_aux_flatten = self.moments_data._N_aux
-            
- 
+            phase_term = np.exp(1j * 2 * np.pi * np.arange(self._M_aux_flatten)
+                            * ((self._N_S_flatten - 1)* self._N_aux + self._N_1)
+                            / self._M_aux_flatten)
+
+            self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
+
 
     def _compute_convolution(self, moment_names):
 
         if isinstance(moment_names, str):
             moment_names = [moment_names]
 
-        rho_aux = np.ones((self.num_turns, self._M_aux), dtype=np.float64)
+        rho_aux = np.ones(shape=self.moments_data['result'].shape,
+                        dtype=np.float64)
 
         for nn in moment_names:
             rho_aux *= self.moments_data[nn]
 
-        rho_hat = np.fft.fft(rho_aux, axis=1)
-        res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
+        if not self._flatten:
+            rho_hat = np.fft.fft(rho_aux, axis=1)
+            res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
+        else:
+            M_aux_non_flatten = rho_aux.shape[1]
+            rho_flatten = np.zeros((1, self._M_aux_flatten), dtype=np.float64)
+            for tt in range(self.num_turns):
+                rho_flatten[0,
+                    tt * (M_aux_non_flatten + self._N_aux) + self._N_aux:
+                    (tt+1) * (M_aux_non_flatten + self._N_aux)] = rho_aux[0, tt]
+            rho_hat_flatten = np.fft.fft(rho_flatten, axis=1)
+            res_flatten = np.fft.ifft(
+                rho_hat_flatten * self._G_hat_dephased, axis=1).real
+            res = rho_aux * 0
+            for tt in range(self.num_turns):
+                res[tt, :] = res_flatten[0,
+                    tt * (M_aux_non_flatten + self._N_aux) + self._N_aux:
+                    (tt+1) * (M_aux_non_flatten + self._N_aux)]
+
+            return res
+
 
         self.moments_data['result'] = res.real
 

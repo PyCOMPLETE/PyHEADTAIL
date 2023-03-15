@@ -289,6 +289,7 @@ wf = Wakefield(
     num_periods=h_RF//bunch_spacing_buckets, # This is N_S
     num_turns=n_turns_wake,
     circumference=circumference,
+    _flatten=True
 )
 
 for i_turn in range(n_turns_wake):
