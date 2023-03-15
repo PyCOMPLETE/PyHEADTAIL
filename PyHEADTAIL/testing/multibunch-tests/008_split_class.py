@@ -74,7 +74,8 @@ for i_source in range(3):
         i_source=i_source,
         i_turn=0,
         moments={'num_particles': np.linspace(-1, 1, 5) * (i_source + 1)})
-plt.plot(*wf.get_moment_profile('result', 0), '.')
+wf._compute_convolution(moment_names=['num_particles'])
+plt.plot(*wf.get_moment_profile('result', 0), 'x')
 
 plt.show()
 
