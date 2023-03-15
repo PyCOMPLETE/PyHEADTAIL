@@ -285,7 +285,8 @@ wf = Wakefield(
     slicer=None, # alternatively, a slicer can be used
     num_slices=n_slices, # Per bunch, this is N_1 in the paper
     z_period=bunch_spacing_buckets*bucket_length, # This is P in the paper
-    num_periods=n_bunches, # This is N_S
+    #num_periods=n_bunches, # This is N_S
+    num_periods=h_RF//bunch_spacing_buckets, # This is N_S
     num_turns=n_turns_wake,
     circumference=circumference,
 )
