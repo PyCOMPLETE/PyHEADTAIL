@@ -20,6 +20,8 @@ class Wakefield:
                 circumference=None,
                 _flatten=False):
 
+        self._flatten = _flatten
+
         if i_period_range is not None:
             raise NotImplementedError('i_period_range is not implemented yet')
 
@@ -35,31 +37,44 @@ class Wakefield:
                 num_periods=num_periods,
                 num_turns=num_turns,
                 circumference=circumference)
+        
+        if not _flatten:
 
-        self._N_aux = self.moments_data._N_aux
-        self._M_aux = self.moments_data._M_aux
-        self._N_S = self.moments_data._N_S
-        self._N_T = self._N_S
-        self._BB = 1 # B in the paper
-                     # (for now we assume that B=0 is the first bunch in time
-                     # and the last one in zeta)
-        self._AA = self._BB - self._N_S
-        self._CC = self._AA
-        self._DD = self._BB
+            self._N_aux = self.moments_data._N_aux
+            self._M_aux = self.moments_data._M_aux
+            self._N_S = self.moments_data._N_S
+            self._N_T = self._N_S
+            self._BB = 1 # B in the paper
+                        # (for now we assume that B=0 is the first bunch in time
+                        # and the last one in zeta)
+            self._AA = self._BB - self._N_S
+            self._CC = self._AA
+            self._DD = self._BB
 
-        # Build wake matrix
-        self.z_wake = _build_z_wake(self._z_a, self._z_b, self.num_turns,
-                    self._N_aux, self._M_aux,
-                    self.circumference, self.dz, self._AA, self._BB, self._CC,
-                    self._DD, self._z_P)
+            # Build wake matrix
+            self.z_wake = _build_z_wake(self._z_a, self._z_b, self.num_turns,
+                        self._N_aux, self._M_aux,
+                        self.circumference, self.dz, self._AA, self._BB, self._CC,
+                        self._DD, self._z_P)
 
-        self.G_aux = self.function(self.z_wake)
+            self.G_aux = self.function(self.z_wake)
 
-        phase_term = np.exp(1j * 2 * np.pi * np.arange(self._M_aux)
-                        * ((self._N_S - 1)* self._N_aux + self._N_1)
-                           / self._M_aux)
+            phase_term = np.exp(1j * 2 * np.pi * np.arange(self._M_aux)
+                            * ((self._N_S - 1)* self._N_aux + self._N_1)
+                            / self._M_aux)
 
-        self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
+            self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
+
+        else:
+            self._N_S_flatten = self.moments_data._N_S * self.num_turns
+            self._N_T_flatten = self._N_S_flatten
+            self._M_aux_flatten = ((self._N_S_flatten + self._N_T_flatten - 1)
+                                   * self._N_aux)
+
+
+            self._N_aux_flatten = self.moments_data._N_aux
+            
+ 
 
     def _compute_convolution(self, moment_names):
 
