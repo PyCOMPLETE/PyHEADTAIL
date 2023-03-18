@@ -12,7 +12,7 @@ from PyHEADTAIL.machines.synchrotron import Synchrotron
 # Machine settings
 
 n_turns_wake = 3
-flatten = False
+flatten = True
 
 n_macroparticles = 100000 # per bunch
 intensity = 2.3e11
