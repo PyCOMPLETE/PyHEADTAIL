@@ -114,7 +114,7 @@ class CompressedProfile:
             assert len(vv) == self._N_1, (
                 f'Length of moment {nn} is not equal to num_slices')
             i_moment = self.moments_names.index(nn)
-            i_start_in_moments_data = self._M_aux - (i_source + 1) * self._N_aux
+            i_start_in_moments_data = (self._N_S - i_source - 1) * self._N_aux
             i_end_in_moments_data = i_start_in_moments_data + self._N_1
 
             self.data[i_moment, i_turn,
@@ -151,7 +151,7 @@ class CompressedProfile:
                 self._z_a + self.dz / 2
                 - i_source * self._z_P + self.dz * np.arange(self._N_1))
 
-            i_start_in_moments_data = self._M_aux - (i_source + 1) * self._N_aux
+            i_start_in_moments_data = (self._N_S - i_source - 1) * self._N_aux
             i_end_in_moments_data = i_start_in_moments_data + self._N_1
             moment_out[i_start_out:i_end_out] = (
                 self.data[i_moment, i_turn,
