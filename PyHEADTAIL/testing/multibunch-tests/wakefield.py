@@ -113,16 +113,19 @@ class Wakefield:
             M_aux_non_flatten = rho_aux.shape[1]
             rho_flatten = np.zeros((1, self._M_aux_flatten), dtype=np.float64)
             for tt in range(self.num_turns):
+                tt_flatten = self.num_turns - tt - 1
                 rho_flatten[0,
                     tt * (M_aux_non_flatten + self._N_aux):
                     (tt+1) * (M_aux_non_flatten + self._N_aux) - self._N_aux
-                        ]= rho_aux[tt, :]
+                        ]= rho_aux[tt_flatten, :]
             rho_hat_flatten = np.fft.fft(rho_flatten, axis=1)
             res_flatten = np.fft.ifft(
                 rho_hat_flatten * self._G_hat_dephased, axis=1).real
             res = rho_aux * 0
+            import pdb; pdb.set_trace()
             for tt in range(self.num_turns):
-                res[tt, :] = res_flatten[0,
+                tt_flatten = self.num_turns - tt - 1
+                res[tt_flatten, :] = res_flatten[0,
                     tt * (M_aux_non_flatten + self._N_aux):
                     (tt+1) * (M_aux_non_flatten + self._N_aux) - self._N_aux
                 ]
