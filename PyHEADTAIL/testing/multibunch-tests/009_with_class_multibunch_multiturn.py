@@ -12,6 +12,7 @@ from PyHEADTAIL.machines.synchrotron import Synchrotron
 # Machine settings
 
 n_turns_wake = 1
+flatten = True
 
 n_macroparticles = 100000 # per bunch
 intensity = 2.3e11
@@ -289,7 +290,7 @@ wf = Wakefield(
     num_periods=h_RF//bunch_spacing_buckets, # This is N_S
     num_turns=n_turns_wake,
     circumference=circumference,
-    _flatten=True
+    _flatten=flatten
 )
 
 for i_turn in range(n_turns_wake):

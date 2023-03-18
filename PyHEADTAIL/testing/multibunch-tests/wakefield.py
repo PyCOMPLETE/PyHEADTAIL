@@ -122,7 +122,8 @@ class Wakefield:
                 rho_hat_flatten * self._G_hat_dephased, axis=1).real
             res = rho_aux * 0
             for tt in range(self.num_turns):
-                res[tt, :] = res_flatten[tt * (M_aux_non_flatten + self._N_aux):
+                res[tt, :] = res_flatten[0,
+                    tt * (M_aux_non_flatten + self._N_aux):
                     (tt+1) * (M_aux_non_flatten + self._N_aux) - self._N_aux
                 ]
 
