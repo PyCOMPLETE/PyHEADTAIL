@@ -2,6 +2,7 @@ import numpy as np
 from compressed_profile import CompressedProfile
 
 from scipy.constants import c as clight
+from scipy.signal import fftconvolve
 
 class Wakefield:
 
@@ -120,10 +121,16 @@ class Wakefield:
                     0, tt * _N_aux_turn: (tt + 1) * _N_aux_turn] = \
                         rho_aux[tt, :_N_aux_turn]
 
-            rho_hat_flatten = np.fft.rfft(rho_flatten, axis=1)
-            res_flatten = np.fft.irfft(
-                rho_hat_flatten * self._G_hat_dephased, axis=1).real
+            # rho_hat_flatten = np.fft.rfft(rho_flatten, axis=1)
+            # res_flatten = np.fft.irfft(
+            #     rho_hat_flatten * self._G_hat_dephased, axis=1).real
+            # self._res_flatten_fft = res_flatten # for debugging
+
             res = rho_aux * 0
+
+            res_flatten = fftconvolve(rho_flatten, self._G_aux_shifted, mode='full')
+            self._res_flatten_full = res_flatten # for debugging
+            res_flatten = res_flatten[:, -len(rho_flatten[0, :])+1:]
 
             res[0, :_N_aux_turn] = res_flatten[0, :_N_aux_turn]
 
