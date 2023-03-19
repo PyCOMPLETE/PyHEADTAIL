@@ -89,7 +89,7 @@ class Wakefield:
             self.G_aux = self.function(self.z_wake)
 
             phase_term = np.exp(1j * 2 * np.pi * np.arange(self._M_aux_flatten)
-                            * ((self._N_S_flatten - 1)* self._N_aux + self._N_1)
+                            * ((self._N_S_flatten - 1) * self._N_aux + self._N_1)
                             / self._M_aux_flatten)
 
             self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
@@ -124,10 +124,12 @@ class Wakefield:
                 rho_hat_flatten * self._G_hat_dephased, axis=1).real
             res = rho_aux * 0
 
-            for tt in range(self.num_turns):
-                #tt_flatten = self.num_turns - tt - 1
-                res[tt, :_N_aux_turn] = res_flatten[0,
-                    tt * _N_aux_turn: (tt + 1) * _N_aux_turn]
+            res[0, :_N_aux_turn] = res_flatten[0, :_N_aux_turn]
+
+            # for tt in range(self.num_turns):
+            #     #tt_flatten = self.num_turns - tt - 1
+            #     res[tt, :_N_aux_turn] = res_flatten[0,
+            #         tt * _N_aux_turn: (tt + 1) * _N_aux_turn]
             self._res_flatten = res_flatten # for debugging
             self._rho_flatten = rho_flatten # for debugging
         self._rho_aux = rho_aux # for debugging

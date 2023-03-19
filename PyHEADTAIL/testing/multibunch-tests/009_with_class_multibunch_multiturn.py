@@ -36,7 +36,7 @@ chroma = 0
 
 h_RF = 20
 bunch_spacing_buckets = 5
-n_bunches = 3
+n_bunches = 4
 n_slices = 100
 plot_on = True
 
@@ -195,7 +195,7 @@ for i_turn in range(n_turns):
     needs_restore = False
     x_beam_before_wake = beam.x.copy()
     x_allbunches_before_wake = allbunches.x.copy()
-    # if i_turn == 1:
+    # if i_turn != 0:
     #     beam.x[:] = 0
     #     allbunches.x[:] = 0
     #     needs_restore = True
