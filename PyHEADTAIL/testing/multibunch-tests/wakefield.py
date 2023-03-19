@@ -67,7 +67,7 @@ class Wakefield:
 
         else:
             self._N_S_flatten = self.moments_data._N_S * self.num_turns
-            self._N_T_flatten = self._N_S_flatten
+            self._N_T_flatten = self.moments_data._N_S
             self._N_aux = self.moments_data._N_aux
             self._M_aux_flatten = ((self._N_S_flatten + self._N_T_flatten - 1)
                                    * self._N_aux)
@@ -76,7 +76,7 @@ class Wakefield:
             # and the last one in zeta)
             self._AA_flatten = self._BB_flatten - self._N_S_flatten
             self._CC_flatten = self._AA_flatten
-            self._DD_flatten = self._BB_flatten
+            self._DD_flatten = self._AA_flatten + self.moments_data._N_S
 
             # Build wake matrix
             self.z_wake = _build_z_wake(self._z_a, self._z_b,
@@ -111,7 +111,6 @@ class Wakefield:
             rho_hat = np.fft.fft(rho_aux, axis=1)
             res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
         else:
-            M_aux_non_flatten = rho_aux.shape[1]
             rho_flatten = np.zeros((1, self._M_aux_flatten), dtype=np.float64)
             _N_aux_turn = self.moments_data._N_S * self._N_aux
             for tt in range(self.num_turns):
