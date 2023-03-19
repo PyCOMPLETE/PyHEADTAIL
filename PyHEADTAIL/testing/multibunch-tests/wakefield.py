@@ -107,6 +107,7 @@ class Wakefield:
             rho_aux *= self.moments_data[nn]
 
         if not self._flatten:
+            print('not flatten')
             rho_hat = np.fft.fft(rho_aux, axis=1)
             res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
         else:
@@ -132,8 +133,6 @@ class Wakefield:
             #         tt * _N_aux_turn: (tt + 1) * _N_aux_turn]
             self._res_flatten = res_flatten # for debugging
             self._rho_flatten = rho_flatten # for debugging
-        self._rho_aux = rho_aux # for debugging
-        self.res = res.real
 
         self.moments_data['result'] = res.real
 

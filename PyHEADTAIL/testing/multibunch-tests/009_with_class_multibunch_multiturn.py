@@ -12,7 +12,7 @@ from PyHEADTAIL.machines.synchrotron import Synchrotron
 # Machine settings
 
 n_turns_wake = 3
-flatten = True
+flatten = False
 
 n_macroparticles = 100000 # per bunch
 intensity = 2.3e11
@@ -28,17 +28,17 @@ chroma = 0
 
 
 
-# h_RF = 600
-# bunch_spacing_buckets = 5
-# n_bunches = 110
-# n_slices = 250
-# plot_on = False
-
-h_RF = 20
+h_RF = 600
 bunch_spacing_buckets = 5
-n_bunches = 4
-n_slices = 100
-plot_on = True
+n_bunches = 110
+n_slices = 250
+plot_on = False
+
+# h_RF = 20
+# bunch_spacing_buckets = 5
+# n_bunches = 4
+# n_slices = 100
+# plot_on = True
 
 
 beta_x = 100 #circumference / (2.*np.pi*accQ_x)
@@ -307,6 +307,13 @@ t0 = time.perf_counter()
 wf._compute_convolution(moment_names=['x', 'num_particles'])
 t1 = time.perf_counter()
 dt_xht_sec = t1 - t0
+print(f'T xheadtail {dt_xht_sec * 1e3:.2f} ms')
+
+t0 = time.perf_counter()
+wf._compute_convolution(moment_names=['x', 'num_particles'])
+t1 = time.perf_counter()
+dt_xht_sec = t1 - t0
+print(f'T xheadtail {dt_xht_sec * 1e3:.2f} ms')
 
 z_profile, res_profile = wf.get_moment_profile(moment_name='result', i_turn=0)
 
@@ -323,6 +330,6 @@ if plot_on:
     ax01.plot(z_profile, res_profile_scaled, 'bx')
 print(f'Circumference occupancy {n_bunches * bunch_spacing_buckets/h_RF*100:.2f} %')
 print(f'T pyht ({mpi_settings}) {wake_field.wake_kicks[0].time_last_accumulate * 1e3:.2f} ms')
-print(f'T xheadtail {dt_xht_sec * 1e3:.2f} ms')
+
 plt.show()
 
