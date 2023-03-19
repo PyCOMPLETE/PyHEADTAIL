@@ -88,12 +88,13 @@ class Wakefield:
                         self._CC_flatten, self._DD_flatten, self._z_P)
             self.G_aux = self.function(self.z_wake)
 
-            phase_term = np.exp(1j * 2 * np.pi * np.arange(self._M_aux_flatten)
+            phase_term = np.exp(1j * 2 * np.pi
+                            * np.arange(self._M_aux_flatten//2 + 1)
                             * ((self._N_S_flatten - 1) * self._N_aux + self._N_1)
                             / self._M_aux_flatten)
 
-            self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
-
+            self._G_hat_dephased = phase_term * np.fft.rfft(self.G_aux, axis=1)
+            self._G_aux_shifted = np.fft.irfft(self._G_hat_dephased, axis=1)
 
     def _compute_convolution(self, moment_names):
 
@@ -119,8 +120,8 @@ class Wakefield:
                     0, tt * _N_aux_turn: (tt + 1) * _N_aux_turn] = \
                         rho_aux[tt, :_N_aux_turn]
 
-            rho_hat_flatten = np.fft.fft(rho_flatten, axis=1)
-            res_flatten = np.fft.ifft(
+            rho_hat_flatten = np.fft.rfft(rho_flatten, axis=1)
+            res_flatten = np.fft.irfft(
                 rho_hat_flatten * self._G_hat_dephased, axis=1).real
             res = rho_aux * 0
 
