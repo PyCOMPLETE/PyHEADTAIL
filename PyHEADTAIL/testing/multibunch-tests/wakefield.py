@@ -39,6 +39,9 @@ class Wakefield:
                 num_turns=num_turns,
                 circumference=circumference)
 
+        # self.moments_data is sorted such that i_turn = 0 is the oldest stored
+        # turn.
+
         if not _flatten:
 
             self._N_aux = self.moments_data._N_aux
@@ -77,20 +80,20 @@ class Wakefield:
             # and the last one in zeta)
             self._AA_flatten = self._BB_flatten - self._N_S_flatten
             self._CC_flatten = self._AA_flatten
-            self._DD_flatten = self._AA_flatten + self.moments_data._N_S
+            self._DD_flatten = self._AA_flatten + self._N_T_flatten
 
             # Build wake matrix
             self.z_wake = _build_z_wake(self._z_a, self._z_b,
                         1, # num_turns
                         self._N_aux, self._M_aux_flatten,
-                        0, # circumference
+                        0, # circumference, does not matter since we are doing one pass
                         self.dz,
                         self._AA_flatten, self._BB_flatten,
                         self._CC_flatten, self._DD_flatten, self._z_P)
             self.G_aux = self.function(self.z_wake)
 
             phase_term = np.exp(1j * 2 * np.pi
-                            * np.arange(self._M_aux_flatten//2 + 1)
+                            * np.arange(self._M_aux_flatten//2 + 1) # only positive frequencies because we are using rfft
                             * ((self._N_S_flatten - 1) * self._N_aux + self._N_1)
                             / self._M_aux_flatten)
 
@@ -113,33 +116,29 @@ class Wakefield:
             rho_hat = np.fft.fft(rho_aux, axis=1)
             res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
         else:
-            rho_flatten = np.zeros((1, self._M_aux_flatten), dtype=np.float64)
+            rho_aux_flatten = np.zeros((1, self._M_aux_flatten), dtype=np.float64)
             _N_aux_turn = self.moments_data._N_S * self._N_aux
             for tt in range(self.num_turns):
-                #tt_flatten = self.num_turns - tt - 1
-                rho_flatten[
+                rho_aux_flatten[
                     0, tt * _N_aux_turn: (tt + 1) * _N_aux_turn] = \
                         rho_aux[tt, :_N_aux_turn]
 
-            rho_hat_flatten = np.fft.rfft(rho_flatten, axis=1)
+            rho_hat_flatten = np.fft.rfft(rho_aux_flatten, axis=1)
             res_flatten = np.fft.irfft(
                 rho_hat_flatten * self._G_hat_dephased, axis=1).real
             self._res_flatten_fft = res_flatten # for debugging
 
-            # res_flatten = fftconvolve(rho_flatten, self._G_aux_shifted, mode='full')
+            # # The following is faster in some cases, we might go back to it in the future
+            # res_flatten = fftconvolve(rho_aux_flatten, self._G_aux_shifted, mode='full')
             # self._res_flatten_full = res_flatten # for debugging
-            # res_flatten = res_flatten[:, -len(rho_flatten[0, :])+1:]
+            # res_flatten = res_flatten[:, -len(rho_aux_flatten[0, :])+1:]
 
             res = rho_aux * 0
 
             res[0, :_N_aux_turn] = res_flatten[0, :_N_aux_turn]
 
-            # for tt in range(self.num_turns):
-            #     #tt_flatten = self.num_turns - tt - 1
-            #     res[tt, :_N_aux_turn] = res_flatten[0,
-            #         tt * _N_aux_turn: (tt + 1) * _N_aux_turn]
             self._res_flatten = res_flatten # for debugging
-            self._rho_flatten = rho_flatten # for debugging
+            self._rho_flatten = rho_aux_flatten # for debugging
 
         self.moments_data['result'] = res.real
 

@@ -12,7 +12,7 @@ from PyHEADTAIL.machines.synchrotron import Synchrotron
 # Machine settings
 
 n_turns_wake = 3
-flatten = True
+flatten = False #True
 
 n_macroparticles = 100000 # per bunch
 intensity = 2.3e11
@@ -30,7 +30,7 @@ chroma = 0
 
 # h_RF = 600
 # bunch_spacing_buckets = 5
-# n_bunches = 110
+# n_bunches = 50 #110
 # n_slices = 250
 # plot_on = False
 
@@ -40,11 +40,11 @@ n_bunches = 4
 n_slices = 100
 plot_on = True
 
-h_RF = 20 * 20
-bunch_spacing_buckets = 5
-n_bunches = 4 * 20
-n_slices = 100
-plot_on = True
+# h_RF = 20 * 20
+# bunch_spacing_buckets = 5
+# n_bunches = 4 * 20
+# n_slices = 100
+# plot_on = True
 
 beta_x = 100 #circumference / (2.*np.pi*accQ_x)
 beta_y = 100 #circumference / (2.*np.pi*accQ_y)
