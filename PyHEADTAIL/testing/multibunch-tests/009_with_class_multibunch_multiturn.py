@@ -40,6 +40,11 @@ n_bunches = 4
 n_slices = 100
 plot_on = True
 
+h_RF = 20 * 20
+bunch_spacing_buckets = 5
+n_bunches = 4 * 20
+n_slices = 100
+plot_on = True
 
 beta_x = 100 #circumference / (2.*np.pi*accQ_x)
 beta_y = 100 #circumference / (2.*np.pi*accQ_y)
