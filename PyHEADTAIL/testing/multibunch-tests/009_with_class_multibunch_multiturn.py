@@ -302,6 +302,8 @@ for i_turn in range(n_turns_wake):
             },
         i_turn=i_turn, i_source=i_bunch)
 
+print(f'Circumference occupancy {n_bunches * bunch_spacing_buckets/h_RF*100:.2f} %')
+
 import time
 t0 = time.perf_counter()
 wf._compute_convolution(moment_names=['x', 'num_particles'])
@@ -328,8 +330,9 @@ if plot_on:
     plt.plot(wf.z_wake.T, wf.G_aux.T * (-e**2 / (p0_SI * c)), alpha=0.5)
 
     ax01.plot(z_profile, res_profile_scaled, 'bx')
-print(f'Circumference occupancy {n_bunches * bunch_spacing_buckets/h_RF*100:.2f} %')
-print(f'T pyht ({mpi_settings}) {wake_field.wake_kicks[0].time_last_accumulate * 1e3:.2f} ms')
+
+print(f'T pyht accumulate ({mpi_settings}) {wake_field.wake_kicks[0].time_last_accumulate * 1e3:.2f} ms')
+print(f'T pyht convolution ({mpi_settings}) {wake_field.time_last_field_computation * 1e3:.2f} ms')
 
 plt.show()
 

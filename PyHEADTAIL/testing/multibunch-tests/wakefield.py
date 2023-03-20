@@ -128,7 +128,7 @@ class Wakefield:
 
             res = rho_aux * 0
 
-            res_flatten = fftconvolve(rho_flatten[:self._M_aux_flatten//2], self._G_aux_shifted, mode='full')
+            res_flatten = fftconvolve(rho_flatten, self._G_aux_shifted, mode='full')
             self._res_flatten_full = res_flatten # for debugging
             res_flatten = res_flatten[:, -len(rho_flatten[0, :])+1:]
 

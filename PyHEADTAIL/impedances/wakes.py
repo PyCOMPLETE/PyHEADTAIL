@@ -368,9 +368,13 @@ class WakeField(Element):
 
         for kick, turns in zip(self.wake_kicks, self._turns_on_this_proc):
 
+            import time
+            t0 = time.perf_counter()
             kick.calculate_field(all_slice_sets,local_slice_sets,bunch_list,
                                  local_bunch_indexes, optimization_method, turns,
                                  self._circular_convolution_parameters)
+            t1 = time.perf_counter()
+            self.time_last_field_computation = t1-t0
 
         # ensures that everything is calculated, i.e. synchronizes threads
         mpi_data.share_numbers(1)
