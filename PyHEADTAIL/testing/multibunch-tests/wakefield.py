@@ -63,11 +63,9 @@ class Wakefield:
 
             self.G_aux = self.function(self.z_wake)
 
-            phase_term = np.exp(1j * 2 * np.pi * np.arange(self._M_aux)
+            phase_term = np.exp(1j * 2 * np.pi * np.arange(self._M_aux//2 + 1) # only positive frequencies because we are using rfft
                             * ((self._N_S - 1)* self._N_aux + self._N_1)
                             / self._M_aux)
-
-            self._G_hat_dephased = phase_term * np.fft.fft(self.G_aux, axis=1)
 
         else:
             self._N_S_flatten = self.moments_data._N_S * self.num_turns
@@ -97,8 +95,8 @@ class Wakefield:
                             * ((self._N_S_flatten - 1) * self._N_aux + self._N_1)
                             / self._M_aux_flatten)
 
-            self._G_hat_dephased = phase_term * np.fft.rfft(self.G_aux, axis=1)
-            self._G_aux_shifted = np.fft.irfft(self._G_hat_dephased, axis=1)
+        self._G_hat_dephased = phase_term * np.fft.rfft(self.G_aux, axis=1)
+        self._G_aux_shifted = np.fft.irfft(self._G_hat_dephased, axis=1)
 
     def _compute_convolution(self, moment_names):
 
@@ -113,8 +111,8 @@ class Wakefield:
 
         if not self._flatten:
             print('not flatten')
-            rho_hat = np.fft.fft(rho_aux, axis=1)
-            res = np.fft.ifft(rho_hat * self._G_hat_dephased, axis=1)
+            rho_hat = np.fft.rfft(rho_aux, axis=1)
+            res = np.fft.irfft(rho_hat * self._G_hat_dephased, axis=1)
         else:
             rho_aux_flatten = np.zeros((1, self._M_aux_flatten), dtype=np.float64)
             _N_aux_turn = self.moments_data._N_S * self._N_aux
@@ -134,8 +132,8 @@ class Wakefield:
             # res_flatten = res_flatten[:, -len(rho_aux_flatten[0, :])+1:]
 
             res = rho_aux * 0
-
-            res[0, :_N_aux_turn] = res_flatten[0, :_N_aux_turn]
+            res[0, :_N_aux_turn] = res_flatten[0, :_N_aux_turn] # Here we cannot separate the effect of the different turns
+                                                                # We put everything in one turn and leave the rest to be zero
 
             self._res_flatten = res_flatten # for debugging
             self._rho_flatten = rho_aux_flatten # for debugging
