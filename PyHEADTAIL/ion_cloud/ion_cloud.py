@@ -54,12 +54,13 @@ class BeamIonElement(Element):
                  monitor_name=None,
                  use_particle_monitor=False,
                  L_sep=0.85,
-                 n_macroparticles_max=int(1e3),
+                 n_macroparticles_max=int(2e4),
                  set_aperture=True,
                  n_segments=500,
                  ring_circumference=354,
                  n_steps=None,
-                 interaction_model='weak-weak'
+                 interaction_model='weak',
+                 interaction_model_ions='strong'
                  ):
         self.use_particle_monitor = use_particle_monitor
         self.dist = dist_ions
@@ -71,6 +72,7 @@ class BeamIonElement(Element):
         self.ring_circumference = ring_circumference
         self.n_steps = n_steps
         self.interaction_model = interaction_model
+        self.interaction_model_ions = interaction_model_ions
         self._set_distribution_for_particle_generation()
         self.N_MACROPARTICLES = 30
         self.L_SEG = self.ring_circumference/self.n_segments
@@ -247,9 +249,9 @@ class BeamIonElement(Element):
             picFFT.scatter(second_beam.x, second_beam.y, nel_part)
             picFFT.solve()
             en_x, en_y = picFFT.gather(
-                first_beam.x, first_beam.y)/second_beam.x.shape[0]
+                first_beam.x, first_beam.y)
+            en_x, en_y = en_x/second_beam.x.shape[0], en_y/second_beam.x.shape[0]
         return en_x, en_y
-
     def track(self, electron_bunch):
         '''Tracking method to track an interaction between an electron bunch
         and an ion beam (2D electromagnetic field).
@@ -288,7 +290,7 @@ class BeamIonElement(Element):
         en_ions_x, en_ions_y = self._get_efields(first_beam=electron_bunch,
                                                  second_beam=self.ion_beam,
                                                  p_id_first_beam=p_id_electrons,
-                                                 interaction_model='weak')
+                                                 interaction_model='strong')
         en_electrons_x, en_electrons_y = self._get_efields(first_beam=self.ion_beam,
                                                            second_beam=electron_bunch,
                                                            p_id_first_beam=p_id_ions,
@@ -311,13 +313,6 @@ class BeamIonElement(Element):
 
         pm.put(self.ion_beam.xp, p_id_ions, kicked_ions_xp)
         pm.put(self.ion_beam.yp, p_id_ions, kicked_ions_yp)
-        # Drift for the ions in one bucket
-        # drifted_ions_x = pm.take(
-        #     self.ion_beam.xp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.x, p_id_ions)
-        # drifted_ions_y = pm.take(
-        #     self.ion_beam.yp, p_id_ions)*self.L_sep + pm.take(self.ion_beam.y, p_id_ions)
-        # pm.put(self.ion_beam.x, p_id_ions, drifted_ions_x)
-        # pm.put(self.ion_beam.y, p_id_ions, drifted_ions_y)
         self.track_ions_in_drift(p_id_ions)
 
     def get_efieldn(self, xr, yr, mean_x, mean_y, sig_x, sig_y):
