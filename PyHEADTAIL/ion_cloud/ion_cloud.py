@@ -137,7 +137,7 @@ class BeamIonElement(Element):
         return self.ion_beam
 
     def clear_ions(self):
-        self.ion_beam = self.ion_beam = particles.Particles(
+        self.ion_beam = particles.Particles(
             macroparticlenumber=1,
             particlenumber_per_mp=1,
             charge=self.charge_state*e,
@@ -250,7 +250,8 @@ class BeamIonElement(Element):
             picFFT.solve()
             en_x, en_y = picFFT.gather(
                 first_beam.x, first_beam.y)
-            en_x, en_y = en_x/second_beam.x.shape[0], en_y/second_beam.x.shape[0]
+            en_x /= qe*second_beam.x.shape[0]
+            en_y /= qe*second_beam.x.shape[0]
         return en_x, en_y
     def track(self, electron_bunch):
         '''Tracking method to track an interaction between an electron bunch
@@ -277,7 +278,6 @@ class BeamIonElement(Element):
 
         if self.ions_monitor is not None:
             self.ions_monitor.dump(self.ion_beam)
-
         prefactor_kick_ion_field = -(self.ion_beam.intensity *
                                      self.ion_beam.charge*electron_bunch.charge /
                                      (electron_bunch.p0*electron_bunch.beta*c))
@@ -291,10 +291,16 @@ class BeamIonElement(Element):
                                                  second_beam=self.ion_beam,
                                                  p_id_first_beam=p_id_electrons,
                                                  interaction_model='strong')
-        en_electrons_x, en_electrons_y = self._get_efields(first_beam=self.ion_beam,
-                                                           second_beam=electron_bunch,
-                                                           p_id_first_beam=p_id_ions,
-                                                           interaction_model='weak')
+        if self.interaction_model == 'PIC':
+            en_electrons_x, en_electrons_y = self._get_efields(first_beam=self.ion_beam,
+                                                               second_beam=electron_bunch,
+                                                               p_id_first_beam=p_id_ions,
+                                                               interaction_model='PIC')
+        else:
+            en_electrons_x, en_electrons_y = self._get_efields(first_beam=self.ion_beam,
+                                                               second_beam=electron_bunch,
+                                                               p_id_first_beam=p_id_ions,
+                                                               interaction_model='weak')
 
         kicks_electrons_x = en_ions_x * prefactor_kick_ion_field
         kicks_electrons_y = en_ions_y * prefactor_kick_ion_field
@@ -304,7 +310,6 @@ class BeamIonElement(Element):
             electron_bunch.xp, p_id_electrons) + kicks_electrons_x
         kicked_electrons_yp = pm.take(
             electron_bunch.yp, p_id_electrons) + kicks_electrons_y
-
         kicked_ions_xp = pm.take(self.ion_beam.xp, p_id_ions) + kicks_ions_x
         kicked_ions_yp = pm.take(self.ion_beam.yp, p_id_ions) + kicks_ions_y
 
