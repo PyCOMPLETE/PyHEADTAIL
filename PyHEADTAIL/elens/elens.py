@@ -10,12 +10,50 @@ import numpy as np
 from scipy.constants import c, m_e, e, pi
 from scipy.interpolate import splrep, splev
 from scipy.integrate import quad
-from scipy.special import i0, i1
+from scipy.special import i0e, i1e, i0, i1, ive
 from functools import wraps
 
 from PyHEADTAIL.general import pmath as pm
 from PyHEADTAIL.field_maps import efields_funcs as efields
 from PyHEADTAIL.trackers.detuners import DetunerCollection
+
+class PulsedLensDetuner(DetunerCollection):
+    def __init__(self, dQmax, sigma_ratio, beta_z, static, dynamic):
+        self.dQmax = dQmax
+        self.segment_detuners = []
+        self.sigma_ratio = sigma_ratio
+        self.beta_z = beta_z
+        self.static = static
+        self.dynamic = dynamic
+    def generate_segment_detuner(self, dmu_x, dmu_y, **kwargs):
+        dapp_xz = self.dQmax
+        dapp_yz = self.dQmax
+        dapp_xz *= dmu_x
+        dapp_yz *= dmu_y
+        detuner = PulsedLensSegmentDetuner(
+            dapp_xz, dapp_yz, self.sigma_ratio, self.beta_z, self.static, self.dynamic)
+        self.segment_detuners.append(detuner)
+
+
+class PulsedLensSegmentDetuner(object):
+    def __init__(self, dapp_xz, dapp_yz, sigma_ratio, beta_z, static, dynamic):
+        self.dapp_xz = dapp_xz
+        self.dapp_yz = dapp_yz
+        self.sigma_ratio = sigma_ratio
+        self.beta_z = beta_z
+        self.static = static
+        self.dynamic = dynamic
+
+    def detune(self, beam):
+        J_z = (beam.z**2+(beam.dp*self.beta_z)**2)/(2*self.beta_z)
+        phi_z = np.arctan2(beam.dp*self.beta_z, beam.z)
+        eps_z = beam.sigma_z()**2/self.beta_z
+        arg = 0.5*J_z/eps_z*self.sigma_ratio
+        bessel_term_Z_static = i0e(arg)
+        bessel_term_Z_dynamic = np.sin(2*phi_z)*ive(2, arg)+np.sin(4*phi_z)*ive(4, arg)+np.sin(6*phi_z)*ive(6, arg)+np.sin(8*phi_z)*ive(8, arg)+np.sin(10*phi_z)*ive(10, arg)
+        dQx = self.dapp_xz*(bessel_term_Z_static*self.static+2*bessel_term_Z_dynamic*self.dynamic)
+        dQy = self.dapp_yz*(bessel_term_Z_static*self.static+2*bessel_term_Z_dynamic*self.dynamic)
+        return dQx, dQy
 
 
 class ElectronLensDetuner(DetunerCollection):
