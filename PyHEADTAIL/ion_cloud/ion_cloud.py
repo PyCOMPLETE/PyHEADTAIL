@@ -268,10 +268,11 @@ class BeamIonElement(Element):
         self.ION_INTENSITY_PER_ELECTRON_BUNCH = electron_bunch.intensity * \
             self.sigma_i*self.n_g*self.L_SEG
 
-        if self.ion_beam.macroparticlenumber < self.N_MACROPARTICLES_MAX:
-            self._generate_ions(electron_bunch)
-        else:
-            self.ion_beam.intensity += self.ION_INTENSITY_PER_ELECTRON_BUNCH
+        self._generate_ions(electron_bunch)
+        # if self.ion_beam.macroparticlenumber < self.N_MACROPARTICLES_MAX:
+        #     self._generate_ions(electron_bunch)
+        # else:
+        #     self.ion_beam.intensity += self.ION_INTENSITY_PER_ELECTRON_BUNCH
 
         if self.set_aperture == True:
             self.ions_aperture.track(self.ion_beam)
