@@ -50,7 +50,7 @@ class PulsedLensSegmentDetuner(object):
         eps_z = beam.sigma_z()**2/self.beta_z
         arg = 0.5*J_z/eps_z*self.sigma_ratio
         bessel_term_Z_static = i0e(arg)
-        bessel_term_Z_dynamic = np.sin(2*phi_z)*ive(2, arg)+np.sin(4*phi_z)*ive(4, arg)+np.sin(6*phi_z)*ive(6, arg)+np.sin(8*phi_z)*ive(8, arg)+np.sin(10*phi_z)*ive(10, arg)
+        bessel_term_Z_dynamic = np.cos(2*phi_z)*ive(2, arg)+np.cos(4*phi_z)*ive(4, arg)+np.cos(6*phi_z)*ive(6, arg)+np.cos(8*phi_z)*ive(8, arg)+np.cos(10*phi_z)*ive(10, arg)
         dQx = self.dapp_xz*(bessel_term_Z_static*self.static+2*bessel_term_Z_dynamic*self.dynamic)
         dQy = self.dapp_yz*(bessel_term_Z_static*self.static+2*bessel_term_Z_dynamic*self.dynamic)
         return dQx, dQy
