@@ -10,11 +10,7 @@ import numpy as np
 cimport numpy as np
 cimport libc.math as cmath
 
-cimport cython.boundscheck
-cimport cython.cdivision
-cimport cython.wraparound
-
-
+cimport cython
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
