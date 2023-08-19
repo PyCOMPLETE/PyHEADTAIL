@@ -60,7 +60,8 @@ class BeamIonElement(Element):
                  ring_circumference=354,
                  n_steps=None,
                  interaction_model='weak',
-                 interaction_model_ions='strong'
+                 interaction_model_ions='strong',
+                 n_g = 2.4e13,
                  ):
         self.use_particle_monitor = use_particle_monitor
         self.dist = dist_ions
@@ -76,7 +77,7 @@ class BeamIonElement(Element):
         self._set_distribution_for_particle_generation()
         self.N_MACROPARTICLES = 30
         self.L_SEG = self.ring_circumference/self.n_segments
-        self.n_g = 2.4e13  # (m**-3)
+        self.n_g = n_g#2.4e13  # (m**-3)
         self.sigma_i = 1.8e-22  # (m**2)
         self.A = 28
         self.charge_state = 1
