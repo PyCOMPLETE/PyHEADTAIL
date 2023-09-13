@@ -154,7 +154,7 @@ class BeamIonElement(Element):
                 'dp': [0, ]
             })
 
-    def _generate_ions(self, electron_bunch):
+    def _generate_ions(self, electron_bunch, ion_intensity):
         '''
         Particles are generated in pairs -x, -y and +x, +y to avoid numerical noise.
         The idea came from Blaskiewicz, M. (2019) https://doi.org/10.18429/JACoW-NAPAC2019-TUPLM11
@@ -169,7 +169,7 @@ class BeamIonElement(Element):
             a_y, b_y = electron_bunch.sigma_y(), electron_bunch.sigma_yp()
         new_particles = generators.ParticleGenerator(
             macroparticlenumber=self.N_MACROPARTICLES//2,
-            intensity=self.ION_INTENSITY_PER_ELECTRON_BUNCH//2,
+            intensity=int(ion_intensity)//2,
             charge=self.charge_state*e,
             gamma=1.0001,
             mass=self.A*m_p,
@@ -184,7 +184,7 @@ class BeamIonElement(Element):
         ).generate()
         new_particles_twin = particles.Particles(
             macroparticlenumber=self.N_MACROPARTICLES//2,
-            particlenumber_per_mp=self.ION_INTENSITY_PER_ELECTRON_BUNCH/self.N_MACROPARTICLES,
+            particlenumber_per_mp=ion_intensity/self.N_MACROPARTICLES,
             charge=self.charge_state*e,
             gamma=1.0001,
             mass=self.A*m_p,
@@ -206,6 +206,7 @@ class BeamIonElement(Element):
         new_particles.xp[:] = 0
         new_particles.yp[:] = 0
         self.ion_beam += new_particles
+        self.ion_beam.particlenumber_per_mp = new_particles.particlenumber_per_mp
         self.ions_aperture = aperture.EllipticalApertureXY(
             x_aper=5*electron_bunch.sigma_x(),
             y_aper=5*electron_bunch.sigma_y())
@@ -268,8 +269,7 @@ class BeamIonElement(Element):
     '''
         self.ION_INTENSITY_PER_ELECTRON_BUNCH = electron_bunch.intensity * \
             self.sigma_i*self.n_g*self.L_SEG
-
-        self._generate_ions(electron_bunch)
+        self._generate_ions(electron_bunch, ion_intensity=self.ION_INTENSITY_PER_ELECTRON_BUNCH)
         # if self.ion_beam.macroparticlenumber < self.N_MACROPARTICLES_MAX:
         #     self._generate_ions(electron_bunch)
         # else:
