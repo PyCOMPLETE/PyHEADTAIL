@@ -61,7 +61,9 @@ class BeamIonElement(Element):
                  n_steps=None,
                  interaction_model='weak',
                  interaction_model_ions='strong',
-                 n_g = 2.4e13,
+                 n_g = 3.9e12,
+                 A = 28,
+                 sigma_i = 1.78e-22,
                  ):
         self.use_particle_monitor = use_particle_monitor
         self.dist = dist_ions
@@ -77,9 +79,9 @@ class BeamIonElement(Element):
         self._set_distribution_for_particle_generation()
         self.N_MACROPARTICLES = 30
         self.L_SEG = self.ring_circumference/self.n_segments
-        self.n_g = n_g#2.4e13  # (m**-3)
-        self.sigma_i = 1.8e-22  # (m**2)
-        self.A = 28
+        self.n_g = n_g #value from old simulations 2.4e13  # (m**-3)
+        self.sigma_i = sigma_i  # (m**2)
+        self.A = A
         self.charge_state = 1
         self.ion_beam = particles.Particles(
             macroparticlenumber=1,
