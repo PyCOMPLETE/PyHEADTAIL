@@ -20,21 +20,28 @@ once they have been created).
 @copyright CERN
 """
 
-
-
 import numpy as np
 from collections import deque
 from scipy.constants import c, physical_constants
 from scipy.interpolate import interp1d
+from scipy.stats import circmean
 from abc import ABCMeta, abstractmethod
 
 from PyHEADTAIL.impedances.wake_kicks import *
 from PyHEADTAIL.general.element import Element, Printing
 from PyHEADTAIL.general.decorators import deprecated
+from PyHEADTAIL.particles.slicing import SliceSet
+
+import xtrack as xt # TODO add xtrack to dependence of PyHEADTAIL
 
 sin = np.sin
 cos = np.cos
 
+def get_phase(x1,px1,x2,px2): # to the slicer ?
+    phases = np.arctan2(px2, x2) - np.arctan2(px1, x1)
+    phases[np.where(phases > np.pi)] -= 2.0 * np.pi
+    phases[np.where(phases <= -np.pi)] += 2.0 * np.pi
+    return circmean(phases,low=-np.pi,high=np.pi)
 
 def check_wake_sampling(bunch, slicer, wakes, beta=1, wake_column=None, bins=False):
     '''
@@ -107,12 +114,14 @@ class WakeField(Element):
         there is a slice_set_age_deque to keep track of the age of
         each of the SliceSet instances."""
         self.slicer = slicer
+        self.slice_statistics = ['mean_x', 'mean_y']
+        self.pipeline_manager = None
 
         self.wake_kicks = []
         for source in wake_sources:
             kicks = source.get_wake_kicks(self.slicer)
             self.wake_kicks.extend(kicks)
-
+        #TODO when multibunch, n_turn_wake given in the source input must correspond to n_turn_wake*n_bunch
         n_turns_wake_max = max([ source.n_turns_wake
                                  for source in wake_sources ])
         self.slice_set_deque = deque([], maxlen=n_turns_wake_max)
@@ -131,18 +140,79 @@ class WakeField(Element):
         too, s.t. the first moments x, y can be calculated by the
         WakeKick instances. """
 
+        slice_set = bunch.get_slices(self.slicer,
+                                     statistics=self.slice_statistics)
+
+        if self.pipeline_manager is not None:
+            is_ready_to_send = True
+            for i_partner,partner_name in enumerate(self.partners_names):
+                if not self.pipeline_manager.is_ready_to_send(self.name,bunch.name,partner_name,bunch.at_turn[0]):
+                    is_ready_to_send = False
+                    break
+            if is_ready_to_send:
+                for i_partner,partner_name in enumerate(self.partners_names):
+                    self._slice_set_to_buffer(slice_set,bunch.delay)
+                    self.pipeline_manager.send_message(self._send_buffer,self.name,bunch.name,partner_name,bunch.at_turn[0])
+            for i_partner,partner_name in enumerate(self.partners_names):
+                if not self.pipeline_manager.is_ready_to_recieve(self.name,partner_name,bunch.name):
+                    return xt.PipelineStatus(on_hold=True)
+        revolution_time = bunch.circumference / (bunch.beta * c)
         # Update ages of stored SliceSet instances.
         for i in range(len(self.slice_set_age_deque)):
-            self.slice_set_age_deque[i] += (
-                bunch.circumference / (bunch.beta * c))
+            self.slice_set_age_deque[i] += revolution_time
+        if self.pipeline_manager is not None:
+            for i_partner,partner_name in enumerate(self.partners_names):
+                #print(bunch.name,'receiving slice set from',partner.name,'with tag',tag,flush=True)
+                self.pipeline_manager.recieve_message(self._recv_buffer,self.name,partner_name,bunch.name)
+                partner_slice_set,partner_delay = self._slice_set_from_buffer(slice_set)
+                self.slice_set_deque.appendleft(partner_slice_set)
+                self.slice_set_age_deque.appendleft(bunch.delay-partner_delay)
 
-        slice_set = bunch.get_slices(self.slicer,
-                                     statistics=['mean_x', 'mean_y'])
+        # adding my own slice set (note: my own slice set needs to be the first in the list since PyHEADTAIL uses its 'slice_index_of_particle')
         self.slice_set_deque.appendleft(slice_set)
-        self.slice_set_age_deque.appendleft(0.)
+        self.slice_set_age_deque.appendleft(0.0)
 
         for kick in self.wake_kicks:
             kick.apply(bunch, self.slice_set_deque, self.slice_set_age_deque)
+
+    def init_pipeline(self,pipeline_manager,element_name,partners_names):
+        self.pipeline_manager = pipeline_manager
+        self.partners_names = partners_names
+        self.name = element_name
+
+        self._statistics = ['mean_x','mean_y']
+        self._setup_buffers()
+
+    def _setup_buffers(self):
+        self._attributes_to_buffer = ['n_macroparticles_per_slice']
+        self._attributes_to_buffer.extend(self._statistics)
+        self._buffer_size = self.slicer.n_slices*len(self._attributes_to_buffer)+2
+        self._recv_buffer = np.zeros(self._buffer_size,dtype=np.float64)
+        self._send_buffer = np.zeros(self._buffer_size,dtype=np.float64)
+
+    def _slice_set_to_buffer(self,slice_set,delay):
+        k = 0
+        for i in range(len(self._attributes_to_buffer)):
+            self._send_buffer[k:k+len(getattr(slice_set,self._attributes_to_buffer[i]))] = getattr(slice_set,self._attributes_to_buffer[i])
+            k += self.slicer.n_slices
+        self._send_buffer[-2] = slice_set.beta
+        self._send_buffer[-1] = delay
+
+    def _slice_set_from_buffer(self,slice_set0):
+        slice_set_kwargs = {'z_bins':slice_set0.z_bins,'mode':slice_set0.mode}
+        k = 0
+        arrays_recvd = {}
+        for i in range(len(self._attributes_to_buffer)):
+            arrays_recvd[self._attributes_to_buffer[i]] = np.copy(self._recv_buffer[k:k+self.slicer.n_slices])
+            k += self.slicer.n_slices
+        slice_set_kwargs['n_macroparticles_per_slice'] = arrays_recvd['n_macroparticles_per_slice'].astype(int)
+        slice_set_kwargs['slice_index_of_particle'] = None
+        slice_set_kwargs['beam_parameters'] = {'beta':self._recv_buffer[-2]}
+        slice_set = SliceSet(**slice_set_kwargs)
+        for statistic in self._statistics:
+            setattr(slice_set,statistic,arrays_recvd[statistic])
+
+        return slice_set,self._recv_buffer[-1]
 
 
 ''' WakeSource classes. '''
