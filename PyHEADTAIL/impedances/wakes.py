@@ -213,6 +213,7 @@ class WakeTable(WakeSource):
 
         self.n_turns_wake = n_turns_wake
 
+        # beta check for non-relativistic case
         if 'beta' in kwargs.keys():
             self.beta = kwargs['beta']
         else:
@@ -220,7 +221,16 @@ class WakeTable(WakeSource):
             print("Relativistic beta not specified for integrated"
                   " wakefield method, assumed to be equal to 1"
                  if method == 'integrated' else '')
-
+            
+        # circumference check for multiturns wake
+        if (method == 'integrated') & (n_turns_wake > 1) & ('circumference' in kwargs.keys()):
+            self.circumference = kwargs['circumference']
+        elif (method == 'integrated') & (n_turns_wake > 1) & ('circumference' not in kwargs.keys()):
+            self.n_turns_wake = 1
+            print("Machine circumference not specified for integrated wakefield"
+                  " method with multiturns wake, assume one turn wake instead.")
+            
+        # slicer check for integrated method
         if (method == 'integrated') & ('slicer' in kwargs.keys()):
             self.method = method
             self.slicer = kwargs['slicer']
@@ -238,8 +248,21 @@ class WakeTable(WakeSource):
         convert_to_s = 1e-9
         convert_to_V_per_Cm = 1e15
 
-        z_bins = np.linspace(2*self.slicer.z_cuts[0], 2*self.slicer.z_cuts[1], 
-                                2*self.slicer.n_slices+1, endpoint=True)
+        if self.n_turns_wake > 1:
+            """z_bins_single_turn = np.linspace(2*self.slicer.z_cuts[0], 2*self.slicer.z_cuts[1], 
+                                             2*self.slicer.n_slices+1, endpoint=True)
+            z_step = np.diff(z_bins_single_turn)[0]
+            z_bins = np.arange(2*self.slicer.z_cuts[0] - self.n_turns_wake * self.circumference, 
+                                 2*self.slicer.z_cuts[1] + self.n_turns_wake * self.circumference + z_step,
+                              z_step)"""
+            z_bins = np.hstack([np.linspace(2*self.slicer.z_cuts[0], 2*self.slicer.z_cuts[1], 
+                                             2*self.slicer.n_slices+1, endpoint=True) + \
+                               n * self.circumference for n in range(self.n_turns_wake)])
+            
+        else:
+            z_bins = np.linspace(2*self.slicer.z_cuts[0], 2*self.slicer.z_cuts[1], 
+                                    2*self.slicer.n_slices+1, endpoint=True)
+            
         z_centers = z_bins[:-1] + np.diff(z_bins)/2
         dt_bins = z_bins / (self.beta*c)
         dt_centers = z_centers / (self.beta*c)
@@ -464,7 +487,6 @@ class WakeTable(WakeSource):
                 raise ValueError('Longitudinal wake component does not meet' +
                                  ' requirements.')
         return wake
-
 
 class Resonator(WakeSource):
     """ Class to describe the wake functions originating from a
