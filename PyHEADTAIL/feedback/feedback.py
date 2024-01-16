@@ -21,7 +21,7 @@ class IdealBunchFeedback(object):
     """ The simplest possible feedback. It corrects a gain fraction of a mean xp/yp value of the bunch.
     """
     def __init__(self,gain, multi_bunch=False):
-        if if hasattr(gain, '__getitem__'):
+        if hasattr(gain, '__getitem__'):
             self._gain_x = gain[0]
             self._gain_y = gain[1]
         else:
