@@ -321,6 +321,22 @@ class ParticlesView(Printing):
 
         return slice_object_list
 
+    def reorder(self, permutation, except_for_attrs=[]):
+        '''Reorder all particle coordinate and momentum arrays
+        (in self.coords_n_momenta) and ids except for except_for_attrs
+        according to the given index array permutation.
+        '''
+        to_be_reordered = ['id'] + list(self.coords_n_momenta) 
+        for attr in to_be_reordered:
+            if attr in except_for_attrs:
+                continue
+            reordered = pm.apply_permutation(getattr(self, '_'+ attr), permutation)
+            setattr(self, '_'+ attr, reordered)
+
+        reordered = pm.apply_permutation(getattr(self, 'bucket_id'), permutation)
+        setattr(self, 'bucket_id', reordered)
+        self.clean_slices()
+
     def clean_slices(self):
         '''Erases the SliceSet records of this Particles instance.
         Any longitudinal trackers (or otherwise modifying elements)

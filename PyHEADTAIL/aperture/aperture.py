@@ -60,6 +60,7 @@ class Aperture(Element, metaclass=ABCMeta):
             beam.yp = beam.yp[:n_alive]
             beam.dp = beam.dp[:n_alive]
             beam.id = beam.id[:n_alive]
+            beam.bucket_id = beam.bucket_id[:n_alive]
 
     @abstractmethod
     def tag_lost_particles(self, beam):
