@@ -46,7 +46,7 @@ class IdealBunchFeedback(object):
 class IdealSliceFeedback(object):
     """Corrects a gain fraction of a mean xp/yp value of each slice in the bunch."""
     def __init__(self,gain,slicer, multi_bunch=False):
-        if if hasattr(gain, '__getitem__'):
+        if hasattr(gain, '__getitem__'):
             self._gain_x = gain[0]
             self._gain_y = gain[1]
         else:
@@ -88,7 +88,7 @@ class GenericOneTurnMapObject(object):
                  phase_x=None, phase_y=None, location_x=0., location_y=0.,
                  beta_x=1., beta_y=1., **kwargs):
         
-        if if hasattr(gain, '__getitem__'):
+        if hasattr(gain, '__getitem__'):
             self._gain_x = gain[0]
             self._gain_y = gain[1]
         else:
