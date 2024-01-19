@@ -1,4 +1,3 @@
-import collections
 import numpy as np
 from scipy.constants import c
 
@@ -22,7 +21,7 @@ class IdealBunchFeedback(object):
     """ The simplest possible feedback. It corrects a gain fraction of a mean xp/yp value of the bunch.
     """
     def __init__(self,gain, multi_bunch=False):
-        if isinstance(gain, collections.Container):
+        if hasattr(gain, '__getitem__'):
             self._gain_x = gain[0]
             self._gain_y = gain[1]
         else:
@@ -47,7 +46,7 @@ class IdealBunchFeedback(object):
 class IdealSliceFeedback(object):
     """Corrects a gain fraction of a mean xp/yp value of each slice in the bunch."""
     def __init__(self,gain,slicer, multi_bunch=False):
-        if isinstance(gain, collections.Container):
+        if hasattr(gain, '__getitem__'):
             self._gain_x = gain[0]
             self._gain_y = gain[1]
         else:
@@ -89,7 +88,7 @@ class GenericOneTurnMapObject(object):
                  phase_x=None, phase_y=None, location_x=0., location_y=0.,
                  beta_x=1., beta_y=1., **kwargs):
         
-        if isinstance(gain, collections.Container):
+        if hasattr(gain, '__getitem__'):
             self._gain_x = gain[0]
             self._gain_y = gain[1]
         else:

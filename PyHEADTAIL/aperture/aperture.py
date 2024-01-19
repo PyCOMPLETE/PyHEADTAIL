@@ -40,26 +40,31 @@ class Aperture(Element, metaclass=ABCMeta):
         currently cached slice_sets of the beam are cleaned since losses
         change its (longitudinal) state.
         '''
-        alive = self.tag_lost_particles(beam)
+        bunch_list = beam.split_to_views()
 
-        if not pm.all(alive):
-            # check whether all particles are lost, it's not safe to call
-            # the cython version of relocate_all_particles in this case
-            if not pm.any(alive):
-                self.warns('ALL particles were lost')
-                n_alive = 0
-            else:
-                # Move lost particles to the end of the beam.u arrays.
-                n_alive = self.relocate_lost_particles(beam, alive)
-            # Update beam.u arrays, i.e. remove lost particles.
-            beam.macroparticlenumber = n_alive
-            beam.x = beam.x[:n_alive]
-            beam.y = beam.y[:n_alive]
-            beam.z = beam.z[:n_alive]
-            beam.xp = beam.xp[:n_alive]
-            beam.yp = beam.yp[:n_alive]
-            beam.dp = beam.dp[:n_alive]
-            beam.id = beam.id[:n_alive]
+        for b in bunch_list:
+
+            alive = self.tag_lost_particles(b)
+
+            if not pm.all(alive):
+                # check whether all particles are lost, it's not safe to call
+                # the cython version of relocate_all_particles in this case
+                if not pm.any(alive):
+                    self.warns('ALL particles were lost')
+                    n_alive = 0
+                else:
+                    # Move lost particles to the end of the beam.u arrays.
+                    n_alive = self.relocate_lost_particles(b, alive)
+                # Update beam.u arrays, i.e. remove lost particles.
+                b.macroparticlenumber = n_alive
+                b.x = b.x[:n_alive]
+                b.y = b.y[:n_alive]
+                b.z = b.z[:n_alive]
+                b.xp = b.xp[:n_alive]
+                b.yp = b.yp[:n_alive]
+                b.dp = b.dp[:n_alive]
+                b.id = b.id[:n_alive]
+                b.bucket_id = b.bucket_id[:n_alive]
 
     @abstractmethod
     def tag_lost_particles(self, beam):

@@ -147,53 +147,59 @@ class TransverseSegmentMap(Element):
         # Calculate phase advance for this segment (betatron motion in
         # this segment and incoherent tune shifts introduced by detuning
         # effects).
-        dphi_x = self.dQ_x
-        dphi_y = self.dQ_y
 
-        dphi_is_array = False
 
-        for element in self.segment_detuners:
-            detune_x, detune_y = element.detune(beam)
-            dphi_x += detune_x
-            dphi_y += detune_y
-            dphi_is_array = True
+        bunch_list = beam.split_to_views()
 
-        dphi_x *= 2.*np.pi
-        dphi_y *= 2.*np.pi
+        for i, b in enumerate(bunch_list):
 
-        # needs to be pm.cos, cos alone not possible:
-        # the change in the pm namespace has to be visible here
-        # --> use of named vars better style anyway
-        # another problem is that dphi_x can be either a scalar (no detuning)
-        # or an array (with detuning): somehow discriminate between the two
-        # bc. cumath.cos() can't handle scalars. For now simply put an if/else,
-        # think about better solutions
-        if dphi_is_array:
-            s_dphi_x, c_dphi_x = pm.sincos(pm.atleast_1d(dphi_x))
-            s_dphi_y, c_dphi_y = pm.sincos(pm.atleast_1d(dphi_y))
-            # c_dphi_x = pm.cos(dphi_x)
-            # c_dphi_y = pm.cos(dphi_y)
-            # s_dphi_x = pm.sin(dphi_x)
-            # s_dphi_y = pm.sin(dphi_y)
-        else:
-            c_dphi_x = np.cos(dphi_x)
-            c_dphi_y = np.cos(dphi_y)
-            s_dphi_x = np.sin(dphi_x)
-            s_dphi_y = np.sin(dphi_y)
+            dphi_x = self.dQ_x
+            dphi_y = self.dQ_y
 
-        # Calculate the matrix M and transport the transverse phase
-        # spaces through the segment.
-        M00 = self.I[0, 0] * c_dphi_x + self.J[0, 0] * s_dphi_x
-        M01 = self.I[0, 1] * c_dphi_x + self.J[0, 1] * s_dphi_x
-        M10 = self.I[1, 0] * c_dphi_x + self.J[1, 0] * s_dphi_x
-        M11 = self.I[1, 1] * c_dphi_x + self.J[1, 1] * s_dphi_x
-        M22 = self.I[2, 2] * c_dphi_y + self.J[2, 2] * s_dphi_y
-        M23 = self.I[2, 3] * c_dphi_y + self.J[2, 3] * s_dphi_y
-        M32 = self.I[3, 2] * c_dphi_y + self.J[3, 2] * s_dphi_y
-        M33 = self.I[3, 3] * c_dphi_y + self.J[3, 3] * s_dphi_y
+            dphi_is_array = False
 
-        # bound to _track_with_dispersion or _track_without_dispersion
-        self._track(beam, M00, M01, M10, M11, M22, M23, M32, M33)
+            for element in self.segment_detuners:
+                detune_x, detune_y = element.detune(b)
+                dphi_x += detune_x
+                dphi_y += detune_y
+                dphi_is_array = True
+
+            dphi_x *= 2.*np.pi
+            dphi_y *= 2.*np.pi
+
+            # needs to be pm.cos, cos alone not possible:
+            # the change in the pm namespace has to be visible here
+            # --> use of named vars better style anyway
+            # another problem is that dphi_x can be either a scalar (no detuning)
+            # or an array (with detuning): somehow discriminate between the two
+            # bc. cumath.cos() can't handle scalars. For now simply put an if/else,
+            # think about better solutions
+            if dphi_is_array:
+                s_dphi_x, c_dphi_x = pm.sincos(pm.atleast_1d(dphi_x))
+                s_dphi_y, c_dphi_y = pm.sincos(pm.atleast_1d(dphi_y))
+                # c_dphi_x = pm.cos(dphi_x)
+                # c_dphi_y = pm.cos(dphi_y)
+                # s_dphi_x = pm.sin(dphi_x)
+                # s_dphi_y = pm.sin(dphi_y)
+            else:
+                c_dphi_x = np.cos(dphi_x)
+                c_dphi_y = np.cos(dphi_y)
+                s_dphi_x = np.sin(dphi_x)
+                s_dphi_y = np.sin(dphi_y)
+
+            # Calculate the matrix M and transport the transverse phase
+            # spaces through the segment.
+            M00 = self.I[0, 0] * c_dphi_x + self.J[0, 0] * s_dphi_x
+            M01 = self.I[0, 1] * c_dphi_x + self.J[0, 1] * s_dphi_x
+            M10 = self.I[1, 0] * c_dphi_x + self.J[1, 0] * s_dphi_x
+            M11 = self.I[1, 1] * c_dphi_x + self.J[1, 1] * s_dphi_x
+            M22 = self.I[2, 2] * c_dphi_y + self.J[2, 2] * s_dphi_y
+            M23 = self.I[2, 3] * c_dphi_y + self.J[2, 3] * s_dphi_y
+            M32 = self.I[3, 2] * c_dphi_y + self.J[3, 2] * s_dphi_y
+            M33 = self.I[3, 3] * c_dphi_y + self.J[3, 3] * s_dphi_y
+
+            # bound to _track_with_dispersion or _track_without_dispersion
+            self._track(b, M00, M01, M10, M11, M22, M23, M32, M33)
 
 
 class TransverseMap(Printing):
