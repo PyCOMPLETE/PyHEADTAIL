@@ -217,7 +217,7 @@ class ParticlesView(Printing):
         '''Return a dictionary containing the coordinate and conjugate
         momentum arrays.
         '''
-        return {coord: getattr(self, np.copy('_'+coord)) for coord in self.coords_n_momenta}
+        return {coord: np.copy(getattr(self, '_'+str(coord))) for coord in self.coords_n_momenta}
 
     def get_slices(self, slicer, *args, **kwargs):
         '''For the given Slicer, the last SliceSet is returned.
