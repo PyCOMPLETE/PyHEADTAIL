@@ -76,8 +76,8 @@ def test_synchrotron_vs_segments():
     Qp_x = -5.0
     Qp_y = 0.0
     i_oct = 15.
-    detx_x = 1.4e5 * i_oct / 550.0
-    detx_y = -1.0e5 * i_oct / 550.0
+    det_xx = 1.4e5 * i_oct / 550.0
+    det_xy = -1.0e5 * i_oct / 550.0
 
     # Create particles
     particles = generate_Gaussian6DTwiss(
@@ -104,8 +104,8 @@ def test_synchrotron_vs_segments():
     chromatic_detuner = ChromaticitySegment(dQp_x=Qp_x, dQp_y=Qp_y)
 
     transverse_detuner = AmplitudeDetuningSegment(
-        dapp_x=detx_x * p0, dapp_y=detx_x * p0,
-        dapp_xy=detx_y * p0, dapp_yx=detx_y * p0,
+        dapp_x=det_xx * p0, dapp_y=det_xx * p0,
+        dapp_xy=det_xy * p0, dapp_yx=det_xy * p0,
         alpha_x=0.0, beta_x=beta_x,
         alpha_y=0.0, beta_y=beta_y,
     )
@@ -127,8 +127,8 @@ def test_synchrotron_vs_segments():
                           alpha_x=0.0, beta_x=beta_x, D_x=0.0,
                           alpha_y=0.0, beta_y=beta_y, D_y=0.0,
                           accQ_x=Q_x, accQ_y=Q_y, Qp_x=Qp_x, Qp_y=Qp_y,
-                          app_x=detx_x * p0, app_y=detx_x * p0,
-                          app_xy=detx_y * p0,
+                          app_x=det_xx * p0, app_y=det_xx * p0,
+                          app_xy=det_xy * p0,
                           alpha_mom_compaction=alpha_mom,
                           longitudinal_mode='linear', Q_s=Q_s,
                           dphi_RF=0.0, p_increment=0.0, p0=p0,
