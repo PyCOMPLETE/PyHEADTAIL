@@ -355,8 +355,12 @@ class WakeTable(WakeSource):
         convert_to_V_per_C = 1e12
 
         time = convert_to_s * self.wake_table['time']
-        wake_strength = -convert_to_V_per_C * self.wake_table['longitudinal']
-        interpolation_function = interp1d(time, wake_strength)
+        # Sign is chosen such that a positive wake corresponds to energy
+        # loss (giadarol, 6 July 2024)
+        wake_strength = convert_to_V_per_C * self.wake_table['longitudinal']
+        interpolation_function = interp1d(time, wake_strength,
+                                          bounds_error=False,
+                                          fill_value=0.)
 
         def wake(dt, *args, **kwargs):
             wake_interpolated = interpolation_function(-dt)
