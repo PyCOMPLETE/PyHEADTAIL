@@ -17,7 +17,7 @@ else
 endif
 
 errfff:
-	f2py -c PyHEADTAIL/general/errfff.f -m errfff
+	f2py -c --backend meson PyHEADTAIL/general/errfff.f -m errfff
 	mv errfff*.so PyHEADTAIL/general/
 
 clean:
