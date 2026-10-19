@@ -260,7 +260,7 @@ class StationaryDistribution(object):
         return psi / norm
 
 class ThermalDistribution(StationaryDistribution):
-    '''Thermal Boltzmann distribution \psi ~ \exp(-H/H0).
+    '''Thermal Boltzmann distribution \\psi ~ \\exp(-H/H0).
     For a quadratic harmonic oscillator Hamiltonian this gives the
     bi-Gaussian phase space distribution.
     '''
@@ -275,7 +275,7 @@ class ThermalDistribution(StationaryDistribution):
 
 class QGaussianDistribution(StationaryDistribution):
     '''Specific Tsallis q-Gaussian distribution for q=3/5 for now,
-    leading to \psi ~ (1 - H/H0)^2, this may be generalised.
+    leading to \\psi ~ (1 - H/H0)^2, this may be generalised.
     '''
     n = 2
 
@@ -291,7 +291,7 @@ class QGaussianDistribution(StationaryDistribution):
 class ParabolicDistribution(StationaryDistribution):
     '''The parabolic profile distribution is a specific case of the
     present implementation of the q-Gaussian distribution for n = 1/2,
-    \psi ~ \sqrt(1 - H/H0).
+    \\psi ~ \\sqrt(1 - H/H0).
     For a quadratic harmonic oscillator Hamiltonian this distribution
     provides a parabolic line density.
     '''
@@ -305,7 +305,7 @@ class ParabolicDistribution(StationaryDistribution):
 
 class WaterbagDistribution(StationaryDistribution):
     '''The waterbag distribution has a constant Hamiltonian distribution
-    until a cutoff, \psi ~ \Theta(H - H0) with \Theta the Heaviside
+    until a cutoff, \\psi ~ \\Theta(H - H0) with \\Theta the Heaviside
     step function.
     '''
     def _psi(self, H):

@@ -38,9 +38,9 @@ class LongitudinalMap(Element, metaclass=ABCMeta):
     Any derived objects will access self.eta(delta, gamma).
 
     Note: the momentum compaction factors are defined by the change of radius
-    \Delta R / R0 = \sum_i \\alpha_i * \delta^(i + 1)
+    \\Delta R / R0 = \\sum_i \\alpha_i * \\delta^(i + 1)
     hence yielding expressions for the higher slippage factor orders
-    \Delta w / w0 = \sum_j  \eta_j  * \delta^(i + 1)
+    \\Delta w / w0 = \\sum_j  \\eta_j  * \\delta^(i + 1)
     (for the revolution frequency w)
     """
 
@@ -62,8 +62,8 @@ class LongitudinalMap(Element, metaclass=ABCMeta):
     def eta(self, dp, gamma):
         """
         Depending on the number of entries in self.alpha_array the
-        according order of \eta = \sum_i \eta_i * \delta^i where
-        \delta = \Delta p / p0 will be included in this gathering function.
+        according order of \\eta = \\sum_i \\eta_i * \\delta^i where
+        \\delta = \\Delta p / p0 will be included in this gathering function.
 
         Note: Please implement higher slippage factor orders as static methods
         with name _eta<N> where <N> is the order of delta in eta(delta)
@@ -92,10 +92,10 @@ class Drift(LongitudinalMap):
     it is usually neglected. [Otherwise it may continuously be
     adapted by the user according to the total momentum increment.]
     If it is not neglected, the beta factor ratio would yield
-    (\beta + \Delta \beta) / \beta =
-                        = 1 - \Delta \gamma / (\beta^2 * \gamma^2)
-    resp.               = 1 - p_increment / (\gamma^3 * p0)
-    since p_increment = \gamma * m * c / \beta * \Delta gamma .
+    (\beta + \\Delta \beta) / \beta =
+                        = 1 - \\Delta \\gamma / (\beta^2 * \\gamma^2)
+    resp.               = 1 - p_increment / (\\gamma^3 * p0)
+    since p_increment = \\gamma * m * c / \beta * \\Delta gamma .
     """
 
     def __init__(self, alpha_array, length, shrinkage_p_increment=0,
@@ -671,12 +671,12 @@ class LinearMap(LongitudinalOneTurnMap):
     Higher orders are manifestly neglected:
 
     .. math::
-    \eta(\delta = 0) = \sum_i \eta_i * \delta^i === \eta_0
+    \\eta(\\delta = 0) = \\sum_i \\eta_i * \\delta^i === \\eta_0
 
     where
 
     .. math::
-    \eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
+    \\eta_0 := 1 / gamma_{tr}^2 - 1 / gamma^2
     '''
 
     def __init__(self, alpha_array, circumference, Q_s, D_x=0, D_y=0,

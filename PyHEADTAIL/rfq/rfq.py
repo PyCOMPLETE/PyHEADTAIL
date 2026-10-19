@@ -115,8 +115,8 @@ class RFQTransverseDetunerSegment(object):
         """ Calculates for each particle its betatron detuning
         dQ_x, dQ_y according to formulae taken from [1] (see
         above).
-            dQ_x = dapp_xz / p * \cos(omega / (beta c) z + phi_0)
-            dQ_y = dapp_yz / p * \cos(omega / (beta c) z + phi_0)
+            dQ_x = dapp_xz / p * \\cos(omega / (beta c) z + phi_0)
+            dQ_y = dapp_yz / p * \\cos(omega / (beta c) z + phi_0)
         with
             dapp_xz = beta_x_RFQ  * v_2 * e / (2 Pi * omega)
             dapp_yz = -beta_y_RFQ  * v_2 * e / (2 Pi * omega)
@@ -165,9 +165,9 @@ class RFQTransverseKick(RFQKick):
         """The formula that describes the transverse kick experienced
         by an ultra-relativistic particle traversing the RFQ
         longitudinally is based on the thin-lens approximation
-            \Delta p_x = -x*(2 e v_2 / omega) *
+            \\Delta p_x = -x*(2 e v_2 / omega) *
                 cos(omega z / (beta c) + phi_0),
-            \Delta p_y =  y*(2 e v_2 / omega) *
+            \\Delta p_y =  y*(2 e v_2 / omega) *
                 cos(omega z / (beta c) + phi_0).
         """
         cos_term = (2. * e * self.v_2 / self.omega *
@@ -197,7 +197,7 @@ class RFQLongitudinalKick(RFQKick):
     def track(self, beam):
         """The formula used to describe the longitudinal kick is given
         by
-            \Delta p_z = -(x^2 - y^2) (e v_2 / (beta c)) *
+            \\Delta p_z = -(x^2 - y^2) (e v_2 / (beta c)) *
                 sin(omega z / (beta c) + phi_0).
         """
         sin_term = (e * self.v_2 / (beam.beta * c) *

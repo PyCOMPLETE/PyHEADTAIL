@@ -192,7 +192,7 @@ class MeshSliceSet(def_slicing.SliceSet):
     def lambda_prime_bins(self, sigma=1, smoothen_before=True,
                           smoothen_after=True):
         '''Return array of length (n_slices - 1) containing
-        the derivative of the line charge density \lambda
+        the derivative of the line charge density \\lambda
         w.r.t. the slice bins while smoothing via a Gaussian filter.
         (i.e. the smoothened derivative of the n_macroparticles array
         times the macroparticle charge.)

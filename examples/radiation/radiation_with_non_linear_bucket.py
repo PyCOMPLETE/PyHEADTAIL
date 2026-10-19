@@ -107,7 +107,7 @@ for i in range(n_turns):
         ax.set_xlim(0.02, 0.06)
         ax.set_xlabel('z', fontsize=size_font)
         ax.set_ylim(-1e-2, 1e-2)
-        ax.set_ylabel('$\delta$', fontsize=size_font, rotation = 0)
+        ax.set_ylabel('$\\delta$', fontsize=size_font, rotation = 0)
         ax.scatter(bunch.z, bunch.dp, s=8, color = 'b')
         ax.scatter(bunch.z[50], bunch.dp[50], s=8, color = 'r')
         ax.scatter(bunch.z[51], bunch.dp[51], s=8, color = 'w')
@@ -145,7 +145,7 @@ for i in range(n_turns):
                    lw=2, color = 'red')
         ax.plot(n_turns_vec, sigma_dp)
         ax.legend (loc=0, fontsize = 10)
-        ax.set_ylabel('$\sigma_{dp}$', fontsize=size_font)
+        ax.set_ylabel('$\\sigma_{dp}$', fontsize=size_font)
         ax.ticklabel_format(style='sci', scilimits=(0,0), axis='y', useOffset=False)
 
         plt.suptitle('Longitudinal phase space is sampled "opposite" to the kicks (half drift occurred).')

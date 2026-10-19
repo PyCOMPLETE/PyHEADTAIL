@@ -187,7 +187,7 @@ plt.axhline(epsx[-1], label=f'Evaluated {epsx[-1]:.2e} [s]\nERROR {epsx_error:.2
             lw=2, color = 'red', linestyle = '--')
 plt.legend (loc=0, fontsize = 10)
 plt.ticklabel_format(useOffset=False, style='sci', scilimits=(0, 0), axis='y')
-plt.ylabel('$\epsilon_x$ [m.rad]')
+plt.ylabel('$\\epsilon_x$ [m.rad]')
 plt.xlabel('Turn')
 
 plt.subplot(2, 3, 5)
@@ -198,7 +198,7 @@ plt.axhline(epsy[-1], label=f'Evaluated {epsy[-1]:.2e} [s]\nERROR {epsy_error:.2
             lw=2, color = 'red', linestyle = '--')
 plt.legend (loc=0, fontsize = 10)
 plt.ticklabel_format(useOffset=False, style='sci', scilimits=(0, 0), axis='y')
-plt.ylabel('$\epsilon_y$ [m.rad]')
+plt.ylabel('$\\epsilon_y$ [m.rad]')
 plt.xlabel('Turn')
 
 plt.subplot(2, 3, 6)
@@ -209,7 +209,7 @@ plt.axhline(sdp[-1], label=f'Evaluated {sdp[-1]:.2e} [s]\nERROR {sdp_error:.2f}%
             lw=2, color = 'red', linestyle = '--')
 plt.legend (loc=0, fontsize = 10)
 plt.ticklabel_format(useOffset=False, style='sci', scilimits=(0, 0), axis='y')
-plt.ylabel('$\sigma_{dp}$')
+plt.ylabel('$\\sigma_{dp}$')
 plt.xlabel('Turn')
 
 plt.show()

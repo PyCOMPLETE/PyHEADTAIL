@@ -44,7 +44,7 @@ class TransverseSegmentMap(Element):
         implemented) are given at the beginning s0 and at the end s1 of
         the corresponding segment. The dQ_{x,y} denote the betatron
         tune advance over the current segment (phase advance divided by
-        2 \pi). The SegmentDetuner objects present in this segment are
+        2 \\pi). The SegmentDetuner objects present in this segment are
         passed as a list via the keyword argument 'segment_detuners'.
         The matrices self.I and self.J are constant and are calculated
         only once at instantiation of the TransverseSegmentMap. """
@@ -232,7 +232,7 @@ class TransverseMap(Printing):
             and the last element must be equal to the accelerator
             circumference C.
           - accQ_{x,y} are arrays with the accumulating phase advance
-            in units of 2 \pi (i.e. mu_{x,y} / 2 \pi) at each segment
+            in units of 2 \\pi (i.e. mu_{x,y} / 2 \\pi) at each segment
             boundary. The respective last entry gives the betatron tune
             Q_{x,y} .
             Note: instead of arrays of length len(s) it is possible
