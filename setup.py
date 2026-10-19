@@ -73,6 +73,7 @@ setup(
     maintainer_email='Adrian.Oeftiger@cern.ch',
     packages=find_packages(),
     long_description=long_description,
+    long_description_content_type='text/x-rst',
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(cy_ext, **cy_ext_options),
     include_package_data=True,  # install files matched by MANIFEST.in
